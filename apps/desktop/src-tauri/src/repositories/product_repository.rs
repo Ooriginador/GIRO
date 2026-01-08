@@ -17,7 +17,7 @@ impl<'a> ProductRepository<'a> {
     const PRODUCT_COLUMNS: &'static str = "id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, is_active, category_id, created_at, updated_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Product>> {
-        let query = format!("SELECT {} FROM Product WHERE id = ?", Self::PRODUCT_COLUMNS);
+        let query = format!("SELECT {} FROM products WHERE id = ?", Self::PRODUCT_COLUMNS);
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(id)
             .fetch_optional(self.pool)
@@ -26,7 +26,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_by_barcode(&self, barcode: &str) -> AppResult<Option<Product>> {
-        let query = format!("SELECT {} FROM Product WHERE barcode = ? AND is_active = 1", Self::PRODUCT_COLUMNS);
+        let query = format!("SELECT {} FROM products WHERE barcode = ? AND is_active = 1", Self::PRODUCT_COLUMNS);
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(barcode)
             .fetch_optional(self.pool)
@@ -35,7 +35,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_by_internal_code(&self, code: &str) -> AppResult<Option<Product>> {
-        let query = format!("SELECT {} FROM Product WHERE internal_code = ? AND is_active = 1", Self::PRODUCT_COLUMNS);
+        let query = format!("SELECT {} FROM products WHERE internal_code = ? AND is_active = 1", Self::PRODUCT_COLUMNS);
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(code)
             .fetch_optional(self.pool)
@@ -44,7 +44,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_all_active(&self) -> AppResult<Vec<Product>> {
-        let query = format!("SELECT {} FROM Product WHERE is_active = 1 ORDER BY name", Self::PRODUCT_COLUMNS);
+        let query = format!("SELECT {} FROM products WHERE is_active = 1 ORDER BY name", Self::PRODUCT_COLUMNS);
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -52,7 +52,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_by_category(&self, category_id: &str) -> AppResult<Vec<Product>> {
-        let query = format!("SELECT {} FROM Product WHERE category_id = ? AND is_active = 1 ORDER BY name", Self::PRODUCT_COLUMNS);
+        let query = format!("SELECT {} FROM products WHERE category_id = ? AND is_active = 1 ORDER BY name", Self::PRODUCT_COLUMNS);
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(category_id)
             .fetch_all(self.pool)
@@ -62,7 +62,7 @@ impl<'a> ProductRepository<'a> {
 
     pub async fn search(&self, term: &str, limit: i32) -> AppResult<Vec<Product>> {
         let search_pattern = format!("%{}%", term);
-        let query = format!("SELECT {} FROM Product WHERE is_active = 1 AND (name LIKE ? OR barcode LIKE ? OR internal_code LIKE ?) ORDER BY name LIMIT ?", Self::PRODUCT_COLUMNS);
+        let query = format!("SELECT {} FROM products WHERE is_active = 1 AND (name LIKE ? OR barcode LIKE ? OR internal_code LIKE ?) ORDER BY name LIMIT ?", Self::PRODUCT_COLUMNS);
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(&search_pattern)
             .bind(&search_pattern)
@@ -74,7 +74,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_with_filters(&self, filters: &ProductFilters) -> AppResult<Vec<Product>> {
-        let mut query = format!("SELECT {} FROM Product WHERE 1=1", Self::PRODUCT_COLUMNS);
+        let mut query = format!("SELECT {} FROM products WHERE 1=1", Self::PRODUCT_COLUMNS);
         let mut binds = Vec::new();
 
         if let Some(ref search) = filters.search {
@@ -120,7 +120,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_low_stock(&self) -> AppResult<Vec<Product>> {
-        let query = format!("SELECT {} FROM Product WHERE is_active = 1 AND current_stock <= min_stock AND current_stock > 0 ORDER BY current_stock ASC", Self::PRODUCT_COLUMNS);
+        let query = format!("SELECT {} FROM products WHERE is_active = 1 AND current_stock <= min_stock AND current_stock > 0 ORDER BY current_stock ASC", Self::PRODUCT_COLUMNS);
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -128,7 +128,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_out_of_stock(&self) -> AppResult<Vec<Product>> {
-        let query = format!("SELECT {} FROM Product WHERE is_active = 1 AND current_stock <= 0 ORDER BY name", Self::PRODUCT_COLUMNS);
+        let query = format!("SELECT {} FROM products WHERE is_active = 1 AND current_stock <= 0 ORDER BY name", Self::PRODUCT_COLUMNS);
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -136,7 +136,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn get_next_internal_code(&self) -> AppResult<String> {
-        let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM Product")
+        let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM products")
             .fetch_one(self.pool)
             .await?;
         Ok(format!("MRC-{:05}", result.0 + 1))
@@ -156,7 +156,7 @@ impl<'a> ProductRepository<'a> {
         let min_stock = data.min_stock.unwrap_or(0.0);
 
         sqlx::query(
-            "INSERT INTO Product (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, is_active, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)"
+            "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, is_active, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)"
         )
         .bind(&id)
         .bind(&data.barcode)
@@ -195,7 +195,7 @@ impl<'a> ProductRepository<'a> {
         let category_id = data.category_id.unwrap_or(existing.category_id);
 
         sqlx::query(
-            "UPDATE Product SET name = ?, barcode = ?, description = ?, unit = ?, is_weighted = ?, sale_price = ?, cost_price = ?, current_stock = ?, min_stock = ?, is_active = ?, category_id = ?, updated_at = ? WHERE id = ?"
+            "UPDATE products SET name = ?, barcode = ?, description = ?, unit = ?, is_weighted = ?, sale_price = ?, cost_price = ?, current_stock = ?, min_stock = ?, is_active = ?, category_id = ?, updated_at = ? WHERE id = ?"
         )
         .bind(&name)
         .bind(&barcode)
@@ -221,7 +221,7 @@ impl<'a> ProductRepository<'a> {
         let new_stock = existing.current_stock + delta;
         let now = chrono::Utc::now().to_rfc3339();
 
-        sqlx::query("UPDATE Product SET current_stock = ?, updated_at = ? WHERE id = ?")
+        sqlx::query("UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?")
             .bind(new_stock)
             .bind(&now)
             .bind(id)
@@ -233,7 +233,7 @@ impl<'a> ProductRepository<'a> {
 
     pub async fn soft_delete(&self, id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE Product SET is_active = 0, updated_at = ? WHERE id = ?")
+        sqlx::query("UPDATE products SET is_active = 0, updated_at = ? WHERE id = ?")
             .bind(&now)
             .bind(id)
             .execute(self.pool)
@@ -259,3 +259,7 @@ impl<'a> ProductRepository<'a> {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+#[path = "product_repository_test.rs"]
+mod product_repository_test;

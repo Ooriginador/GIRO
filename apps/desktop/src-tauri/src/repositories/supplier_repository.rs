@@ -17,7 +17,7 @@ impl<'a> SupplierRepository<'a> {
     const COLS: &'static str = "id, name, trade_name, cnpj, phone, email, address, city, state, notes, is_active, created_at, updated_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Supplier>> {
-        let query = format!("SELECT {} FROM Supplier WHERE id = ?", Self::COLS);
+        let query = format!("SELECT {} FROM suppliers WHERE id = ?", Self::COLS);
         let result = sqlx::query_as::<_, Supplier>(&query)
             .bind(id)
             .fetch_optional(self.pool)
@@ -26,7 +26,7 @@ impl<'a> SupplierRepository<'a> {
     }
 
     pub async fn find_by_cnpj(&self, cnpj: &str) -> AppResult<Option<Supplier>> {
-        let query = format!("SELECT {} FROM Supplier WHERE cnpj = ?", Self::COLS);
+        let query = format!("SELECT {} FROM suppliers WHERE cnpj = ?", Self::COLS);
         let result = sqlx::query_as::<_, Supplier>(&query)
             .bind(cnpj)
             .fetch_optional(self.pool)
@@ -35,7 +35,7 @@ impl<'a> SupplierRepository<'a> {
     }
 
     pub async fn find_all_active(&self) -> AppResult<Vec<Supplier>> {
-        let query = format!("SELECT {} FROM Supplier WHERE is_active = 1 ORDER BY name", Self::COLS);
+        let query = format!("SELECT {} FROM suppliers WHERE is_active = 1 ORDER BY name", Self::COLS);
         let result = sqlx::query_as::<_, Supplier>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -44,7 +44,7 @@ impl<'a> SupplierRepository<'a> {
 
     pub async fn search(&self, term: &str) -> AppResult<Vec<Supplier>> {
         let pattern = format!("%{}%", term);
-        let query = format!("SELECT {} FROM Supplier WHERE is_active = 1 AND (name LIKE ? OR trade_name LIKE ? OR cnpj LIKE ?) ORDER BY name", Self::COLS);
+        let query = format!("SELECT {} FROM suppliers WHERE is_active = 1 AND (name LIKE ? OR trade_name LIKE ? OR cnpj LIKE ?) ORDER BY name", Self::COLS);
         let result = sqlx::query_as::<_, Supplier>(&query)
             .bind(&pattern)
             .bind(&pattern)
@@ -59,7 +59,7 @@ impl<'a> SupplierRepository<'a> {
         let now = chrono::Utc::now().to_rfc3339();
 
         sqlx::query(
-            "INSERT INTO Supplier (id, name, trade_name, cnpj, phone, email, address, city, state, notes, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
+            "INSERT INTO suppliers (id, name, trade_name, cnpj, phone, email, address, city, state, notes, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
         )
         .bind(&id)
         .bind(&data.name)
@@ -95,7 +95,7 @@ impl<'a> SupplierRepository<'a> {
         let is_active = data.is_active.unwrap_or(existing.is_active);
 
         sqlx::query(
-            "UPDATE Supplier SET name = ?, trade_name = ?, cnpj = ?, phone = ?, email = ?, address = ?, city = ?, state = ?, notes = ?, is_active = ?, updated_at = ? WHERE id = ?"
+            "UPDATE suppliers SET name = ?, trade_name = ?, cnpj = ?, phone = ?, email = ?, address = ?, city = ?, state = ?, notes = ?, is_active = ?, updated_at = ? WHERE id = ?"
         )
         .bind(&name).bind(&trade_name).bind(&cnpj).bind(&phone).bind(&email)
         .bind(&address).bind(&city).bind(&state).bind(&notes).bind(is_active).bind(&now).bind(id)
@@ -107,10 +107,14 @@ impl<'a> SupplierRepository<'a> {
 
     pub async fn delete(&self, id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE Supplier SET is_active = 0, updated_at = ? WHERE id = ?")
+        sqlx::query("UPDATE suppliers SET is_active = 0, updated_at = ? WHERE id = ?")
             .bind(&now).bind(id)
             .execute(self.pool)
             .await?;
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "supplier_repository_test.rs"]
+mod supplier_repository_test;

@@ -138,7 +138,11 @@ export async function openCashSession(input: OpenCashSessionInput): Promise<Cash
 }
 
 export async function closeCashSession(input: CloseCashSessionInput): Promise<CashSession> {
-  return tauriInvoke<CashSession>('close_cash_session', { input });
+  return tauriInvoke<CashSession>('close_cash_session', {
+    id: input.id,
+    actual_balance: input.actualBalance,
+    notes: input.notes,
+  });
 }
 
 export async function addCashMovement(input: CashMovementInput): Promise<void> {

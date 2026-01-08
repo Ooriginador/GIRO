@@ -17,7 +17,7 @@ impl<'a> SettingsRepository<'a> {
     const COLS: &'static str = "id, key, value, type, group_name, description, updated_by_id, created_at, updated_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Setting>> {
-        let query = format!("SELECT {} FROM Setting WHERE id = ?", Self::COLS);
+        let query = format!("SELECT {} FROM settings WHERE id = ?", Self::COLS);
         let result = sqlx::query_as::<_, Setting>(&query)
             .bind(id)
             .fetch_optional(self.pool)
@@ -26,7 +26,7 @@ impl<'a> SettingsRepository<'a> {
     }
 
     pub async fn find_by_key(&self, key: &str) -> AppResult<Option<Setting>> {
-        let query = format!("SELECT {} FROM Setting WHERE key = ?", Self::COLS);
+        let query = format!("SELECT {} FROM settings WHERE key = ?", Self::COLS);
         let result = sqlx::query_as::<_, Setting>(&query)
             .bind(key)
             .fetch_optional(self.pool)
@@ -35,7 +35,7 @@ impl<'a> SettingsRepository<'a> {
     }
 
     pub async fn find_by_group(&self, group: &str) -> AppResult<Vec<Setting>> {
-        let query = format!("SELECT {} FROM Setting WHERE group_name = ? ORDER BY key", Self::COLS);
+        let query = format!("SELECT {} FROM settings WHERE group_name = ? ORDER BY key", Self::COLS);
         let result = sqlx::query_as::<_, Setting>(&query)
             .bind(group)
             .fetch_all(self.pool)
@@ -44,7 +44,7 @@ impl<'a> SettingsRepository<'a> {
     }
 
     pub async fn find_all(&self) -> AppResult<Vec<Setting>> {
-        let query = format!("SELECT {} FROM Setting ORDER BY group_name, key", Self::COLS);
+        let query = format!("SELECT {} FROM settings ORDER BY group_name, key", Self::COLS);
         let result = sqlx::query_as::<_, Setting>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -73,7 +73,7 @@ impl<'a> SettingsRepository<'a> {
         if let Some(setting) = existing {
             // Update
             let value_type = data.value_type.unwrap_or_else(|| setting.setting_type.clone());
-            sqlx::query("UPDATE Setting SET value = ?, type = ?, description = ?, updated_at = ? WHERE id = ?")
+            sqlx::query("UPDATE settings SET value = ?, type = ?, description = ?, updated_at = ? WHERE id = ?")
                 .bind(&data.value)
                 .bind(&value_type)
                 .bind(&data.description)
@@ -90,7 +90,7 @@ impl<'a> SettingsRepository<'a> {
         let group = data.group_name.unwrap_or_else(|| "general".to_string());
 
         sqlx::query(
-            "INSERT INTO Setting (id, key, value, type, group_name, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO settings (id, key, value, type, group_name, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         )
         .bind(&id)
         .bind(&data.key)
@@ -107,7 +107,7 @@ impl<'a> SettingsRepository<'a> {
     }
 
     pub async fn delete(&self, key: &str) -> AppResult<()> {
-        sqlx::query("DELETE FROM Setting WHERE key = ?")
+        sqlx::query("DELETE FROM settings WHERE key = ?")
             .bind(key)
             .execute(self.pool)
             .await?;

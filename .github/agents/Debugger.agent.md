@@ -2,16 +2,66 @@
 name: Debugger
 description: Diagnostica e resolve bugs complexos com análise de causa raiz
 tools:
-  - vscode
-  - execute
-  - read
-  - edit
-  - search
-  - filesystem/*
-  - github/*
-  - puppeteer/*
-  - sequential-thinking/*
-  - todo
+  [
+    'vscode',
+    'execute',
+    'read',
+    'edit',
+    'search',
+    'web',
+    'copilot-container-tools/*',
+    'filesystem/*',
+    'memory/*',
+    'postgres/*',
+    'prisma/*',
+    'puppeteer/*',
+    'sequential-thinking/*',
+    'github/*',
+    'agent',
+    'cweijan.vscode-database-client2/dbclient-getDatabases',
+    'cweijan.vscode-database-client2/dbclient-getTables',
+    'cweijan.vscode-database-client2/dbclient-executeQuery',
+    'github.vscode-pull-request-github/copilotCodingAgent',
+    'github.vscode-pull-request-github/issue_fetch',
+    'github.vscode-pull-request-github/suggest-fix',
+    'github.vscode-pull-request-github/searchSyntax',
+    'github.vscode-pull-request-github/doSearch',
+    'github.vscode-pull-request-github/renderIssues',
+    'github.vscode-pull-request-github/activePullRequest',
+    'github.vscode-pull-request-github/openPullRequest',
+    'ms-azuretools.vscode-azureresourcegroups/azureActivityLog',
+    'ms-mssql.mssql/mssql_show_schema',
+    'ms-mssql.mssql/mssql_connect',
+    'ms-mssql.mssql/mssql_disconnect',
+    'ms-mssql.mssql/mssql_list_servers',
+    'ms-mssql.mssql/mssql_list_databases',
+    'ms-mssql.mssql/mssql_get_connection_details',
+    'ms-mssql.mssql/mssql_change_database',
+    'ms-mssql.mssql/mssql_list_tables',
+    'ms-mssql.mssql/mssql_list_schemas',
+    'ms-mssql.mssql/mssql_list_views',
+    'ms-mssql.mssql/mssql_list_functions',
+    'ms-mssql.mssql/mssql_run_query',
+    'ms-python.python/getPythonEnvironmentInfo',
+    'ms-python.python/getPythonExecutableCommand',
+    'ms-python.python/installPythonPackage',
+    'ms-python.python/configurePythonEnvironment',
+    'ms-windows-ai-studio.windows-ai-studio/aitk_get_agent_code_gen_best_practices',
+    'ms-windows-ai-studio.windows-ai-studio/aitk_get_ai_model_guidance',
+    'ms-windows-ai-studio.windows-ai-studio/aitk_get_agent_model_code_sample',
+    'ms-windows-ai-studio.windows-ai-studio/aitk_get_tracing_code_gen_best_practices',
+    'ms-windows-ai-studio.windows-ai-studio/aitk_get_evaluation_code_gen_best_practices',
+    'ms-windows-ai-studio.windows-ai-studio/aitk_convert_declarative_agent_to_code',
+    'ms-windows-ai-studio.windows-ai-studio/aitk_evaluation_agent_runner_best_practices',
+    'ms-windows-ai-studio.windows-ai-studio/aitk_evaluation_planner',
+    'prisma.prisma/prisma-migrate-status',
+    'prisma.prisma/prisma-migrate-dev',
+    'prisma.prisma/prisma-migrate-reset',
+    'prisma.prisma/prisma-studio',
+    'prisma.prisma/prisma-platform-login',
+    'prisma.prisma/prisma-postgres-create-database',
+    'todo',
+  ]
 model: Claude Sonnet 4
 handoffs:
   - label: 🦀 Aplicar Fix Rust

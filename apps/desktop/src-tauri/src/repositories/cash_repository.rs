@@ -1,7 +1,7 @@
 //! Repositório de Caixa
 
 use crate::error::AppResult;
-use crate::models::{CashMovement, CashSession, CashSessionSummary, CreateCashMovement, CreateCashSession, PaymentMethod, PaymentMethodSummary};
+use crate::models::{CashMovement, CashSession, CashSessionSummary, CreateCashMovement, CreateCashSession, PaymentMethodSummary};
 use crate::repositories::new_id;
 use sqlx::{Row, SqlitePool};
 
@@ -18,7 +18,7 @@ impl<'a> CashRepository<'a> {
     const MOVEMENT_COLS: &'static str = "id, session_id, type, amount, description, created_at";
 
     pub async fn find_session_by_id(&self, id: &str) -> AppResult<Option<CashSession>> {
-        let query = format!("SELECT {} FROM CashSession WHERE id = ?", Self::SESSION_COLS);
+        let query = format!("SELECT {} FROM cash_sessions WHERE id = ?", Self::SESSION_COLS);
         let result = sqlx::query_as::<_, CashSession>(&query)
             .bind(id)
             .fetch_optional(self.pool)
@@ -27,7 +27,7 @@ impl<'a> CashRepository<'a> {
     }
 
     pub async fn find_current_session(&self) -> AppResult<Option<CashSession>> {
-        let query = format!("SELECT {} FROM CashSession WHERE status = 'OPEN' ORDER BY opened_at DESC LIMIT 1", Self::SESSION_COLS);
+        let query = format!("SELECT {} FROM cash_sessions WHERE status = 'OPEN' ORDER BY opened_at DESC LIMIT 1", Self::SESSION_COLS);
         let result = sqlx::query_as::<_, CashSession>(&query)
             .fetch_optional(self.pool)
             .await?;
@@ -35,7 +35,7 @@ impl<'a> CashRepository<'a> {
     }
 
     pub async fn find_session_by_employee(&self, employee_id: &str) -> AppResult<Option<CashSession>> {
-        let query = format!("SELECT {} FROM CashSession WHERE employee_id = ? AND status = 'OPEN'", Self::SESSION_COLS);
+        let query = format!("SELECT {} FROM cash_sessions WHERE employee_id = ? AND status = 'OPEN'", Self::SESSION_COLS);
         let result = sqlx::query_as::<_, CashSession>(&query)
             .bind(employee_id)
             .fetch_optional(self.pool)
@@ -44,7 +44,7 @@ impl<'a> CashRepository<'a> {
     }
 
     pub async fn find_session_history(&self, limit: i32) -> AppResult<Vec<CashSession>> {
-        let query = format!("SELECT {} FROM CashSession ORDER BY opened_at DESC LIMIT ?", Self::SESSION_COLS);
+        let query = format!("SELECT {} FROM cash_sessions ORDER BY opened_at DESC LIMIT ?", Self::SESSION_COLS);
         let result = sqlx::query_as::<_, CashSession>(&query)
             .bind(limit)
             .fetch_all(self.pool)
@@ -53,7 +53,7 @@ impl<'a> CashRepository<'a> {
     }
 
     pub async fn find_movements_by_session(&self, session_id: &str) -> AppResult<Vec<CashMovement>> {
-        let query = format!("SELECT {} FROM CashMovement WHERE session_id = ? ORDER BY created_at", Self::MOVEMENT_COLS);
+        let query = format!("SELECT {} FROM cash_movements WHERE session_id = ? ORDER BY created_at", Self::MOVEMENT_COLS);
         let result = sqlx::query_as::<_, CashMovement>(&query)
             .bind(session_id)
             .fetch_all(self.pool)
@@ -71,7 +71,7 @@ impl<'a> CashRepository<'a> {
         let now = chrono::Utc::now().to_rfc3339();
 
         sqlx::query(
-            "INSERT INTO CashSession (id, employee_id, opened_at, opening_balance, status, notes, created_at, updated_at) VALUES (?, ?, ?, ?, 'OPEN', ?, ?, ?)"
+            "INSERT INTO cash_sessions (id, employee_id, opened_at, opening_balance, status, notes, created_at, updated_at) VALUES (?, ?, ?, ?, 'OPEN', ?, ?, ?)"
         )
         .bind(&id)
         .bind(&data.employee_id)
@@ -104,9 +104,9 @@ impl<'a> CashRepository<'a> {
         let sales_row = sqlx::query(
             r#"
             SELECT 
-                COALESCE(SUM(total), 0) as total_sales,
-                COALESCE(SUM(CASE WHEN status = 'CANCELED' THEN total ELSE 0 END), 0) as total_canceled
-            FROM Sale 
+                COALESCE(SUM(total), 0.0) as total_sales,
+                COALESCE(SUM(CASE WHEN status = 'CANCELED' THEN total ELSE 0 END), 0.0) as total_canceled
+            FROM sales 
             WHERE cash_session_id = ? AND status = 'COMPLETED'
             "#
         )
@@ -120,8 +120,8 @@ impl<'a> CashRepository<'a> {
         // 2. Get Sales by Payment Method
         let payment_rows = sqlx::query(
             r#"
-            SELECT payment_method, COALESCE(SUM(total), 0) as total, COUNT(*) as count
-            FROM Sale
+            SELECT payment_method, COALESCE(SUM(total), 0.0) as total, COUNT(*) as count
+            FROM sales
             WHERE cash_session_id = ? AND status = 'COMPLETED'
             GROUP BY payment_method
             "#
@@ -192,7 +192,7 @@ impl<'a> CashRepository<'a> {
         let now = chrono::Utc::now().to_rfc3339();
 
         sqlx::query(
-            "UPDATE CashSession SET closed_at = ?, expected_balance = ?, actual_balance = ?, difference = ?, status = 'CLOSED', notes = ?, updated_at = ? WHERE id = ?"
+            "UPDATE cash_sessions SET closed_at = ?, expected_balance = ?, actual_balance = ?, difference = ?, status = 'CLOSED', notes = ?, updated_at = ? WHERE id = ?"
         )
         .bind(&now)
         .bind(expected)
@@ -212,7 +212,7 @@ impl<'a> CashRepository<'a> {
         let now = chrono::Utc::now().to_rfc3339();
 
         sqlx::query(
-            "INSERT INTO CashMovement (id, session_id, type, amount, description, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+            "INSERT INTO cash_movements (id, session_id, type, amount, description, created_at) VALUES (?, ?, ?, ?, ?, ?)"
         )
         .bind(&id)
         .bind(&data.session_id)
@@ -223,7 +223,7 @@ impl<'a> CashRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        let query = format!("SELECT {} FROM CashMovement WHERE id = ?", Self::MOVEMENT_COLS);
+        let query = format!("SELECT {} FROM cash_movements WHERE id = ?", Self::MOVEMENT_COLS);
         let result = sqlx::query_as::<_, CashMovement>(&query)
             .bind(&id)
             .fetch_one(self.pool)
@@ -231,3 +231,7 @@ impl<'a> CashRepository<'a> {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+#[path = "cash_repository_test.rs"]
+mod cash_repository_test;

@@ -28,8 +28,10 @@ import {
   X,
 } from 'lucide-react';
 import { type FC, useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const PDVPage: FC = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -102,7 +104,7 @@ export const PDVPage: FC = () => {
         <AlertCircle className="h-16 w-16 text-warning" />
         <h2 className="text-2xl font-bold">Caixa Fechado</h2>
         <p className="text-muted-foreground">Abra o caixa para iniciar as vendas</p>
-        <Button size="lg" className="mt-4">
+        <Button size="lg" className="mt-4" onClick={() => navigate('/cash')}>
           Abrir Caixa
         </Button>
       </div>

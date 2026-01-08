@@ -98,16 +98,21 @@ export const EmployeesPage: FC = () => {
         });
         toast({ title: 'Funcionário atualizado com sucesso' });
       } else {
+        // Gera PIN aleatório de 4 dígitos
+        const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
         await createEmployee.mutateAsync({
           name: formName,
           email: formEmail,
           phone: formPhone,
           role: formRole,
           isActive: true,
-          // TODO: Generate or ask for PIN/Password
-          pin: '1234',
+          pin: randomPin,
         });
-        toast({ title: 'Funcionário criado com sucesso' });
+        toast({
+          title: 'Funcionário criado com sucesso',
+          description: `PIN gerado: ${randomPin}`,
+          duration: 10000, // 10 segundos para dar tempo de anotar
+        });
       }
       resetForm();
     } catch (error) {

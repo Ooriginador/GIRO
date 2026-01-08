@@ -16,7 +16,7 @@ impl<'a> CategoryRepository<'a> {
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Category>> {
         let result = sqlx::query_as::<_, Category>(
-            "SELECT id, name, description, color, icon, parent_id, sort_order, active, created_at, updated_at FROM Category WHERE id = ?"
+            "SELECT id, name, description, color, icon, parent_id, sort_order, is_active as active, created_at, updated_at FROM categories WHERE id = ?"
         )
         .bind(id)
         .fetch_optional(self.pool)
@@ -26,7 +26,7 @@ impl<'a> CategoryRepository<'a> {
 
     pub async fn find_all_active(&self) -> AppResult<Vec<Category>> {
         let result = sqlx::query_as::<_, Category>(
-            "SELECT id, name, description, color, icon, parent_id, sort_order, active, created_at, updated_at FROM Category WHERE active = 1 ORDER BY sort_order, name"
+            "SELECT id, name, description, color, icon, parent_id, sort_order, is_active as active, created_at, updated_at FROM categories WHERE is_active = 1 ORDER BY sort_order, name"
         )
         .fetch_all(self.pool)
         .await?;
@@ -39,7 +39,7 @@ impl<'a> CategoryRepository<'a> {
         
         for cat in categories {
             let count: (i64,) = sqlx::query_as(
-                "SELECT COUNT(*) FROM Product WHERE category_id = ? AND is_active = 1"
+                "SELECT COUNT(*) FROM products WHERE category_id = ? AND is_active = 1"
             )
             .bind(&cat.id)
             .fetch_one(self.pool)
@@ -54,12 +54,12 @@ impl<'a> CategoryRepository<'a> {
     }
 
     pub async fn find_paginated(&self, pagination: &Pagination) -> AppResult<PaginatedResult<Category>> {
-        let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM Category WHERE active = 1")
+        let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM categories WHERE is_active = 1")
             .fetch_one(self.pool)
             .await?;
 
         let data = sqlx::query_as::<_, Category>(
-            "SELECT id, name, description, color, icon, parent_id, sort_order, active, created_at, updated_at FROM Category WHERE active = 1 ORDER BY sort_order, name LIMIT ? OFFSET ?"
+            "SELECT id, name, description, color, icon, parent_id, sort_order, is_active as active, created_at, updated_at FROM categories WHERE is_active = 1 ORDER BY sort_order, name LIMIT ? OFFSET ?"
         )
         .bind(pagination.per_page)
         .bind(pagination.offset())
@@ -71,7 +71,7 @@ impl<'a> CategoryRepository<'a> {
 
     pub async fn find_children(&self, parent_id: &str) -> AppResult<Vec<Category>> {
         let result = sqlx::query_as::<_, Category>(
-            "SELECT id, name, description, color, icon, parent_id, sort_order, active, created_at, updated_at FROM Category WHERE parent_id = ? AND active = 1 ORDER BY sort_order, name"
+            "SELECT id, name, description, color, icon, parent_id, sort_order, is_active as active, created_at, updated_at FROM categories WHERE parent_id = ? AND is_active = 1 ORDER BY sort_order, name"
         )
         .bind(parent_id)
         .fetch_all(self.pool)
@@ -87,7 +87,7 @@ impl<'a> CategoryRepository<'a> {
         let icon = data.icon.unwrap_or_else(|| "package".to_string());
 
         sqlx::query(
-            "INSERT INTO Category (id, name, description, color, icon, parent_id, sort_order, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
+            "INSERT INTO categories (id, name, description, color, icon, parent_id, sort_order, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
         )
         .bind(&id)
         .bind(&data.name)
@@ -117,7 +117,7 @@ impl<'a> CategoryRepository<'a> {
         let active = data.active.unwrap_or(existing.active);
 
         sqlx::query(
-            "UPDATE Category SET name = ?, description = ?, color = ?, icon = ?, parent_id = ?, sort_order = ?, active = ?, updated_at = ? WHERE id = ?"
+            "UPDATE categories SET name = ?, description = ?, color = ?, icon = ?, parent_id = ?, sort_order = ?, is_active = ?, updated_at = ? WHERE id = ?"
         )
         .bind(&name)
         .bind(&description)
@@ -136,7 +136,7 @@ impl<'a> CategoryRepository<'a> {
 
     pub async fn delete(&self, id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE Category SET active = 0, updated_at = ? WHERE id = ?")
+        sqlx::query("UPDATE categories SET is_active = 0, updated_at = ? WHERE id = ?")
             .bind(&now)
             .bind(id)
             .execute(self.pool)
@@ -144,3 +144,7 @@ impl<'a> CategoryRepository<'a> {
         Ok(())
     }
 }
+
+#[path = "category_repository_test.rs"]
+#[cfg(test)]
+mod category_repository_test;

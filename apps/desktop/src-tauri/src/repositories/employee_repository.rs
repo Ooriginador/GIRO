@@ -18,7 +18,7 @@ impl<'a> EmployeeRepository<'a> {
     const COLS: &'static str = "id, name, cpf, phone, email, pin, password, role, is_active, created_at, updated_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Employee>> {
-        let query = format!("SELECT {} FROM Employee WHERE id = ?", Self::COLS);
+        let query = format!("SELECT {} FROM employees WHERE id = ?", Self::COLS);
         let result = sqlx::query_as::<_, Employee>(&query)
             .bind(id)
             .fetch_optional(self.pool)
@@ -27,7 +27,7 @@ impl<'a> EmployeeRepository<'a> {
     }
 
     pub async fn find_by_cpf(&self, cpf: &str) -> AppResult<Option<Employee>> {
-        let query = format!("SELECT {} FROM Employee WHERE cpf = ?", Self::COLS);
+        let query = format!("SELECT {} FROM employees WHERE cpf = ?", Self::COLS);
         let result = sqlx::query_as::<_, Employee>(&query)
             .bind(cpf)
             .fetch_optional(self.pool)
@@ -36,7 +36,7 @@ impl<'a> EmployeeRepository<'a> {
     }
 
     pub async fn find_by_pin(&self, pin: &str) -> AppResult<Option<Employee>> {
-        let query = format!("SELECT {} FROM Employee WHERE pin = ? AND is_active = 1", Self::COLS);
+        let query = format!("SELECT {} FROM employees WHERE pin = ? AND is_active = 1", Self::COLS);
         let result = sqlx::query_as::<_, Employee>(&query)
             .bind(pin)
             .fetch_optional(self.pool)
@@ -45,7 +45,7 @@ impl<'a> EmployeeRepository<'a> {
     }
 
     pub async fn find_all_active(&self) -> AppResult<Vec<Employee>> {
-        let query = format!("SELECT {} FROM Employee WHERE is_active = 1 ORDER BY name", Self::COLS);
+        let query = format!("SELECT {} FROM employees WHERE is_active = 1 ORDER BY name", Self::COLS);
         let result = sqlx::query_as::<_, Employee>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -67,7 +67,7 @@ impl<'a> EmployeeRepository<'a> {
         let password_hash = data.password.map(|password| hash_password(&password));
 
         sqlx::query(
-            "INSERT INTO Employee (id, name, cpf, phone, email, pin, password, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
+            "INSERT INTO employees (id, name, cpf, phone, email, pin, password, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
         )
         .bind(&id)
         .bind(&data.name)
@@ -105,7 +105,7 @@ impl<'a> EmployeeRepository<'a> {
         let is_active = data.is_active.unwrap_or(existing.is_active);
 
         sqlx::query(
-            "UPDATE Employee SET name = ?, cpf = ?, phone = ?, email = ?, pin = ?, password = ?, role = ?, is_active = ?, updated_at = ? WHERE id = ?"
+            "UPDATE employees SET name = ?, cpf = ?, phone = ?, email = ?, pin = ?, password = ?, role = ?, is_active = ?, updated_at = ? WHERE id = ?"
         )
         .bind(&name)
         .bind(&cpf)
@@ -125,7 +125,7 @@ impl<'a> EmployeeRepository<'a> {
 
     pub async fn deactivate(&self, id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE Employee SET is_active = 0, updated_at = ? WHERE id = ?")
+        sqlx::query("UPDATE employees SET is_active = 0, updated_at = ? WHERE id = ?")
             .bind(&now)
             .bind(id)
             .execute(self.pool)
@@ -156,3 +156,7 @@ fn hash_password(password: &str) -> String {
     hasher.update(password.as_bytes());
     format!("{:x}", hasher.finalize())
 }
+
+#[cfg(test)]
+#[path = "employee_repository_test.rs"]
+mod employee_repository_test;

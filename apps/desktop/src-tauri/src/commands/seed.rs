@@ -1,14 +1,13 @@
 use crate::error::AppResult;
 use crate::models::{
-    CreateProduct, CreateSale, CreateSaleItem, CreateSupplier, CreateCategory, PaymentMethod,
-    CreateStockMovement,
+    CreateProduct, CreateSaleItem, CreateSupplier, PaymentMethod,
 };
 use crate::repositories::{
     ProductRepository, SaleRepository, CashRepository, StockRepository,
     CategoryRepository, SupplierRepository, EmployeeRepository, new_id,
 };
 use crate::AppState;
-use chrono::{Duration, NaiveTime, TimeZone, Utc, Datelike, Timelike};
+use chrono::{Duration, NaiveTime, Utc};
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
 use tauri::State;
@@ -85,10 +84,10 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
     let product_repo = ProductRepository::new(pool);
     let category_repo = CategoryRepository::new(pool);
     let supplier_repo = SupplierRepository::new(pool);
-    let sale_repo = SaleRepository::new(pool);
-    let cash_repo = CashRepository::new(pool);
+    let _sale_repo = SaleRepository::new(pool);
+    let _cash_repo = CashRepository::new(pool);
     let _stock_repo = StockRepository::new(pool);
-    let emp_repo = EmployeeRepository::new(pool); // Added for context if needed
+    let _emp_repo = EmployeeRepository::new(pool); // Added for context if needed
 
     // 1. Clear Existing Data (Optional - usually dangerous, but requested)
     // We will skip this to avoid destroying dev work, assuming empty or test DB.
@@ -302,7 +301,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
         // We need to sum CASH sales for the drawer
         
         let cash_sales_row = sqlx::query_scalar::<_, f64>(
-            "SELECT COALESCE(SUM(total), 0) FROM Sale WHERE cash_session_id = ? AND payment_method = 'CASH'"
+            "SELECT COALESCE(SUM(total), 0) FROM sales WHERE cash_session_id = ? AND payment_method = 'CASH'"
         )
         .bind(&session_id)
         .fetch_one(pool)
@@ -321,7 +320,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
         .execute(pool)
         .await?;
 
-        current_date = current_date + Duration::days(1);
+        current_date += Duration::days(1);
     }
 
     Ok("Database seeded successfully with 5 months of data!".to_string())
