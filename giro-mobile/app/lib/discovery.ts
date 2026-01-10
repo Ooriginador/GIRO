@@ -3,7 +3,7 @@
  * Encontra o GIRO Desktop na rede local
  */
 
-import type { DiscoveredDesktop, DiscoveryOptions } from '@types/connection';
+import type { DiscoveredDesktop, DiscoveryOptions } from '@/types/connection';
 import Zeroconf from 'react-native-zeroconf';
 
 const DEFAULT_SERVICE_TYPE = '_giro._tcp.';

@@ -2,7 +2,7 @@
  * Store de produtos - cache local e busca
  */
 
-import type { Category, Product, StockMovement } from '@types/product';
+import type { Category, Product, StockMovement } from '@/types/product';
 import { create } from 'zustand';
 
 interface ScanHistoryItem {

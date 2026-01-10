@@ -11,15 +11,20 @@ test.describe('Gerenciamento de Produtos E2E', () => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    const pinInput = page.locator('input[type="password"]').first();
-    await pinInput.fill('1234');
+    // Login com PIN 1234 (Admin)
+    await page.locator('button:has-text("1")').first().click();
+    await page.locator('button:has-text("2")').first().click();
+    await page.locator('button:has-text("3")').first().click();
+    await page.locator('button:has-text("4")').first().click();
 
-    const loginButton = page.locator('button:has-text("Entrar")').first();
+    const loginButton = page.locator('button:has-text("Entrar")');
     await loginButton.click();
-    await page.waitForTimeout(2000);
+
+    // Aguardar navegação após login
+    await page.waitForURL(/\/(dashboard|products|pdv)/, { timeout: 5000 });
 
     await page.goto('/products');
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
   });
 
   test('deve listar produtos existentes', async ({ page }) => {

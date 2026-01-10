@@ -80,7 +80,7 @@ pub struct MetricsData {
 }
 
 /// Metrics sync payload (as passed from frontend/service)
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MetricsPayload {
     pub date: String,
     pub sales_total: f64,

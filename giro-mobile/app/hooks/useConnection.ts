@@ -4,7 +4,7 @@
 
 import { generateDeviceId } from '@lib/utils';
 import { useConnectionStore } from '@stores/connectionStore';
-import type { DiscoveredDesktop, NetworkInfo } from '@types/connection';
+import type { DiscoveredDesktop, NetworkInfo } from '@/types/connection';
 import * as Network from 'expo-network';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useDiscovery } from './useDiscovery';

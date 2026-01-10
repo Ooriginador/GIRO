@@ -2,7 +2,7 @@
  * Store de inventário - gerencia estado do inventário em andamento
  */
 
-import type { Inventory, InventoryItem, InventorySummary } from '@types/inventory';
+import type { Inventory, InventoryItem, InventorySummary } from '@/types/inventory';
 import { create } from 'zustand';
 
 interface InventoryStore {

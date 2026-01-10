@@ -10,12 +10,17 @@ export interface Product {
   description?: string;
   categoryId?: string;
   categoryName?: string;
+  category?: {
+    id: string;
+    name: string;
+  };
   unit: ProductUnit;
   salePrice: number;
   costPrice?: number;
   currentStock: number;
   minStock: number;
   maxStock?: number;
+  expiringLots?: ProductLot[];
   location?: string;
   isActive: boolean;
   createdAt: string;

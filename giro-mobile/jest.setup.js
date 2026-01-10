@@ -255,3 +255,16 @@ console.error = (...args) => {
 afterEach(() => {
   jest.clearAllMocks();
 });
+
+// =============================================================================
+// WORKLETS MOCK
+// =============================================================================
+
+jest.mock('react-native-worklets-core', () => ({
+  Worklets: {
+    createWorklet: jest.fn((f) => f),
+    createRunOnJS: jest.fn((f) => f),
+  },
+  useSharedValue: jest.fn((v) => ({ value: v })),
+  useWorkletCallback: jest.fn((f) => f),
+}));

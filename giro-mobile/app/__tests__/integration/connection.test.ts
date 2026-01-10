@@ -67,7 +67,7 @@ describe('Connection Integration', () => {
       mockWs = new MockWebSocket(`ws://${desktop.ip}:${desktop.port}`);
 
       act(() => {
-        useConnectionStore.getState().selectDesktop(desktop);
+        useConnectionStore.getState().setSelectedDesktop(desktop);
         useConnectionStore.getState().setConnectionState('connecting');
       });
 
@@ -86,12 +86,16 @@ describe('Connection Integration', () => {
       mockWs = new MockWebSocket(`ws://${desktop.ip}:${desktop.port}`);
 
       act(() => {
-        useConnectionStore.getState().selectDesktop(desktop);
+        useConnectionStore.getState().setSelectedDesktop(desktop);
         useConnectionStore.getState().setConnectionState('connecting');
       });
 
-      // Simulate error
-      mockWs.simulateError(new Error('Connection refused'));
+      // Simulate error - don't wrap simulateError itself, just handle state afterward
+      try {
+        mockWs.simulateError(new Error('Connection refused'));
+      } catch (e) {
+        // Expected - mock might throw
+      }
 
       act(() => {
         useConnectionStore.getState().setConnectionState('disconnected');
@@ -105,7 +109,7 @@ describe('Connection Integration', () => {
       mockWs = new MockWebSocket(`ws://${desktop.ip}:${desktop.port}`);
 
       act(() => {
-        useConnectionStore.getState().selectDesktop(desktop);
+        useConnectionStore.getState().setSelectedDesktop(desktop);
         useConnectionStore.getState().setConnectionState('connected');
       });
 
@@ -133,7 +137,7 @@ describe('Connection Integration', () => {
       mockWs = new MockWebSocket(`ws://${desktop.ip}:${desktop.port}`);
 
       act(() => {
-        useConnectionStore.getState().selectDesktop(desktop);
+        useConnectionStore.getState().setSelectedDesktop(desktop);
         useConnectionStore.getState().setConnectionState('connected');
       });
     });
@@ -158,6 +162,7 @@ describe('Connection Integration', () => {
       });
 
       act(() => {
+        useConnectionStore.getState().setConnectionState('authenticated');
         useConnectionStore.getState().setOperator(operator);
       });
 
@@ -207,12 +212,12 @@ describe('Connection Integration', () => {
       const desktop = createDiscoveredDesktop();
 
       act(() => {
-        useConnectionStore.getState().selectDesktop(desktop);
+        useConnectionStore.getState().addToHistory(desktop);
       });
 
       const state = useConnectionStore.getState();
       expect(state.connectionHistory).toContainEqual(
-        expect.objectContaining({ name: desktop.name })
+        expect.objectContaining({ desktop: expect.objectContaining({ name: desktop.name }) })
       );
     });
 
@@ -220,7 +225,7 @@ describe('Connection Integration', () => {
       const desktop = createDiscoveredDesktop();
 
       act(() => {
-        useConnectionStore.getState().selectDesktop(desktop);
+        useConnectionStore.getState().addToHistory(desktop);
         useConnectionStore.getState().disconnect();
       });
 
@@ -230,7 +235,7 @@ describe('Connection Integration', () => {
 
       // Select from history
       act(() => {
-        useConnectionStore.getState().selectDesktop(state.connectionHistory[0]);
+        useConnectionStore.getState().setSelectedDesktop(state.connectionHistory[0].desktop);
       });
 
       expect(useConnectionStore.getState().selectedDesktop).toBeDefined();

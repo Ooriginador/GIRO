@@ -8,6 +8,13 @@ import { Animated, Text, TouchableOpacity, View } from 'react-native';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
+interface ShowToastOptions {
+  message: string;
+  type?: ToastType;
+  duration?: number;
+  title?: string;
+}
+
 interface Toast {
   id: string;
   message: string;
@@ -16,7 +23,7 @@ interface Toast {
 }
 
 interface ToastContextValue {
-  showToast: (message: string, type?: ToastType, duration?: number) => void;
+  showToast: (messageOrOptions: string | ShowToastOptions, type?: ToastType, duration?: number) => void;
   success: (message: string) => void;
   error: (message: string) => void;
   warning: (message: string) => void;
@@ -121,9 +128,14 @@ interface ToastProviderProps {
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = useCallback((message: string, type: ToastType = 'info', duration?: number) => {
+  const showToast = useCallback((messageOrOptions: string | ShowToastOptions, type: ToastType = 'info', duration?: number) => {
     const id = Date.now().toString();
-    setToasts((prev) => [...prev, { id, message, type, duration }]);
+    if (typeof messageOrOptions === 'string') {
+      setToasts((prev) => [...prev, { id, message: messageOrOptions, type, duration }]);
+    } else {
+      const { message, type: optType, duration: optDuration } = messageOrOptions;
+      setToasts((prev) => [...prev, { id, message, type: optType || 'info', duration: optDuration }]);
+    }
   }, []);
 
   const dismissToast = useCallback((id: string) => {

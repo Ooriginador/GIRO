@@ -4,7 +4,7 @@
 
 import { discoveryService } from '@lib/discovery';
 import { useConnectionStore } from '@stores/connectionStore';
-import type { DiscoveredDesktop } from '@types/connection';
+import type { DiscoveredDesktop } from '@/types/connection';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseDiscoveryResult {

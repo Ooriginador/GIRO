@@ -10,7 +10,7 @@ import type {
   WSEventType,
   WSRequest,
   WSResponse,
-} from '@types/index';
+} from '@/types/index';
 
 const DEFAULT_RECONNECT_ATTEMPTS = 5;
 const DEFAULT_RECONNECT_DELAY = 1000;

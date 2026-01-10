@@ -11,6 +11,7 @@ const badgeVariants = cva('flex-row items-center justify-center rounded-full', {
   variants: {
     variant: {
       default: 'bg-primary-100',
+      secondary: 'bg-secondary-100',
       success: 'bg-success/10',
       warning: 'bg-warning/10',
       error: 'bg-error/10',

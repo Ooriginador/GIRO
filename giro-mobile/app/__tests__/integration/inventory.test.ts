@@ -24,7 +24,7 @@ describe('Inventory Integration', () => {
 
     // Setup connected state
     act(() => {
-      useConnectionStore.getState().selectDesktop(createDiscoveredDesktop());
+      useConnectionStore.getState().setSelectedDesktop(createDiscoveredDesktop());
       useConnectionStore.getState().setOperator(createOperator());
     });
 
@@ -65,7 +65,7 @@ describe('Inventory Integration', () => {
       });
 
       act(() => {
-        useInventoryStore.getState().startSession(session);
+        useInventoryStore.getState().setCurrentInventory(session);
       });
 
       const state = useInventoryStore.getState();
@@ -82,7 +82,7 @@ describe('Inventory Integration', () => {
       });
 
       act(() => {
-        useInventoryStore.getState().startSession(session);
+        useInventoryStore.getState().setCurrentInventory(session);
       });
 
       const state = useInventoryStore.getState();
@@ -93,7 +93,7 @@ describe('Inventory Integration', () => {
       const session = createInventorySession();
 
       act(() => {
-        useInventoryStore.getState().startSession(session);
+        useInventoryStore.getState().setCurrentInventory(session);
       });
 
       // Simulate finish request
@@ -124,7 +124,7 @@ describe('Inventory Integration', () => {
       });
 
       act(() => {
-        useInventoryStore.getState().startSession(session);
+        useInventoryStore.getState().setCurrentInventory(session);
       });
     });
 
@@ -178,7 +178,7 @@ describe('Inventory Integration', () => {
       });
 
       act(() => {
-        useInventoryStore.getState().startSession(session);
+        useInventoryStore.getState().setCurrentInventory(session);
       });
 
       const state = useInventoryStore.getState();
@@ -192,7 +192,7 @@ describe('Inventory Integration', () => {
       });
 
       act(() => {
-        useInventoryStore.getState().startSession(session);
+        useInventoryStore.getState().setCurrentInventory(session);
       });
 
       // Try to find item not in list
@@ -209,7 +209,7 @@ describe('Inventory Integration', () => {
       const session = createInventorySession();
 
       act(() => {
-        useInventoryStore.getState().startSession(session);
+        useInventoryStore.getState().setCurrentInventory(session);
         useInventoryStore.getState().countItem('1', 100);
       });
 

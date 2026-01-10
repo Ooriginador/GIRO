@@ -28,7 +28,9 @@ export interface InventoryItem {
   productId: string;
   productBarcode: string;
   productName: string;
+  unit?: string;
   expectedStock: number;
+  expectedQuantity?: number;
   countedQuantity: number | null;
   difference: number;
   status: InventoryItemStatus;
@@ -40,13 +42,20 @@ export type InventoryItemStatus = 'pending' | 'counted' | 'skipped';
 
 export interface InventorySummary {
   totalProducts: number;
+  total?: number;
   countedProducts: number;
+  counted?: number;
   pendingProducts: number;
+  pending?: number;
   productsWithDifference: number;
+  divergent?: number;
   totalPositiveDiff: number;
+  positiveAdjustments?: number;
   totalNegativeDiff: number;
+  negativeAdjustments?: number;
   netDifference: number;
   completionPercentage: number;
+  progress?: number;
 }
 
 export interface InventoryCount {

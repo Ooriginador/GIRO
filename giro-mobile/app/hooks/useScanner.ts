@@ -4,7 +4,7 @@
 
 import { useProductsStore } from '@stores/productsStore';
 import { useSettingsStore } from '@stores/settingsStore';
-import type { Product } from '@types/product';
+import type { Product } from '@/types/product';
 import { Audio } from 'expo-av';
 import { Camera, CameraView } from 'expo-camera';
 import * as Haptics from 'expo-haptics';

@@ -30,12 +30,12 @@ describe('connectionStore', () => {
     });
   });
 
-  describe('selectDesktop', () => {
+  describe('setSelectedDesktop', () => {
     it('should set selected desktop', () => {
       const desktop = createDiscoveredDesktop();
 
       act(() => {
-        useConnectionStore.getState().selectDesktop(desktop);
+        useConnectionStore.getState().setSelectedDesktop(desktop);
       });
 
       const state = useConnectionStore.getState();
@@ -46,23 +46,25 @@ describe('connectionStore', () => {
       const desktop = createDiscoveredDesktop();
 
       act(() => {
-        useConnectionStore.getState().selectDesktop(desktop);
+        useConnectionStore.getState().addToHistory(desktop);
       });
 
       const state = useConnectionStore.getState();
-      expect(state.connectionHistory).toContainEqual(desktop);
+      expect(state.connectionHistory).toContainEqual(expect.objectContaining({ desktop }));
     });
 
     it('should not duplicate desktops in history', () => {
       const desktop = createDiscoveredDesktop();
 
       act(() => {
-        useConnectionStore.getState().selectDesktop(desktop);
-        useConnectionStore.getState().selectDesktop(desktop);
+        useConnectionStore.getState().addToHistory(desktop);
+        useConnectionStore.getState().addToHistory(desktop);
       });
 
       const state = useConnectionStore.getState();
-      const matchingDesktops = state.connectionHistory.filter((d) => d.name === desktop.name);
+      const matchingDesktops = state.connectionHistory.filter(
+        (h) => h.desktop.name === desktop.name
+      );
       expect(matchingDesktops).toHaveLength(1);
     });
   });
@@ -88,6 +90,7 @@ describe('connectionStore', () => {
       const operator = createOperator();
 
       act(() => {
+        useConnectionStore.getState().setConnectionState('authenticated');
         useConnectionStore.getState().setOperator(operator);
       });
 
@@ -118,7 +121,7 @@ describe('connectionStore', () => {
       const operator = createOperator();
 
       act(() => {
-        useConnectionStore.getState().selectDesktop(desktop);
+        useConnectionStore.getState().setSelectedDesktop(desktop);
         useConnectionStore.getState().setOperator(operator);
         useConnectionStore.getState().disconnect();
       });
@@ -133,7 +136,7 @@ describe('connectionStore', () => {
       const desktop = createDiscoveredDesktop();
 
       act(() => {
-        useConnectionStore.getState().selectDesktop(desktop);
+        useConnectionStore.getState().addToHistory(desktop);
         useConnectionStore.getState().disconnect();
       });
 

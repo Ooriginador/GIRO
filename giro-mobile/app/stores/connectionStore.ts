@@ -9,13 +9,13 @@ import type {
   ConnectionState,
   DiscoveredDesktop,
   Operator,
-} from '@types/connection';
+} from '@/types/connection';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 interface ConnectionStore {
   // State
-  state: ConnectionState;
+  connectionState: ConnectionState;
   selectedDesktop: DiscoveredDesktop | null;
   discoveredDesktops: DiscoveredDesktop[];
   operator: Operator | null;
@@ -25,7 +25,7 @@ interface ConnectionStore {
   lastError: string | null;
 
   // Actions
-  setState: (state: ConnectionState) => void;
+  setConnectionState: (state: ConnectionState) => void;
   setSelectedDesktop: (desktop: DiscoveredDesktop | null) => void;
   setDiscoveredDesktops: (desktops: DiscoveredDesktop[]) => void;
   addDiscoveredDesktop: (desktop: DiscoveredDesktop) => void;
@@ -43,10 +43,11 @@ interface ConnectionStore {
   // Reset
   reset: () => void;
   logout: () => void;
+  disconnect: () => void;
 }
 
 const initialState = {
-  state: 'disconnected' as ConnectionState,
+  connectionState: 'disconnected' as ConnectionState,
   selectedDesktop: null,
   discoveredDesktops: [],
   operator: null,
@@ -62,7 +63,7 @@ export const useConnectionStore = create<ConnectionStore>()(
       ...initialState,
 
       // Actions
-      setState: (state) => set({ state }),
+      setConnectionState: (state) => set({ connectionState: state }),
 
       setSelectedDesktop: (desktop) => set({ selectedDesktop: desktop }),
 
@@ -128,12 +129,12 @@ export const useConnectionStore = create<ConnectionStore>()(
 
       // Computed
       isConnected: () => {
-        const state = get().state;
+        const state = get().connectionState;
         return state === 'connected' || state === 'authenticated';
       },
 
       isAuthenticated: () => {
-        return get().state === 'authenticated';
+        return get().connectionState === 'authenticated';
       },
 
       // Reset
@@ -141,9 +142,17 @@ export const useConnectionStore = create<ConnectionStore>()(
 
       logout: () =>
         set({
-          state: 'connected',
+          connectionState: 'connected',
           operator: null,
           token: null,
+        }),
+
+      disconnect: () =>
+        set({
+          connectionState: 'disconnected',
+          operator: null,
+          token: null,
+          selectedDesktop: null,
         }),
     }),
     {

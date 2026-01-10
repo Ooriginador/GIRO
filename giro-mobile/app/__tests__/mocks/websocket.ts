@@ -53,6 +53,8 @@ export class MockWebSocket extends EventEmitter {
 
   // Simulate connection error
   simulateError(error: Error): void {
+    // Don't throw, just emit error event
+    this.readyState = this.CLOSED;
     this.emit('error', error);
   }
 

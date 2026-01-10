@@ -3,7 +3,7 @@
  */
 
 import { useInventoryStore } from '@stores/inventoryStore';
-import type { Inventory, InventoryItem, InventoryScope, InventorySummary } from '@types/inventory';
+import type { Inventory, InventoryItem, InventoryScope, InventorySummary } from '@/types/inventory';
 import type {
   InventoryCountPayload,
   InventoryCountResponse,
@@ -11,7 +11,7 @@ import type {
   InventoryFinishResponse,
   InventoryStartPayload,
   InventoryStartResponse,
-} from '@types/message';
+} from '@/types/message';
 import { useCallback, useState } from 'react';
 import { useWebSocket } from './useWebSocket';
 

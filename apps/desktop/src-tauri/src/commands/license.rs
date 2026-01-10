@@ -3,7 +3,7 @@
 //! Tauri commands for license management
 
 use tauri::State;
-use crate::license::{LicenseClient, MetricsPayload};
+use crate::license::MetricsPayload;
 use crate::AppState;
 
 #[tauri::command]

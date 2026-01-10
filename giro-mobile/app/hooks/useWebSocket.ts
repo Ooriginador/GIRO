@@ -6,7 +6,7 @@ import { WS_PORT } from '@lib/constants';
 import { WebSocketClient, createWebSocketClient } from '@lib/websocket';
 import { useConnectionStore } from '@stores/connectionStore';
 import { useProductsStore } from '@stores/productsStore';
-import type { ConnectionState, DiscoveredDesktop } from '@types/connection';
+import type { ConnectionState, DiscoveredDesktop } from '@/types/connection';
 import type {
   AuthLoginPayload,
   AuthLoginResponse,
@@ -17,8 +17,8 @@ import type {
   WSActionType,
   WSEventType,
   WSResponse,
-} from '@types/message';
-import type { Product } from '@types/product';
+} from '@/types/message';
+import type { Product } from '@/types/product';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 interface UseWebSocketResult {
@@ -58,8 +58,8 @@ let wsClient: WebSocketClient | null = null;
 
 export function useWebSocket(): UseWebSocketResult {
   const {
-    state: connectionState,
-    setState,
+    connectionState,
+    setConnectionState,
     selectedDesktop,
     setSelectedDesktop,
     setToken,
@@ -93,7 +93,7 @@ export function useWebSocket(): UseWebSocketResult {
 
     const unsubState = wsClient.onStateChange((newState) => {
       if (isMountedRef.current) {
-        setState(newState);
+        setConnectionState(newState);
       }
     });
 
@@ -101,13 +101,13 @@ export function useWebSocket(): UseWebSocketResult {
       unsubStock();
       unsubState();
     };
-  }, [setState, updateProductStock]);
+  }, [setConnectionState, updateProductStock]);
 
   const connect = useCallback(
     async (desktop: DiscoveredDesktop) => {
       try {
         setLastError(null);
-        setState('connecting');
+        setConnectionState('connecting');
 
         const url = `ws://${desktop.ip}:${desktop.port || WS_PORT}`;
 
@@ -120,7 +120,7 @@ export function useWebSocket(): UseWebSocketResult {
         // Registrar handler de estado
         wsClient.onStateChange((newState) => {
           if (isMountedRef.current) {
-            setState(newState);
+            setConnectionState(newState);
           }
         });
 
@@ -128,14 +128,14 @@ export function useWebSocket(): UseWebSocketResult {
 
         setSelectedDesktop(desktop);
         addToHistory(desktop);
-        setState('connected');
+        setConnectionState('connected');
       } catch (error) {
-        setState('error');
+        setConnectionState('error');
         setLastError((error as Error).message);
         throw error;
       }
     },
-    [setState, setSelectedDesktop, addToHistory, setLastError]
+    [setConnectionState, setSelectedDesktop, addToHistory, setLastError]
   );
 
   const disconnect = useCallback(() => {
@@ -143,8 +143,8 @@ export function useWebSocket(): UseWebSocketResult {
     wsClient = null;
     setToken(null);
     setOperator(null);
-    setState('disconnected');
-  }, [setState, setToken, setOperator]);
+    setConnectionState('disconnected');
+  }, [setConnectionState, setToken, setOperator]);
 
   const reconnect = useCallback(async () => {
     if (selectedDesktop) {
@@ -153,10 +153,10 @@ export function useWebSocket(): UseWebSocketResult {
       // Re-autenticar se tinha token
       if (token) {
         wsClient?.setToken(token);
-        setState('authenticated');
+        setConnectionState('authenticated');
       }
     }
-  }, [selectedDesktop, connect, token, setState]);
+  }, [selectedDesktop, connect, token, setConnectionState]);
 
   const login = useCallback(
     async (pin: string): Promise<AuthLoginResponse> => {
@@ -182,11 +182,11 @@ export function useWebSocket(): UseWebSocketResult {
       setToken(response.data.token);
       setOperator(response.data.employee);
       wsClient.setToken(response.data.token);
-      setState('authenticated');
+      setConnectionState('authenticated');
 
       return response.data;
     },
-    [deviceId, setToken, setOperator, setState]
+    [deviceId, setToken, setOperator, setConnectionState]
   );
 
   const logout = useCallback(async () => {
@@ -197,8 +197,8 @@ export function useWebSocket(): UseWebSocketResult {
     setToken(null);
     setOperator(null);
     wsClient?.setToken(null);
-    setState('connected');
-  }, [setToken, setOperator, setState]);
+    setConnectionState('connected');
+  }, [setToken, setOperator, setConnectionState]);
 
   const getProduct = useCallback(
     async (barcode: string): Promise<Product | null> => {
