@@ -47,6 +47,14 @@ async fn create_app_state(settings: Settings) -> AppResult<AppState> {
 
     tracing::info!("✅ Database connected");
 
+    // Run migrations
+    tracing::info!("🔄 Running migrations...");
+    sqlx::migrate!("./migrations")
+        .run(&db)
+        .await
+        .map_err(|e| errors::AppError::Internal(format!("Migrations failed: {}", e)))?;
+    tracing::info!("✅ Migrations applied successfully");
+
     // Redis connection
     let redis_client = redis::Client::open(settings.redis.url.as_str())
         .map_err(|e| errors::AppError::Internal(format!("Redis client error: {}", e)))?;

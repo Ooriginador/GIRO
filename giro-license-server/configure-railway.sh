@@ -33,40 +33,40 @@ echo ""
 # Gerar secrets
 echo -e "${YELLOW}Gerando APP_SECRET...${NC}"
 APP_SECRET=$(openssl rand -base64 32)
-railway variables --set "APP_SECRET=$APP_SECRET"
+railway variables --set "APP_SECRET=$APP_SECRET" --skip-deploys
 echo -e "${GREEN}✅ APP_SECRET configurado${NC}"
 
 echo -e "${YELLOW}Gerando JWT_SECRET...${NC}"
 JWT_SECRET=$(openssl rand -base64 32)
-railway variables --set "JWT_SECRET=$JWT_SECRET"
+railway variables --set "JWT_SECRET=$JWT_SECRET" --skip-deploys
 echo -e "${GREEN}✅ JWT_SECRET configurado${NC}"
 
 # Configurações básicas
 echo ""
 echo -e "${YELLOW}Configurando variáveis de aplicação...${NC}"
 
-railway variables --set "APP_ENV=production"
+railway variables --set "APP_ENV=production" --skip-deploys
 echo -e "${GREEN}✅ APP_ENV=production${NC}"
 
-railway variables --set "APP_PORT=3000"
+railway variables --set "APP_PORT=3000" --skip-deploys
 echo -e "${GREEN}✅ APP_PORT=3000${NC}"
 
-railway variables --set "APP_HOST=0.0.0.0"
+railway variables --set "APP_HOST=0.0.0.0" --skip-deploys
 echo -e "${GREEN}✅ APP_HOST=0.0.0.0${NC}"
 
-railway variables --set "JWT_EXPIRATION=86400"
+railway variables --set "JWT_EXPIRATION=86400" --skip-deploys
 echo -e "${GREEN}✅ JWT_EXPIRATION=86400${NC}"
 
-railway variables --set "RUST_LOG=info,giro_license_server=debug"
+railway variables --set "RUST_LOG=info,giro_license_server=debug" --skip-deploys
 echo -e "${GREEN}✅ RUST_LOG configurado${NC}"
 
-railway variables --set "RATE_LIMIT_REQUESTS=100"
+railway variables --set "RATE_LIMIT_REQUESTS=100" --skip-deploys
 echo -e "${GREEN}✅ RATE_LIMIT_REQUESTS=100${NC}"
 
-railway variables --set "RATE_LIMIT_WINDOW=60"
+railway variables --set "RATE_LIMIT_WINDOW=60" --skip-deploys
 echo -e "${GREEN}✅ RATE_LIMIT_WINDOW=60${NC}"
 
-railway variables --set "DATABASE_MAX_CONNECTIONS=20"
+railway variables --set "DATABASE_MAX_CONNECTIONS=20" --skip-deploys
 echo -e "${GREEN}✅ DATABASE_MAX_CONNECTIONS=20${NC}"
 
 echo ""

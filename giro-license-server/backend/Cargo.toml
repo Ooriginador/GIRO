@@ -32,6 +32,7 @@ sqlx = { version = "0.8", features = [
   "bigdecimal",
   "rust_decimal",
   "ipnetwork",
+  "migrate",
 ] }
 ipnetwork = "0.20"
 
