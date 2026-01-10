@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y   pkg-config   libssl-dev   && rm -rf /
 # Copy manifest (Cargo.lock is ignored in this repo, so don't require it)
 COPY backend/Cargo.toml ./Cargo.toml
 
+# Copy .sqlx cache for offline compilation
+COPY backend/.sqlx ./.sqlx
+
 # Create dummy main to cache dependencies
 RUN mkdir src &&   echo "fn main() {}" > src/main.rs &&   echo "pub fn lib() {}" > src/lib.rs
 
@@ -18,11 +21,11 @@ RUN cargo update home --precise 0.5.9
 # Build dependencies (this layer will be cached)
 RUN cargo build --release &&   rm -rf src target/release/deps/giro_license_server*
 
-# Copy source code
-COPY backend/. .
-
-# Build application
+# Copy source codewith offline mode (using .sqlx cache)
 ENV SQLX_OFFLINE=true
+
+# Build application (online mode - requires DATABASE_URL at build time)
+# Railway provides DATABASE_URL during build, so we can compile-check SQL queries
 RUN cargo build --release
 
 # Development Stage

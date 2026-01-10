@@ -239,15 +239,23 @@ CREATE INDEX idx_stock_movements_created ON stock_movements(created_at);
 -- ═══════════════════════════════════════════════════════════════════════════
 -- CONFIGURAÇÕES
 -- ═══════════════════════════════════════════════════════════════════════════
+-- NOTA: Schema atualizado em migration 002_fix_settings_schema.sql
 
 CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY NOT NULL,
+    id TEXT PRIMARY KEY NOT NULL,
+    key TEXT UNIQUE NOT NULL,
     value TEXT NOT NULL,
-    category TEXT NOT NULL DEFAULT 'general', -- general, printer, scale, pdv
+    type TEXT NOT NULL DEFAULT 'STRING',
+    group_name TEXT NOT NULL DEFAULT 'general',
+    description TEXT,
+    updated_by_id TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX idx_settings_category ON settings(category);
+CREATE INDEX idx_settings_group ON settings(group_name);
+CREATE INDEX idx_settings_key ON settings(key);
+CREATE INDEX idx_settings_updated ON settings(updated_at);
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- ALERTAS
