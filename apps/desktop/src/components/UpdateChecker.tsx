@@ -11,21 +11,17 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { check } from '@tauri-apps/plugin-updater';
-import { useEffect, useState } from 'react';
+import { check, Update } from '@tauri-apps/plugin-updater';
+import { useCallback, useEffect, useState } from 'react';
 
 export function UpdateChecker() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [updateInfo, setUpdateInfo] = useState<any>(null);
+  const [updateInfo, setUpdateInfo] = useState<Update | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const { toast } = useToast();
 
-  useEffect(() => {
-    checkForUpdates();
-  }, []);
-
-  async function checkForUpdates() {
+  const checkForUpdates = useCallback(async () => {
     try {
       const update = await check();
 
@@ -42,7 +38,11 @@ export function UpdateChecker() {
     } catch (error) {
       console.error('Erro ao verificar atualizações:', error);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    checkForUpdates();
+  }, [checkForUpdates]);
 
   async function downloadAndInstall() {
     if (!updateInfo) return;
@@ -51,7 +51,7 @@ export function UpdateChecker() {
     setDownloadProgress(0);
 
     try {
-      await updateInfo.downloadAndInstall((event: any) => {
+      await updateInfo.downloadAndInstall((event) => {
         switch (event.event) {
           case 'Started':
             setDownloadProgress(0);
@@ -60,10 +60,13 @@ export function UpdateChecker() {
               description: 'Baixando atualização...',
             });
             break;
-          case 'Progress':
-            const progress = (event.data.downloaded / event.data.contentLength) * 100;
+          case 'Progress': {
+            const total = event.data.contentLength ?? 0;
+            const current = event.data.downloaded;
+            const progress = total > 0 ? (current / total) * 100 : 0;
             setDownloadProgress(Math.round(progress));
             break;
+          }
           case 'Finished':
             setDownloadProgress(100);
             toast({
