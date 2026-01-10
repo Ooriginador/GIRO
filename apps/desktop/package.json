@@ -4,6 +4,9 @@
   "description": "GIRO - Sistema de Gestao Comercial | Desenvolvido por Arkheion",
   "private": true,
   "type": "module",
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -42,7 +45,7 @@
     "@tanstack/react-table": "^8.20.5",
     "@tauri-apps/api": "^2.1.1",
     "@tauri-apps/cli": "^2.9.6",
-    "@tauri-apps/plugin-dialog": "^2.0.3",
+    "@tauri-apps/plugin-dialog": "2.4.2",
     "@tauri-apps/plugin-fs": "^2.0.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

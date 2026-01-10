@@ -19,7 +19,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { seedDatabase, setSetting } from '@/lib/tauri';
+import { invoke, seedDatabase, setSetting } from '@/lib/tauri';
 import { useSettingsStore } from '@/stores';
 import {
   Bell,
@@ -31,6 +31,7 @@ import {
   Moon,
   Palette,
   Printer,
+  QrCode,
   RefreshCw,
   Save,
   Scale,
@@ -40,6 +41,36 @@ import {
   Volume2,
 } from 'lucide-react';
 import { useState, type FC } from 'react';
+
+type BackendPrinterModel = 'epson' | 'elgin' | 'bematech' | 'daruma' | 'generic';
+type BackendPrinterConnection = 'usb' | 'serial' | 'network';
+type BackendScaleProtocol = 'toledo' | 'filizola' | 'elgin' | 'urano' | 'generic';
+
+const mapPrinterModelToBackend = (model: string): BackendPrinterModel => {
+  const upper = model.toUpperCase();
+  if (upper.includes('ELGIN')) return 'elgin';
+  if (upper.includes('BEMATECH')) return 'bematech';
+  if (upper.includes('DARUMA')) return 'daruma';
+  if (upper.includes('EPSON')) return 'epson';
+  return 'generic';
+};
+
+const mapPrinterPortToConnection = (port: string): BackendPrinterConnection => {
+  const trimmed = port.trim();
+  if (!trimmed) return 'serial';
+  if (trimmed === 'USB') return 'usb';
+  if (trimmed.includes(':')) return 'network';
+  return 'serial';
+};
+
+const mapScaleModelToProtocol = (model: string): BackendScaleProtocol => {
+  const upper = model.toUpperCase();
+  if (upper.includes('TOLEDO')) return 'toledo';
+  if (upper.includes('FILIZOLA')) return 'filizola';
+  if (upper.includes('ELGIN')) return 'elgin';
+  if (upper.includes('URANO')) return 'urano';
+  return 'generic';
+};
 
 export const SettingsPage: FC = () => {
   const { theme, setTheme, printer, setPrinter, scale, setScale, company, setCompany } =
@@ -64,7 +95,149 @@ export const SettingsPage: FC = () => {
   const [scalePort, setScalePort] = useState(scale.port);
   const [scaleEnabled, setScaleEnabled] = useState(scale.enabled);
 
+  const [testQrSvg, setTestQrSvg] = useState<string>('');
+  const [testQrValue, setTestQrValue] = useState<string>('');
+
   // const [alertsEnabled, setAlertsEnabled] = useState(true); // Unused
+
+  const buildBackendPrinterConfig = () => {
+    const connection = mapPrinterPortToConnection(printerPort);
+
+    if (printerPort === 'LPT1') {
+      throw new Error('Porta LPT1 não suportada. Use COMx (Serial) ou USB (Linux raw).');
+    }
+
+    return {
+      enabled: printerEnabled,
+      model: mapPrinterModelToBackend(printerModel),
+      connection,
+      // Para USB, deixar vazio para o backend tentar /dev/usb/lp0 (Linux)
+      port: connection === 'usb' ? '' : printerPort,
+      paper_width: 48,
+      auto_cut: printer.autoCut ?? true,
+      open_drawer_on_sale: printer.openDrawer ?? true,
+    };
+  };
+
+  const buildBackendScaleConfig = () => {
+    return {
+      enabled: scaleEnabled,
+      protocol: mapScaleModelToProtocol(scaleModel),
+      port: scalePort,
+      baud_rate: scale.baudRate ?? 9600,
+      data_bits: 8,
+      parity: 'none',
+      stop_bits: 1,
+    };
+  };
+
+  const handleTestPrinter = async () => {
+    try {
+      if (!printerEnabled) {
+        toast({
+          title: 'Impressora desabilitada',
+          description: 'Habilite a impressora antes de testar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const config = buildBackendPrinterConfig();
+      await invoke('configure_printer', { config });
+      await invoke('test_printer');
+
+      toast({
+        title: 'Teste enviado',
+        description: 'Verifique se a impressora imprimiu a página de teste.',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao testar impressora.';
+      toast({
+        title: 'Erro no teste da impressora',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleTestScale = async () => {
+    try {
+      if (!scaleEnabled) {
+        toast({
+          title: 'Balança desabilitada',
+          description: 'Habilite a balança antes de testar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const config = buildBackendScaleConfig();
+      await invoke('configure_scale', { config });
+      await invoke('read_weight');
+
+      toast({
+        title: 'Leitura realizada',
+        description: 'Se a leitura apareceu sem erro, a conexão está OK.',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao testar balança.';
+      toast({
+        title: 'Erro no teste da balança',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePrintTestDocuments = async () => {
+    try {
+      if (!printerEnabled) {
+        toast({
+          title: 'Impressora desabilitada',
+          description: 'Habilite a impressora antes de imprimir testes.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const config = buildBackendPrinterConfig();
+      await invoke('configure_printer', { config });
+      await invoke('print_test_documents');
+
+      toast({
+        title: 'Testes enviados',
+        description: 'Nota/OS/Relatório de teste foram enviados para a impressora.',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao imprimir testes.';
+      toast({
+        title: 'Erro ao imprimir testes',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleGenerateTestQr = async () => {
+    try {
+      const value = `TESTE-QR:${Date.now()}`;
+      const svg = await invoke<string>('generate_qr_svg', { data: value });
+      setTestQrValue(value);
+      setTestQrSvg(svg);
+
+      toast({
+        title: 'QR gerado',
+        description: 'Aponte o leitor para a tela para testar a leitura.',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao gerar QR.';
+      toast({
+        title: 'Erro ao gerar QR',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -109,6 +282,18 @@ export const SettingsPage: FC = () => {
         setSetting('scale.model', scaleModel, 'string'),
         setSetting('scale.port', scalePort, 'string'),
       ]);
+
+      // Sincroniza configurações no estado de hardware (em memória)
+      try {
+        await invoke('configure_printer', { config: buildBackendPrinterConfig() });
+      } catch {
+        // Não bloquear o save por erro de hardware
+      }
+      try {
+        await invoke('configure_scale', { config: buildBackendScaleConfig() });
+      } catch {
+        // Não bloquear o save por erro de hardware
+      }
 
       toast({
         title: 'Configurações salvas',
@@ -359,10 +544,48 @@ export const SettingsPage: FC = () => {
                   </Select>
                 </div>
               </div>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={handleTestPrinter}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Testar Impressora
               </Button>
+
+              <Button variant="outline" className="w-full" onClick={handlePrintTestDocuments}>
+                <FileCode className="mr-2 h-4 w-4" />
+                Imprimir Documentos de Teste
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* QR Test */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <QrCode className="h-5 w-5" />
+                QR Code (Teste de Leitura)
+              </CardTitle>
+              <CardDescription>
+                Gere um QR na tela para validar o leitor (se suportar QR/2D)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button variant="outline" className="w-full" onClick={handleGenerateTestQr}>
+                <QrCode className="mr-2 h-4 w-4" />
+                Gerar QR de Teste
+              </Button>
+
+              {testQrSvg ? (
+                <div className="space-y-2">
+                  <div className="rounded-md border p-4 flex items-center justify-center">
+                    <div
+                      aria-label="QR Code de teste"
+                      dangerouslySetInnerHTML={{ __html: testQrSvg }}
+                    />
+                  </div>
+                  <div className="text-sm text-muted-foreground break-all">
+                    Valor: {testQrValue}
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -413,7 +636,7 @@ export const SettingsPage: FC = () => {
                   </Select>
                 </div>
               </div>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={handleTestScale}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Testar Balança
               </Button>

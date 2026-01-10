@@ -9,7 +9,9 @@
 
 use super::{HardwareError, HardwareResult};
 use serde::{Deserialize, Serialize};
+use std::fs::OpenOptions;
 use std::io::Write;
+use std::path::Path;
 use std::time::Duration;
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -306,6 +308,41 @@ impl ThermalPrinter {
             .map_err(HardwareError::IoError)?;
 
         port.flush().map_err(HardwareError::IoError)?;
+
+        Ok(())
+    }
+
+    /// Envia para a impressora via dispositivo USB (raw)
+    ///
+    /// Observação: isso funciona tipicamente em Linux via `/dev/usb/lp0`.
+    /// Em Windows, recomenda-se usar interface Serial/COM (driver virtual COM).
+    pub fn print_usb(&self) -> HardwareResult<()> {
+        if !self.config.enabled {
+            return Ok(());
+        }
+
+        let candidates: Vec<String> = if !self.config.port.trim().is_empty() {
+            vec![self.config.port.clone()]
+        } else {
+            vec!["/dev/usb/lp0".to_string(), "/dev/lp0".to_string()]
+        };
+
+        let Some(device_path) = candidates
+            .into_iter()
+            .find(|p| Path::new(p).exists())
+        else {
+            return Err(HardwareError::DeviceNotFound(
+                "Dispositivo USB da impressora não encontrado (tente configurar a porta, ex: /dev/usb/lp0)".into(),
+            ));
+        };
+
+        let mut dev = OpenOptions::new()
+            .write(true)
+            .open(&device_path)
+            .map_err(HardwareError::IoError)?;
+
+        dev.write_all(&self.buffer).map_err(HardwareError::IoError)?;
+        dev.flush().map_err(HardwareError::IoError)?;
 
         Ok(())
     }

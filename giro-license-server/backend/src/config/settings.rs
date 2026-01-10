@@ -58,7 +58,8 @@ impl Settings {
         Ok(Settings {
             app: AppSettings {
                 env: env::var("APP_ENV").unwrap_or_else(|_| "development".to_string()),
-                port: env::var("APP_PORT")
+                port: env::var("PORT")
+                    .or_else(|_| env::var("APP_PORT"))
                     .unwrap_or_else(|_| "3000".to_string())
                     .parse()?,
                 host: env::var("APP_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),

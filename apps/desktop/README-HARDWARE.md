@@ -36,6 +36,12 @@ A aplicação abre automaticamente em `http://localhost` com uma interface HTML 
 
 ## 🖨️ Impressora Térmica
 
+### ✅ C3Tech IT-100 (recomendações)
+
+- **Modo recomendado no Windows**: usar a impressora como **Serial/COM** (via driver/virtual COM, quando disponível). O backend atual envia ESC/POS por **porta serial**.
+- **USB raw (Linux)**: o backend consegue imprimir em dispositivos como `/dev/usb/lp0` (quando a impressora expõe device raw). No frontend, selecione **Porta = USB**.
+- **Se não imprimir no Windows via USB**: normalmente é porque a impressora está em porta `USB001` (spooler) e não em `COMx`. Nesse caso, configure/instale o driver para expor **COM** ou use um modelo/interface que suporte serial.
+
 ### Configuração
 
 ```javascript
@@ -176,6 +182,12 @@ const barcode = '2023456012347';
 ---
 
 ## 📱 Scanner de Código de Barras
+
+### ✅ Leitor LB-120 (USB HID)
+
+- Deve funcionar como **teclado USB** (keyboard wedge) sem driver.
+- Teste rápido: abra um campo de texto (ou o input de código no PDV), escaneie um EAN-13 e confirme se ele envia também **Enter** ao final.
+- Se o código "fica" no campo e não confirma, configure no leitor um **sufixo Enter/CRLF** (via códigos de programação do manual do LB-120).
 
 ### Modos
 

@@ -16,6 +16,8 @@ use crate::hardware::{
     HardwareError,
 };
 use crate::services::mobile_server::MobileServer;
+use qrcode::render::svg;
+use qrcode::QrCode;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::State;
@@ -84,7 +86,18 @@ pub async fn print_receipt(receipt: Receipt, state: State<'_, HardwareState>) ->
 
     let mut printer = ThermalPrinter::new(config.clone());
     printer.print_receipt(&receipt);
-    printer.print_serial()?;
+
+    match config.connection {
+        crate::hardware::printer::PrinterConnection::Usb => {
+            printer.print_usb()?;
+        }
+        crate::hardware::printer::PrinterConnection::Serial => {
+            printer.print_serial()?;
+        }
+        crate::hardware::printer::PrinterConnection::Network => {
+            printer.print_network().await?;
+        }
+    }
 
     Ok(())
 }
@@ -100,6 +113,127 @@ pub async fn test_printer(state: State<'_, HardwareState>) -> AppResult<()> {
 
     let mut printer = ThermalPrinter::new(config.clone());
     printer.test_print()?;
+
+    match config.connection {
+        crate::hardware::printer::PrinterConnection::Usb => {
+            printer.print_usb()?;
+        }
+        crate::hardware::printer::PrinterConnection::Serial => {
+            printer.print_serial()?;
+        }
+        crate::hardware::printer::PrinterConnection::Network => {
+            printer.print_network().await?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Imprime múltiplos documentos de teste (nota, ordem de serviço, relatório)
+#[tauri::command]
+pub async fn print_test_documents(state: State<'_, HardwareState>) -> AppResult<()> {
+    let config = state.printer_config.read().await;
+
+    if !config.enabled {
+        return Err(HardwareError::NotConfigured("Impressora não habilitada".into()).into());
+    }
+
+    let now = chrono::Local::now();
+    let test_id = now.format("%Y%m%d-%H%M%S").to_string();
+
+    let mut printer = ThermalPrinter::new(config.clone());
+    printer.init();
+
+    // NOTA (TESTE)
+    printer.align(crate::hardware::printer::TextAlign::Center);
+    printer.line("=== NOTA (TESTE) ===");
+    printer.align(crate::hardware::printer::TextAlign::Left);
+    printer.line("MERCEARIAS - TESTE DE IMPRESSAO");
+    printer.line(&format!("ID: {}", test_id));
+    printer.line(&format!("Data/Hora: {}", now.format("%d/%m/%Y %H:%M:%S")));
+    printer.separator('-');
+    printer.line("1x  Arroz 5kg                 25,90");
+    printer.line("2x  Feijao 1kg                17,00");
+    printer.line("1x  Cafe 500g                 14,50");
+    printer.separator('-');
+    printer.line("TOTAL                         57,40");
+    printer.feed(1);
+    printer.line("Barcode (EAN-13):");
+    printer.barcode_ean13("7894900011517");
+    printer.feed(1);
+    printer.align(crate::hardware::printer::TextAlign::Center);
+    printer.line("QR (TESTE):");
+    printer.qrcode(&format!("TESTE-NOTA:{}", test_id));
+    printer.feed(1);
+
+    if config.auto_cut {
+        printer.cut(true);
+    } else {
+        printer.feed(4);
+    }
+
+    // ORDEM DE SERVIÇO (TESTE)
+    printer.init();
+    printer.align(crate::hardware::printer::TextAlign::Center);
+    printer.line("=== ORDEM DE SERVICO (TESTE) ===");
+    printer.align(crate::hardware::printer::TextAlign::Left);
+    printer.line(&format!("OS: {}", test_id));
+    printer.line("Cliente: Joao da Silva");
+    printer.line("Telefone: (11) 99999-9999");
+    printer.separator('-');
+    printer.line("Descricao:");
+    printer.line("- Troca de cabo e revisao");
+    printer.line("- Limpeza e testes gerais");
+    printer.feed(1);
+    printer.line("Itens:");
+    printer.line("1x Cabo USB-C                19,90");
+    printer.line("1x Mao de obra               50,00");
+    printer.separator('-');
+    printer.line("TOTAL                         69,90");
+    printer.feed(1);
+    printer.align(crate::hardware::printer::TextAlign::Center);
+    printer.qrcode(&format!("TESTE-OS:{}", test_id));
+    printer.feed(1);
+
+    if config.auto_cut {
+        printer.cut(true);
+    } else {
+        printer.feed(4);
+    }
+
+    // RELATÓRIO (TESTE)
+    printer.init();
+    printer.align(crate::hardware::printer::TextAlign::Center);
+    printer.line("=== RELATORIO (TESTE) ===");
+    printer.align(crate::hardware::printer::TextAlign::Left);
+    printer.line("Vendas (exemplo):");
+    printer.line("- Dinheiro:  R$ 150,00");
+    printer.line("- Pix:       R$ 320,50");
+    printer.line("- Cartao:    R$ 980,00");
+    printer.separator('-');
+    printer.line("Total:       R$ 1.450,50");
+    printer.feed(1);
+    printer.align(crate::hardware::printer::TextAlign::Center);
+    printer.line("FIM DO TESTE");
+    printer.feed(2);
+
+    if config.auto_cut {
+        printer.cut(true);
+    } else {
+        printer.feed(4);
+    }
+
+    match config.connection {
+        crate::hardware::printer::PrinterConnection::Usb => {
+            printer.print_usb()?;
+        }
+        crate::hardware::printer::PrinterConnection::Serial => {
+            printer.print_serial()?;
+        }
+        crate::hardware::printer::PrinterConnection::Network => {
+            printer.print_network().await?;
+        }
+    }
 
     Ok(())
 }
@@ -300,6 +434,22 @@ pub async fn generate_pairing_qr(state: State<'_, HardwareState>) -> AppResult<S
     }
 }
 
+/// Gera QR Code em SVG para exibir no frontend (teste de leitura)
+#[tauri::command]
+pub fn generate_qr_svg(data: String) -> AppResult<String> {
+    let code = QrCode::new(data.as_bytes())
+        .map_err(|e| HardwareError::ProtocolError(format!("Erro ao gerar QR Code: {}", e)))?;
+
+    let svg = code
+        .render()
+        .min_dimensions(220, 220)
+        .dark_color(svg::Color("#000000"))
+        .light_color(svg::Color("#ffffff"))
+        .build();
+
+    Ok(svg)
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // TIPOS AUXILIARES
 // ════════════════════════════════════════════════════════════════════════════
@@ -329,6 +479,7 @@ macro_rules! hardware_commands {
             $crate::commands::hardware::configure_printer,
             $crate::commands::hardware::print_receipt,
             $crate::commands::hardware::test_printer,
+            $crate::commands::hardware::print_test_documents,
             $crate::commands::hardware::get_printer_config,
             // Balança
             $crate::commands::hardware::configure_scale,
@@ -345,6 +496,7 @@ macro_rules! hardware_commands {
             $crate::commands::hardware::list_scanner_devices,
             $crate::commands::hardware::get_scanner_server_info,
             $crate::commands::hardware::generate_pairing_qr,
+            $crate::commands::hardware::generate_qr_svg,
             // Mobile Server comandos estão em mobile.rs
         ]
     };
