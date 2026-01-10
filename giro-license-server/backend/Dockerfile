@@ -1,5 +1,5 @@
 # Build Stage
-FROM rust:1.83-slim AS builder
+FROM rust:1.85-slim AS builder
 
 WORKDIR /app
 
@@ -12,6 +12,9 @@ COPY backend/Cargo.toml ./Cargo.toml
 # Create dummy main to cache dependencies
 RUN mkdir src &&   echo "fn main() {}" > src/main.rs &&   echo "pub fn lib() {}" > src/lib.rs
 
+# Downgrade home crate to version compatible with Rust 1.85
+RUN cargo update home --precise 0.5.9
+
 # Build dependencies (this layer will be cached)
 RUN cargo build --release &&   rm -rf src target/release/deps/giro_license_server*
 
@@ -23,7 +26,7 @@ ENV SQLX_OFFLINE=true
 RUN cargo build --release
 
 # Development Stage
-FROM rust:1.83-slim AS development
+FROM rust:1.85-slim AS development
 
 WORKDIR /app
 
