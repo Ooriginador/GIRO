@@ -28,6 +28,8 @@ describe('useProducts', () => {
     vi.clearAllMocks();
   });
 
+  const invokeMock = invoke as unknown as ReturnType<typeof vi.fn>;
+
   describe('useProducts (list)', () => {
     it('should fetch products successfully', async () => {
       const mockProducts = [
@@ -35,7 +37,7 @@ describe('useProducts', () => {
         { id: '2', name: 'Product 2', salePrice: 20.0, currentStock: 50 },
       ];
 
-      (invoke as any).mockResolvedValue(mockProducts);
+      invokeMock.mockResolvedValue(mockProducts);
 
       const { result } = renderHook(() => useProducts(), {
         wrapper: createWrapper(),
@@ -50,7 +52,7 @@ describe('useProducts', () => {
     });
 
     it('should handle error state', async () => {
-      (invoke as any).mockRejectedValue(new Error('Network error'));
+      invokeMock.mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(() => useProducts(), {
         wrapper: createWrapper(),
@@ -71,7 +73,7 @@ describe('useProducts', () => {
         salePrice: 30.0,
       };
 
-      (invoke as any).mockResolvedValue(newProduct);
+      invokeMock.mockResolvedValue(newProduct);
 
       // Este hook precisa ser importado quando for criado
       // const { result } = renderHook(() => useCreateProduct(), {
@@ -92,7 +94,7 @@ describe('useProducts', () => {
     it('should search products by query', async () => {
       const mockResults = [{ id: '1', name: 'Arroz Tipo 1', barcode: '7890000000001' }];
 
-      (invoke as any).mockResolvedValue(mockResults);
+      invokeMock.mockResolvedValue(mockResults);
 
       // Este hook precisa ser implementado
       // const { result } = renderHook(() => useSearchProducts('arroz'), {

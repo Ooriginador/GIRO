@@ -14,6 +14,7 @@ pub enum ProductUnit {
     Liter,
     Milliliter,
     Meter,
+    Centimeter, // Novo - compatibilidade com Mobile
     Box,
     Pack,
     Dozen,
@@ -34,6 +35,7 @@ impl std::fmt::Display for ProductUnit {
             Self::Liter => write!(f, "L"),
             Self::Milliliter => write!(f, "ml"),
             Self::Meter => write!(f, "m"),
+            Self::Centimeter => write!(f, "cm"),
             Self::Box => write!(f, "cx"),
             Self::Pack => write!(f, "pct"),
             Self::Dozen => write!(f, "dz"),
@@ -104,6 +106,9 @@ pub struct UpdateProduct {
     pub min_stock: Option<f64>,
     pub is_active: Option<bool>,
     pub category_id: Option<String>,
+    /// ID do funcionário que está fazendo a alteração (para auditoria)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub employee_id: Option<String>,
 }
 
 /// Filtros de busca de produtos

@@ -12,6 +12,7 @@ pub enum PaymentMethod {
     Pix,
     Credit,
     Debit,
+    Voucher,
     Other,
 }
 
@@ -28,6 +29,7 @@ impl std::fmt::Display for PaymentMethod {
             Self::Pix => write!(f, "PIX"),
             Self::Credit => write!(f, "Crédito"),
             Self::Debit => write!(f, "Débito"),
+            Self::Voucher => write!(f, "Vale"),
             Self::Other => write!(f, "Outro"),
         }
     }

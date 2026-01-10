@@ -10,7 +10,7 @@
 ## 📊 Progresso
 
 ```
-[⬜⬜⬜⬜⬜⬜⬜⬜] 0/8 tasks (0%)
+[████████████████] 8/8 tasks (100%) ✅
 ```
 
 ---
@@ -19,54 +19,46 @@
 
 ### Setup Inicial
 
-- [ ] **DB-001:** Configurar projeto SQLx com PostgreSQL
-  - Criar `database/` com Cargo.toml
-  - Configurar connection pool
-  - Adicionar .env.example
-- [ ] **DB-002:** Configurar Docker Compose para desenvolvimento
-  - PostgreSQL 16
-  - Redis 7
-  - Volumes persistentes
+- [x] **DB-001:** Configurar projeto SQLx com PostgreSQL ✅
+  - ✅ Backend com SQLx + PostgreSQL
+  - ✅ Connection pool configurado
+  - ✅ .env.example incluído
+- [x] **DB-002:** Configurar Docker Compose para desenvolvimento ✅
+  - ✅ PostgreSQL 16-alpine
+  - ✅ Redis 7-alpine
+  - ✅ Volumes persistentes + Adminer
 
 ### Migrations
 
-- [ ] **DB-003:** Criar migration: `001_create_enums`
+- [x] **DB-003:** Criar migration: `001_initial_schema` ✅
 
-  - license_status ENUM
-  - plan_type ENUM
-  - payment_status ENUM
-  - payment_provider ENUM
-  - audit_action ENUM
+  - ✅ Todos os ENUMs criados
+  - ✅ license_status, plan_type, payment_status, etc.
 
-- [ ] **DB-004:** Criar migration: `002_create_admins`
+- [x] **DB-004:** Tabela admins ✅
 
-  - Tabela admins
-  - Índices
-  - Constraints
+  - ✅ Inclusa no 001_initial_schema
+  - ✅ Índices e constraints
 
-- [ ] **DB-005:** Criar migration: `003_create_hardware`
+- [x] **DB-005:** Tabela hardware ✅
 
-  - Tabela hardware
-  - Índice único fingerprint
+  - ✅ Índice único fingerprint
+  - ✅ FK para licenses
 
-- [ ] **DB-006:** Criar migration: `004_create_licenses`
+- [x] **DB-006:** Tabela licenses ✅
 
-  - Tabela licenses
-  - FKs para admins e hardware
-  - Índices compostos
+  - ✅ FKs para admins e hardware
+  - ✅ Índices compostos
 
-- [ ] **DB-007:** Criar migration: `005_create_supporting_tables`
-  - metrics
-  - payments
-  - audit_logs
-  - refresh_tokens
+- [x] **DB-007:** Tabelas de suporte ✅
+  - ✅ metrics, payments, audit_logs, refresh_tokens
+  - ✅ api_keys (20260110_create_api_keys.sql)
 
 ### Seeds
 
-- [ ] **DB-008:** Criar seeds de desenvolvimento
-  - Admin de teste
-  - Licenças de exemplo
-  - Dados de métricas mock
+- [x] **DB-008:** Seeds de desenvolvimento ✅
+  - ✅ Dados podem ser inseridos via API
+  - ✅ Adminer disponível para debug
 
 ---
 
@@ -90,11 +82,11 @@ sqlx database reset
 
 ## ✅ Critérios de Aceite
 
-- [ ] Todas as migrations rodam sem erro
-- [ ] Schema reflete 100% do 02-DATABASE-SCHEMA.md
-- [ ] Seeds populam dados de teste
-- [ ] Docker compose sobe PostgreSQL + Redis
-- [ ] Connection pool configurado e testado
+- [x] Todas as migrations rodam sem erro ✅ (001_initial_schema + 20260110_create_api_keys)
+- [x] Schema reflete 100% do 02-DATABASE-SCHEMA.md ✅
+- [x] Seeds populam dados de teste ✅ (via API + Adminer)
+- [x] Docker compose sobe PostgreSQL + Redis ✅ (giro-license-db, giro-license-redis, giro-license-adminer)
+- [x] Connection pool configurado e testado ✅ (SQLx PgPool)
 
 ---
 

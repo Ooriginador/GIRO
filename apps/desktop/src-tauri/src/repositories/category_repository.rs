@@ -36,15 +36,15 @@ impl<'a> CategoryRepository<'a> {
     pub async fn find_all_with_count(&self) -> AppResult<Vec<CategoryWithCount>> {
         let categories = self.find_all_active().await?;
         let mut result = Vec::with_capacity(categories.len());
-        
+
         for cat in categories {
             let count: (i64,) = sqlx::query_as(
-                "SELECT COUNT(*) FROM products WHERE category_id = ? AND is_active = 1"
+                "SELECT COUNT(*) FROM products WHERE category_id = ? AND is_active = 1",
             )
             .bind(&cat.id)
             .fetch_one(self.pool)
             .await?;
-            
+
             result.push(CategoryWithCount {
                 category: cat,
                 product_count: count.0,
@@ -53,7 +53,10 @@ impl<'a> CategoryRepository<'a> {
         Ok(result)
     }
 
-    pub async fn find_paginated(&self, pagination: &Pagination) -> AppResult<PaginatedResult<Category>> {
+    pub async fn find_paginated(
+        &self,
+        pagination: &Pagination,
+    ) -> AppResult<PaginatedResult<Category>> {
         let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM categories WHERE is_active = 1")
             .fetch_one(self.pool)
             .await?;
@@ -101,11 +104,22 @@ impl<'a> CategoryRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(&id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Category".into(), id })
+        self.find_by_id(&id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Category".into(),
+                id,
+            })
     }
 
     pub async fn update(&self, id: &str, data: UpdateCategory) -> AppResult<Category> {
-        let existing = self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Category".into(), id: id.into() })?;
+        let existing =
+            self.find_by_id(id)
+                .await?
+                .ok_or_else(|| crate::error::AppError::NotFound {
+                    entity: "Category".into(),
+                    id: id.into(),
+                })?;
         let now = chrono::Utc::now().to_rfc3339();
 
         let name = data.name.unwrap_or(existing.name);
@@ -131,7 +145,12 @@ impl<'a> CategoryRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Category".into(), id: id.into() })
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Category".into(),
+                id: id.into(),
+            })
     }
 
     pub async fn delete(&self, id: &str) -> AppResult<()> {
@@ -152,7 +171,12 @@ impl<'a> CategoryRepository<'a> {
             .bind(id)
             .execute(self.pool)
             .await?;
-        self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Category".into(), id: id.into() })
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Category".into(),
+                id: id.into(),
+            })
     }
 
     /// Retorna todas as categorias (ativas e inativas)
@@ -170,6 +194,56 @@ impl<'a> CategoryRepository<'a> {
         let result = sqlx::query_as::<_, Category>(
             "SELECT id, name, description, color, icon, parent_id, sort_order, is_active as active, created_at, updated_at FROM categories WHERE is_active = 0 ORDER BY name"
         )
+        .fetch_all(self.pool)
+        .await?;
+        Ok(result)
+    }
+
+    /// Lista todas as categorias com contagem (compatível com mobile)
+    pub async fn list_all(&self) -> AppResult<Vec<crate::models::CategoryForMobile>> {
+        let categories = self.find_all_with_count().await?;
+        Ok(categories.into_iter().map(|c| c.into()).collect())
+    }
+
+    /// Busca categoria por ID (compatível com mobile)
+    pub async fn get_by_id(&self, id: &str) -> AppResult<Option<crate::models::CategoryForMobile>> {
+        let cat = self.find_by_id(id).await?;
+        if let Some(cat) = cat {
+            let count: (i64,) = sqlx::query_as(
+                "SELECT COUNT(*) FROM products WHERE category_id = ? AND is_active = 1",
+            )
+            .bind(&cat.id)
+            .fetch_one(self.pool)
+            .await?;
+
+            Ok(Some(crate::models::CategoryForMobile {
+                id: cat.id,
+                name: cat.name,
+                description: cat.description,
+                color: cat.color,
+                icon: cat.icon,
+                parent_id: cat.parent_id,
+                product_count: count.0,
+                is_active: cat.active,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Lista produtos de uma categoria (compatível com mobile)
+    pub async fn list_products(
+        &self,
+        category_id: &str,
+        limit: i32,
+        offset: i32,
+    ) -> AppResult<Vec<crate::models::Product>> {
+        let result = sqlx::query_as::<_, crate::models::Product>(
+            "SELECT id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, is_active, category_id, created_at, updated_at FROM products WHERE category_id = ? AND is_active = 1 ORDER BY name LIMIT ? OFFSET ?"
+        )
+        .bind(category_id)
+        .bind(limit)
+        .bind(offset)
         .fetch_all(self.pool)
         .await?;
         Ok(result)

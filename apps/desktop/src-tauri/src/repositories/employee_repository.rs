@@ -15,7 +15,8 @@ impl<'a> EmployeeRepository<'a> {
         Self { pool }
     }
 
-    const COLS: &'static str = "id, name, cpf, phone, email, pin, password, role, is_active, created_at, updated_at";
+    const COLS: &'static str =
+        "id, name, cpf, phone, email, pin, password, role, is_active, created_at, updated_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Employee>> {
         let query = format!("SELECT {} FROM employees WHERE id = ?", Self::COLS);
@@ -36,7 +37,10 @@ impl<'a> EmployeeRepository<'a> {
     }
 
     pub async fn find_by_pin(&self, pin: &str) -> AppResult<Option<Employee>> {
-        let query = format!("SELECT {} FROM employees WHERE pin = ? AND is_active = 1", Self::COLS);
+        let query = format!(
+            "SELECT {} FROM employees WHERE pin = ? AND is_active = 1",
+            Self::COLS
+        );
         let result = sqlx::query_as::<_, Employee>(&query)
             .bind(pin)
             .fetch_optional(self.pool)
@@ -45,7 +49,10 @@ impl<'a> EmployeeRepository<'a> {
     }
 
     pub async fn find_all_active(&self) -> AppResult<Vec<Employee>> {
-        let query = format!("SELECT {} FROM employees WHERE is_active = 1 ORDER BY name", Self::COLS);
+        let query = format!(
+            "SELECT {} FROM employees WHERE is_active = 1 ORDER BY name",
+            Self::COLS
+        );
         let result = sqlx::query_as::<_, Employee>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -60,7 +67,10 @@ impl<'a> EmployeeRepository<'a> {
     pub async fn create(&self, data: CreateEmployee) -> AppResult<Employee> {
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
-        let role = data.role.map(|r| format!("{:?}", r).to_uppercase()).unwrap_or_else(|| "CASHIER".to_string());
+        let role = data
+            .role
+            .map(|r| format!("{:?}", r).to_uppercase())
+            .unwrap_or_else(|| "CASHIER".to_string());
 
         // Compatível com o seed do Prisma (SHA256)
         let pin_hash = hash_pin(&data.pin);
@@ -82,26 +92,37 @@ impl<'a> EmployeeRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(&id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Employee".into(), id })
+        self.find_by_id(&id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Employee".into(),
+                id,
+            })
     }
 
     pub async fn update(&self, id: &str, data: UpdateEmployee) -> AppResult<Employee> {
-        let existing = self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Employee".into(), id: id.into() })?;
+        let existing =
+            self.find_by_id(id)
+                .await?
+                .ok_or_else(|| crate::error::AppError::NotFound {
+                    entity: "Employee".into(),
+                    id: id.into(),
+                })?;
         let now = chrono::Utc::now().to_rfc3339();
 
         let name = data.name.unwrap_or(existing.name);
         let cpf = data.cpf.or(existing.cpf);
         let phone = data.phone.or(existing.phone);
         let email = data.email.or(existing.email);
-        let pin = data
-            .pin
-            .map(|pin| hash_pin(&pin))
-            .unwrap_or(existing.pin);
+        let pin = data.pin.map(|pin| hash_pin(&pin)).unwrap_or(existing.pin);
         let password = match data.password {
             Some(password) => Some(hash_password(&password)),
             None => existing.password,
         };
-        let role = data.role.map(|r| format!("{:?}", r).to_uppercase()).unwrap_or(existing.role);
+        let role = data
+            .role
+            .map(|r| format!("{:?}", r).to_uppercase())
+            .unwrap_or(existing.role);
         let is_active = data.is_active.unwrap_or(existing.is_active);
 
         sqlx::query(
@@ -120,7 +141,12 @@ impl<'a> EmployeeRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Employee".into(), id: id.into() })
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Employee".into(),
+                id: id.into(),
+            })
     }
 
     pub async fn deactivate(&self, id: &str) -> AppResult<()> {
@@ -141,12 +167,20 @@ impl<'a> EmployeeRepository<'a> {
             .bind(id)
             .execute(self.pool)
             .await?;
-        self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Employee".into(), id: id.into() })
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Employee".into(),
+                id: id.into(),
+            })
     }
 
     /// Retorna apenas funcionários inativos
     pub async fn find_inactive(&self) -> AppResult<Vec<Employee>> {
-        let query = format!("SELECT {} FROM employees WHERE is_active = 0 ORDER BY name", Self::COLS);
+        let query = format!(
+            "SELECT {} FROM employees WHERE is_active = 0 ORDER BY name",
+            Self::COLS
+        );
         let result = sqlx::query_as::<_, Employee>(&query)
             .fetch_all(self.pool)
             .await?;

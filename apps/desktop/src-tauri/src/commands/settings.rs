@@ -13,7 +13,10 @@ pub async fn get_all_settings(state: State<'_, AppState>) -> AppResult<Vec<Setti
 }
 
 #[tauri::command]
-pub async fn get_settings_by_group(group: String, state: State<'_, AppState>) -> AppResult<Vec<Setting>> {
+pub async fn get_settings_by_group(
+    group: String,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<Setting>> {
     let repo = SettingsRepository::new(state.pool());
     repo.find_by_group(&group).await
 }

@@ -12,7 +12,7 @@ export interface CartItem {
   isWeighted: boolean;
 }
 
-export type PaymentMethod = 'CASH' | 'PIX' | 'CREDIT' | 'DEBIT' | 'OTHER';
+export type PaymentMethod = 'CASH' | 'PIX' | 'CREDIT' | 'DEBIT' | 'VOUCHER' | 'OTHER';
 
 export interface CashSession {
   id: string;

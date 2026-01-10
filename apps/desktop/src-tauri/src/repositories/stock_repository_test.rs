@@ -2,10 +2,15 @@
 
 use crate::models::CreateStockMovement;
 use crate::repositories::stock_repository::StockRepository;
+use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
 
 async fn setup_test_db() -> SqlitePool {
-    let pool = SqlitePool::connect(":memory:").await.unwrap();
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect(":memory:")
+        .await
+        .unwrap();
 
     sqlx::migrate!("./migrations").run(&pool).await.unwrap();
 
@@ -159,7 +164,10 @@ async fn test_find_movements_by_product() {
     repo.create_movement(input).await.unwrap();
 
     // Query for prod-001 only
-    let movements = repo.find_movements_by_product("prod-001", 10).await.unwrap();
+    let movements = repo
+        .find_movements_by_product("prod-001", 10)
+        .await
+        .unwrap();
     assert_eq!(movements.len(), 3);
 
     // All should be for prod-001

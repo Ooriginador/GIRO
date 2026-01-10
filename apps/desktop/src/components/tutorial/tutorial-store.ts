@@ -315,7 +315,7 @@ export const useTutorialStore = create<TutorialStore>()(
       getCompletedTutorials: () => {
         const { progress } = get();
         return Object.entries(progress)
-          .filter(([_, p]) => p.status === 'completed')
+          .filter(([, p]) => p.status === 'completed')
           .map(([id]) => id as TutorialId);
       },
 
@@ -386,7 +386,13 @@ function announceToScreenReader(message: string) {
 // Função auxiliar para som de conclusão
 function playCompletionSound() {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const webkitWindow = window as unknown as Window & {
+      webkitAudioContext?: typeof AudioContext;
+    };
+    const AudioContextCtor = window.AudioContext ?? webkitWindow.webkitAudioContext;
+    if (!AudioContextCtor) return;
+
+    const audioContext = new AudioContextCtor();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
@@ -402,7 +408,7 @@ function playCompletionSound() {
 
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.4);
-  } catch (e) {
+  } catch {
     // Silently fail if audio not available
   }
 }

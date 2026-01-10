@@ -15,7 +15,7 @@ pub struct Alert {
     pub title: String,
     pub message: String,
     pub is_read: bool,
-    pub read_at: Option<String>,
+    pub is_dismissed: bool,
     pub product_id: Option<String>,
     pub lot_id: Option<String>,
     pub created_at: String,

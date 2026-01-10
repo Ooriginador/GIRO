@@ -1,7 +1,7 @@
 //! Repositório de Configurações
 
 use crate::error::AppResult;
-use crate::models::{Setting, SetSetting};
+use crate::models::{SetSetting, Setting};
 use crate::repositories::new_id;
 use sqlx::SqlitePool;
 
@@ -14,7 +14,8 @@ impl<'a> SettingsRepository<'a> {
         Self { pool }
     }
 
-    const COLS: &'static str = "id, key, value, type, group_name, description, updated_by_id, created_at, updated_at";
+    const COLS: &'static str =
+        "id, key, value, type, group_name, description, updated_by_id, created_at, updated_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Setting>> {
         let query = format!("SELECT {} FROM settings WHERE id = ?", Self::COLS);
@@ -35,7 +36,10 @@ impl<'a> SettingsRepository<'a> {
     }
 
     pub async fn find_by_group(&self, group: &str) -> AppResult<Vec<Setting>> {
-        let query = format!("SELECT {} FROM settings WHERE group_name = ? ORDER BY key", Self::COLS);
+        let query = format!(
+            "SELECT {} FROM settings WHERE group_name = ? ORDER BY key",
+            Self::COLS
+        );
         let result = sqlx::query_as::<_, Setting>(&query)
             .bind(group)
             .fetch_all(self.pool)
@@ -44,7 +48,10 @@ impl<'a> SettingsRepository<'a> {
     }
 
     pub async fn find_all(&self) -> AppResult<Vec<Setting>> {
-        let query = format!("SELECT {} FROM settings ORDER BY group_name, key", Self::COLS);
+        let query = format!(
+            "SELECT {} FROM settings ORDER BY group_name, key",
+            Self::COLS
+        );
         let result = sqlx::query_as::<_, Setting>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -72,7 +79,9 @@ impl<'a> SettingsRepository<'a> {
 
         if let Some(setting) = existing {
             // Update
-            let value_type = data.value_type.unwrap_or_else(|| setting.setting_type.clone());
+            let value_type = data
+                .value_type
+                .unwrap_or_else(|| setting.setting_type.clone());
             sqlx::query("UPDATE settings SET value = ?, type = ?, description = ?, updated_at = ? WHERE id = ?")
                 .bind(&data.value)
                 .bind(&value_type)
@@ -81,7 +90,12 @@ impl<'a> SettingsRepository<'a> {
                 .bind(&setting.id)
                 .execute(self.pool)
                 .await?;
-            return self.find_by_id(&setting.id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Setting".into(), id: setting.id });
+            return self.find_by_id(&setting.id).await?.ok_or_else(|| {
+                crate::error::AppError::NotFound {
+                    entity: "Setting".into(),
+                    id: setting.id,
+                }
+            });
         }
 
         // Create new
@@ -103,7 +117,12 @@ impl<'a> SettingsRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(&id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Setting".into(), id })
+        self.find_by_id(&id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Setting".into(),
+                id,
+            })
     }
 
     pub async fn delete(&self, key: &str) -> AppResult<()> {

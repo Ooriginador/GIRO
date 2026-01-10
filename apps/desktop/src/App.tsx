@@ -10,6 +10,7 @@ import { LoginPage } from '@/pages/auth';
 import { CashControlPage } from '@/pages/cash';
 import { DashboardPage } from '@/pages/dashboard';
 import { EmployeesPage } from '@/pages/employees';
+import { ServiceOrdersPage, WarrantiesPage } from '@/pages/motoparts';
 import { PDVPage } from '@/pages/pdv';
 import { CategoriesPage, ProductFormPage, ProductsPage } from '@/pages/products';
 import { ReportsPage, SalesReportPage } from '@/pages/reports';
@@ -79,6 +80,10 @@ const App: FC = () => {
         {/* Dashboard */}
         <Route index element={<Navigate to="/pdv" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
+
+        {/* Motopeças */}
+        <Route path="service-orders" element={<ServiceOrdersPage />} />
+        <Route path="warranties" element={<WarrantiesPage />} />
 
         {/* PDV */}
         <Route path="pdv" element={<PDVPage />} />

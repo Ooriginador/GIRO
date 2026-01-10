@@ -96,14 +96,20 @@ open_cash_session, close_cash_session, add_cash_movement
 - SettingsPage
 - - Layout (AppShell, Sidebar, Header, Footer)
 
+### 📑 Fiscal / NFC-e (100%)
+
+- ✅ Integração Backend completa (Modules: XML, Signer, Webservice, DANFE)
+- ✅ Comandos Tauri expostos (`emit_nfce`, `check_sefaz_status`)
+- ✅ Tipagem TypeScript e Hooks (`src/types/nfce.ts`, `lib/tauri.ts`)
+- ✅ Documentação Técnica e Guia de Uso
+
 ---
 
 ## � EM PROGRESSO
 
-### 🔐 Auth System (40% - 6/15 tasks)
+### 🔐 Auth System (60% - 9/15 tasks)
 
-**Status:** 🔄 Em Progresso  
-**Estimativa:** 1-2 dias para completar
+**Status:** 🟢 Funcional (Login/Seed/PDV Flow)
 
 **O que está pronto:**
 
@@ -113,49 +119,36 @@ open_cash_session, close_cash_session, add_cash_movement
 - ✅ SafeEmployee DTO (sem expor hashes)
 - ✅ Enum EmployeeRole (ADMIN, MANAGER, CASHIER, VIEWER)
 - ✅ AuthStore básico no frontend
+- ✅ LoginPage funcional
+- ✅ Protected Routes
+- ✅ Seed de Admin (corrigido)
+- ✅ Interface de Configuração Fiscal (Certificado/CSC)
+- ✅ Integração Automática com NFC-e no PDV
 
-**Próximas tasks:**
+### 🛒 Vendas (95%)
 
-- [ ] AUTH-007: Implementar LoginPage funcional
-- [ ] AUTH-008: Protected routes com redirect
 - [ ] AUTH-009: RBAC middleware nos commands
-- [ ] AUTH-010: SessionStore persistente
+- [ ] AUTH-010: SessionStore persistente (Refinar configs)
 - [ ] AUTH-011: Logout e timeout
 - [ ] AUTH-012: Audit logs de autenticação
 - [ ] AUTH-013: Testes de auth flow
-- [ ] AUTH-014: Recuperação de senha (opcional)
 - [ ] AUTH-015: Multi-sessão prevention
 
 ---
 
 ## 🚀 PRÓXIMOS PASSOS IMEDIATOS
 
-### 🎯 Objetivo: Completar Autenticação (24-48h)
+### 🎯 Objetivo: Frontend Final Polish (24h)
 
-1. **Testar Login** (2h)
+1. **Configurações Fiscais** (2h)
 
-   ```bash
-   - [ ] Criar página de login no frontend
-   - [ ] Testar authenticate_employee com PIN
-   - [ ] Validar redirect após login
-   ```
+   - [ ] Criar aba "Fiscal" em SettingsPage para configurar Certificado/CSC.
+   - [ ] Testar persistência das configurações.
 
-2. **Popular Banco** (1h)
+2. **Testes Manuais** (1h)
+   - [ ] Executar fluxo completo Venda -> NFC-e (Mock/Homolog).
 
-   ```bash
-   - [ ] Seed com funcionário admin (PIN: 1234)
-   - [ ] Seed com categorias padrão
-   - [ ] Seed com 10-20 produtos de teste
-   ```
-
-3. **Fluxo PDV Completo** (3h)
-   ```bash
-   - [ ] Login → Abrir caixa → Buscar produto → Vender → Fechar caixa
-   - [ ] Testar impressão de recibo (mock)
-   - [ ] Validar estoque sendo decrementado
-   ```
-
-### 🔌 Fase 2: Integrations (Após Auth Completo)
+### 🔌 Fase 2: Integrations (Após Auth)
 
 **Prioridade:** Alta  
 **Tasks:** 0/30 (0%)  

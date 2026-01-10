@@ -1,11 +1,11 @@
 //! Sistema de Auditoria - Logging de Ações Sensíveis
-//! 
+//!
 //! Registra todas as ações importantes para compliance e segurança.
 
+use crate::repositories::new_id;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Sqlite, FromRow};
-use crate::repositories::new_id;
+use sqlx::{FromRow, Pool, Sqlite};
 
 /// Tipos de ações auditáveis
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -16,35 +16,35 @@ pub enum AuditAction {
     Logout,
     LoginFailed,
     PasswordChanged,
-    
+
     // Vendas
     SaleCreated,
     SaleCanceled,
     DiscountApplied,
-    
+
     // Caixa
     CashOpened,
     CashClosed,
     CashWithdrawal,
     CashDeposit,
-    
+
     // Produtos
     ProductCreated,
     ProductUpdated,
     ProductDeleted,
     PriceChanged,
-    
+
     // Estoque
     StockEntry,
     StockAdjustment,
     StockTransfer,
-    
+
     // Funcionários
     EmployeeCreated,
     EmployeeUpdated,
     EmployeeDeactivated,
     RoleChanged,
-    
+
     // Sistema
     SettingsChanged,
     BackupCreated,
@@ -144,7 +144,7 @@ impl AuditService {
         offset: i64,
     ) -> Result<Vec<AuditLog>, sqlx::Error> {
         let mut query = String::from("SELECT * FROM audit_logs WHERE 1=1");
-        
+
         if action.is_some() {
             query.push_str(" AND action = ?");
         }
@@ -157,7 +157,7 @@ impl AuditService {
         if end_date.is_some() {
             query.push_str(" AND created_at <= ?");
         }
-        
+
         query.push_str(" ORDER BY created_at DESC LIMIT ? OFFSET ?");
 
         let mut db_query = sqlx::query_as::<_, AuditLog>(&query);
@@ -174,7 +174,7 @@ impl AuditService {
         if let Some(ed) = end_date {
             db_query = db_query.bind(ed.to_rfc3339());
         }
-        
+
         db_query = db_query.bind(limit).bind(offset);
 
         db_query.fetch_all(&self.pool).await
@@ -183,7 +183,7 @@ impl AuditService {
     /// Conta logs por ação (para dashboard)
     pub async fn count_by_action(&self, days: i64) -> Result<Vec<(String, i64)>, sqlx::Error> {
         let since = Utc::now() - chrono::Duration::days(days);
-        
+
         let rows: Vec<(String, i64)> = sqlx::query_as(
             r#"
             SELECT action, COUNT(*) as count
@@ -191,7 +191,7 @@ impl AuditService {
             WHERE created_at >= ?
             GROUP BY action
             ORDER BY count DESC
-            "#
+            "#,
         )
         .bind(since.to_rfc3339())
         .fetch_all(&self.pool)
@@ -205,33 +205,42 @@ impl AuditService {
 #[macro_export]
 macro_rules! audit_log {
     ($service:expr, $action:expr, $employee_id:expr, $employee_name:expr) => {
-        $service.log($crate::middleware::audit::CreateAuditLog {
-            action: $action,
-            employee_id: $employee_id.to_string(),
-            employee_name: $employee_name.to_string(),
-            target_type: None,
-            target_id: None,
-            details: None,
-        }).await.ok()
+        $service
+            .log($crate::middleware::audit::CreateAuditLog {
+                action: $action,
+                employee_id: $employee_id.to_string(),
+                employee_name: $employee_name.to_string(),
+                target_type: None,
+                target_id: None,
+                details: None,
+            })
+            .await
+            .ok()
     };
     ($service:expr, $action:expr, $employee_id:expr, $employee_name:expr, $target_type:expr, $target_id:expr) => {
-        $service.log($crate::middleware::audit::CreateAuditLog {
-            action: $action,
-            employee_id: $employee_id.to_string(),
-            employee_name: $employee_name.to_string(),
-            target_type: Some($target_type.to_string()),
-            target_id: Some($target_id.to_string()),
-            details: None,
-        }).await.ok()
+        $service
+            .log($crate::middleware::audit::CreateAuditLog {
+                action: $action,
+                employee_id: $employee_id.to_string(),
+                employee_name: $employee_name.to_string(),
+                target_type: Some($target_type.to_string()),
+                target_id: Some($target_id.to_string()),
+                details: None,
+            })
+            .await
+            .ok()
     };
     ($service:expr, $action:expr, $employee_id:expr, $employee_name:expr, $target_type:expr, $target_id:expr, $details:expr) => {
-        $service.log($crate::middleware::audit::CreateAuditLog {
-            action: $action,
-            employee_id: $employee_id.to_string(),
-            employee_name: $employee_name.to_string(),
-            target_type: Some($target_type.to_string()),
-            target_id: Some($target_id.to_string()),
-            details: Some($details.to_string()),
-        }).await.ok()
+        $service
+            .log($crate::middleware::audit::CreateAuditLog {
+                action: $action,
+                employee_id: $employee_id.to_string(),
+                employee_name: $employee_name.to_string(),
+                target_type: Some($target_type.to_string()),
+                target_id: Some($target_id.to_string()),
+                details: Some($details.to_string()),
+            })
+            .await
+            .ok()
     };
 }

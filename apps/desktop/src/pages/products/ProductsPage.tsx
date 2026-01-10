@@ -37,23 +37,43 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useAllProducts, useDeactivateProduct, useReactivateProduct } from '@/hooks/use-products';
+import {
+  useAllProducts,
+  useCreateProduct,
+  useDeactivateProduct,
+  useDeleteProduct,
+  useReactivateProduct,
+} from '@/hooks/use-products';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { Product } from '@/types';
-import { Copy, Edit, MoreHorizontal, Package, Plus, Power, PowerOff, Search } from 'lucide-react';
+import {
+  Copy,
+  Edit,
+  MoreHorizontal,
+  Package,
+  Plus,
+  Power,
+  PowerOff,
+  Search,
+  Trash2,
+} from 'lucide-react';
 import { type FC, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 
 export const ProductsPage: FC = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
   const [productToDeactivate, setProductToDeactivate] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const { toast } = useToast();
+  const createProduct = useCreateProduct();
+  const deleteProduct = useDeleteProduct();
   const deactivateProduct = useDeactivateProduct();
   const reactivateProduct = useReactivateProduct();
 
@@ -125,6 +145,55 @@ export const ProductsPage: FC = () => {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleDuplicate = async (product: Product) => {
+    try {
+      await createProduct.mutateAsync({
+        name: `${product.name} (Cópia)`,
+        barcode: undefined, // Não duplicar código de barras
+        categoryId: product.categoryId,
+        unit: product.unit,
+        salePrice: product.salePrice,
+        costPrice: product.costPrice,
+        minStock: product.minStock,
+        isWeighted: product.isWeighted,
+      });
+      toast({
+        title: 'Produto duplicado',
+        description: `Cópia de ${product.name} criada com sucesso.`,
+      });
+    } catch {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível duplicar o produto.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!productToDelete) return;
+
+    try {
+      await deleteProduct.mutateAsync(productToDelete.id);
+      toast({
+        title: 'Produto excluído',
+        description: `${productToDelete.name} foi excluído permanentemente.`,
+      });
+    } catch {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o produto.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProductToDelete(null);
+    }
+  };
+
+  const handleEdit = (product: Product) => {
+    navigate(`/products/${product.id}`);
   };
 
   return (
@@ -246,18 +315,20 @@ export const ProductsPage: FC = () => {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon-sm">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            data-testid={`product-menu-${product.id}`}
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link to={`/products/${product.id}`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Editar
-                            </Link>
+                          <DropdownMenuItem onClick={() => handleEdit(product)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDuplicate(product)}>
                             <Copy className="mr-2 h-4 w-4" />
                             Duplicar
                           </DropdownMenuItem>
@@ -279,6 +350,14 @@ export const ProductsPage: FC = () => {
                               Reativar
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setProductToDelete(product)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -307,6 +386,28 @@ export const ProductsPage: FC = () => {
             <Button variant="destructive" onClick={handleDeactivate}>
               <PowerOff className="mr-2 h-4 w-4" />
               Desativar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmação para excluir */}
+      <Dialog open={!!productToDelete} onOpenChange={() => setProductToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir produto permanentemente?</DialogTitle>
+            <DialogDescription>
+              O produto <strong>{productToDelete?.name}</strong> será excluído permanentemente. Esta
+              ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProductToDelete(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir Permanentemente
             </Button>
           </DialogFooter>
         </DialogContent>

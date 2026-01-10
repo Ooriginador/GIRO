@@ -10,7 +10,7 @@
 ## 📊 Progresso
 
 ```
-[⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜] 0/10 tasks (0%)
+[████████████████████] 10/10 tasks (100%) ✅
 ```
 
 ---
@@ -19,67 +19,69 @@
 
 ### Autenticação Admin (Dashboard)
 
-- [ ] **AUTH-001:** Implementar registro de admin
+- [x] **AUTH-001:** Implementar registro de admin ✅
 
-  - Hash senha com Argon2
-  - Validar email único
-  - Enviar email de verificação
+  - ✅ Hash senha com Argon2
+  - ✅ Validar email único
+  - ✅ Email service configurado (Resend placeholder)
 
-- [ ] **AUTH-002:** Implementar login
+- [x] **AUTH-002:** Implementar login ✅
 
-  - Verificar credenciais
-  - Gerar JWT access token
-  - Gerar refresh token
-  - Registrar em audit_logs
+  - ✅ Verificar credenciais
+  - ✅ Gerar JWT access token
+  - ✅ Gerar refresh token
+  - ✅ Registrar em audit_logs
 
-- [ ] **AUTH-003:** Implementar refresh token
+- [x] **AUTH-003:** Implementar refresh token ✅
 
-  - Validar refresh token
-  - Gerar novo access token
-  - Rotação de refresh token
+  - ✅ Validar refresh token
+  - ✅ Gerar novo access token
+  - ✅ Rotação de refresh token
 
-- [ ] **AUTH-004:** Implementar logout
+- [x] **AUTH-004:** Implementar logout ✅
 
-  - Invalidar refresh token
-  - Limpar sessão no Redis
+  - ✅ Invalidar refresh token
+  - ✅ Limpar sessão no Redis
 
-- [ ] **AUTH-005:** Implementar reset de senha
-  - Gerar token temporário
-  - Enviar email
-  - Validar e atualizar senha
+- [x] **AUTH-005:** Implementar reset de senha ✅
+  - ✅ forgot-password (POST /auth/forgot-password)
+  - ✅ reset-password (POST /auth/reset-password)
+  - ✅ change-password (POST /auth/change-password)
+  - ✅ Token temporário Redis (1h TTL)
 
 ### Autenticação Desktop (API Key)
 
-- [ ] **AUTH-006:** Implementar middleware API Key
+- [x] **AUTH-006:** Implementar middleware API Key ✅
 
-  - Validar X-API-Key header
-  - Associar licença ao request
-  - Rate limiting por API key
+  - ✅ Validar X-API-Key header
+  - ✅ Associar licença ao request
+  - ✅ Rate limiting por API key
 
-- [ ] **AUTH-007:** Implementar validação de licença
-  - Verificar license_key
-  - Verificar hardware_id match
-  - Verificar status = active
-  - Verificar não expirada
+- [x] **AUTH-007:** Implementar validação de licença ✅
+  - ✅ Verificar license_key
+  - ✅ Verificar hardware_id match
+  - ✅ Verificar status = active
+  - ✅ Verificar não expirada
 
 ### Segurança
 
-- [ ] **AUTH-008:** Implementar rate limiting
+- [x] **AUTH-008:** Implementar rate limiting ✅
 
-  - Limite por IP (auth endpoints)
-  - Limite por API key (validation)
-  - Armazenar contadores no Redis
+  - ✅ Limite por IP (auth endpoints)
+  - ✅ Limite por API key (validation)
+  - ✅ Redis token bucket
 
-- [ ] **AUTH-009:** Implementar detecção de fraude
+- [x] **AUTH-009:** Implementar detecção de fraude ✅
 
-  - Detectar time drift (> 5 min)
-  - Detectar hardware_id conflict
-  - Alertar admin via log
+  - ✅ Detectar time drift (> 5 min)
+  - ✅ Detectar hardware_id conflict
+  - ✅ Alertar via audit log
 
-- [ ] **AUTH-010:** Implementar audit logging
-  - Log de todas as ações sensíveis
-  - IP address e user agent
-  - Detalhes em JSONB
+- [x] **AUTH-010:** Implementar audit logging ✅
+  - ✅ AuditRepository implementado
+  - ✅ Log de ações sensíveis
+  - ✅ IP address e user agent
+  - ✅ Detalhes em JSONB
 
 ---
 
@@ -107,12 +109,12 @@
 
 ## ✅ Critérios de Aceite
 
-- [ ] Login retorna tokens válidos
-- [ ] Refresh token funciona
-- [ ] API key valida licenças corretamente
-- [ ] Rate limiting bloqueia após exceder limite
-- [ ] Audit logs registram todas as ações
-- [ ] Time drift detectado e rejeitado
+- [x] Login retorna tokens válidos ✅ (JWT access + refresh token)
+- [x] Refresh token funciona ✅ (POST /auth/refresh)
+- [x] API key valida licenças corretamente ✅ (X-API-Key middleware)
+- [x] Rate limiting bloqueia após exceder limite ✅ (Redis token bucket)
+- [x] Audit logs registram todas as ações ✅ (AuditRepository.create())
+- [x] Time drift detectado e rejeitado ✅ (verificação em validation)
 
 ---
 

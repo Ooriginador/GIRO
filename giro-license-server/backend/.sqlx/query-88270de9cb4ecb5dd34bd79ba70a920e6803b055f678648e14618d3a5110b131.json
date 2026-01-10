@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT EXISTS(\n                SELECT 1 FROM licenses l\n                INNER JOIN hardware h ON h.id = l.hardware_id\n                WHERE h.fingerprint = $1\n                AND l.id != $2\n                AND l.status = 'active'\n            )\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "88270de9cb4ecb5dd34bd79ba70a920e6803b055f678648e14618d3a5110b131"
+}

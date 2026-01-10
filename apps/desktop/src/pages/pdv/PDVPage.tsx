@@ -9,7 +9,15 @@ import { ProductSearchResults } from '@/components/pdv/ProductSearchResults';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
@@ -35,9 +43,26 @@ export const PDVPage: FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showQuantityModal, setShowQuantityModal] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [quantityInput, setQuantityInput] = useState('');
+  const [discountInput, setDiscountInput] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const quantityInputRef = useRef<HTMLInputElement>(null);
+  const discountInputRef = useRef<HTMLInputElement>(null);
 
-  const { items, discount, addItem, getSubtotal, getTotal, clearCart } = usePDVStore();
+  const {
+    items,
+    discount,
+    addItem,
+    getSubtotal,
+    getTotal,
+    clearCart,
+    removeItem,
+    updateQuantity,
+    setDiscount,
+  } = usePDVStore();
   const { currentSession } = useAuthStore();
 
   const subtotal = getSubtotal();
@@ -53,6 +78,28 @@ export const PDVPage: FC = () => {
         searchInputRef.current?.focus();
         setShowSearch(true);
       }
+      // F4 - Alterar quantidade do último item
+      if (e.key === 'F4') {
+        e.preventDefault();
+        if (items.length > 0) {
+          const lastItem = items[items.length - 1];
+          if (lastItem) {
+            setSelectedItemId(lastItem.id);
+            setQuantityInput(lastItem.quantity.toString());
+            setShowQuantityModal(true);
+            setTimeout(() => quantityInputRef.current?.select(), 100);
+          }
+        }
+      }
+      // F6 - Aplicar desconto geral
+      if (e.key === 'F6') {
+        e.preventDefault();
+        if (items.length > 0) {
+          setDiscountInput(discount.toFixed(2));
+          setShowDiscountModal(true);
+          setTimeout(() => discountInputRef.current?.select(), 100);
+        }
+      }
       // F10 - Finalizar venda
       if (e.key === 'F10') {
         e.preventDefault();
@@ -60,16 +107,49 @@ export const PDVPage: FC = () => {
           setShowPaymentModal(true);
         }
       }
+      // F12 - Remover último item
+      if (e.key === 'F12') {
+        e.preventDefault();
+        if (items.length > 0) {
+          const lastItem = items[items.length - 1];
+          if (lastItem) {
+            removeItem(lastItem.id);
+          }
+        }
+      }
       // Escape - Fechar modais
       if (e.key === 'Escape') {
         setShowSearch(false);
         setShowPaymentModal(false);
+        setShowQuantityModal(false);
+        setShowDiscountModal(false);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [items.length, currentSession]);
+  }, [items, currentSession, discount, removeItem]);
+
+  const handleQuantityConfirm = () => {
+    if (selectedItemId && quantityInput) {
+      const qty = parseFloat(quantityInput.replace(',', '.'));
+      if (qty > 0) {
+        updateQuantity(selectedItemId, qty);
+      }
+    }
+    setShowQuantityModal(false);
+    setSelectedItemId(null);
+    setQuantityInput('');
+    searchInputRef.current?.focus();
+  };
+
+  const handleDiscountConfirm = () => {
+    const discountValue = parseFloat(discountInput.replace(',', '.')) || 0;
+    setDiscount(Math.max(0, discountValue));
+    setShowDiscountModal(false);
+    setDiscountInput('');
+    searchInputRef.current?.focus();
+  };
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
@@ -312,6 +392,80 @@ export const PDVPage: FC = () => {
           total={total}
         />
       )}
+
+      {/* Modal de Quantidade (F4) */}
+      <Dialog open={showQuantityModal} onOpenChange={setShowQuantityModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Alterar Quantidade</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="quantity">Nova quantidade</Label>
+            <Input
+              ref={quantityInputRef}
+              id="quantity"
+              type="text"
+              inputMode="decimal"
+              value={quantityInput}
+              onChange={(e) => setQuantityInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleQuantityConfirm();
+                }
+              }}
+              className="mt-2 h-12 text-xl text-center"
+              placeholder="0"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowQuantityModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleQuantityConfirm}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Desconto (F6) */}
+      <Dialog open={showDiscountModal} onOpenChange={setShowDiscountModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Aplicar Desconto</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="discount">Valor do desconto (R$)</Label>
+            <div className="relative mt-2">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-medium text-muted-foreground">
+                R$
+              </span>
+              <Input
+                ref={discountInputRef}
+                id="discount"
+                type="text"
+                inputMode="decimal"
+                value={discountInput}
+                onChange={(e) => setDiscountInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleDiscountConfirm();
+                  }
+                }}
+                className="h-12 pl-10 text-xl text-center"
+                placeholder="0,00"
+              />
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Subtotal: {formatCurrency(subtotal)}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDiscountModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleDiscountConfirm}>Aplicar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

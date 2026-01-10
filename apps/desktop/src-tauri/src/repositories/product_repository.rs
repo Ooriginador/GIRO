@@ -18,7 +18,10 @@ impl<'a> ProductRepository<'a> {
     const PRODUCT_COLUMNS: &'static str = "id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, is_active, category_id, created_at, updated_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Product>> {
-        let query = format!("SELECT {} FROM products WHERE id = ?", Self::PRODUCT_COLUMNS);
+        let query = format!(
+            "SELECT {} FROM products WHERE id = ?",
+            Self::PRODUCT_COLUMNS
+        );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(id)
             .fetch_optional(self.pool)
@@ -27,7 +30,10 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_by_barcode(&self, barcode: &str) -> AppResult<Option<Product>> {
-        let query = format!("SELECT {} FROM products WHERE barcode = ? AND is_active = 1", Self::PRODUCT_COLUMNS);
+        let query = format!(
+            "SELECT {} FROM products WHERE barcode = ? AND is_active = 1",
+            Self::PRODUCT_COLUMNS
+        );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(barcode)
             .fetch_optional(self.pool)
@@ -36,7 +42,10 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_by_internal_code(&self, code: &str) -> AppResult<Option<Product>> {
-        let query = format!("SELECT {} FROM products WHERE internal_code = ? AND is_active = 1", Self::PRODUCT_COLUMNS);
+        let query = format!(
+            "SELECT {} FROM products WHERE internal_code = ? AND is_active = 1",
+            Self::PRODUCT_COLUMNS
+        );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(code)
             .fetch_optional(self.pool)
@@ -45,7 +54,10 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_all_active(&self) -> AppResult<Vec<Product>> {
-        let query = format!("SELECT {} FROM products WHERE is_active = 1 ORDER BY name", Self::PRODUCT_COLUMNS);
+        let query = format!(
+            "SELECT {} FROM products WHERE is_active = 1 ORDER BY name",
+            Self::PRODUCT_COLUMNS
+        );
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -53,7 +65,10 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_by_category(&self, category_id: &str) -> AppResult<Vec<Product>> {
-        let query = format!("SELECT {} FROM products WHERE category_id = ? AND is_active = 1 ORDER BY name", Self::PRODUCT_COLUMNS);
+        let query = format!(
+            "SELECT {} FROM products WHERE category_id = ? AND is_active = 1 ORDER BY name",
+            Self::PRODUCT_COLUMNS
+        );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(category_id)
             .fetch_all(self.pool)
@@ -129,7 +144,10 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_out_of_stock(&self) -> AppResult<Vec<Product>> {
-        let query = format!("SELECT {} FROM products WHERE is_active = 1 AND current_stock <= 0 ORDER BY name", Self::PRODUCT_COLUMNS);
+        let query = format!(
+            "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= 0 ORDER BY name",
+            Self::PRODUCT_COLUMNS
+        );
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -150,7 +168,10 @@ impl<'a> ProductRepository<'a> {
             Some(code) => code,
             None => self.get_next_internal_code().await?,
         };
-        let unit = data.unit.map(|u| u.to_string()).unwrap_or_else(|| "UNIT".to_string());
+        let unit = data
+            .unit
+            .map(|u| u.to_string())
+            .unwrap_or_else(|| "UNIT".to_string());
         let is_weighted = data.is_weighted.unwrap_or(false);
         let cost_price = data.cost_price.unwrap_or(0.0);
         let current_stock = data.current_stock.unwrap_or(0.0);
@@ -176,11 +197,22 @@ impl<'a> ProductRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(&id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Product".into(), id })
+        self.find_by_id(&id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Product".into(),
+                id,
+            })
     }
 
     pub async fn update(&self, id: &str, data: UpdateProduct) -> AppResult<Product> {
-        let existing = self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Product".into(), id: id.into() })?;
+        let existing =
+            self.find_by_id(id)
+                .await?
+                .ok_or_else(|| crate::error::AppError::NotFound {
+                    entity: "Product".into(),
+                    id: id.into(),
+                })?;
         let now = chrono::Utc::now().to_rfc3339();
 
         let name = data.name.unwrap_or(existing.name);
@@ -198,13 +230,15 @@ impl<'a> ProductRepository<'a> {
         // Registrar histórico de preço se o preço de venda mudou
         if (sale_price - existing.sale_price).abs() > 0.001 {
             let price_history_repo = PriceHistoryRepository::new(self.pool);
-            price_history_repo.create(crate::models::CreatePriceHistory {
-                product_id: id.to_string(),
-                old_price: existing.sale_price,
-                new_price: sale_price,
-                reason: Some("Atualização de preço via edição de produto".to_string()),
-                employee_id: None, // TODO: Receber employee_id do contexto
-            }).await?;
+            price_history_repo
+                .create(crate::models::CreatePriceHistory {
+                    product_id: id.to_string(),
+                    old_price: existing.sale_price,
+                    new_price: sale_price,
+                    reason: Some("Atualização de preço via edição de produto".to_string()),
+                    employee_id: data.employee_id.clone(),
+                })
+                .await?;
         }
 
         sqlx::query(
@@ -226,11 +260,22 @@ impl<'a> ProductRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Product".into(), id: id.into() })
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Product".into(),
+                id: id.into(),
+            })
     }
 
     pub async fn update_stock(&self, id: &str, delta: f64) -> AppResult<Product> {
-        let existing = self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Product".into(), id: id.into() })?;
+        let existing =
+            self.find_by_id(id)
+                .await?
+                .ok_or_else(|| crate::error::AppError::NotFound {
+                    entity: "Product".into(),
+                    id: id.into(),
+                })?;
         let new_stock = existing.current_stock + delta;
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -241,7 +286,12 @@ impl<'a> ProductRepository<'a> {
             .execute(self.pool)
             .await?;
 
-        self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Product".into(), id: id.into() })
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Product".into(),
+                id: id.into(),
+            })
     }
 
     pub async fn soft_delete(&self, id: &str) -> AppResult<()> {
@@ -262,12 +312,20 @@ impl<'a> ProductRepository<'a> {
             .bind(id)
             .execute(self.pool)
             .await?;
-        self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Product".into(), id: id.into() })
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Product".into(),
+                id: id.into(),
+            })
     }
 
     /// Retorna todos os produtos (ativos e inativos)
     pub async fn find_all(&self) -> AppResult<Vec<Product>> {
-        let query = format!("SELECT {} FROM products ORDER BY name", Self::PRODUCT_COLUMNS);
+        let query = format!(
+            "SELECT {} FROM products ORDER BY name",
+            Self::PRODUCT_COLUMNS
+        );
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -276,7 +334,10 @@ impl<'a> ProductRepository<'a> {
 
     /// Retorna apenas produtos inativos
     pub async fn find_inactive(&self) -> AppResult<Vec<Product>> {
-        let query = format!("SELECT {} FROM products WHERE is_active = 0 ORDER BY name", Self::PRODUCT_COLUMNS);
+        let query = format!(
+            "SELECT {} FROM products WHERE is_active = 0 ORDER BY name",
+            Self::PRODUCT_COLUMNS
+        );
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -285,19 +346,78 @@ impl<'a> ProductRepository<'a> {
 
     pub async fn get_stock_summary(&self) -> AppResult<Vec<StockSummary>> {
         let products = self.find_all_active().await?;
-        let result: Vec<StockSummary> = products.into_iter().map(|p| {
-            let is_low = p.current_stock <= p.min_stock && p.current_stock > 0.0;
-            let is_out = p.current_stock <= 0.0;
-            StockSummary {
-                product_id: p.id,
-                product_name: p.name,
-                current_stock: p.current_stock,
-                min_stock: p.min_stock,
-                unit: p.unit,
-                is_low,
-                is_out,
-            }
-        }).collect();
+        let result: Vec<StockSummary> = products
+            .into_iter()
+            .map(|p| {
+                let is_low = p.current_stock <= p.min_stock && p.current_stock > 0.0;
+                let is_out = p.current_stock <= 0.0;
+                StockSummary {
+                    product_id: p.id,
+                    product_name: p.name,
+                    current_stock: p.current_stock,
+                    min_stock: p.min_stock,
+                    unit: p.unit,
+                    is_low,
+                    is_out,
+                }
+            })
+            .collect();
+        Ok(result)
+    }
+
+    /// Lista produtos com estoque baixo (compatível com mobile)
+    pub async fn list_low_stock(&self, limit: i32, offset: i32) -> AppResult<Vec<Product>> {
+        let query = format!(
+            "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= min_stock AND current_stock > 0 ORDER BY current_stock ASC LIMIT ? OFFSET ?",
+            Self::PRODUCT_COLUMNS
+        );
+        let result = sqlx::query_as::<_, Product>(&query)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(self.pool)
+            .await?;
+        Ok(result)
+    }
+
+    /// Lista produtos com estoque zerado (compatível com mobile)
+    pub async fn list_zero_stock(&self, limit: i32, offset: i32) -> AppResult<Vec<Product>> {
+        let query = format!(
+            "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= 0 ORDER BY name LIMIT ? OFFSET ?",
+            Self::PRODUCT_COLUMNS
+        );
+        let result = sqlx::query_as::<_, Product>(&query)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(self.pool)
+            .await?;
+        Ok(result)
+    }
+
+    /// Lista produtos com excesso de estoque (compatível com mobile)
+    pub async fn list_excess_stock(&self, limit: i32, offset: i32) -> AppResult<Vec<Product>> {
+        let query = format!(
+            "SELECT {} FROM products WHERE is_active = 1 AND current_stock > min_stock * 3 ORDER BY current_stock DESC LIMIT ? OFFSET ?",
+            Self::PRODUCT_COLUMNS
+        );
+        let result = sqlx::query_as::<_, Product>(&query)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(self.pool)
+            .await?;
+        Ok(result)
+    }
+
+    /// Lista todos produtos ativos com paginação (compatível com mobile)
+    pub async fn list_all(&self, limit: i32, offset: i32) -> AppResult<Vec<Product>> {
+        let query = format!(
+            "SELECT {} FROM products WHERE is_active = 1 ORDER BY name LIMIT ? OFFSET ?",
+            Self::PRODUCT_COLUMNS
+        );
+        let result = sqlx::query_as::<_, Product>(&query)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(self.pool)
+            .await?;
         Ok(result)
     }
 }

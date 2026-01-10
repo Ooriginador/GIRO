@@ -65,7 +65,10 @@ pub async fn get_stock_report(state: State<'_, AppState>) -> AppResult<StockRepo
 }
 
 #[tauri::command]
-pub async fn get_top_products(limit: i32, state: State<'_, AppState>) -> AppResult<Vec<TopProduct>> {
+pub async fn get_top_products(
+    limit: i32,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<TopProduct>> {
     let limit = if limit <= 0 { 20 } else { limit };
 
     // Agrupa itens por produto usando apenas vendas COMPLETED

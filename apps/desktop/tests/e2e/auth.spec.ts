@@ -13,8 +13,8 @@ test.describe('Autenticação E2E', () => {
   });
 
   test('deve exibir página de login ao iniciar', async ({ page }) => {
-    // Verificar título "GIRO" em h3 (CardTitle)
-    const loginHeading = page.locator('h3:has-text("Mercearias")');
+    // Verificar título em h3 (CardTitle)
+    const loginHeading = page.locator('h3:has-text("GIRO")');
     await expect(loginHeading).toBeVisible({ timeout: 10000 });
 
     // Verificar instrução
@@ -33,8 +33,8 @@ test.describe('Autenticação E2E', () => {
     const loginButton = page.locator('button:has-text("Entrar")');
     await loginButton.click();
 
-    // Aguardar redirecionamento
-    await page.waitForTimeout(2000);
+    // Aguardar redirecionamento (após login redireciona para dashboard/pdv/cash)
+    await page.waitForURL(/\/(dashboard|pdv|cash)/, { timeout: 5000 });
 
     // Verificar que não está mais na página de login
     await expect(page).not.toHaveURL(/login/);
@@ -58,7 +58,7 @@ test.describe('Autenticação E2E', () => {
     await expect(errorElement).toContainText(/PIN incorreto|Erro/i);
 
     // Verificar que continua na página de login
-    const loginHeading = page.locator('h3:has-text("Mercearias")');
+    const loginHeading = page.locator('h3:has-text("GIRO")');
     await expect(loginHeading).toBeVisible();
   });
 

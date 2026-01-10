@@ -3,5 +3,16 @@
 //! Este módulo contém a lógica de negócio da aplicação.
 
 pub mod backup_service;
+pub mod mdns_service;
+pub mod mobile_events;
+pub mod mobile_handlers;
+pub mod mobile_protocol;
+pub mod mobile_server;
+pub mod mobile_session;
 
 pub use backup_service::*;
+pub use mdns_service::*;
+pub use mobile_events::*;
+pub use mobile_protocol::*;
+pub use mobile_server::*;
+pub use mobile_session::*;

@@ -4,16 +4,18 @@
 mod tests {
     use super::super::*;
     use crate::models::{CreateEmployee, EmployeeRole};
+    use sqlx::sqlite::SqlitePoolOptions;
     use sqlx::SqlitePool;
 
     async fn setup_test_db() -> SqlitePool {
-        let pool = SqlitePool::connect(":memory:").await.unwrap();
-        
-        sqlx::migrate!("./migrations")
-            .run(&pool)
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect(":memory:")
             .await
             .unwrap();
-        
+
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
+
         pool
     }
 
@@ -27,20 +29,21 @@ mod tests {
             cpf: Some("12345678900".to_string()),
             phone: Some("11999999999".to_string()),
             email: Some("joao@example.com".to_string()),
-            pin: "1234".to_string(),
+            // Avoid collision with any migration/seeded default employee PINs.
+            pin: "2345".to_string(),
             password: Some("senha123".to_string()),
             role: Some(EmployeeRole::Cashier),
         };
 
         let result = repo.create(input).await;
 
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "{:?}", result.err());
         let employee = result.unwrap();
         assert_eq!(employee.name, "João Silva");
         assert_eq!(employee.cpf, Some("12345678900".to_string()));
         assert!(employee.is_active);
         // PIN should be hashed
-        assert_ne!(employee.pin, "1234");
+        assert_ne!(employee.pin, "2345");
     }
 
     #[tokio::test]
@@ -145,13 +148,16 @@ mod tests {
                 role: None,
             };
             let emp = repo.create(input).await.unwrap();
-            
+
             // Deactivate the 4th one
             if i == 4 {
                 repo.deactivate(&emp.id).await.unwrap();
                 // Verify deactivation
                 let deactivated = repo.find_by_id(&emp.id).await.unwrap().unwrap();
-                assert_eq!(deactivated.is_active, false, "Employee 4 should be deactivated");
+                assert_eq!(
+                    deactivated.is_active, false,
+                    "Employee 4 should be deactivated"
+                );
             }
         }
 
@@ -243,7 +249,7 @@ mod tests {
                 role: Some(*role),
             };
             let employee = repo.create(input).await.unwrap();
-            
+
             // Role should be stored as uppercase string
             assert!(["ADMIN", "MANAGER", "CASHIER", "VIEWER"].contains(&employee.role.as_str()));
         }

@@ -173,6 +173,7 @@ export function getPaymentMethodLabel(method: PaymentMethod): string {
     PIX: 'PIX',
     CREDIT: 'Crédito',
     DEBIT: 'Débito',
+    VOUCHER: 'Vale',
     OTHER: 'Outro',
   };
   return labels[method];
@@ -187,6 +188,7 @@ export function getPaymentMethodIcon(method: PaymentMethod): string {
     PIX: 'qr-code',
     CREDIT: 'credit-card',
     DEBIT: 'credit-card',
+    VOUCHER: 'ticket',
     OTHER: 'wallet',
   };
   return icons[method];

@@ -5,6 +5,7 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useBusinessProfile } from '@/stores/useBusinessProfile';
 import {
   BarChart3,
   Bell,
@@ -15,10 +16,12 @@ import {
   LayoutDashboard,
   Package,
   Settings,
+  ShieldCheck,
   ShoppingCart,
   Truck,
   Users,
   Wallet,
+  Wrench,
 } from 'lucide-react';
 import { useState, type FC } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -31,23 +34,30 @@ interface NavItem {
   tutorialId?: string;
 }
 
-const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', tutorialId: 'nav-dashboard' },
-  { icon: ShoppingCart, label: 'PDV', href: '/pdv', tutorialId: 'nav-pdv' },
-  { icon: Package, label: 'Produtos', href: '/products', tutorialId: 'nav-products' },
-  { icon: Boxes, label: 'Estoque', href: '/stock', tutorialId: 'nav-stock' },
-  { icon: Truck, label: 'Fornecedores', href: '/suppliers', tutorialId: 'nav-suppliers' },
-  { icon: Users, label: 'Funcionários', href: '/employees', tutorialId: 'nav-employees' },
-  { icon: Wallet, label: 'Caixa', href: '/cash', tutorialId: 'nav-cash' },
-  { icon: BarChart3, label: 'Relatórios', href: '/reports', tutorialId: 'nav-reports' },
-  { icon: Bell, label: 'Alertas', href: '/alerts', tutorialId: 'nav-alerts' },
-  { icon: Settings, label: 'Configurações', href: '/settings', tutorialId: 'nav-settings' },
-];
-
 export const Sidebar: FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isFeatureEnabled } = useBusinessProfile();
+
+  const navItems: NavItem[] = [
+    { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', tutorialId: 'nav-dashboard' },
+    ...(isFeatureEnabled('serviceOrders')
+      ? [{ icon: Wrench, label: 'Ordens de Serviço', href: '/service-orders' }]
+      : []),
+    ...(isFeatureEnabled('warranties')
+      ? [{ icon: ShieldCheck, label: 'Garantias', href: '/warranties' }]
+      : []),
+    { icon: ShoppingCart, label: 'PDV', href: '/pdv', tutorialId: 'nav-pdv' },
+    { icon: Package, label: 'Produtos', href: '/products', tutorialId: 'nav-products' },
+    { icon: Boxes, label: 'Estoque', href: '/stock', tutorialId: 'nav-stock' },
+    { icon: Truck, label: 'Fornecedores', href: '/suppliers', tutorialId: 'nav-suppliers' },
+    { icon: Users, label: 'Funcionários', href: '/employees', tutorialId: 'nav-employees' },
+    { icon: Wallet, label: 'Caixa', href: '/cash', tutorialId: 'nav-cash' },
+    { icon: BarChart3, label: 'Relatórios', href: '/reports', tutorialId: 'nav-reports' },
+    { icon: Bell, label: 'Alertas', href: '/alerts', tutorialId: 'nav-alerts' },
+    { icon: Settings, label: 'Configurações', href: '/settings', tutorialId: 'nav-settings' },
+  ];
 
   return (
     <aside

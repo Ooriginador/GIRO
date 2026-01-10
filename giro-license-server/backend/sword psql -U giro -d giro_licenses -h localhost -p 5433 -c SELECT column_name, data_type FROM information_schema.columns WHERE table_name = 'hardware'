@@ -1,0 +1,22 @@
+                              Table "public.hardware"
+    Column    |           Type           | Collation | Nullable |      Default      
+--------------+--------------------------+-----------+----------+-------------------
+ id           | uuid                     |           | not null | gen_random_uuid()
+ fingerprint  | character varying(64)    |           | not null | 
+ machine_name | character varying(100)   |           |          | 
+ os_version   | character varying(50)    |           |          | 
+ cpu_info     | character varying(100)   |           |          | 
+ first_seen   | timestamp with time zone |           |          | now()
+ last_seen    | timestamp with time zone |           |          | now()
+ is_active    | boolean                  |           |          | true
+ ip_address   | text                     |           |          | 
+ created_at   | timestamp with time zone |           |          | now()
+Indexes:
+    "hardware_pkey" PRIMARY KEY, btree (id)
+    "hardware_fingerprint_key" UNIQUE CONSTRAINT, btree (fingerprint)
+    "idx_hardware_active" btree (is_active)
+    "idx_hardware_fingerprint" btree (fingerprint)
+    "idx_hardware_last_seen" btree (last_seen DESC)
+Referenced by:
+    TABLE "licenses" CONSTRAINT "licenses_hardware_id_fkey" FOREIGN KEY (hardware_id) REFERENCES hardware(id) ON DELETE SET NULL
+

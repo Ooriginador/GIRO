@@ -13,25 +13,38 @@ pub async fn get_suppliers(state: State<'_, AppState>) -> AppResult<Vec<Supplier
 }
 
 #[tauri::command]
-pub async fn get_supplier_by_id(id: String, state: State<'_, AppState>) -> AppResult<Option<Supplier>> {
+pub async fn get_supplier_by_id(
+    id: String,
+    state: State<'_, AppState>,
+) -> AppResult<Option<Supplier>> {
     let repo = SupplierRepository::new(state.pool());
     repo.find_by_id(&id).await
 }
 
 #[tauri::command]
-pub async fn search_suppliers(query: String, state: State<'_, AppState>) -> AppResult<Vec<Supplier>> {
+pub async fn search_suppliers(
+    query: String,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<Supplier>> {
     let repo = SupplierRepository::new(state.pool());
     repo.search(&query).await
 }
 
 #[tauri::command]
-pub async fn create_supplier(input: CreateSupplier, state: State<'_, AppState>) -> AppResult<Supplier> {
+pub async fn create_supplier(
+    input: CreateSupplier,
+    state: State<'_, AppState>,
+) -> AppResult<Supplier> {
     let repo = SupplierRepository::new(state.pool());
     repo.create(input).await
 }
 
 #[tauri::command]
-pub async fn update_supplier(id: String, input: UpdateSupplier, state: State<'_, AppState>) -> AppResult<Supplier> {
+pub async fn update_supplier(
+    id: String,
+    input: UpdateSupplier,
+    state: State<'_, AppState>,
+) -> AppResult<Supplier> {
     let repo = SupplierRepository::new(state.pool());
     repo.update(&id, input).await
 }
@@ -58,7 +71,10 @@ pub async fn reactivate_supplier(id: String, state: State<'_, AppState>) -> AppR
 
 /// Lista todos os fornecedores (ativos e inativos)
 #[tauri::command]
-pub async fn get_all_suppliers(include_inactive: bool, state: State<'_, AppState>) -> AppResult<Vec<Supplier>> {
+pub async fn get_all_suppliers(
+    include_inactive: bool,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<Supplier>> {
     let repo = SupplierRepository::new(state.pool());
     if include_inactive {
         repo.find_all().await

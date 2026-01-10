@@ -4,14 +4,16 @@
 mod tests {
     use super::super::*;
     use crate::models::CreateCategory;
+    use sqlx::sqlite::SqlitePoolOptions;
     use sqlx::SqlitePool;
 
     async fn setup_test_db() -> SqlitePool {
-        let pool = SqlitePool::connect(":memory:").await.unwrap();
-        sqlx::migrate!("./migrations")
-            .run(&pool)
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect(":memory:")
             .await
             .unwrap();
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
         pool
     }
 

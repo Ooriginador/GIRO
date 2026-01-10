@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT DISTINCT\n                h.id, h.fingerprint, h.machine_name, h.os_version,\n                h.first_seen as \"first_seen!\", h.last_seen as \"last_seen!\", h.is_active as \"is_active!\"\n            FROM hardware h\n            INNER JOIN licenses l ON l.hardware_id = h.id\n            WHERE l.admin_id = $1\n            ORDER BY h.last_seen DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "fingerprint",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "machine_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "os_version",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "first_seen!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "last_seen!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_active!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "226b8f639aa25195e222f791219f37870d43dbcee3b6ec030ba6baaf2ab63eb7"
+}

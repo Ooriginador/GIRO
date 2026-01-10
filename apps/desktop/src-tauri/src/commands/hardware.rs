@@ -9,12 +9,13 @@
 use crate::error::AppResult;
 use crate::hardware::{
     self,
+    drawer::{CashDrawer, DrawerConfig},
     printer::{PrinterConfig, Receipt, ThermalPrinter},
     scale::{Scale, ScaleConfig, ScaleReading},
-    scanner::{MobileScannerConfig, ScannerServerState, MobileDevice},
-    drawer::{CashDrawer, DrawerConfig},
+    scanner::{MobileDevice, MobileScannerConfig, ScannerServerState},
     HardwareError,
 };
+use crate::services::mobile_server::MobileServer;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::State;
@@ -30,6 +31,7 @@ pub struct HardwareState {
     pub scale_config: RwLock<ScaleConfig>,
     pub drawer_config: RwLock<DrawerConfig>,
     pub scanner_server: RwLock<Option<Arc<ScannerServerState>>>,
+    pub mobile_server: RwLock<Option<Arc<MobileServer>>>,
 }
 
 impl Default for HardwareState {
@@ -39,6 +41,7 @@ impl Default for HardwareState {
             scale_config: RwLock::new(ScaleConfig::default()),
             drawer_config: RwLock::new(DrawerConfig::default()),
             scanner_server: RwLock::new(None),
+            mobile_server: RwLock::new(None),
         }
     }
 }
@@ -72,20 +75,17 @@ pub async fn configure_printer(
 
 /// Imprime cupom de venda
 #[tauri::command]
-pub async fn print_receipt(
-    receipt: Receipt,
-    state: State<'_, HardwareState>,
-) -> AppResult<()> {
+pub async fn print_receipt(receipt: Receipt, state: State<'_, HardwareState>) -> AppResult<()> {
     let config = state.printer_config.read().await;
-    
+
     if !config.enabled {
         return Err(HardwareError::NotConfigured("Impressora não habilitada".into()).into());
     }
-    
+
     let mut printer = ThermalPrinter::new(config.clone());
     printer.print_receipt(&receipt);
     printer.print_serial()?;
-    
+
     Ok(())
 }
 
@@ -93,14 +93,14 @@ pub async fn print_receipt(
 #[tauri::command]
 pub async fn test_printer(state: State<'_, HardwareState>) -> AppResult<()> {
     let config = state.printer_config.read().await;
-    
+
     if !config.enabled {
         return Err(HardwareError::NotConfigured("Impressora não habilitada".into()).into());
     }
-    
+
     let mut printer = ThermalPrinter::new(config.clone());
     printer.test_print()?;
-    
+
     Ok(())
 }
 
@@ -130,14 +130,14 @@ pub async fn configure_scale(
 #[tauri::command]
 pub async fn read_weight(state: State<'_, HardwareState>) -> AppResult<ScaleReading> {
     let config = state.scale_config.read().await;
-    
+
     if !config.enabled {
         return Err(HardwareError::NotConfigured("Balança não habilitada".into()).into());
     }
-    
+
     let scale = Scale::new(config.clone())?;
     let reading = scale.read_weight()?;
-    
+
     Ok(reading)
 }
 
@@ -173,14 +173,14 @@ pub async fn configure_drawer(
 #[tauri::command]
 pub async fn open_drawer(state: State<'_, HardwareState>) -> AppResult<()> {
     let config = state.drawer_config.read().await;
-    
+
     if !config.enabled {
         return Err(HardwareError::NotConfigured("Gaveta não habilitada".into()).into());
     }
-    
+
     let drawer = CashDrawer::new(config.clone());
     drawer.open()?;
-    
+
     Ok(())
 }
 
@@ -203,30 +203,29 @@ pub async fn start_scanner_server(
     app_state: State<'_, crate::AppState>,
 ) -> AppResult<ScannerServerInfo> {
     let mut server = state.scanner_server.write().await;
-    
+
     // Verifica se já está rodando
     if server.is_some() {
         return Err(HardwareError::DeviceBusy("Servidor de scanner já está rodando".into()).into());
     }
-    
+
     // Obtém IP local
-    let local_ip = hardware::scanner::get_local_ip()
-        .unwrap_or_else(|| "localhost".to_string());
-    
+    let local_ip = hardware::scanner::get_local_ip().unwrap_or_else(|| "localhost".to_string());
+
     // Cria estado do servidor com pool de banco de dados para lookup de produtos
     let db_pool = (*app_state.db_pool).clone();
     let scanner_state = ScannerServerState::with_db_pool(config.clone(), db_pool);
     let scanner_state_clone = scanner_state.clone();
-    
+
     // Inicia servidor em background
     tokio::spawn(async move {
         if let Err(e) = hardware::scanner::start_scanner_server(scanner_state_clone).await {
             tracing::error!("Erro no servidor de scanner: {}", e);
         }
     });
-    
+
     *server = Some(scanner_state);
-    
+
     Ok(ScannerServerInfo {
         running: true,
         ip: local_ip.clone(),
@@ -247,7 +246,7 @@ pub async fn stop_scanner_server(state: State<'_, HardwareState>) -> AppResult<(
 #[tauri::command]
 pub async fn list_scanner_devices(state: State<'_, HardwareState>) -> AppResult<Vec<MobileDevice>> {
     let server = state.scanner_server.read().await;
-    
+
     match server.as_ref() {
         Some(scanner_state) => {
             let devices = scanner_state.list_devices().await;
@@ -259,14 +258,16 @@ pub async fn list_scanner_devices(state: State<'_, HardwareState>) -> AppResult<
 
 /// Retorna informações do servidor de scanner
 #[tauri::command]
-pub async fn get_scanner_server_info(state: State<'_, HardwareState>) -> AppResult<Option<ScannerServerInfo>> {
+pub async fn get_scanner_server_info(
+    state: State<'_, HardwareState>,
+) -> AppResult<Option<ScannerServerInfo>> {
     let server = state.scanner_server.read().await;
-    
+
     match server.as_ref() {
         Some(scanner_state) => {
-            let local_ip = hardware::scanner::get_local_ip()
-                .unwrap_or_else(|| "localhost".to_string());
-            
+            let local_ip =
+                hardware::scanner::get_local_ip().unwrap_or_else(|| "localhost".to_string());
+
             Ok(Some(ScannerServerInfo {
                 running: true,
                 ip: local_ip.clone(),
@@ -282,15 +283,20 @@ pub async fn get_scanner_server_info(state: State<'_, HardwareState>) -> AppResu
 #[tauri::command]
 pub async fn generate_pairing_qr(state: State<'_, HardwareState>) -> AppResult<String> {
     let server = state.scanner_server.read().await;
-    
+
     match server.as_ref() {
         Some(scanner_state) => {
-            let local_ip = hardware::scanner::get_local_ip()
-                .unwrap_or_else(|| "localhost".to_string());
-            
-            Ok(hardware::scanner::generate_pairing_url(&local_ip, scanner_state.config.port))
+            let local_ip =
+                hardware::scanner::get_local_ip().unwrap_or_else(|| "localhost".to_string());
+
+            Ok(hardware::scanner::generate_pairing_url(
+                &local_ip,
+                scanner_state.config.port,
+            ))
         }
-        None => Err(HardwareError::NotConfigured("Servidor de scanner não está rodando".into()).into()),
+        None => {
+            Err(HardwareError::NotConfigured("Servidor de scanner não está rodando".into()).into())
+        }
     }
 }
 
@@ -333,12 +339,13 @@ macro_rules! hardware_commands {
             $crate::commands::hardware::configure_drawer,
             $crate::commands::hardware::open_drawer,
             $crate::commands::hardware::get_drawer_config,
-            // Scanner
+            // Scanner (legacy)
             $crate::commands::hardware::start_scanner_server,
             $crate::commands::hardware::stop_scanner_server,
             $crate::commands::hardware::list_scanner_devices,
             $crate::commands::hardware::get_scanner_server_info,
             $crate::commands::hardware::generate_pairing_qr,
+            // Mobile Server comandos estão em mobile.rs
         ]
     };
 }

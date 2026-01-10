@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE licenses\n            SET \n                last_validated = NOW(),\n                validation_count = validation_count + 1\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f10061396d2053565a62a47d67f6d53f9a58f03c3fc423b3b3f2a1251fbd75a3"
+}

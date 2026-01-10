@@ -1,5 +1,5 @@
 //! Sistema RBAC - Role-Based Access Control
-//! 
+//!
 //! Define permissões por role e verifica antes de executar commands.
 
 use crate::error::{AppError, AppResult};
@@ -15,41 +15,41 @@ pub enum Permission {
     CreateProducts,
     UpdateProducts,
     DeleteProducts,
-    
+
     // Vendas
     ViewSales,
     CreateSales,
     CancelSales,
-    
+
     // Estoque
     ViewStock,
     ManageStock,
     AdjustStock,
-    
+
     // Caixa
     OpenCash,
     CloseCash,
     ViewCashMovements,
     CreateCashMovement,
-    
+
     // Funcionários
     ViewEmployees,
     CreateEmployees,
     UpdateEmployees,
     DeleteEmployees,
-    
+
     // Relatórios
     ViewReports,
     ExportReports,
-    
+
     // Configurações
     ViewSettings,
     UpdateSettings,
-    
+
     // Fornecedores
     ViewSuppliers,
     ManageSuppliers,
-    
+
     // Categorias
     ViewCategories,
     ManageCategories,
@@ -143,6 +143,21 @@ impl Permission {
                     Permission::ViewCategories,
                 ]
             }
+            EmployeeRole::Stocker => {
+                // Estoquista: gerencia estoque e produtos
+                vec![
+                    Permission::ViewProducts,
+                    Permission::CreateProducts,
+                    Permission::UpdateProducts,
+                    Permission::ViewStock,
+                    Permission::ManageStock,
+                    Permission::AdjustStock,
+                    Permission::ViewSuppliers,
+                    Permission::ManageSuppliers,
+                    Permission::ViewCategories,
+                    Permission::ManageCategories,
+                ]
+            }
         }
     }
 
@@ -166,9 +181,13 @@ pub async fn check_permission(
     permission: Permission,
 ) -> AppResult<()> {
     let repo = EmployeeRepository::new(pool);
-    
-    let employee = repo.find_by_id(employee_id).await?
-        .ok_or(AppError::Unauthorized("Funcionário não encontrado".to_string()))?;
+
+    let employee = repo
+        .find_by_id(employee_id)
+        .await?
+        .ok_or(AppError::Unauthorized(
+            "Funcionário não encontrado".to_string(),
+        ))?;
 
     if !employee.is_active {
         return Err(AppError::Unauthorized("Funcionário inativo".to_string()));
@@ -204,24 +223,57 @@ mod tests {
 
     #[test]
     fn test_admin_has_all_permissions() {
-        assert!(Permission::has_permission(EmployeeRole::Admin, Permission::CreateProducts));
-        assert!(Permission::has_permission(EmployeeRole::Admin, Permission::DeleteEmployees));
-        assert!(Permission::has_permission(EmployeeRole::Admin, Permission::UpdateSettings));
+        assert!(Permission::has_permission(
+            EmployeeRole::Admin,
+            Permission::CreateProducts
+        ));
+        assert!(Permission::has_permission(
+            EmployeeRole::Admin,
+            Permission::DeleteEmployees
+        ));
+        assert!(Permission::has_permission(
+            EmployeeRole::Admin,
+            Permission::UpdateSettings
+        ));
     }
 
     #[test]
     fn test_cashier_limited_permissions() {
-        assert!(Permission::has_permission(EmployeeRole::Cashier, Permission::CreateSales));
-        assert!(Permission::has_permission(EmployeeRole::Cashier, Permission::OpenCash));
-        assert!(!Permission::has_permission(EmployeeRole::Cashier, Permission::CreateProducts));
-        assert!(!Permission::has_permission(EmployeeRole::Cashier, Permission::DeleteEmployees));
+        assert!(Permission::has_permission(
+            EmployeeRole::Cashier,
+            Permission::CreateSales
+        ));
+        assert!(Permission::has_permission(
+            EmployeeRole::Cashier,
+            Permission::OpenCash
+        ));
+        assert!(!Permission::has_permission(
+            EmployeeRole::Cashier,
+            Permission::CreateProducts
+        ));
+        assert!(!Permission::has_permission(
+            EmployeeRole::Cashier,
+            Permission::DeleteEmployees
+        ));
     }
 
     #[test]
     fn test_viewer_readonly() {
-        assert!(Permission::has_permission(EmployeeRole::Viewer, Permission::ViewProducts));
-        assert!(Permission::has_permission(EmployeeRole::Viewer, Permission::ViewSales));
-        assert!(!Permission::has_permission(EmployeeRole::Viewer, Permission::CreateSales));
-        assert!(!Permission::has_permission(EmployeeRole::Viewer, Permission::UpdateProducts));
+        assert!(Permission::has_permission(
+            EmployeeRole::Viewer,
+            Permission::ViewProducts
+        ));
+        assert!(Permission::has_permission(
+            EmployeeRole::Viewer,
+            Permission::ViewSales
+        ));
+        assert!(!Permission::has_permission(
+            EmployeeRole::Viewer,
+            Permission::CreateSales
+        ));
+        assert!(!Permission::has_permission(
+            EmployeeRole::Viewer,
+            Permission::UpdateProducts
+        ));
     }
 }

@@ -94,7 +94,7 @@ pub fn derive_key(password: &str, salt: &[u8]) -> [u8; 32] {
     hasher.update(password.as_bytes());
     hasher.update(salt);
     let result = hasher.finalize();
-    
+
     let mut key = [0u8; 32];
     key.copy_from_slice(&result);
     key
@@ -105,22 +105,22 @@ pub fn encrypt_data(data: &[u8], password: &str) -> Result<Vec<u8>, String> {
     // Gera salt e nonce aleatórios
     let salt: [u8; 16] = rand_bytes();
     let nonce_bytes: [u8; 12] = rand_bytes();
-    
+
     let key = derive_key(password, &salt);
-    let cipher = Aes256Gcm::new_from_slice(&key)
-        .map_err(|e| format!("Erro ao criar cipher: {}", e))?;
+    let cipher =
+        Aes256Gcm::new_from_slice(&key).map_err(|e| format!("Erro ao criar cipher: {}", e))?;
     let nonce = Nonce::from_slice(&nonce_bytes);
-    
+
     let ciphertext = cipher
         .encrypt(nonce, data)
         .map_err(|e| format!("Erro ao criptografar: {}", e))?;
-    
+
     // Formato: salt (16) + nonce (12) + ciphertext
     let mut result = Vec::with_capacity(16 + 12 + ciphertext.len());
     result.extend_from_slice(&salt);
     result.extend_from_slice(&nonce_bytes);
     result.extend_from_slice(&ciphertext);
-    
+
     Ok(result)
 }
 
@@ -129,16 +129,16 @@ pub fn decrypt_data(encrypted: &[u8], password: &str) -> Result<Vec<u8>, String>
     if encrypted.len() < 28 {
         return Err("Dados criptografados inválidos".to_string());
     }
-    
+
     let salt = &encrypted[0..16];
     let nonce_bytes = &encrypted[16..28];
     let ciphertext = &encrypted[28..];
-    
+
     let key = derive_key(password, salt);
-    let cipher = Aes256Gcm::new_from_slice(&key)
-        .map_err(|e| format!("Erro ao criar cipher: {}", e))?;
+    let cipher =
+        Aes256Gcm::new_from_slice(&key).map_err(|e| format!("Erro ao criar cipher: {}", e))?;
     let nonce = Nonce::from_slice(nonce_bytes);
-    
+
     cipher
         .decrypt(nonce, ciphertext)
         .map_err(|e| format!("Erro ao descriptografar: {}", e))
@@ -151,7 +151,7 @@ fn rand_bytes<const N: usize>() -> [u8; N] {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    
+
     let mut result = [0u8; N];
     for (i, byte) in result.iter_mut().enumerate() {
         *byte = ((now >> (i * 8)) & 0xFF) as u8 ^ (i as u8).wrapping_mul(17);
@@ -376,7 +376,7 @@ impl BackupService {
     /// Gera URL de autorização OAuth2
     pub fn get_auth_url(&self) -> Option<String> {
         let creds = self.credentials.as_ref()?;
-        
+
         Some(format!(
             "https://accounts.google.com/o/oauth2/v2/auth?\
             client_id={}&\
@@ -390,7 +390,9 @@ impl BackupService {
 
     /// Troca código de autorização por tokens
     pub async fn exchange_code(&mut self, code: &str) -> Result<(), String> {
-        let creds = self.credentials.as_mut()
+        let creds = self
+            .credentials
+            .as_mut()
             .ok_or("Credenciais não configuradas")?;
 
         let client = reqwest::Client::new();
@@ -428,9 +430,13 @@ impl BackupService {
 
     /// Faz upload do backup para o Google Drive
     pub async fn upload_to_drive(&self, backup_path: &PathBuf) -> Result<String, String> {
-        let creds = self.credentials.as_ref()
+        let creds = self
+            .credentials
+            .as_ref()
             .ok_or("Credenciais não configuradas")?;
-        let token = creds.access_token.as_ref()
+        let token = creds
+            .access_token
+            .as_ref()
             .ok_or("Token de acesso não disponível")?;
 
         let data = fs::read(backup_path)
@@ -451,15 +457,21 @@ impl BackupService {
         let response = client
             .post("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart")
             .bearer_auth(token)
-            .header("Content-Type", "multipart/related; boundary=backup_boundary")
-            .body(format!(
-                "--backup_boundary\r\n\
+            .header(
+                "Content-Type",
+                "multipart/related; boundary=backup_boundary",
+            )
+            .body(
+                format!(
+                    "--backup_boundary\r\n\
                 Content-Type: application/json; charset=UTF-8\r\n\r\n\
                 {}\r\n\
                 --backup_boundary\r\n\
                 Content-Type: application/octet-stream\r\n\r\n",
-                metadata
-            ) + &String::from_utf8_lossy(&data) + "\r\n--backup_boundary--")
+                    metadata
+                ) + &String::from_utf8_lossy(&data)
+                    + "\r\n--backup_boundary--",
+            )
             .send()
             .await
             .map_err(|e| format!("Erro no upload: {}", e))?;
@@ -479,9 +491,13 @@ impl BackupService {
 
     /// Lista backups no Google Drive
     pub async fn list_drive_backups(&self) -> Result<Vec<BackupMetadata>, String> {
-        let creds = self.credentials.as_ref()
+        let creds = self
+            .credentials
+            .as_ref()
             .ok_or("Credenciais não configuradas")?;
-        let token = creds.access_token.as_ref()
+        let token = creds
+            .access_token
+            .as_ref()
             .ok_or("Token de acesso não disponível")?;
 
         let client = reqwest::Client::new();
@@ -514,30 +530,46 @@ impl BackupService {
             .await
             .map_err(|e| format!("Erro ao parsear resposta: {}", e))?;
 
-        Ok(files.files.into_iter().map(|f| BackupMetadata {
-            id: f.id.clone(),
-            filename: f.name,
-            size_bytes: f.size.and_then(|s| s.parse().ok()).unwrap_or(0),
-            created_at: f.created_time
-                .and_then(|t| DateTime::parse_from_rfc3339(&t).ok())
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(Utc::now),
-            encrypted: true,
-            drive_file_id: Some(f.id),
-            checksum: String::new(),
-        }).collect())
+        Ok(files
+            .files
+            .into_iter()
+            .map(|f| BackupMetadata {
+                id: f.id.clone(),
+                filename: f.name,
+                size_bytes: f.size.and_then(|s| s.parse().ok()).unwrap_or(0),
+                created_at: f
+                    .created_time
+                    .and_then(|t| DateTime::parse_from_rfc3339(&t).ok())
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(Utc::now),
+                encrypted: true,
+                drive_file_id: Some(f.id),
+                checksum: String::new(),
+            })
+            .collect())
     }
 
     /// Baixa backup do Google Drive
-    pub async fn download_from_drive(&self, file_id: &str, target_path: &PathBuf) -> Result<(), String> {
-        let creds = self.credentials.as_ref()
+    pub async fn download_from_drive(
+        &self,
+        file_id: &str,
+        target_path: &PathBuf,
+    ) -> Result<(), String> {
+        let creds = self
+            .credentials
+            .as_ref()
             .ok_or("Credenciais não configuradas")?;
-        let token = creds.access_token.as_ref()
+        let token = creds
+            .access_token
+            .as_ref()
             .ok_or("Token de acesso não disponível")?;
 
         let client = reqwest::Client::new();
         let response = client
-            .get(format!("https://www.googleapis.com/drive/v3/files/{}?alt=media", file_id))
+            .get(format!(
+                "https://www.googleapis.com/drive/v3/files/{}?alt=media",
+                file_id
+            ))
             .bearer_auth(token)
             .send()
             .await
@@ -568,10 +600,10 @@ mod tests {
     fn test_encrypt_decrypt() {
         let original = b"Sensitive database data";
         let password = "minha-senha-secreta";
-        
+
         let encrypted = encrypt_data(original, password).unwrap();
         assert_ne!(encrypted, original);
-        
+
         let decrypted = decrypt_data(&encrypted, password).unwrap();
         assert_eq!(decrypted, original);
     }

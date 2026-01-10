@@ -12,6 +12,10 @@ export default defineConfig({
     },
   },
 
+  optimizeDeps: {
+    entries: ['index.html'],
+  },
+
   test: {
     environment: 'jsdom',
     globals: true,

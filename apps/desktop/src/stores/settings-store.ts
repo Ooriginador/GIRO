@@ -44,6 +44,20 @@ interface PDVConfig {
   showStockOnSearch: boolean;
 }
 
+interface FiscalConfig {
+  enabled: boolean;
+  environment: number; // 1=Prod, 2=Homolog
+  serie: number;
+  nextNumber: number;
+  cscId: string;
+  csc: string;
+  certPath: string;
+  certPassword: string;
+  cityCode: string; // IBGE
+  uf: string;
+  cep: string;
+}
+
 interface SettingsState {
   // Aparência
   theme: Theme;
@@ -52,6 +66,9 @@ interface SettingsState {
   // Empresa
   company: CompanyInfo;
   companyInfo: CompanyInfo; // Alias para compatibilidade
+
+  // Fiscal
+  fiscal: FiscalConfig;
 
   // Hardware
   printer: PrinterConfig;
@@ -80,6 +97,9 @@ interface SettingsState {
 
   // Actions - PDV
   setPDVConfig: (config: Partial<PDVConfig>) => void;
+
+  // Actions - Fiscal
+  setFiscalConfig: (config: Partial<FiscalConfig>) => void;
 
   // Actions - Geral
   resetSettings: () => void;
@@ -126,6 +146,20 @@ const defaultPDV: PDVConfig = {
   showStockOnSearch: true,
 };
 
+const defaultFiscal: FiscalConfig = {
+  enabled: false,
+  environment: 2, // Homologação
+  serie: 1,
+  nextNumber: 1,
+  cscId: '',
+  csc: '',
+  certPath: '',
+  certPassword: '',
+  cityCode: '',
+  uf: 'SP',
+  cep: '',
+};
+
 // ────────────────────────────────────────────────────────────────────────────
 // STORE
 // ────────────────────────────────────────────────────────────────────────────
@@ -140,6 +174,7 @@ export const useSettingsStore = create<SettingsState>()(
       printer: defaultPrinter,
       scale: defaultScale,
       pdv: defaultPDV,
+      fiscal: defaultFiscal,
       alertsEnabled: true,
 
       // Getters de compatibilidade
@@ -219,6 +254,12 @@ export const useSettingsStore = create<SettingsState>()(
         }));
       },
 
+      setFiscalConfig: (config) => {
+        set((state) => ({
+          fiscal: { ...state.fiscal, ...config },
+        }));
+      },
+
       // ────────────────────────────────────────────────────────────────────────
       // ACTIONS - GERAL
       // ────────────────────────────────────────────────────────────────────────
@@ -231,6 +272,7 @@ export const useSettingsStore = create<SettingsState>()(
           printer: defaultPrinter,
           scale: defaultScale,
           pdv: defaultPDV,
+          fiscal: defaultFiscal,
         });
       },
     }),

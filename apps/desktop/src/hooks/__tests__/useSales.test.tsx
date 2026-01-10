@@ -241,6 +241,8 @@ describe('useCreateSale', () => {
       items: [],
       paymentMethod: 'CASH',
       amountPaid: 0,
+      employeeId: 'emp-1',
+      cashSessionId: 'session-1',
     });
 
     await waitFor(() => {

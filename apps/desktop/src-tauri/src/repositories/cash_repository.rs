@@ -1,7 +1,10 @@
 //! Repositório de Caixa
 
 use crate::error::AppResult;
-use crate::models::{CashMovement, CashSession, CashSessionSummary, CreateCashMovement, CreateCashSession, PaymentMethodSummary};
+use crate::models::{
+    CashMovement, CashSession, CashSessionSummary, CreateCashMovement, CreateCashSession,
+    PaymentMethodSummary,
+};
 use crate::repositories::new_id;
 use sqlx::{Row, SqlitePool};
 
@@ -18,7 +21,10 @@ impl<'a> CashRepository<'a> {
     const MOVEMENT_COLS: &'static str = "id, session_id, type, amount, description, created_at";
 
     pub async fn find_session_by_id(&self, id: &str) -> AppResult<Option<CashSession>> {
-        let query = format!("SELECT {} FROM cash_sessions WHERE id = ?", Self::SESSION_COLS);
+        let query = format!(
+            "SELECT {} FROM cash_sessions WHERE id = ?",
+            Self::SESSION_COLS
+        );
         let result = sqlx::query_as::<_, CashSession>(&query)
             .bind(id)
             .fetch_optional(self.pool)
@@ -27,15 +33,24 @@ impl<'a> CashRepository<'a> {
     }
 
     pub async fn find_current_session(&self) -> AppResult<Option<CashSession>> {
-        let query = format!("SELECT {} FROM cash_sessions WHERE status = 'OPEN' ORDER BY opened_at DESC LIMIT 1", Self::SESSION_COLS);
+        let query = format!(
+            "SELECT {} FROM cash_sessions WHERE status = 'OPEN' ORDER BY opened_at DESC LIMIT 1",
+            Self::SESSION_COLS
+        );
         let result = sqlx::query_as::<_, CashSession>(&query)
             .fetch_optional(self.pool)
             .await?;
         Ok(result)
     }
 
-    pub async fn find_session_by_employee(&self, employee_id: &str) -> AppResult<Option<CashSession>> {
-        let query = format!("SELECT {} FROM cash_sessions WHERE employee_id = ? AND status = 'OPEN'", Self::SESSION_COLS);
+    pub async fn find_session_by_employee(
+        &self,
+        employee_id: &str,
+    ) -> AppResult<Option<CashSession>> {
+        let query = format!(
+            "SELECT {} FROM cash_sessions WHERE employee_id = ? AND status = 'OPEN'",
+            Self::SESSION_COLS
+        );
         let result = sqlx::query_as::<_, CashSession>(&query)
             .bind(employee_id)
             .fetch_optional(self.pool)
@@ -44,7 +59,10 @@ impl<'a> CashRepository<'a> {
     }
 
     pub async fn find_session_history(&self, limit: i32) -> AppResult<Vec<CashSession>> {
-        let query = format!("SELECT {} FROM cash_sessions ORDER BY opened_at DESC LIMIT ?", Self::SESSION_COLS);
+        let query = format!(
+            "SELECT {} FROM cash_sessions ORDER BY opened_at DESC LIMIT ?",
+            Self::SESSION_COLS
+        );
         let result = sqlx::query_as::<_, CashSession>(&query)
             .bind(limit)
             .fetch_all(self.pool)
@@ -52,8 +70,14 @@ impl<'a> CashRepository<'a> {
         Ok(result)
     }
 
-    pub async fn find_movements_by_session(&self, session_id: &str) -> AppResult<Vec<CashMovement>> {
-        let query = format!("SELECT {} FROM cash_movements WHERE session_id = ? ORDER BY created_at", Self::MOVEMENT_COLS);
+    pub async fn find_movements_by_session(
+        &self,
+        session_id: &str,
+    ) -> AppResult<Vec<CashMovement>> {
+        let query = format!(
+            "SELECT {} FROM cash_movements WHERE session_id = ? ORDER BY created_at",
+            Self::MOVEMENT_COLS
+        );
         let result = sqlx::query_as::<_, CashMovement>(&query)
             .bind(session_id)
             .fetch_all(self.pool)
@@ -89,16 +113,24 @@ impl<'a> CashRepository<'a> {
             movement_type: "OPENING".to_string(),
             amount: data.opening_balance,
             description: Some("Abertura de caixa".to_string()),
-        }).await?;
+        })
+        .await?;
 
-        self.find_session_by_id(&id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "CashSession".into(), id })
+        self.find_session_by_id(&id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "CashSession".into(),
+                id,
+            })
     }
 
-
-
     pub async fn get_session_summary(&self, session_id: &str) -> AppResult<CashSessionSummary> {
-        let session = self.find_session_by_id(session_id).await?
-            .ok_or_else(|| crate::error::AppError::NotFound { entity: "CashSession".into(), id: session_id.into() })?;
+        let session = self.find_session_by_id(session_id).await?.ok_or_else(|| {
+            crate::error::AppError::NotFound {
+                entity: "CashSession".into(),
+                id: session_id.into(),
+            }
+        })?;
 
         // 1. Get Totals from Sales
         let sales_row = sqlx::query(
@@ -124,7 +156,7 @@ impl<'a> CashRepository<'a> {
             FROM sales
             WHERE cash_session_id = ? AND status = 'COMPLETED'
             GROUP BY payment_method
-            "#
+            "#,
         )
         .bind(session_id)
         .fetch_all(self.pool)
@@ -164,7 +196,8 @@ impl<'a> CashRepository<'a> {
 
         // 4. Calculate Expected Cash in Drawer
         // Opening + Supplies - Bleeds + CASH Sales
-        let cash_in_drawer = session.opening_balance + total_supplies - total_withdrawals + cash_sales;
+        let cash_in_drawer =
+            session.opening_balance + total_supplies - total_withdrawals + cash_sales;
 
         Ok(CashSessionSummary {
             session,
@@ -178,9 +211,17 @@ impl<'a> CashRepository<'a> {
         })
     }
 
-    pub async fn close_session(&self, id: &str, actual_balance: f64, notes: Option<String>) -> AppResult<CashSession> {
-        let session = self.find_session_by_id(id).await?.ok_or(crate::error::AppError::CashSessionNotOpen)?;
-        
+    pub async fn close_session(
+        &self,
+        id: &str,
+        actual_balance: f64,
+        notes: Option<String>,
+    ) -> AppResult<CashSession> {
+        let session = self
+            .find_session_by_id(id)
+            .await?
+            .ok_or(crate::error::AppError::CashSessionNotOpen)?;
+
         if session.status != "OPEN" {
             return Err(crate::error::AppError::CashSessionNotOpen);
         }
@@ -204,7 +245,12 @@ impl<'a> CashRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_session_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "CashSession".into(), id: id.into() })
+        self.find_session_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "CashSession".into(),
+                id: id.into(),
+            })
     }
 
     pub async fn add_movement(&self, data: CreateCashMovement) -> AppResult<CashMovement> {
@@ -223,7 +269,10 @@ impl<'a> CashRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        let query = format!("SELECT {} FROM cash_movements WHERE id = ?", Self::MOVEMENT_COLS);
+        let query = format!(
+            "SELECT {} FROM cash_movements WHERE id = ?",
+            Self::MOVEMENT_COLS
+        );
         let result = sqlx::query_as::<_, CashMovement>(&query)
             .bind(&id)
             .fetch_one(self.pool)

@@ -3,10 +3,12 @@
  * @description Dashboard com KPIs e resumo do dia
  */
 
+import { MotopartsDashboard } from '@/components/motoparts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardStats } from '@/hooks/useDashboard';
 import { formatCurrency } from '@/lib/formatters';
+import { useBusinessProfile } from '@/stores/useBusinessProfile';
 import {
   AlertTriangle,
   ArrowDownRight,
@@ -79,8 +81,13 @@ const StatCard: FC<StatCardProps> = ({
 };
 
 export const DashboardPage: FC = () => {
+  const { businessType } = useBusinessProfile();
   const navigate = useNavigate();
   const { data: stats, isLoading } = useDashboardStats();
+
+  if (businessType === 'MOTOPARTS') {
+    return <MotopartsDashboard />;
+  }
 
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground">Carregando dashboard...</div>;

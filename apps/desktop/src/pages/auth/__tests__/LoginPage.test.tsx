@@ -211,9 +211,9 @@ describe('LoginPage', () => {
     });
   });
 
-  it('should show test PIN hints', () => {
+  it('should show system version', () => {
     renderLoginPage();
 
-    expect(screen.getByText(/1234/)).toBeInTheDocument();
+    expect(screen.getByText(/GIRO v1.0.0/)).toBeInTheDocument();
   });
 });

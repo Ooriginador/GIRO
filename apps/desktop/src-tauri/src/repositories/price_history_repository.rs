@@ -14,7 +14,8 @@ impl<'a> PriceHistoryRepository<'a> {
         Self { pool }
     }
 
-    const COLS: &'static str = "id, product_id, old_price, new_price, reason, employee_id, created_at";
+    const COLS: &'static str =
+        "id, product_id, old_price, new_price, reason, employee_id, created_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<PriceHistory>> {
         let query = format!("SELECT {} FROM price_history WHERE id = ?", Self::COLS);
@@ -27,7 +28,10 @@ impl<'a> PriceHistoryRepository<'a> {
 
     /// Retorna histórico de preços de um produto (últimas alterações)
     pub async fn find_by_product(&self, product_id: &str) -> AppResult<Vec<PriceHistory>> {
-        let query = format!("SELECT {} FROM price_history WHERE product_id = ? ORDER BY created_at DESC LIMIT 100", Self::COLS);
+        let query = format!(
+            "SELECT {} FROM price_history WHERE product_id = ? ORDER BY created_at DESC LIMIT 100",
+            Self::COLS
+        );
         let result = sqlx::query_as::<_, PriceHistory>(&query)
             .bind(product_id)
             .fetch_all(self.pool)
@@ -78,7 +82,12 @@ impl<'a> PriceHistoryRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(&id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "PriceHistory".into(), id })
+        self.find_by_id(&id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "PriceHistory".into(),
+                id,
+            })
     }
 
     /// Registra alteração de preço se houve mudança
@@ -95,13 +104,15 @@ impl<'a> PriceHistoryRepository<'a> {
             return Ok(None);
         }
 
-        let history = self.create(CreatePriceHistory {
-            product_id: product_id.to_string(),
-            old_price,
-            new_price,
-            reason,
-            employee_id,
-        }).await?;
+        let history = self
+            .create(CreatePriceHistory {
+                product_id: product_id.to_string(),
+                old_price,
+                new_price,
+                reason,
+                employee_id,
+            })
+            .await?;
 
         Ok(Some(history))
     }

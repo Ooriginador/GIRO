@@ -1,15 +1,15 @@
 use crate::error::AppResult;
 use crate::models::{
-    CreateProduct, CreateSaleItem, CreateSupplier, PaymentMethod,
+    CreateEmployee, CreateProduct, CreateSaleItem, CreateSupplier, EmployeeRole, PaymentMethod,
 };
 use crate::repositories::{
-    ProductRepository, SaleRepository, CashRepository, StockRepository,
-    CategoryRepository, SupplierRepository, EmployeeRepository, new_id,
+    new_id, CashRepository, CategoryRepository, EmployeeRepository, ProductRepository,
+    SaleRepository, StockRepository, SupplierRepository,
 };
 use crate::AppState;
 use chrono::{Duration, NaiveTime, Utc};
-use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use tauri::State;
 
 // Constants for Mock Data
@@ -87,11 +87,28 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
     let _sale_repo = SaleRepository::new(pool);
     let _cash_repo = CashRepository::new(pool);
     let _stock_repo = StockRepository::new(pool);
-    let _emp_repo = EmployeeRepository::new(pool); // Added for context if needed
+    let emp_repo = EmployeeRepository::new(pool);
 
-    // 1. Clear Existing Data (Optional - usually dangerous, but requested)
-    // We will skip this to avoid destroying dev work, assuming empty or test DB.
-    // Or we can just ensure we don't duplicate.
+    // 1. Ensure Admin Exists
+    let admin_id = if let Some(id) = sqlx::query_scalar::<_, String>(
+        "SELECT id FROM Employee WHERE role = 'ADMIN' AND is_active = 1 ORDER BY created_at LIMIT 1"
+    )
+    .fetch_optional(pool)
+    .await? {
+        id
+    } else {
+        println!("Creating default admin user...");
+        let admin = emp_repo.create(CreateEmployee {
+            name: "Administrador".to_string(),
+            cpf: None,
+            phone: None,
+            email: Some("admin@giro.local".to_string()),
+            pin: "1234".to_string(),
+            password: Some("admin".to_string()),
+            role: Some(EmployeeRole::Admin),
+        }).await?;
+        admin.id
+    };
 
     // 2. Seed Categories
     let mut category_ids = std::collections::HashMap::new();
@@ -104,14 +121,16 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
         let id = if let Some(id) = existing {
             id
         } else {
-            let cat = category_repo.create(crate::models::CreateCategory {
-                name: name.to_string(),
-                description: Some(description.to_string()),
-                color: None,
-                icon: None,
-                parent_id: None,
-                sort_order: Some(0),
-            }).await?;
+            let cat = category_repo
+                .create(crate::models::CreateCategory {
+                    name: name.to_string(),
+                    description: Some(description.to_string()),
+                    color: None,
+                    icon: None,
+                    parent_id: None,
+                    sort_order: Some(0),
+                })
+                .await?;
             cat.id
         };
         category_ids.insert(*name, id);
@@ -128,17 +147,19 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
         let id = if let Some(id) = existing {
             id
         } else {
-            let supplier = supplier_repo.create(CreateSupplier {
-                name: name.to_string(),
-                trade_name: Some(name.to_string()),
-                cnpj: None,
-                phone: None,
-                email: None,
-                address: None,
-                city: None,
-                state: None,
-                notes: None,
-            }).await?;
+            let supplier = supplier_repo
+                .create(CreateSupplier {
+                    name: name.to_string(),
+                    trade_name: Some(name.to_string()),
+                    cnpj: None,
+                    phone: None,
+                    email: None,
+                    address: None,
+                    city: None,
+                    state: None,
+                    notes: None,
+                })
+                .await?;
             supplier.id
         };
         supplier_ids.push(id);
@@ -147,27 +168,31 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
     // 4. Seed Products
     let mut products = Vec::new();
     for (name, price, cat_name) in PRODUCTS {
-        let existing = product_repo.find_by_barcode(&format!("BAR-{}", name)).await?; // Simple fake barcode
-        
+        let existing = product_repo
+            .find_by_barcode(&format!("BAR-{}", name))
+            .await?; // Simple fake barcode
+
         let product = if let Some(p) = existing {
             p
         } else {
             let cat_id = category_ids.get(cat_name).unwrap();
             let cost = price * 0.65; // 35% margin
-            
-            product_repo.create(CreateProduct {
-                name: name.to_string(),
-                barcode: Some(format!("BAR-{}", name)),
-                internal_code: None,
-                description: None,
-                category_id: cat_id.clone(),
-                unit: None,
-                sale_price: *price,
-                cost_price: Some(cost),
-                min_stock: Some(10.0),
-                current_stock: Some(1000.0), // Start with plenty
-                is_weighted: None,
-            }).await?
+
+            product_repo
+                .create(CreateProduct {
+                    name: name.to_string(),
+                    barcode: Some(format!("BAR-{}", name)),
+                    internal_code: None,
+                    description: None,
+                    category_id: cat_id.clone(),
+                    unit: None,
+                    sale_price: *price,
+                    cost_price: Some(cost),
+                    min_stock: Some(10.0),
+                    current_stock: Some(1000.0), // Start with plenty
+                    is_weighted: None,
+                })
+                .await?
         };
         products.push(product);
     }
@@ -178,22 +203,20 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
     let mut current_date = start_date;
 
     let mut rng = StdRng::seed_from_u64(42);
-    
-    // Busca o ID do admin real no banco de dados
-    let admin_id = sqlx::query_scalar::<_, String>(
-        "SELECT id FROM Employee WHERE role = 'ADMIN' AND is_active = 1 ORDER BY created_at LIMIT 1"
-    )
-    .fetch_optional(pool)
-    .await?
-    .unwrap_or_else(|| "emp-admin-001".to_string());
+
+    // We already have admin_id from step 1
+    // let admin_id = ...
 
     while current_date <= end_date {
         // Skip Sundays if you want, but groceries work Sundays. Let's keep it.
-        
+
         // Open Session
-        let open_time = current_date.date().and_time(NaiveTime::from_hms_opt(8, 0, 0).unwrap()).and_utc();
+        let open_time = current_date
+            .date()
+            .and_time(NaiveTime::from_hms_opt(8, 0, 0).unwrap())
+            .and_utc();
         let opening_balance = 200.0;
-        
+
         // We can't use repo.open_session because it checks for *active* session today.
         // We need to manually insert historical sessions.
         let session_id = new_id();
@@ -216,10 +239,13 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
         let mut sales_count = 0;
 
         while daily_total < target_daily {
-             // Random time between 8:00 and 20:00
+            // Random time between 8:00 and 20:00
             let hour = rng.random_range(8..20);
             let minute = rng.random_range(0..59);
-            let sale_time = current_date.date().and_time(NaiveTime::from_hms_opt(hour, minute, 0).unwrap()).and_utc();
+            let sale_time = current_date
+                .date()
+                .and_time(NaiveTime::from_hms_opt(hour, minute, 0).unwrap())
+                .and_utc();
 
             let num_items = rng.random_range(1..12);
             let mut items_data = Vec::new();
@@ -232,7 +258,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
                 } else {
                     rng.random_range(1.0f64..4.0f64).floor()
                 };
-                
+
                 let total = prod.sale_price * qty;
                 subtotal += total;
 
@@ -301,12 +327,15 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
         }
 
         // Close Session
-        let close_time = current_date.date().and_time(NaiveTime::from_hms_opt(20, 30, 0).unwrap()).and_utc();
-        
+        let close_time = current_date
+            .date()
+            .and_time(NaiveTime::from_hms_opt(20, 30, 0).unwrap())
+            .and_utc();
+
         // Calculate totals for closing
         // For simplicity, we assume expected = actual
         // We need to sum CASH sales for the drawer
-        
+
         let cash_sales_row = sqlx::query_scalar::<_, f64>(
             "SELECT COALESCE(SUM(total), 0) FROM sales WHERE cash_session_id = ? AND payment_method = 'CASH'"
         )
@@ -315,7 +344,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
         .await?;
 
         let expected_balance = opening_balance + cash_sales_row; // Assuming no movements/bleeds for simplicity in bulk seed
-        
+
         sqlx::query(
             "UPDATE CashSession SET closed_at = ?, expected_balance = ?, actual_balance = ?, difference = 0, status = 'CLOSED', updated_at = ? WHERE id = ?"
         )

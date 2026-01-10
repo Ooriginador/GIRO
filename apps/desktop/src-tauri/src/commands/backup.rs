@@ -2,12 +2,12 @@
 //!
 //! Expõe o serviço de backup para o frontend.
 
-use std::path::PathBuf;
-use tauri::State;
-use crate::AppState;
 use crate::services::backup_service::{
     BackupConfig, BackupMetadata, BackupResult, BackupService, GoogleCredentials,
 };
+use crate::AppState;
+use std::path::PathBuf;
+use tauri::State;
 
 /// Cria um backup do banco de dados
 #[tauri::command]
@@ -17,16 +17,14 @@ pub async fn create_backup(
 ) -> Result<BackupResult, String> {
     let db_path = state.db_path.clone();
     let backup_dir = state.backup_dir.clone();
-    
+
     let service = BackupService::new(backup_dir, BackupConfig::default());
     Ok(service.create_backup(&db_path, password.as_deref()).await)
 }
 
 /// Lista backups locais
 #[tauri::command]
-pub async fn list_backups(
-    state: State<'_, AppState>,
-) -> Result<Vec<BackupMetadata>, String> {
+pub async fn list_backups(state: State<'_, AppState>) -> Result<Vec<BackupMetadata>, String> {
     let backup_dir = state.backup_dir.clone();
     let service = BackupService::new(backup_dir, BackupConfig::default());
     service.list_backups().await
@@ -42,16 +40,16 @@ pub async fn restore_backup(
     let backup_dir = state.backup_dir.clone();
     let db_path = state.db_path.clone();
     let backup_path = backup_dir.join(&filename);
-    
+
     let service = BackupService::new(backup_dir, BackupConfig::default());
-    service.restore_backup(&backup_path, &db_path, password.as_deref()).await
+    service
+        .restore_backup(&backup_path, &db_path, password.as_deref())
+        .await
 }
 
 /// Remove backups antigos
 #[tauri::command]
-pub async fn cleanup_old_backups(
-    state: State<'_, AppState>,
-) -> Result<u32, String> {
+pub async fn cleanup_old_backups(state: State<'_, AppState>) -> Result<u32, String> {
     let backup_dir = state.backup_dir.clone();
     let service = BackupService::new(backup_dir, BackupConfig::default());
     service.cleanup_old_backups().await
@@ -59,10 +57,7 @@ pub async fn cleanup_old_backups(
 
 /// Obtém URL de autorização do Google
 #[tauri::command]
-pub fn get_google_auth_url(
-    client_id: String,
-    client_secret: String,
-) -> Result<String, String> {
+pub fn get_google_auth_url(client_id: String, client_secret: String) -> Result<String, String> {
     let creds = GoogleCredentials {
         client_id,
         client_secret,
@@ -70,11 +65,13 @@ pub fn get_google_auth_url(
         access_token: None,
         expires_at: None,
     };
-    
+
     let mut service = BackupService::new(PathBuf::new(), BackupConfig::default());
     service.set_google_credentials(creds);
-    
-    service.get_auth_url().ok_or("Falha ao gerar URL".to_string())
+
+    service
+        .get_auth_url()
+        .ok_or("Falha ao gerar URL".to_string())
 }
 
 /// Troca código OAuth por tokens
@@ -92,7 +89,7 @@ pub async fn exchange_google_code(
         access_token: None,
         expires_at: None,
     };
-    
+
     let mut service = BackupService::new(state.backup_dir.clone(), BackupConfig::default());
     service.set_google_credentials(creds);
     service.exchange_code(&code).await
@@ -106,7 +103,7 @@ pub async fn upload_backup_to_drive(
     access_token: String,
 ) -> Result<String, String> {
     let backup_path = state.backup_dir.join(&filename);
-    
+
     let creds = GoogleCredentials {
         client_id: String::new(),
         client_secret: String::new(),
@@ -114,7 +111,7 @@ pub async fn upload_backup_to_drive(
         access_token: Some(access_token),
         expires_at: None,
     };
-    
+
     let mut service = BackupService::new(state.backup_dir.clone(), BackupConfig::default());
     service.set_google_credentials(creds);
     service.upload_to_drive(&backup_path).await
@@ -122,9 +119,7 @@ pub async fn upload_backup_to_drive(
 
 /// Lista backups no Google Drive
 #[tauri::command]
-pub async fn list_drive_backups(
-    access_token: String,
-) -> Result<Vec<BackupMetadata>, String> {
+pub async fn list_drive_backups(access_token: String) -> Result<Vec<BackupMetadata>, String> {
     let creds = GoogleCredentials {
         client_id: String::new(),
         client_secret: String::new(),
@@ -132,7 +127,7 @@ pub async fn list_drive_backups(
         access_token: Some(access_token),
         expires_at: None,
     };
-    
+
     let mut service = BackupService::new(PathBuf::new(), BackupConfig::default());
     service.set_google_credentials(creds);
     service.list_drive_backups().await
@@ -147,7 +142,7 @@ pub async fn download_backup_from_drive(
     access_token: String,
 ) -> Result<(), String> {
     let target_path = state.backup_dir.join(&filename);
-    
+
     let creds = GoogleCredentials {
         client_id: String::new(),
         client_secret: String::new(),
@@ -155,7 +150,7 @@ pub async fn download_backup_from_drive(
         access_token: Some(access_token),
         expires_at: None,
     };
-    
+
     let mut service = BackupService::new(state.backup_dir.clone(), BackupConfig::default());
     service.set_google_credentials(creds);
     service.download_from_drive(&file_id, &target_path).await

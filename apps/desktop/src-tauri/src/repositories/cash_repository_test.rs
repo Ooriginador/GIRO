@@ -4,17 +4,19 @@
 mod tests {
     use super::super::*;
     use crate::models::{CreateCashMovement, CreateCashSession};
+    use sqlx::sqlite::SqlitePoolOptions;
     use sqlx::SqlitePool;
 
     async fn setup_test_db() -> SqlitePool {
-        let pool = SqlitePool::connect(":memory:").await.unwrap();
-        
-        // Run migrations
-        sqlx::migrate!("./migrations")
-            .run(&pool)
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect(":memory:")
             .await
             .unwrap();
-        
+
+        // Run migrations
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
+
         // Insert test employee
         sqlx::query(
             "INSERT INTO employees (id, name, pin, role, is_active, created_at, updated_at) 
@@ -23,7 +25,7 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         pool
     }
 
@@ -69,7 +71,10 @@ mod tests {
         let result = repo.open_session(input2).await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), crate::error::AppError::CashSessionAlreadyOpen));
+        assert!(matches!(
+            result.unwrap_err(),
+            crate::error::AppError::CashSessionAlreadyOpen
+        ));
     }
 
     #[tokio::test]
@@ -111,9 +116,15 @@ mod tests {
         let session = repo.open_session(input).await.unwrap();
 
         // Close session with actual balance
-        let result = repo.close_session(&session.id, 120.0, Some("End of day".to_string())).await;
+        let result = repo
+            .close_session(&session.id, 120.0, Some("End of day".to_string()))
+            .await;
 
-        assert!(result.is_ok(), "Failed to close session: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to close session: {:?}",
+            result.err()
+        );
         let closed = result.unwrap();
         assert_eq!(closed.status, "CLOSED");
         assert_eq!(closed.actual_balance, Some(120.0));

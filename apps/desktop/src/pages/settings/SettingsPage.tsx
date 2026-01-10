@@ -3,6 +3,8 @@
  * @description Configurações gerais, impressora, balança e preferências
  */
 
+import { ContingencyManager } from '@/components/nfce/ContingencyManager';
+import { FiscalSettings, LicenseSettings, MobileServerSettings } from '@/components/settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +25,7 @@ import {
   Bell,
   Building2,
   Database,
+  FileCode,
   Loader2,
   Monitor,
   Moon,
@@ -31,6 +34,8 @@ import {
   RefreshCw,
   Save,
   Scale,
+  ShieldCheck,
+  Smartphone,
   Sun,
   Volume2,
 } from 'lucide-react';
@@ -42,10 +47,13 @@ export const SettingsPage: FC = () => {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
-  // Local form state
+  // Local form state - Company
   const [companyName, setCompanyName] = useState(company.name);
+  const [companyTradeName, setCompanyTradeName] = useState(company.tradeName || '');
   const [companyDocument, setCompanyDocument] = useState(company.cnpj || '');
   const [companyAddress, setCompanyAddress] = useState(company.address || '');
+  const [companyCity, setCompanyCity] = useState(company.city || '');
+  const [companyState, setCompanyState] = useState(company.state || '');
   const [companyPhone, setCompanyPhone] = useState(company.phone || '');
 
   const [printerModel, setPrinterModel] = useState(printer.model);
@@ -65,8 +73,11 @@ export const SettingsPage: FC = () => {
       // Atualiza store local (Zustand com persist)
       setCompany({
         name: companyName,
+        tradeName: companyTradeName,
         cnpj: companyDocument,
         address: companyAddress,
+        city: companyCity,
+        state: companyState,
         phone: companyPhone,
       });
 
@@ -85,8 +96,11 @@ export const SettingsPage: FC = () => {
       // Persiste no banco de dados via Tauri
       await Promise.all([
         setSetting('company.name', companyName, 'string'),
+        setSetting('company.tradeName', companyTradeName, 'string'),
         setSetting('company.cnpj', companyDocument, 'string'),
         setSetting('company.address', companyAddress, 'string'),
+        setSetting('company.city', companyCity, 'string'),
+        setSetting('company.state', companyState, 'string'),
         setSetting('company.phone', companyPhone, 'string'),
         setSetting('printer.enabled', String(printerEnabled), 'boolean'),
         setSetting('printer.model', printerModel, 'string'),
@@ -138,19 +152,32 @@ export const SettingsPage: FC = () => {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+        <TabsList className="grid w-full grid-cols-7 lg:w-[900px]">
           <TabsTrigger value="general">
             <Building2 className="mr-2 h-4 w-4" />
             Empresa
+          </TabsTrigger>
+          <TabsTrigger value="license">
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            Licença
+          </TabsTrigger>
+          <TabsTrigger value="fiscal">
+            <FileCode className="mr-2 h-4 w-4" />
+            Fiscal
           </TabsTrigger>
           <TabsTrigger value="hardware">
             <Printer className="mr-2 h-4 w-4" />
             Hardware
           </TabsTrigger>
+          <TabsTrigger value="mobile">
+            <Smartphone className="mr-2 h-4 w-4" />
+            Mobile
+          </TabsTrigger>
           <TabsTrigger value="appearance">
             <Palette className="mr-2 h-4 w-4" />
             Aparência
           </TabsTrigger>
+          {/*          
           <TabsTrigger value="notifications">
             <Bell className="mr-2 h-4 w-4" />
             Notificações
@@ -159,7 +186,14 @@ export const SettingsPage: FC = () => {
             <Database className="mr-2 h-4 w-4" />
             Dev
           </TabsTrigger>
+*/}
         </TabsList>
+
+        {/* Fiscal */}
+        <TabsContent value="fiscal" className="space-y-6">
+          <FiscalSettings />
+          <ContingencyManager />
+        </TabsContent>
 
         {/* Empresa */}
         <TabsContent value="general" className="space-y-6">
@@ -173,12 +207,21 @@ export const SettingsPage: FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <Label htmlFor="companyName">Nome da Empresa</Label>
+                <div>
+                  <Label htmlFor="companyName">Razão Social *</Label>
                   <Input
                     id="companyName"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Empresa LTDA"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="tradeName">Nome Fantasia</Label>
+                  <Input
+                    id="tradeName"
+                    value={companyTradeName}
+                    onChange={(e) => setCompanyTradeName(e.target.value)}
                     placeholder="Mercearia do João"
                   />
                 </div>
@@ -209,9 +252,60 @@ export const SettingsPage: FC = () => {
                     placeholder="Rua das Flores, 123 - Centro"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="city">Cidade</Label>
+                  <Input
+                    id="city"
+                    value={companyCity}
+                    onChange={(e) => setCompanyCity(e.target.value)}
+                    placeholder="São Paulo"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state">Estado</Label>
+                  <Select value={companyState} onValueChange={setCompanyState}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AC">Acre</SelectItem>
+                      <SelectItem value="AL">Alagoas</SelectItem>
+                      <SelectItem value="AP">Amapá</SelectItem>
+                      <SelectItem value="AM">Amazonas</SelectItem>
+                      <SelectItem value="BA">Bahia</SelectItem>
+                      <SelectItem value="CE">Ceará</SelectItem>
+                      <SelectItem value="DF">Distrito Federal</SelectItem>
+                      <SelectItem value="ES">Espírito Santo</SelectItem>
+                      <SelectItem value="GO">Goiás</SelectItem>
+                      <SelectItem value="MA">Maranhão</SelectItem>
+                      <SelectItem value="MT">Mato Grosso</SelectItem>
+                      <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
+                      <SelectItem value="MG">Minas Gerais</SelectItem>
+                      <SelectItem value="PA">Pará</SelectItem>
+                      <SelectItem value="PB">Paraíba</SelectItem>
+                      <SelectItem value="PR">Paraná</SelectItem>
+                      <SelectItem value="PE">Pernambuco</SelectItem>
+                      <SelectItem value="PI">Piauí</SelectItem>
+                      <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                      <SelectItem value="RN">Rio Grande do Norte</SelectItem>
+                      <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                      <SelectItem value="RO">Rondônia</SelectItem>
+                      <SelectItem value="RR">Roraima</SelectItem>
+                      <SelectItem value="SC">Santa Catarina</SelectItem>
+                      <SelectItem value="SP">São Paulo</SelectItem>
+                      <SelectItem value="SE">Sergipe</SelectItem>
+                      <SelectItem value="TO">Tocantins</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Licença */}
+        <TabsContent value="license" className="space-y-6">
+          <LicenseSettings />
         </TabsContent>
 
         {/* Hardware */}
@@ -325,6 +419,11 @@ export const SettingsPage: FC = () => {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Mobile */}
+        <TabsContent value="mobile" className="space-y-6">
+          <MobileServerSettings />
         </TabsContent>
 
         {/* Aparência */}

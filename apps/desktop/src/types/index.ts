@@ -3,6 +3,11 @@
 // Sistema PDV para Varejo
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Re-export dos módulos específicos
+export * from './business-profile';
+export * from './motoparts';
+export * from './nfce';
+
 // ────────────────────────────────────────────────────────────────────────────
 // ENUMS
 // ────────────────────────────────────────────────────────────────────────────
@@ -20,7 +25,7 @@ export type ProductUnit =
 
 export type EmployeeRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'VIEWER';
 
-export type PaymentMethod = 'CASH' | 'PIX' | 'CREDIT' | 'DEBIT' | 'OTHER';
+export type PaymentMethod = 'CASH' | 'PIX' | 'CREDIT' | 'DEBIT' | 'VOUCHER' | 'OTHER';
 
 export type SaleStatus = 'COMPLETED' | 'CANCELED';
 
@@ -431,6 +436,8 @@ export interface CreateSaleInput {
   discount?: number;
   paymentMethod: PaymentMethod;
   amountPaid: number;
+  employeeId: string;
+  cashSessionId: string;
 }
 
 export interface OpenCashSessionInput {
@@ -450,3 +457,19 @@ export interface CashMovementInput {
   amount: number;
   description: string;
 }
+
+// License Types
+export type LicenseStatus = 'active' | 'suspended' | 'expired' | 'cancelled';
+
+export interface LicenseInfo {
+  key?: string;
+  status: LicenseStatus;
+  message?: string;
+  valid?: boolean;
+  expires_at?: string;
+  days_remaining?: number;
+  company_name: string;
+  max_users: number;
+  features: string[];
+}
+

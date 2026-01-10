@@ -14,3 +14,4 @@ export {
 } from './auth-store';
 export * from './pdv-store';
 export * from './settings-store';
+export * from './useBusinessProfile';

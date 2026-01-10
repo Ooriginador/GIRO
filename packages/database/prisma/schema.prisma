@@ -70,15 +70,25 @@ model Product {
   // Flags
   isActive Boolean @default(true)
 
+  // ════════════════════════════════════════════════════════════════════════
+  // Campos específicos para Motopeças
+  // ════════════════════════════════════════════════════════════════════════
+  oemCode         String? // Código original do fabricante (OEM)
+  aftermarketCode String? // Código paralelo/aftermarket
+  partBrand       String? // Marca da peça (Fram, NGK, etc)
+  application     String? // Aplicação textual (ex: "CG/Titan/Fan 2016-2024")
+
   // Relações
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
-  lots           ProductLot[]
-  saleItems      SaleItem[]
-  stockMovements StockMovement[]
-  priceHistory   PriceHistory[]
-  alerts         Alert[]
+  lots              ProductLot[]
+  saleItems         SaleItem[]
+  stockMovements    StockMovement[]
+  priceHistory      PriceHistory[]
+  alerts            Alert[]
+  compatibilities   ProductCompatibility[]
+  serviceOrderItems ServiceOrderItem[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -90,6 +100,8 @@ model Product {
   @@index([categoryId])
   @@index([currentStock])
   @@index([isActive])
+  @@index([oemCode])
+  @@index([partBrand])
 }
 
 /// Unidades de medida de produtos
@@ -556,4 +568,399 @@ model AuditLog {
   @@index([employeeId])
   @@index([createdAt])
   @@index([entity, entityId])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CONFIGURAÇÃO DE PERFIL DO NEGÓCIO (Multi-Segmento)
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Tipo do negócio (define features habilitadas)
+enum BusinessType {
+  GROCERY // Mercearia, mercadinho, padaria
+  MOTOPARTS // Motopeças, oficina mecânica
+  PETSHOP // Pet shop (futuro)
+  GENERAL // Varejo genérico
+}
+
+/// Configuração do perfil do negócio
+model BusinessConfig {
+  id           String       @id @default(cuid())
+  businessType BusinessType @default(GROCERY)
+  features     String // JSON com features habilitadas
+  labels       String // JSON com labels customizados
+  isConfigured Boolean      @default(false)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MARCAS DE VEÍCULOS (Motopeças)
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Marcas de veículos (Honda, Yamaha, etc)
+model VehicleBrand {
+  id       String  @id @default(cuid())
+  fipeCode String  @unique // Código FIPE da marca
+  name     String // Nome da marca
+  logoUrl  String? // URL do logo
+  isActive Boolean @default(true)
+
+  // Relações
+  models VehicleModel[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([fipeCode])
+  @@index([isActive])
+}
+
+/// Categoria de veículo
+enum VehicleCategory {
+  STREET // Rua (CG, Factor, Fazer)
+  SPORT // Esportiva (CBR, Ninja)
+  TRAIL // Trail (XRE, Lander)
+  OFFROAD // Off-road (CRF, XTZ)
+  SCOOTER // Scooter (PCX, Biz, Nmax)
+  CUSTOM // Custom (Shadow, Boulevard)
+  TOURING // Touring (Goldwing)
+  ADVENTURE // Adventure (Africa Twin)
+  UTILITY // Utilitária (Cargo)
+}
+
+/// Modelos de veículos (CG 160 Titan, Factor 150, etc)
+model VehicleModel {
+  id         String          @id @default(cuid())
+  fipeCode   String          @unique // Código FIPE do modelo
+  name       String // Nome do modelo
+  category   VehicleCategory @default(STREET)
+  engineSize Int? // Cilindrada em cc
+  isActive   Boolean         @default(true)
+
+  // Relações
+  brandId String
+  brand   VehicleBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  years VehicleYear[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([name])
+  @@index([category])
+  @@index([isActive])
+}
+
+/// Tipo de combustível
+enum FuelType {
+  GASOLINE // Gasolina
+  FLEX // Flex
+  ELECTRIC // Elétrica
+  DIESEL // Diesel
+}
+
+/// Anos/versões de veículos
+model VehicleYear {
+  id        String   @id @default(cuid())
+  year      Int // Ano do modelo
+  yearLabel String // Label (ex: "2020 Gasolina")
+  fipeCode  String // Código FIPE do ano
+  fuelType  FuelType @default(GASOLINE)
+
+  // Relações
+  modelId String
+  model   VehicleModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  compatibilities  ProductCompatibility[]
+  customerVehicles CustomerVehicle[]
+  serviceOrders    ServiceOrder[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@unique([modelId, year, fuelType])
+  @@index([modelId])
+  @@index([year])
+  @@index([fipeCode])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// COMPATIBILIDADE PEÇA ↔ VEÍCULO
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Posição da peça no veículo
+enum PartPosition {
+  FRONT // Dianteiro
+  REAR // Traseiro
+  LEFT // Esquerdo
+  RIGHT // Direito
+  BOTH // Ambos os lados
+}
+
+/// Compatibilidade entre produto (peça) e veículo
+model ProductCompatibility {
+  id           String        @id @default(cuid())
+  isVerified   Boolean       @default(false) // Confirmado pelo lojista
+  verifiedById String? // Quem verificou
+  notes        String? // Observações
+  position     PartPosition? // Posição da peça
+
+  // Relações
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vehicleYearId String
+  vehicleYear   VehicleYear @relation(fields: [vehicleYearId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, vehicleYearId])
+  @@index([productId])
+  @@index([vehicleYearId])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CLIENTES (Expandido para Motopeças)
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Clientes do estabelecimento
+model Customer {
+  id           String  @id @default(cuid())
+  name         String
+  cpf          String? @unique
+  phone        String?
+  phone2       String?
+  email        String?
+  // Endereço
+  zipCode      String?
+  street       String?
+  number       String?
+  complement   String?
+  neighborhood String?
+  city         String?
+  state        String?
+  // Status
+  isActive     Boolean @default(true)
+  notes        String?
+
+  // Relações
+  vehicles       CustomerVehicle[]
+  serviceOrders  ServiceOrder[]
+  warrantyClaims WarrantyClaim[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([cpf])
+  @@index([phone])
+  @@index([isActive])
+}
+
+/// Veículos de um cliente
+model CustomerVehicle {
+  id        String  @id @default(cuid())
+  plate     String? // Placa
+  chassis   String? // Chassi (últimos 8 dígitos)
+  renavam   String?
+  color     String?
+  currentKm Int? // Quilometragem atual
+  nickname  String? // Apelido (ex: "Moto do trabalho")
+  isActive  Boolean @default(true)
+  notes     String?
+
+  // Relações
+  customerId    String
+  customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vehicleYearId String
+  vehicleYear   VehicleYear @relation(fields: [vehicleYearId], references: [id], onDelete: Restrict)
+
+  serviceOrders ServiceOrder[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([plate])
+  @@index([vehicleYearId])
+  @@index([isActive])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ORDENS DE SERVIÇO (Motopeças/Oficina)
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Status da ordem de serviço
+enum ServiceOrderStatus {
+  OPEN // Aberta (aguardando)
+  IN_PROGRESS // Em andamento
+  WAITING_PARTS // Aguardando peças
+  COMPLETED // Serviço concluído
+  DELIVERED // Entregue ao cliente
+  CANCELED // Cancelada
+}
+
+/// Ordem de serviço
+model ServiceOrder {
+  id            String             @id @default(cuid())
+  orderNumber   Int // Número sequencial
+  vehicleKm     Int? // KM no momento da OS
+  symptoms      String? // Sintomas/reclamação
+  diagnosis     String? // Diagnóstico
+  status        ServiceOrderStatus @default(OPEN)
+  // Valores
+  laborCost     Float              @default(0)
+  partsCost     Float              @default(0)
+  discount      Float              @default(0)
+  total         Float              @default(0)
+  // Garantia
+  warrantyDays  Int                @default(30)
+  warrantyUntil DateTime?
+  // Datas
+  scheduledDate DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  // Pagamento
+  paymentMethod String?
+  isPaid        Boolean            @default(false)
+  // Notas
+  notes         String?
+  internalNotes String?
+
+  // Relações
+  customerId        String
+  customer          Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  customerVehicleId String
+  customerVehicle   CustomerVehicle @relation(fields: [customerVehicleId], references: [id], onDelete: Restrict)
+  vehicleYearId     String
+  vehicleYear       VehicleYear     @relation(fields: [vehicleYearId], references: [id], onDelete: Restrict)
+  employeeId        String
+  // employee          Employee        @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  items ServiceOrderItem[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([customerVehicleId])
+  @@index([vehicleYearId])
+  @@index([employeeId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+}
+
+/// Tipo de item da OS
+enum ServiceItemType {
+  PART // Peça
+  SERVICE // Serviço/Mão de obra
+}
+
+/// Itens de uma ordem de serviço
+model ServiceOrderItem {
+  id           String          @id @default(cuid())
+  itemType     ServiceItemType
+  description  String
+  quantity     Float
+  unitPrice    Float
+  discount     Float           @default(0)
+  total        Float
+  warrantyDays Int?
+
+  // Relações
+  orderId   String
+  order     ServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product?     @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([itemType])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SERVIÇOS PRÉ-CADASTRADOS
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Serviços padrão (mão de obra)
+model Service {
+  id                  String  @id @default(cuid())
+  code                String  @unique // Código do serviço
+  name                String
+  description         String?
+  defaultPrice        Float
+  estimatedTime       Int? // Tempo em minutos
+  defaultWarrantyDays Int     @default(30)
+  isActive            Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([name])
+  @@index([isActive])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// GARANTIAS
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Origem da garantia
+enum WarrantySourceType {
+  SALE // Venda direta
+  SERVICE_ORDER // Ordem de serviço
+}
+
+/// Status da reclamação de garantia
+enum WarrantyClaimStatus {
+  OPEN // Aberta
+  IN_ANALYSIS // Em análise
+  APPROVED // Aprovada
+  DENIED // Negada
+  RESOLVED // Resolvida
+}
+
+/// Reclamações de garantia
+model WarrantyClaim {
+  id              String              @id @default(cuid())
+  sourceType      WarrantySourceType
+  saleItemId      String?
+  orderItemId     String?
+  productId       String?
+  description     String // Descrição do item
+  reason          String // Motivo da reclamação
+  status          WarrantyClaimStatus @default(OPEN)
+  resolution      String?
+  resolvedById    String?
+  resolvedAt      DateTime?
+  refundAmount    Float?
+  replacementCost Float?
+
+  // Relações
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+  @@index([sourceType])
+  @@index([createdAt])
 }

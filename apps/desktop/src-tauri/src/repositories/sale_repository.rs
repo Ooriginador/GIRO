@@ -1,7 +1,10 @@
 //! Repositório de Vendas
 
 use crate::error::AppResult;
-use crate::models::{CreateSale, CreateSaleItem, DailySalesSummary, MonthlySalesSummary, PaymentMethodSummary, Sale, SaleItem, SaleWithDetails};
+use crate::models::{
+    CreateSale, CreateSaleItem, DailySalesSummary, MonthlySalesSummary, PaymentMethodSummary, Sale,
+    SaleItem, SaleWithDetails,
+};
 use crate::repositories::new_id;
 use sqlx::Row;
 use sqlx::SqlitePool;
@@ -28,7 +31,10 @@ impl<'a> SaleRepository<'a> {
     }
 
     pub async fn find_items_by_sale(&self, sale_id: &str) -> AppResult<Vec<SaleItem>> {
-        let query = format!("SELECT {} FROM sale_items WHERE sale_id = ?", Self::ITEM_COLS);
+        let query = format!(
+            "SELECT {} FROM sale_items WHERE sale_id = ?",
+            Self::ITEM_COLS
+        );
         let result = sqlx::query_as::<_, SaleItem>(&query)
             .bind(sale_id)
             .fetch_all(self.pool)
@@ -41,10 +47,11 @@ impl<'a> SaleRepository<'a> {
         match sale {
             Some(s) => {
                 let items = self.find_items_by_sale(&s.id).await?;
-                let emp_name: Option<(String,)> = sqlx::query_as("SELECT name FROM employees WHERE id = ?")
-                    .bind(&s.employee_id)
-                    .fetch_optional(self.pool)
-                    .await?;
+                let emp_name: Option<(String,)> =
+                    sqlx::query_as("SELECT name FROM employees WHERE id = ?")
+                        .bind(&s.employee_id)
+                        .fetch_optional(self.pool)
+                        .await?;
                 Ok(Some(SaleWithDetails {
                     sale: s,
                     employee_name: emp_name.map(|e| e.0),
@@ -57,7 +64,10 @@ impl<'a> SaleRepository<'a> {
     }
 
     pub async fn find_by_session(&self, session_id: &str) -> AppResult<Vec<Sale>> {
-        let query = format!("SELECT {} FROM sales WHERE cash_session_id = ? ORDER BY created_at DESC", Self::SALE_COLS);
+        let query = format!(
+            "SELECT {} FROM sales WHERE cash_session_id = ? ORDER BY created_at DESC",
+            Self::SALE_COLS
+        );
         let result = sqlx::query_as::<_, Sale>(&query)
             .bind(session_id)
             .fetch_all(self.pool)
@@ -67,7 +77,10 @@ impl<'a> SaleRepository<'a> {
 
     pub async fn find_today(&self) -> AppResult<Vec<Sale>> {
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-        let query = format!("SELECT {} FROM sales WHERE date(created_at) = ? ORDER BY created_at DESC", Self::SALE_COLS);
+        let query = format!(
+            "SELECT {} FROM sales WHERE date(created_at) = ? ORDER BY created_at DESC",
+            Self::SALE_COLS
+        );
         let result = sqlx::query_as::<_, Sale>(&query)
             .bind(&today)
             .fetch_all(self.pool)
@@ -77,10 +90,11 @@ impl<'a> SaleRepository<'a> {
 
     pub async fn get_next_daily_number(&self) -> AppResult<i32> {
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-        let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM sales WHERE date(created_at) = ?")
-            .bind(&today)
-            .fetch_one(self.pool)
-            .await?;
+        let result: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM sales WHERE date(created_at) = ?")
+                .bind(&today)
+                .fetch_one(self.pool)
+                .await?;
         Ok((result.0 + 1) as i32)
     }
 
@@ -95,7 +109,9 @@ impl<'a> SaleRepository<'a> {
         let total = subtotal - discount;
         let change = data.amount_paid - total;
         let payment_method = format!("{:?}", data.payment_method).to_uppercase();
-        let discount_type = data.discount_type.map(|dt| format!("{:?}", dt).to_uppercase());
+        let discount_type = data
+            .discount_type
+            .map(|dt| format!("{:?}", dt).to_uppercase());
 
         sqlx::query(
             "INSERT INTO sales (id, daily_number, subtotal, discount_type, discount_value, discount_reason, total, payment_method, amount_paid, change, status, employee_id, cash_session_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?)"
@@ -122,7 +138,12 @@ impl<'a> SaleRepository<'a> {
             self.create_item(&id, item).await?;
         }
 
-        self.find_by_id(&id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Sale".into(), id })
+        self.find_by_id(&id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Sale".into(),
+                id,
+            })
     }
 
     async fn create_item(&self, sale_id: &str, item: &CreateSaleItem) -> AppResult<SaleItem> {
@@ -132,12 +153,14 @@ impl<'a> SaleRepository<'a> {
         let total = (item.quantity * item.unit_price) - discount;
 
         // Get product info
-        let product: Option<(String, Option<String>, String)> = sqlx::query_as("SELECT name, barcode, unit FROM products WHERE id = ?")
-            .bind(&item.product_id)
-            .fetch_optional(self.pool)
-            .await?;
-        
-        let (product_name, product_barcode, product_unit) = product.unwrap_or(("Unknown".into(), None, "UNIT".into()));
+        let product: Option<(String, Option<String>, String)> =
+            sqlx::query_as("SELECT name, barcode, unit FROM products WHERE id = ?")
+                .bind(&item.product_id)
+                .fetch_optional(self.pool)
+                .await?;
+
+        let (product_name, product_barcode, product_unit) =
+            product.unwrap_or(("Unknown".into(), None, "UNIT".into()));
 
         sqlx::query(
             "INSERT INTO sale_items (id, sale_id, product_id, quantity, unit_price, discount, total, product_name, product_barcode, product_unit, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
@@ -175,34 +198,57 @@ impl<'a> SaleRepository<'a> {
             .execute(self.pool)
             .await?;
 
-        self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Sale".into(), id: id.into() })
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Sale".into(),
+                id: id.into(),
+            })
     }
 
     pub async fn get_daily_summary(&self, date: &str) -> AppResult<DailySalesSummary> {
-        let sales = sqlx::query_as::<_, Sale>(&format!("SELECT {} FROM sales WHERE date(created_at) = ? AND status = 'COMPLETED'", Self::SALE_COLS))
-            .bind(date)
-            .fetch_all(self.pool)
-            .await?;
+        let sales = sqlx::query_as::<_, Sale>(&format!(
+            "SELECT {} FROM sales WHERE date(created_at) = ? AND status = 'COMPLETED'",
+            Self::SALE_COLS
+        ))
+        .bind(date)
+        .fetch_all(self.pool)
+        .await?;
 
         let total_sales = sales.len() as i64;
         let total_amount: f64 = sales.iter().map(|s| s.total).sum();
-        let total_items: i64 = sales.iter().map(|_s| {
-            // Would need to count items per sale
-            1i64
-        }).sum();
-        let average_ticket = if total_sales > 0 { total_amount / total_sales as f64 } else { 0.0 };
+        let total_items: i64 = sales
+            .iter()
+            .map(|_s| {
+                // Would need to count items per sale
+                1i64
+            })
+            .sum();
+        let average_ticket = if total_sales > 0 {
+            total_amount / total_sales as f64
+        } else {
+            0.0
+        };
 
         // Group by payment method
-        let mut by_method: std::collections::HashMap<String, (i64, f64)> = std::collections::HashMap::new();
+        let mut by_method: std::collections::HashMap<String, (i64, f64)> =
+            std::collections::HashMap::new();
         for sale in &sales {
-            let entry = by_method.entry(sale.payment_method.clone()).or_insert((0, 0.0));
+            let entry = by_method
+                .entry(sale.payment_method.clone())
+                .or_insert((0, 0.0));
             entry.0 += 1;
             entry.1 += sale.total;
         }
 
-        let by_payment_method: Vec<PaymentMethodSummary> = by_method.into_iter().map(|(method, (count, amount))| {
-            PaymentMethodSummary { method, count, amount }
-        }).collect();
+        let by_payment_method: Vec<PaymentMethodSummary> = by_method
+            .into_iter()
+            .map(|(method, (count, amount))| PaymentMethodSummary {
+                method,
+                count,
+                amount,
+            })
+            .collect();
 
         Ok(DailySalesSummary {
             date: date.to_string(),
@@ -242,16 +288,13 @@ mod tests {
 
     async fn setup_test_db() -> SqlitePool {
         let pool = SqlitePool::connect(":memory:").await.unwrap();
-        
-        sqlx::migrate!("./migrations")
-            .run(&pool)
-            .await
-            .unwrap();
-        
+
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
+
         // Create test category
         sqlx::query(
             "INSERT INTO categories (id, name, is_active, created_at, updated_at) 
-             VALUES ('cat-001', 'Test Cat', 1, datetime('now'), datetime('now'))"
+             VALUES ('cat-001', 'Test Cat', 1, datetime('now'), datetime('now'))",
         )
         .execute(&pool)
         .await
@@ -283,7 +326,7 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         pool
     }
 
@@ -295,15 +338,12 @@ mod tests {
         let input = CreateSale {
             employee_id: "emp-001".to_string(),
             cash_session_id: "cs-001".to_string(),
-            items: vec![
-                CreateSaleItem {
-                    product_id: "prod-001".to_string(),
-                    quantity: 2.0,
-                    unit_price: 10.0,
-                    discount: Some(0.0),
-                    
-                },
-            ],
+            items: vec![CreateSaleItem {
+                product_id: "prod-001".to_string(),
+                quantity: 2.0,
+                unit_price: 10.0,
+                discount: Some(0.0),
+            }],
             payment_method: PaymentMethod::Cash,
             amount_paid: 25.0,
             discount_type: None,
@@ -331,15 +371,12 @@ mod tests {
         let input = CreateSale {
             employee_id: "emp-001".to_string(),
             cash_session_id: "cs-001".to_string(),
-            items: vec![
-                CreateSaleItem {
-                    product_id: "prod-001".to_string(),
-                    quantity: 5.0,
-                    unit_price: 10.0,
-                    discount: Some(0.0),
-                    
-                },
-            ],
+            items: vec![CreateSaleItem {
+                product_id: "prod-001".to_string(),
+                quantity: 5.0,
+                unit_price: 10.0,
+                discount: Some(0.0),
+            }],
             payment_method: PaymentMethod::Cash,
             amount_paid: 45.0,
             discount_type: Some(DiscountType::Fixed),
@@ -365,15 +402,12 @@ mod tests {
         let input = CreateSale {
             employee_id: "emp-001".to_string(),
             cash_session_id: "cs-001".to_string(),
-            items: vec![
-                CreateSaleItem {
-                    product_id: "prod-001".to_string(),
-                    quantity: 1.0,
-                    unit_price: 10.0,
-                    discount: Some(0.0),
-                    
-                },
-            ],
+            items: vec![CreateSaleItem {
+                product_id: "prod-001".to_string(),
+                quantity: 1.0,
+                unit_price: 10.0,
+                discount: Some(0.0),
+            }],
             payment_method: PaymentMethod::Debit,
             amount_paid: 10.0,
             discount_type: None,
@@ -397,15 +431,12 @@ mod tests {
         let input = CreateSale {
             employee_id: "emp-001".to_string(),
             cash_session_id: "cs-001".to_string(),
-            items: vec![
-                CreateSaleItem {
-                    product_id: "prod-001".to_string(),
-                    quantity: 1.0,
-                    unit_price: 10.0,
-                    discount: Some(0.0),
-                    
-                },
-            ],
+            items: vec![CreateSaleItem {
+                product_id: "prod-001".to_string(),
+                quantity: 1.0,
+                unit_price: 10.0,
+                discount: Some(0.0),
+            }],
             payment_method: PaymentMethod::Cash,
             amount_paid: 10.0,
             discount_type: None,
@@ -427,15 +458,12 @@ mod tests {
         let input = CreateSale {
             employee_id: "emp-001".to_string(),
             cash_session_id: "cs-001".to_string(),
-            items: vec![
-                CreateSaleItem {
-                    product_id: "prod-001".to_string(),
-                    quantity: 1.0,
-                    unit_price: 10.0,
-                    discount: Some(0.0),
-                    
-                },
-            ],
+            items: vec![CreateSaleItem {
+                product_id: "prod-001".to_string(),
+                quantity: 1.0,
+                unit_price: 10.0,
+                discount: Some(0.0),
+            }],
             payment_method: PaymentMethod::Cash,
             amount_paid: 10.0,
             discount_type: None,
@@ -444,7 +472,9 @@ mod tests {
         };
 
         let created = repo.create(input).await.unwrap();
-        let result = repo.cancel(&created.id, "emp-001", "Teste cancelamento").await;
+        let result = repo
+            .cancel(&created.id, "emp-001", "Teste cancelamento")
+            .await;
 
         assert!(result.is_ok());
 
@@ -462,15 +492,12 @@ mod tests {
             let input = CreateSale {
                 employee_id: "emp-001".to_string(),
                 cash_session_id: "cs-001".to_string(),
-                items: vec![
-                    CreateSaleItem {
-                        product_id: "prod-001".to_string(),
-                        quantity: 1.0,
-                        unit_price: 10.0,
-                        discount: Some(0.0),
-                        
-                    },
-                ],
+                items: vec![CreateSaleItem {
+                    product_id: "prod-001".to_string(),
+                    quantity: 1.0,
+                    unit_price: 10.0,
+                    discount: Some(0.0),
+                }],
                 payment_method: PaymentMethod::Cash,
                 amount_paid: 10.0,
                 discount_type: None,
@@ -499,15 +526,12 @@ mod tests {
         let input = CreateSale {
             employee_id: "emp-001".to_string(),
             cash_session_id: "cs-001".to_string(),
-            items: vec![
-                CreateSaleItem {
-                    product_id: "prod-001".to_string(),
-                    quantity: 1.0,
-                    unit_price: 10.0,
-                    discount: Some(0.0),
-                    
-                },
-            ],
+            items: vec![CreateSaleItem {
+                product_id: "prod-001".to_string(),
+                quantity: 1.0,
+                unit_price: 10.0,
+                discount: Some(0.0),
+            }],
             payment_method: PaymentMethod::Cash,
             amount_paid: 10.0,
             discount_type: None,

@@ -4,14 +4,16 @@
 mod tests {
     use super::super::*;
     use crate::models::CreateSupplier;
+    use sqlx::sqlite::SqlitePoolOptions;
     use sqlx::SqlitePool;
 
     async fn setup_test_db() -> SqlitePool {
-        let pool = SqlitePool::connect(":memory:").await.unwrap();
-        sqlx::migrate!("./migrations")
-            .run(&pool)
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect(":memory:")
             .await
             .unwrap();
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
         pool
     }
 
@@ -103,9 +105,9 @@ mod tests {
             let input = CreateSupplier {
                 name: format!("Supplier {}", i),
                 cnpj: None,
-            trade_name: None,
-            city: None,
-            state: None,
+                trade_name: None,
+                city: None,
+                state: None,
                 phone: None,
                 email: None,
                 address: None,

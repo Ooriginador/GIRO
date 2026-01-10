@@ -35,7 +35,10 @@ impl<'a> SupplierRepository<'a> {
     }
 
     pub async fn find_all_active(&self) -> AppResult<Vec<Supplier>> {
-        let query = format!("SELECT {} FROM suppliers WHERE is_active = 1 ORDER BY name", Self::COLS);
+        let query = format!(
+            "SELECT {} FROM suppliers WHERE is_active = 1 ORDER BY name",
+            Self::COLS
+        );
         let result = sqlx::query_as::<_, Supplier>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -76,11 +79,22 @@ impl<'a> SupplierRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(&id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Supplier".into(), id })
+        self.find_by_id(&id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Supplier".into(),
+                id,
+            })
     }
 
     pub async fn update(&self, id: &str, data: UpdateSupplier) -> AppResult<Supplier> {
-        let existing = self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Supplier".into(), id: id.into() })?;
+        let existing =
+            self.find_by_id(id)
+                .await?
+                .ok_or_else(|| crate::error::AppError::NotFound {
+                    entity: "Supplier".into(),
+                    id: id.into(),
+                })?;
         let now = chrono::Utc::now().to_rfc3339();
 
         let name = data.name.unwrap_or(existing.name);
@@ -102,13 +116,19 @@ impl<'a> SupplierRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Supplier".into(), id: id.into() })
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Supplier".into(),
+                id: id.into(),
+            })
     }
 
     pub async fn delete(&self, id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
         sqlx::query("UPDATE suppliers SET is_active = 0, updated_at = ? WHERE id = ?")
-            .bind(&now).bind(id)
+            .bind(&now)
+            .bind(id)
             .execute(self.pool)
             .await?;
         Ok(())
@@ -118,10 +138,16 @@ impl<'a> SupplierRepository<'a> {
     pub async fn reactivate(&self, id: &str) -> AppResult<Supplier> {
         let now = chrono::Utc::now().to_rfc3339();
         sqlx::query("UPDATE suppliers SET is_active = 1, updated_at = ? WHERE id = ?")
-            .bind(&now).bind(id)
+            .bind(&now)
+            .bind(id)
             .execute(self.pool)
             .await?;
-        self.find_by_id(id).await?.ok_or_else(|| crate::error::AppError::NotFound { entity: "Supplier".into(), id: id.into() })
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Supplier".into(),
+                id: id.into(),
+            })
     }
 
     /// Retorna todos os fornecedores (ativos e inativos)
@@ -135,7 +161,10 @@ impl<'a> SupplierRepository<'a> {
 
     /// Retorna apenas fornecedores inativos
     pub async fn find_inactive(&self) -> AppResult<Vec<Supplier>> {
-        let query = format!("SELECT {} FROM suppliers WHERE is_active = 0 ORDER BY name", Self::COLS);
+        let query = format!(
+            "SELECT {} FROM suppliers WHERE is_active = 0 ORDER BY name",
+            Self::COLS
+        );
         let result = sqlx::query_as::<_, Supplier>(&query)
             .fetch_all(self.pool)
             .await?;

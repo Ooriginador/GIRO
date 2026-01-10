@@ -1,9 +1,9 @@
 //! Módulo de Banco de Dados - Conexão SQLite via SQLx
 
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
-use std::str::FromStr;
-use std::path::Path;
 use crate::error::AppResult;
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
+use std::path::Path;
+use std::str::FromStr;
 
 /// Gerenciador de conexão com o banco de dados
 pub struct DatabaseManager {

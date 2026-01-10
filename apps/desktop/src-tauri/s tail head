@@ -1,0 +1,9 @@
+[0mA double quote string ([0m[0m[2m"[0m) was not terminated.[0m
+
+[0mErroneous code example:[0m
+
+[0m[0m[2mlet s = "; // error![0m
+
+[0mTo fix this error, add the missing double quote at the end of the string:[0m
+
+[0m[0m[2mlet s = ""; // ok![0m[0m

@@ -7,3 +7,4 @@ export * from './category.factory';
 export * from './employee.factory';
 export * from './product.factory';
 export * from './sale.factory';
+export * from './supplier.factory';

@@ -57,19 +57,21 @@ export class MockScanner {
   }
 
   static generateWeightCode(productCode: string, weight: number): string {
-    // Prefixo 2 para código pesado
+    // Estrutura EAN-13 para produtos pesados:
+    // 2 (1 dígito) + código produto (6 dígitos) + peso (5 dígitos) + check (1) = 13
     const prefix = '2';
-    const code = productCode.padStart(5, '0').substring(0, 5);
+    const code = productCode.padStart(6, '0').slice(0, 6); // 6 dígitos do produto
     const weightDigits = Math.round(weight * 1000)
       .toString()
-      .padStart(5, '0');
-    const partial = prefix + code + weightDigits;
+      .padStart(5, '0')
+      .slice(0, 5); // 5 dígitos do peso (em gramas)
+    const partial = prefix + code + weightDigits; // 1 + 6 + 5 = 12 dígitos
 
     const digits = partial.split('').map(Number);
     const sum = digits.reduce((acc, d, i) => acc + d * (i % 2 === 0 ? 1 : 3), 0);
     const check = (10 - (sum % 10)) % 10;
 
-    return partial + check;
+    return partial + check; // 12 + 1 = 13 dígitos (EAN-13)
   }
 }
 

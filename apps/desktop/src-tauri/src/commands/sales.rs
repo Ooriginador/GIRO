@@ -19,13 +19,19 @@ pub async fn get_today_sales(state: State<'_, AppState>) -> AppResult<Vec<Sale>>
 }
 
 #[tauri::command]
-pub async fn get_sale_by_id(id: String, state: State<'_, AppState>) -> AppResult<Option<SaleWithDetails>> {
+pub async fn get_sale_by_id(
+    id: String,
+    state: State<'_, AppState>,
+) -> AppResult<Option<SaleWithDetails>> {
     let repo = SaleRepository::new(state.pool());
     repo.find_with_details(&id).await
 }
 
 #[tauri::command]
-pub async fn get_sales_by_session(session_id: String, state: State<'_, AppState>) -> AppResult<Vec<Sale>> {
+pub async fn get_sales_by_session(
+    session_id: String,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<Sale>> {
     let repo = SaleRepository::new(state.pool());
     repo.find_by_session(&session_id).await
 }
@@ -37,13 +43,21 @@ pub async fn create_sale(input: CreateSale, state: State<'_, AppState>) -> AppRe
 }
 
 #[tauri::command]
-pub async fn cancel_sale(id: String, canceled_by: String, reason: String, state: State<'_, AppState>) -> AppResult<Sale> {
+pub async fn cancel_sale(
+    id: String,
+    canceled_by: String,
+    reason: String,
+    state: State<'_, AppState>,
+) -> AppResult<Sale> {
     let repo = SaleRepository::new(state.pool());
     repo.cancel(&id, &canceled_by, &reason).await
 }
 
 #[tauri::command]
-pub async fn get_daily_summary(date: String, state: State<'_, AppState>) -> AppResult<DailySalesSummary> {
+pub async fn get_daily_summary(
+    date: String,
+    state: State<'_, AppState>,
+) -> AppResult<DailySalesSummary> {
     let repo = SaleRepository::new(state.pool());
     repo.get_daily_summary(&date).await
 }
@@ -61,7 +75,10 @@ pub async fn get_daily_sales_total(state: State<'_, AppState>) -> AppResult<f64>
 
 /// Resumo de vendas do mês (YYYY-MM)
 #[tauri::command]
-pub async fn get_monthly_summary(year_month: String, state: State<'_, AppState>) -> AppResult<MonthlySalesSummary> {
+pub async fn get_monthly_summary(
+    year_month: String,
+    state: State<'_, AppState>,
+) -> AppResult<MonthlySalesSummary> {
     let repo = SaleRepository::new(state.pool());
     repo.get_monthly_summary(&year_month).await
 }

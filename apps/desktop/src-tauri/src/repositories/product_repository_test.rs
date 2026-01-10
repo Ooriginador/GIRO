@@ -4,25 +4,27 @@
 mod tests {
     use super::super::*;
     use crate::models::CreateProduct;
+    use sqlx::sqlite::SqlitePoolOptions;
     use sqlx::SqlitePool;
 
     async fn setup_test_db() -> SqlitePool {
-        let pool = SqlitePool::connect(":memory:").await.unwrap();
-        
-        sqlx::migrate!("./migrations")
-            .run(&pool)
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect(":memory:")
             .await
             .unwrap();
-        
+
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
+
         // Create test category
         sqlx::query(
             "INSERT INTO categories (id, name, is_active, created_at, updated_at) 
-             VALUES ('cat-test-001', 'Test Category', 1, datetime('now'), datetime('now'))"
+             VALUES ('cat-test-001', 'Test Category', 1, datetime('now'), datetime('now'))",
         )
         .execute(&pool)
         .await
         .unwrap();
-        
+
         pool
     }
 
@@ -258,7 +260,8 @@ mod tests {
             sale_price: 10.0,
             cost_price: Some(5.0),
             min_stock: Some(20.0),
-            current_stock: Some(0.0),
+            // find_low_stock filtra current_stock > 0; para estoque zerado use find_out_of_stock.
+            current_stock: Some(1.0),
             description: None,
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
@@ -271,10 +274,11 @@ mod tests {
 
         assert!(result.is_ok());
         let products = result.unwrap();
+        assert!(products.iter().any(|p| p.id == product.id));
         // If find_low_stock is implemented correctly, should have at least 1 product
         // For now, let's verify the product was created with correct stock values
         let found = repo.find_by_id(&product.id).await.unwrap().unwrap();
-        assert_eq!(found.current_stock, 0.0);
+        assert_eq!(found.current_stock, 1.0);
         assert_eq!(found.min_stock, 20.0);
     }
 }

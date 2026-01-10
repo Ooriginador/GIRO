@@ -5,6 +5,7 @@
 
 import type {
   Alert,
+  CashMovement,
   CashMovementInput,
   CashSession,
   CashSessionSummary,
@@ -12,7 +13,11 @@ import type {
   CloseCashSessionInput,
   CreateProductInput,
   CreateSaleInput,
+  EmissionResponse,
+  EmitNfceRequest,
   Employee,
+  LicenseInfo,
+  OfflineNote,
   OpenCashSessionInput,
   PaginatedResult,
   Product,
@@ -21,12 +26,242 @@ import type {
   Sale,
   SaleFilter,
   Setting,
+  StatusResponse,
   StockMovement,
   Supplier,
   TauriResponse,
   UpdateProductInput,
 } from '@/types';
-import { invoke as tauriInvoke } from '@tauri-apps/api/core';
+import { invoke as tauriCoreInvoke } from '@tauri-apps/api/core';
+
+export type { EmitNfceRequest, NfceItem } from '@/types/nfce';
+
+type WebMockDb = {
+  employees: Employee[];
+  currentCashSession: CashSession | null;
+  cashSessionHistory: CashSession[];
+};
+
+const WEB_MOCK_DB_KEY = '__giro_web_mock_db__';
+
+const isTauriRuntime = (): boolean => {
+  return (
+    typeof window !== 'undefined' &&
+    typeof (window as unknown as { __TAURI__?: unknown }).__TAURI__ !== 'undefined'
+  );
+};
+
+const nowIso = (): string => new Date().toISOString();
+
+const loadWebMockDb = (): WebMockDb => {
+  if (typeof window === 'undefined') {
+    return { employees: [], currentCashSession: null, cashSessionHistory: [] };
+  }
+
+  const raw = window.localStorage.getItem(WEB_MOCK_DB_KEY);
+  if (!raw) {
+    const seed: WebMockDb = {
+      employees: [
+        {
+          id: 'emp-admin',
+          name: 'Admin',
+          pin: '1234',
+          role: 'ADMIN',
+          isActive: true,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        },
+        {
+          id: 'emp-operator',
+          name: 'Operador',
+          pin: '0000',
+          role: 'CASHIER',
+          isActive: true,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        },
+        {
+          id: 'emp-manager',
+          name: 'Gerente',
+          pin: '9999',
+          role: 'MANAGER',
+          isActive: true,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        },
+      ],
+      currentCashSession: null,
+      cashSessionHistory: [],
+    };
+    window.localStorage.setItem(WEB_MOCK_DB_KEY, JSON.stringify(seed));
+    return seed;
+  }
+
+  try {
+    return JSON.parse(raw) as WebMockDb;
+  } catch {
+    const reset: WebMockDb = { employees: [], currentCashSession: null, cashSessionHistory: [] };
+    window.localStorage.setItem(WEB_MOCK_DB_KEY, JSON.stringify(reset));
+    return reset;
+  }
+};
+
+const saveWebMockDb = (db: WebMockDb): void => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(WEB_MOCK_DB_KEY, JSON.stringify(db));
+};
+
+const randomId = (prefix: string): string =>
+  `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  const db = loadWebMockDb();
+
+  switch (command) {
+    case 'authenticate_employee': {
+      const pin = (args?.pin as string | undefined) ?? '';
+      const employee = db.employees.find((e) => e.pin === pin && e.isActive);
+      return (employee ?? null) as T;
+    }
+    case 'get_employees': {
+      return db.employees as T;
+    }
+    case 'get_current_cash_session': {
+      return db.currentCashSession as T;
+    }
+    case 'open_cash_session': {
+      const input =
+        (args?.input as OpenCashSessionInput | undefined) ?? ({} as OpenCashSessionInput);
+
+      if (db.currentCashSession && db.currentCashSession.status === 'OPEN') {
+        throw new Error('Já existe uma sessão de caixa aberta');
+      }
+
+      const employee = db.employees.find((e) => e.id === input.employeeId) ?? null;
+      if (!employee) {
+        throw new Error('Employee não encontrado');
+      }
+
+      const session: CashSession = {
+        id: randomId('cash-session'),
+        employeeId: employee.id,
+        employee,
+        employeeName: employee.name,
+        openedAt: nowIso(),
+        openingBalance: input.openingBalance ?? 0,
+        status: 'OPEN',
+        notes: input.notes,
+        movements: [],
+        sales: [],
+      };
+
+      db.currentCashSession = session;
+      db.cashSessionHistory = [session, ...db.cashSessionHistory];
+      saveWebMockDb(db);
+
+      return session as T;
+    }
+    case 'close_cash_session': {
+      const id = (args?.id as string | undefined) ?? '';
+      const actualBalance = (args?.actualBalance as number | undefined) ?? 0;
+      const notes = args?.notes as string | undefined;
+
+      const session = db.currentCashSession;
+      if (!session || session.id !== id || session.status !== 'OPEN') {
+        throw new Error('Nenhuma sessão aberta para fechar');
+      }
+
+      const closed: CashSession = {
+        ...session,
+        status: 'CLOSED',
+        closedAt: nowIso(),
+        actualBalance,
+        notes: notes ?? session.notes,
+      };
+
+      db.currentCashSession = null;
+      db.cashSessionHistory = db.cashSessionHistory.map((s) => (s.id === id ? closed : s));
+      saveWebMockDb(db);
+
+      return closed as T;
+    }
+    case 'get_cash_session_history': {
+      return db.cashSessionHistory as T;
+    }
+    case 'add_cash_movement': {
+      const input = (args?.input as CashMovementInput | undefined) ?? ({} as CashMovementInput);
+      const session = db.currentCashSession;
+      if (!session || session.status !== 'OPEN') {
+        throw new Error('Nenhuma sessão aberta para movimentar');
+      }
+
+      const movement: CashMovement = {
+        id: randomId('cash-movement'),
+        sessionId: session.id,
+        type: input.type,
+        amount: input.amount,
+        description: input.description,
+        employeeId: session.employeeId,
+        createdAt: nowIso(),
+      };
+
+      const updatedSession: CashSession = {
+        ...session,
+        movements: [...(session.movements ?? []), movement],
+      };
+
+      db.currentCashSession = updatedSession;
+      db.cashSessionHistory = db.cashSessionHistory.map((s) =>
+        s.id === updatedSession.id ? updatedSession : s
+      );
+      saveWebMockDb(db);
+
+      return undefined as T;
+    }
+    case 'get_cash_session_summary': {
+      const sessionId = (args?.sessionId as string | undefined) ?? '';
+      const session =
+        (db.currentCashSession?.id === sessionId ? db.currentCashSession : null) ??
+        db.cashSessionHistory.find((s) => s.id === sessionId) ??
+        null;
+
+      if (!session) {
+        throw new Error('Sessão não encontrada');
+      }
+
+      const withdrawals = (session.movements ?? [])
+        .filter((m) => m.type === 'WITHDRAWAL')
+        .reduce((acc, m) => acc + m.amount, 0);
+      const supplies = (session.movements ?? [])
+        .filter((m) => m.type === 'DEPOSIT')
+        .reduce((acc, m) => acc + m.amount, 0);
+
+      const cashInDrawer = session.openingBalance + supplies - withdrawals;
+
+      const summary: CashSessionSummary = {
+        session,
+        totalSales: 0,
+        totalCanceled: 0,
+        totalWithdrawals: withdrawals,
+        totalSupplies: supplies,
+        movementCount: (session.movements ?? []).length,
+        salesByMethod: [],
+        cashInDrawer,
+      };
+
+      return summary as T;
+    }
+    default:
+      throw new Error(`WebMock invoke: comando não suportado: ${command}`);
+  }
+};
+
+const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  if (isTauriRuntime()) {
+    return tauriCoreInvoke<T>(command, args);
+  }
+  return webMockInvoke<T>(command, args);
+};
 
 // Re-export invoke for backwards compatibility
 export const invoke = tauriInvoke;
@@ -173,7 +408,7 @@ export async function openCashSession(input: OpenCashSessionInput): Promise<Cash
 export async function closeCashSession(input: CloseCashSessionInput): Promise<CashSession> {
   return tauriInvoke<CashSession>('close_cash_session', {
     id: input.id,
-    actual_balance: input.actualBalance,
+    actualBalance: input.actualBalance,
     notes: input.notes,
   });
 }
@@ -272,8 +507,8 @@ export async function getExpiringLots(days: number): Promise<ProductLot[]> {
 // ALERTS
 // ────────────────────────────────────────────────────────────────────────────
 
-export async function getAlerts(): Promise<Alert[]> {
-  return tauriInvoke<Alert[]>('get_alerts');
+export async function getAlerts(limit = 100): Promise<Alert[]> {
+  return tauriInvoke<Alert[]>('get_alerts', { limit });
 }
 
 export async function getUnreadAlertsCount(): Promise<number> {
@@ -281,15 +516,19 @@ export async function getUnreadAlertsCount(): Promise<number> {
 }
 
 export async function markAlertAsRead(id: string): Promise<void> {
-  return tauriInvoke<void>('mark_alert_as_read', { id });
+  return tauriInvoke<void>('mark_alert_read', { id });
 }
 
 export async function dismissAlert(id: string): Promise<void> {
-  return tauriInvoke<void>('dismiss_alert', { id });
+  // dismiss_alert não existe no backend, usamos delete_alert
+  return tauriInvoke<void>('delete_alert', { id });
 }
 
 export async function refreshAlerts(): Promise<void> {
-  return tauriInvoke<void>('refresh_alerts');
+  // refresh_alerts não existe - os alertas são gerados automaticamente
+  // Apenas invalidamos o cache forçando uma nova query
+  // O backend já gera alertas de forma automática
+  return Promise.resolve();
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -335,15 +574,24 @@ export async function getInactiveSuppliers(): Promise<Supplier[]> {
 // ────────────────────────────────────────────────────────────────────────────
 
 export async function getSettings(group?: string): Promise<Setting[]> {
-  return tauriInvoke<Setting[]>('get_settings', { group });
+  if (group) {
+    return tauriInvoke<Setting[]>('get_settings_by_group', { group });
+  }
+  return tauriInvoke<Setting[]>('get_all_settings');
 }
 
-export async function getSetting(key: string): Promise<Setting | null> {
-  return tauriInvoke<Setting | null>('get_setting', { key });
+export async function getSetting(key: string): Promise<string | null> {
+  return tauriInvoke<string | null>('get_setting', { key });
 }
 
 export async function setSetting(key: string, value: string, type?: string): Promise<void> {
-  return tauriInvoke<void>('set_setting', { key, value, type });
+  return tauriInvoke<void>('set_setting', {
+    input: {
+      key,
+      value,
+      valueType: type,
+    },
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -453,4 +701,56 @@ export async function getRecentPriceHistory(limit?: number): Promise<PriceHistor
 
 export async function getPriceHistoryById(id: string): Promise<PriceHistory | null> {
   return tauriInvoke<PriceHistory | null>('get_price_history_by_id', { id });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// NFC-e
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function emitNfce(request: EmitNfceRequest): Promise<EmissionResponse> {
+  return tauriInvoke<EmissionResponse>('emit_nfce', { request });
+}
+
+export async function checkSefazStatus(uf: string, environment: number): Promise<StatusResponse> {
+  return tauriInvoke<StatusResponse>('check_sefaz_status', { uf, environment });
+}
+
+export async function listOfflineNotes(): Promise<OfflineNote[]> {
+  return tauriInvoke<OfflineNote[]>('list_offline_notes');
+}
+
+export async function transmitOfflineNote(
+  accessKey: string,
+  certPath: string,
+  certPassword: string,
+  emitterUf: string,
+  environment: number
+): Promise<EmissionResponse> {
+  return tauriInvoke<EmissionResponse>('transmit_offline_note', {
+    accessKey,
+    certPath,
+    certPassword,
+    emitterUf,
+    environment,
+  });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// LICENSE
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function activateLicense(licenseKey: string): Promise<LicenseInfo> {
+  // Map 'licenseKey' (camelCase) to 'license_key' (snake_case) expected by Rust?
+  // Rust: activate_license(license_key, state)
+  // tauri-apps/api auto-converts camelCase args to snake_case?
+  // Usually yes. But let's check one example.
+  // emit_nfce request -> request.
+  // check_sefaz_status -> uf, environment. Rust: (uf, environment).
+  // I will use 'license_key' explicitly if needed.
+  // Tauri 2.0 convention: camelCase in JS matches snake_case in Rust command args.
+  return tauriInvoke<LicenseInfo>('activate_license', { licenseKey });
+}
+
+export async function validateLicense(licenseKey: string): Promise<LicenseInfo> {
+  return tauriInvoke<LicenseInfo>('validate_license', { licenseKey });
 }

@@ -13,13 +13,19 @@ pub async fn get_products(state: State<'_, AppState>) -> AppResult<Vec<Product>>
 }
 
 #[tauri::command]
-pub async fn get_product_by_id(id: String, state: State<'_, AppState>) -> AppResult<Option<Product>> {
+pub async fn get_product_by_id(
+    id: String,
+    state: State<'_, AppState>,
+) -> AppResult<Option<Product>> {
     let repo = ProductRepository::new(state.pool());
     repo.find_by_id(&id).await
 }
 
 #[tauri::command]
-pub async fn get_product_by_barcode(barcode: String, state: State<'_, AppState>) -> AppResult<Option<Product>> {
+pub async fn get_product_by_barcode(
+    barcode: String,
+    state: State<'_, AppState>,
+) -> AppResult<Option<Product>> {
     let repo = ProductRepository::new(state.pool());
     repo.find_by_barcode(&barcode).await
 }
@@ -37,13 +43,20 @@ pub async fn get_low_stock_products(state: State<'_, AppState>) -> AppResult<Vec
 }
 
 #[tauri::command]
-pub async fn create_product(input: CreateProduct, state: State<'_, AppState>) -> AppResult<Product> {
+pub async fn create_product(
+    input: CreateProduct,
+    state: State<'_, AppState>,
+) -> AppResult<Product> {
     let repo = ProductRepository::new(state.pool());
     repo.create(input).await
 }
 
 #[tauri::command]
-pub async fn update_product(id: String, input: UpdateProduct, state: State<'_, AppState>) -> AppResult<Product> {
+pub async fn update_product(
+    id: String,
+    input: UpdateProduct,
+    state: State<'_, AppState>,
+) -> AppResult<Product> {
     let repo = ProductRepository::new(state.pool());
     repo.update(&id, input).await
 }
@@ -70,7 +83,10 @@ pub async fn reactivate_product(id: String, state: State<'_, AppState>) -> AppRe
 
 /// Lista todos os produtos (ativos e inativos)
 #[tauri::command]
-pub async fn get_all_products(include_inactive: bool, state: State<'_, AppState>) -> AppResult<Vec<Product>> {
+pub async fn get_all_products(
+    include_inactive: bool,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<Product>> {
     let repo = ProductRepository::new(state.pool());
     if include_inactive {
         repo.find_all().await

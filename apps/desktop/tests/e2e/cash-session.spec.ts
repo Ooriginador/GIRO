@@ -9,9 +9,7 @@ test.describe('Sessão de Caixa E2E', () => {
   test.beforeEach(async ({ page }) => {
     // Login como admin
     await page.goto('/');
-    await page.waitForLoadState('domcontentloaded');
-
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState('networkidle');
 
     // Login com 1234 (Admin)
     await page.locator('button:has-text("1")').first().click();
@@ -21,49 +19,51 @@ test.describe('Sessão de Caixa E2E', () => {
 
     const loginButton = page.locator('button:has-text("Entrar")');
     await loginButton.click();
-    await page.waitForTimeout(2000);
+
+    // Aguardar navegação após login (redireciona para dashboard)
+    await page.waitForURL(/\/(dashboard|pdv|cash)/, { timeout: 5000 });
+    await page.waitForLoadState('networkidle');
   });
 
   test('deve abrir sessão de caixa', async ({ page }) => {
     // Navegar para Caixa
     await page.goto('/cash');
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
 
-    // Procurar botão de abrir caixa
-    const openButton = page.locator(
-      'button:has-text("Abrir Caixa"), button:has-text("Abrir"), [data-testid="open-cash"]'
-    );
-    const isVisible = await openButton.isVisible().catch(() => false);
+    // Verificar que caixa está fechado inicialmente (usar o do Card que é mais específico)
+    await expect(page.getByRole('main').getByText('Caixa Fechado', { exact: true })).toBeVisible({
+      timeout: 5000,
+    });
 
-    if (isVisible) {
-      await openButton.first().click();
+    // Clicar no botão Abrir Caixa
+    const openButton = page.getByRole('button', { name: 'Abrir Caixa' });
+    await expect(openButton).toBeVisible();
+    await openButton.click();
 
-      // Preencher valor inicial (pode ter um modal)
-      const initialInput = page
-        .locator('input[type="number"], input[placeholder*="inicial"]')
-        .first();
-      const inputVisible = await initialInput.isVisible().catch(() => false);
+    // Aguardar dialog aparecer - usar título específico para evitar pegar tutorial
+    const dialog = page.getByRole('dialog', { name: /Abrir Caixa/i });
+    await expect(dialog).toBeVisible();
 
-      if (inputVisible) {
-        await initialInput.fill('100');
+    // Preencher valor inicial
+    const initialInput = dialog.locator('input').first();
+    await expect(initialInput).toBeVisible();
+    await initialInput.fill('100');
 
-        // Confirmar
-        const confirmButton = page
-          .locator('button:has-text("Confirmar"), button:has-text("Abrir")')
-          .last();
-        await confirmButton.click();
-        await page.waitForTimeout(1500);
-      }
+    // Confirmar abertura - procurar último botão com "Abrir" no dialog
+    const confirmButton = dialog.getByRole('button', { name: /Abrir/i }).last();
+    await expect(confirmButton).toBeVisible();
+    await confirmButton.click();
 
-      // Verificar que caixa está aberto
-      const statusElement = page.locator(
-        ':has-text("Caixa Aberto"), :has-text("Sessão Ativa"), [data-testid="cash-status"]'
-      );
-      const statusVisible = await statusElement.isVisible().catch(() => false);
+    // Aguardar dialog fechar
+    await expect(dialog).not.toBeVisible({ timeout: 5000 });
 
-      // Se não encontrar status, pelo menos verificar que não há erro
-      expect(statusVisible).toBeTruthy();
-    }
+    // Verificar que caixa está aberto - usar o do Card (mais específico)
+    await expect(page.getByRole('main').getByText('Caixa Aberto', { exact: true })).toBeVisible({
+      timeout: 5000,
+    });
+
+    // Verificar que botão mudou para "Fechar Caixa"
+    await expect(page.getByRole('button', { name: 'Fechar Caixa' })).toBeVisible();
   });
 
   test('deve registrar sangria', async ({ page }) => {

@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                m.date,\n                COALESCE(SUM(m.sales_total), 0) as \"total_sales!: BigDecimal\",\n                COALESCE(SUM(m.sales_count), 0)::integer as \"total_count!\",\n                COUNT(DISTINCT m.license_id)::integer as \"active_licenses!\"\n            FROM metrics m\n            INNER JOIN licenses l ON l.id = m.license_id\n            WHERE l.admin_id = $1\n            AND m.date >= CURRENT_DATE - make_interval(days => $2)\n            GROUP BY m.date\n            ORDER BY m.date DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_sales!: BigDecimal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_count!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "active_licenses!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "891d0036cffd54d0eddf095b4b14cc6eb99241b536abc03a9f223b1a0dd51fe4"
+}

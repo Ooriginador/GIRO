@@ -28,6 +28,8 @@ describe('useEmployees', () => {
     vi.clearAllMocks();
   });
 
+  const invokeMock = invoke as unknown as ReturnType<typeof vi.fn>;
+
   describe('useEmployees (list)', () => {
     it('should fetch employees successfully', async () => {
       const mockEmployees = [
@@ -35,7 +37,7 @@ describe('useEmployees', () => {
         { id: '2', name: 'Maria Santos', pin: '5678', role: 'CASHIER' },
       ];
 
-      (invoke as any).mockResolvedValue(mockEmployees);
+      invokeMock.mockResolvedValue(mockEmployees);
 
       const { result } = renderHook(() => useEmployees(), {
         wrapper: createWrapper(),
@@ -50,7 +52,7 @@ describe('useEmployees', () => {
     });
 
     it('should handle error state', async () => {
-      (invoke as any).mockRejectedValue(new Error('Database error'));
+      invokeMock.mockRejectedValue(new Error('Database error'));
 
       const { result } = renderHook(() => useEmployees(), {
         wrapper: createWrapper(),
@@ -71,7 +73,7 @@ describe('useEmployees', () => {
         role: 'MANAGER',
       };
 
-      (invoke as any).mockResolvedValue(newEmployee);
+      invokeMock.mockResolvedValue(newEmployee);
 
       // Hook precisa ser implementado
       // const { result } = renderHook(() => useCreateEmployee(), {

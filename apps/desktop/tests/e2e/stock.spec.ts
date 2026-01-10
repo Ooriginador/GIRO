@@ -16,10 +16,10 @@ test.describe('Gerenciamento de Estoque E2E', () => {
 
     const loginButton = page.locator('button:has-text("Entrar")').first();
     await loginButton.click();
-    await page.waitForTimeout(2000);
+    await page.waitForURL(/\/(dashboard|stock)/, { timeout: 5000 });
 
     await page.goto('/stock');
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
   });
 
   test('deve exibir lista de estoque', async ({ page }) => {
@@ -39,7 +39,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
 
     if (isVisible) {
       await entryButton.click();
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('domcontentloaded');
 
       // Selecionar produto
       const productSelect = page
@@ -54,7 +54,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
         } else {
           // Se for input autocomplete
           await productSelect.fill('Arroz');
-          await page.waitForTimeout(500);
+          await page.waitForLoadState('domcontentloaded');
 
           const option = page.locator('[role="option"]').first();
           const optionVisible = await option.isVisible().catch(() => false);
@@ -83,7 +83,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
           .locator('button:has-text("Salvar"), button:has-text("Confirmar")')
           .last();
         await saveButton.click();
-        await page.waitForTimeout(2000);
+        await page.waitForLoadState('networkidle');
 
         // Verificar sucesso
         const successMessage = page.locator(':has-text("sucesso"), [role="alert"]');
@@ -104,7 +104,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
 
     if (isVisible) {
       await exitButton.click();
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('domcontentloaded');
 
       const productSelect = page.locator('select, input[placeholder*="produto"]').first();
       const selectVisible = await productSelect.isVisible().catch(() => false);
@@ -114,7 +114,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
           await productSelect.selectOption({ index: 1 });
         } else {
           await productSelect.fill('Arroz');
-          await page.waitForTimeout(500);
+          await page.waitForLoadState('domcontentloaded');
 
           const option = page.locator('[role="option"]').first();
           if (await option.isVisible().catch(() => false)) {
@@ -127,7 +127,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
 
         const saveButton = page.locator('button:has-text("Confirmar")').last();
         await saveButton.click();
-        await page.waitForTimeout(2000);
+        await page.waitForLoadState('networkidle');
       }
     }
   });
@@ -142,7 +142,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
 
     if (isVisible) {
       await adjustButton.click();
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('domcontentloaded');
 
       const productSelect = page.locator('select, input[placeholder*="produto"]').first();
       const selectVisible = await productSelect.isVisible().catch(() => false);
@@ -152,7 +152,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
           await productSelect.selectOption({ index: 1 });
         } else {
           await productSelect.fill('Feijão');
-          await page.waitForTimeout(500);
+          await page.waitForLoadState('domcontentloaded');
 
           const option = page.locator('[role="option"]').first();
           if (await option.isVisible().catch(() => false)) {
@@ -174,7 +174,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
 
         const saveButton = page.locator('button:has-text("Salvar")').last();
         await saveButton.click();
-        await page.waitForTimeout(2000);
+        await page.waitForLoadState('networkidle');
       }
     }
   });
@@ -187,7 +187,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
 
     if (isVisible) {
       await lowStockButton.click();
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       const lowStockItems = page.locator('table tbody tr, .low-stock-item');
       const count = await lowStockItems.count();
@@ -200,7 +200,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
 
       if (tabVisible) {
         await lowStockTab.click();
-        await page.waitForTimeout(1000);
+        await page.waitForLoadState('networkidle');
       }
     }
   });
@@ -216,7 +216,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
     if (isVisible) {
       // Clicar em exportar (deve iniciar download)
       await exportButton.click();
-      await page.waitForTimeout(1500);
+      await page.waitForLoadState('networkidle');
 
       // Verificar que não há erro
       const errorAlert = page.locator('[role="alert"]:has-text("Erro")');
@@ -233,7 +233,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
     if (isVisible) {
       const today = new Date().toISOString().split('T')[0] ?? '';
       await dateFilter.fill(today);
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       const movements = page.locator('table tbody tr, .movement-item');
       const count = await movements.count();
@@ -250,7 +250,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
 
     if (isVisible) {
       await historyButton.click();
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       const movements = page.locator('table tbody tr, .movement-item');
       const count = await movements.count();
@@ -263,7 +263,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
 
       if (tabVisible) {
         await historyTab.click();
-        await page.waitForTimeout(1000);
+        await page.waitForLoadState('networkidle');
       }
     }
   });
