@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -11,8 +15,6 @@ env:
 jobs:
   release:
     name: Build & Release
-    permissions:
-      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -23,9 +25,6 @@ jobs:
             target: x86_64-unknown-linux-gnu
 
     runs-on: ${{ matrix.platform }}
-    defaults:
-      run:
-        working-directory: apps/desktop
 
     steps:
       - name: Checkout
@@ -35,68 +34,112 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
-          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
-      - name: Cache Cargo
-        uses: actions/cache@v4
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            apps/desktop/src-tauri/target/
-          key: ${{ runner.os }}-cargo-release-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
+          workspaces: apps/desktop/src-tauri
 
       - name: Install system dependencies (Linux)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libayatana-appindicator3-dev librsvg2-dev libudev-dev
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libudev-dev
 
-      - name: Install Node dependencies
-        run: npm ci
+      - name: Install dependencies (Desktop)
+        working-directory: apps/desktop
+        run: pnpm install --frozen-lockfile
 
-      - name: Build and Release
+      - name: Install dependencies (Database)
+        working-directory: packages/database
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: packages/database
+        run: pnpm prisma generate
+
+      - name: Build Desktop App
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           tagName: ${{ github.ref_name }}
-          releaseName: "Mercearias ${{ github.ref_name }}"
+          releaseName: "GIRO ${{ github.ref_name }}"
           releaseBody: |
-            ## O que há de novo
+            ## 🎉 Nova Versão do GIRO
 
-            Veja o [CHANGELOG](https://github.com/arkheion/mercearias/blob/main/CHANGELOG.md) para detalhes completos.
+            ### 📥 Downloads
 
-            ## Downloads
+            Escolha o instalador apropriado para o seu sistema operacional:
 
-            | Plataforma | Arquivo |
-            |------------|---------|
-            | Windows 64-bit | `.exe` (instalador NSIS) |
-            | Windows 64-bit | `.msi` (instalador MSI) |
-            | Linux 64-bit | `.deb` (Debian/Ubuntu) |
-            | Linux 64-bit | `.AppImage` (Universal) |
+            | Plataforma | Arquivo | Descrição |
+            |------------|---------|-----------|
+            | 🪟 Windows 64-bit | `.exe` | Instalador NSIS (Recomendado) |
+            | 🪟 Windows 64-bit | `.msi` | Instalador MSI |
+            | 🐧 Linux 64-bit | `.deb` | Debian/Ubuntu |
+            | 🐧 Linux 64-bit | `.AppImage` | Universal Linux |
+
+            ### ✨ O que há de novo
+
+            Veja o [CHANGELOG](https://github.com/jhonslife/GIRO/blob/main/CHANGELOG.md) para detalhes completos.
+
+            ### 📖 Documentação
+
+            - [Guia de Instalação](https://jhonslife.github.io/GIRO)
+            - [Documentação Completa](https://github.com/jhonslife/GIRO/tree/main/docs)
+
+            ### 🔄 Atualização Automática
+
+            Se você já tem o GIRO instalado, a atualização será detectada automaticamente na próxima vez que abrir o aplicativo.
           releaseDraft: false
           prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          includeUpdaterJson: true
 
   update-manifest:
-    name: Update Manifest
+    name: Update Updater Manifest
     needs: release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Update manifest
+        run: |
+          mkdir -p updater
+          echo "Manifest updated for ${{ github.ref_name }}" > updater/latest.txt
+
+      - name: Commit and push
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
+          git add .
+          git commit -m "chore: update manifest for ${{ github.ref_name }}" || true
+          git push || true
 
       - name: Update latest.json
         run: |

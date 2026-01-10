@@ -1,4 +1,5 @@
 import { AppShell } from '@/components/layout';
+import { UpdateChecker } from '@/components/UpdateChecker';
 /* force refresh */
 import { useAuthStore } from '@/stores/auth-store';
 import { type FC, useEffect } from 'react';
@@ -62,105 +63,108 @@ const App: FC = () => {
   useHelpHotkey();
 
   return (
-    <Routes>
-      {/* Rota de Login */}
-      <Route
-        path="/login"
-        element={isAuthenticated ? <Navigate to="/pdv" replace /> : <LoginPage />}
-      />
-
-      {/* Layout com AppShell usando element wrapper */}
-      <Route
-        element={
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        }
-      >
-        {/* Dashboard */}
-        <Route index element={<Navigate to="/pdv" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-
-        {/* Motopeças */}
-        <Route path="service-orders" element={<ServiceOrdersPage />} />
-        <Route path="warranties" element={<WarrantiesPage />} />
-
-        {/* PDV */}
-        <Route path="pdv" element={<PDVPage />} />
-
-        {/* Produtos */}
-        <Route path="products" element={<ProductsPage />} />
-        <Route path="products/new" element={<ProductFormPage />} />
-        <Route path="products/:id" element={<ProductFormPage />} />
-        <Route path="products/categories" element={<CategoriesPage />} />
-
-        {/* Estoque */}
-        <Route path="stock" element={<StockPage />} />
-        <Route path="stock/entry" element={<StockEntryPage />} />
-        <Route path="stock/movements" element={<StockMovementsPage />} />
-        <Route path="stock/expiration" element={<ExpirationPage />} />
-
-        {/* Funcionários */}
+    <>
+      {isAuthenticated && <UpdateChecker />}
+      <Routes>
+        {/* Rota de Login */}
         <Route
-          path="employees"
-          element={
-            <ProtectedRoute requiredRole={['ADMIN']}>
-              <EmployeesPage />
-            </ProtectedRoute>
-          }
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/pdv" replace /> : <LoginPage />}
         />
 
-        {/* Fornecedores */}
+        {/* Layout com AppShell usando element wrapper */}
         <Route
-          path="suppliers"
           element={
-            <ProtectedRoute requiredRole={['ADMIN', 'MANAGER']}>
-              <SuppliersPage />
+            <ProtectedRoute>
+              <AppShell />
             </ProtectedRoute>
           }
-        />
+        >
+          {/* Dashboard */}
+          <Route index element={<Navigate to="/pdv" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
 
-        {/* Caixa */}
-        <Route path="cash" element={<CashControlPage />} />
+          {/* Motopeças */}
+          <Route path="service-orders" element={<ServiceOrdersPage />} />
+          <Route path="warranties" element={<WarrantiesPage />} />
 
-        {/* Relatórios */}
-        <Route
-          path="reports"
-          element={
-            <ProtectedRoute requiredRole={['ADMIN', 'MANAGER', 'VIEWER']}>
-              <ReportsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="reports/sales"
-          element={
-            <ProtectedRoute requiredRole={['ADMIN', 'MANAGER', 'VIEWER']}>
-              <SalesReportPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* PDV */}
+          <Route path="pdv" element={<PDVPage />} />
 
-        {/* Configurações */}
-        <Route
-          path="settings"
-          element={
-            <ProtectedRoute requiredRole={['ADMIN']}>
-              <SettingsPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Produtos */}
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="products/new" element={<ProductFormPage />} />
+          <Route path="products/:id" element={<ProductFormPage />} />
+          <Route path="products/categories" element={<CategoriesPage />} />
 
-        {/* Alertas */}
-        <Route path="alerts" element={<AlertsPage />} />
+          {/* Estoque */}
+          <Route path="stock" element={<StockPage />} />
+          <Route path="stock/entry" element={<StockEntryPage />} />
+          <Route path="stock/movements" element={<StockMovementsPage />} />
+          <Route path="stock/expiration" element={<ExpirationPage />} />
 
-        {/* Tutoriais / Ajuda */}
-        <Route path="tutorials" element={<TutorialsPage />} />
+          {/* Funcionários */}
+          <Route
+            path="employees"
+            element={
+              <ProtectedRoute requiredRole={['ADMIN']}>
+                <EmployeesPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/pdv" replace />} />
-      </Route>
-    </Routes>
+          {/* Fornecedores */}
+          <Route
+            path="suppliers"
+            element={
+              <ProtectedRoute requiredRole={['ADMIN', 'MANAGER']}>
+                <SuppliersPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Caixa */}
+          <Route path="cash" element={<CashControlPage />} />
+
+          {/* Relatórios */}
+          <Route
+            path="reports"
+            element={
+              <ProtectedRoute requiredRole={['ADMIN', 'MANAGER', 'VIEWER']}>
+                <ReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="reports/sales"
+            element={
+              <ProtectedRoute requiredRole={['ADMIN', 'MANAGER', 'VIEWER']}>
+                <SalesReportPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Configurações */}
+          <Route
+            path="settings"
+            element={
+              <ProtectedRoute requiredRole={['ADMIN']}>
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Alertas */}
+          <Route path="alerts" element={<AlertsPage />} />
+
+          {/* Tutoriais / Ajuda */}
+          <Route path="tutorials" element={<TutorialsPage />} />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/pdv" replace />} />
+        </Route>
+      </Routes>
+    </>
   );
 };
 

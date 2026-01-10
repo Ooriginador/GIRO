@@ -21,16 +21,19 @@ Este projeto adere ao [Código de Conduta](CODE_OF_CONDUCT.md). Ao participar, e
 ### 🐛 Reportando Bugs
 
 Antes de criar um bug report:
+
 - Verifique se o bug já não foi reportado
 - Determine qual repositório/módulo está afetado
 - Colete informações sobre o problema
 
 **Template de Bug Report**:
+
 ```markdown
 **Descrição**
 Descrição clara do bug
 
 **Passos para Reproduzir**
+
 1. Vá para '...'
 2. Clique em '...'
 3. Veja o erro
@@ -42,6 +45,7 @@ O que deveria acontecer
 Se aplicável
 
 **Ambiente**
+
 - OS: [e.g. Windows 11]
 - Versão: [e.g. 1.0.0]
 - Browser/App: [e.g. Chrome, Desktop App]
@@ -50,6 +54,7 @@ Se aplicável
 ### 💡 Sugerindo Melhorias
 
 **Template de Feature Request**:
+
 ```markdown
 **Problema**
 Descrição do problema que a feature resolve
@@ -119,6 +124,7 @@ Seguimos o padrão [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 **Types**:
+
 - `feat`: Nova funcionalidade
 - `fix`: Correção de bug
 - `docs`: Documentação
@@ -128,6 +134,7 @@ Seguimos o padrão [Conventional Commits](https://www.conventionalcommits.org/):
 - `chore`: Manutenção
 
 **Exemplos**:
+
 ```bash
 feat(pdv): add product barcode scanner
 fix(auth): resolve token expiration issue
@@ -211,23 +218,28 @@ cargo clippy       # Rust
 
 ```markdown
 ## Descrição
+
 Breve descrição das mudanças
 
 ## Tipo de Mudança
+
 - [ ] Bug fix
 - [ ] Nova funcionalidade
 - [ ] Breaking change
 - [ ] Documentação
 
 ## Como Testar
+
 1. Passo 1
 2. Passo 2
 3. ...
 
 ## Screenshots
+
 Se aplicável
 
 ## Checklist
+
 - [ ] Código segue padrões
 - [ ] Testes passam
 - [ ] Documentação atualizada
@@ -251,6 +263,7 @@ pnpm test:coverage
 ## 📝 Documentação
 
 Sempre atualize a documentação ao:
+
 - Adicionar novas funcionalidades
 - Modificar APIs
 - Alterar comportamentos
@@ -259,6 +272,7 @@ Sempre atualize a documentação ao:
 ## 🎨 Design System
 
 Ao contribuir com UI:
+
 - Siga o Figma design (se disponível)
 - Use componentes do Radix UI
 - Mantenha acessibilidade (WCAG 2.1 AA)

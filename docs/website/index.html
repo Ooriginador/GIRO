@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GIRO - Sistema PDV completo para seu negócio. Desktop e Mobile.">
+    <meta name="keywords" content="PDV, Sistema de Vendas, Gestão Comercial, Tauri, React">
+    <meta name="author" content="Arkheion Corp">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://jhonslife.github.io/GIRO/">
+    <meta property="og:title" content="GIRO - Sistema PDV Profissional">
+    <meta property="og:description" content="Sistema completo de Ponto de Venda para pequenos e médios negócios.">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://jhonslife.github.io/GIRO/">
+    <meta property="twitter:title" content="GIRO - Sistema PDV Profissional">
+    <meta property="twitter:description" content="Sistema completo de Ponto de Venda para pequenos e médios negócios.">
+    
+    <title>GIRO - Sistema PDV Profissional | Download</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #B76E79;
+            --primary-dark: #8B4557;
+            --secondary: #F7E7CE;
+            --accent: #E8B4B8;
+            --background: #FFFEF9;
+            --text: #2D2D2D;
+            --text-light: #666;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--background);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 6rem 0;
+            text-align: center;
+            background: linear-gradient(135deg, var(--secondary) 0%, white 100%);
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .hero .subtitle {
+            font-size: 1.5rem;
+            color: var(--text-light);
+            margin-bottom: 2rem;
+        }
+
+        .hero .version {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Download Buttons */
+        .download-section {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(183, 110, 121, 0.3);
+        }
+
+        .download-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(183, 110, 121, 0.4);
+        }
+
+        .download-btn.secondary {
+            background: var(--accent);
+            color: var(--text);
+        }
+
+        .download-btn.secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Features */
+        .features {
+            padding: 6rem 0;
+            background: white;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: var(--text);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            padding: 2rem;
+            background: var(--background);
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        /* Screenshots */
+        .screenshots {
+            padding: 6rem 0;
+            background: var(--background);
+        }
+
+        .screenshots h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .screenshots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .screenshot-item {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .screenshot-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* System Requirements */
+        .requirements {
+            padding: 6rem 0;
+            background: white;
+        }
+
+        .requirements h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .req-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .req-card {
+            padding: 2rem;
+            background: var(--background);
+            border-radius: 12px;
+        }
+
+        .req-card h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .req-card ul {
+            list-style: none;
+        }
+
+        .req-card li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .req-card li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--text);
+            color: white;
+            padding: 3rem 0;
+            text-align: center;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero .subtitle {
+                font-size: 1.2rem;
+            }
+
+            .nav-links {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .features-grid,
+            .screenshots-grid,
+            .req-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">🏪 GIRO</div>
+                <ul class="nav-links">
+                    <li><a href="#features">Recursos</a></li>
+                    <li><a href="#screenshots">Screenshots</a></li>
+                    <li><a href="#download">Download</a></li>
+                    <li><a href="https://github.com/jhonslife/GIRO">GitHub</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <span class="version">v1.0.0</span>
+            <h1>Sistema PDV Profissional</h1>
+            <p class="subtitle">Gestão completa para o seu negócio. Simples. Rápido. Confiável.</p>
+            
+            <div class="download-section" id="download">
+                <a href="https://github.com/jhonslife/GIRO/releases/latest/download/GIRO_1.0.0_x64_en-US.msi" class="download-btn">
+                    🪟 Download Windows (.msi)
+                </a>
+                <a href="https://github.com/jhonslife/GIRO/releases/latest/download/GIRO_1.0.0_x64-setup.exe" class="download-btn">
+                    🪟 Download Windows (.exe)
+                </a>
+                <a href="https://github.com/jhonslife/GIRO/releases/latest/download/giro_1.0.0_amd64.deb" class="download-btn">
+                    🐧 Download Linux (.deb)
+                </a>
+                <a href="https://github.com/jhonslife/GIRO/releases/latest/download/giro_1.0.0_amd64.AppImage" class="download-btn">
+                    🐧 Download Linux (.AppImage)
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2>✨ Recursos Principais</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🖥️</div>
+                    <h3>Desktop Nativo</h3>
+                    <p>Aplicação Tauri com React + TypeScript. Rápido e leve, desenvolvido com tecnologias modernas.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Mobile Cross-Platform</h3>
+                    <p>App Expo com React Native para iOS e Android. Seu negócio na palma da mão.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🦀</div>
+                    <h3>Backend Rust</h3>
+                    <p>Performance e segurança garantidas com Rust. Confiabilidade em cada operação.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">💾</div>
+                    <h3>Banco de Dados SQLite</h3>
+                    <p>Leve e eficiente com Prisma ORM. Seus dados seguros e organizados.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔐</div>
+                    <h3>Autenticação Robusta</h3>
+                    <p>JWT + bcrypt para máxima segurança. Controle de acesso por funções.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🖨️</div>
+                    <h3>Hardware Integrado</h3>
+                    <p>Impressoras térmicas, balanças, scanners e gavetas. Tudo integrado.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Relatórios Avançados</h3>
+                    <p>Analytics e dashboards completos. Tome decisões baseadas em dados.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Sincronização</h3>
+                    <p>Dados sincronizados entre desktop e mobile. Sempre atualizado.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>UI Moderna</h3>
+                    <p>Interface bonita com TailwindCSS + Radix UI. Experiência premium.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots -->
+    <section class="screenshots" id="screenshots">
+        <div class="container">
+            <h2>📸 Interface do Sistema</h2>
+            <div class="screenshots-grid">
+                <div class="screenshot-item">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 300px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">
+                        Tela de Vendas
+                    </div>
+                </div>
+                <div class="screenshot-item">
+                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); height: 300px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">
+                        Gestão de Produtos
+                    </div>
+                </div>
+                <div class="screenshot-item">
+                    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); height: 300px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">
+                        Relatórios e Analytics
+                    </div>
+                </div>
+            </div>
+            <p style="text-align: center; margin-top: 2rem; color: var(--text-light);">
+                <em>Screenshots ilustrativos. Interface real em breve.</em>
+            </p>
+        </div>
+    </section>
+
+    <!-- System Requirements -->
+    <section class="requirements">
+        <div class="container">
+            <h2>💻 Requisitos do Sistema</h2>
+            <div class="req-grid">
+                <div class="req-card">
+                    <h3>🪟 Windows</h3>
+                    <ul>
+                        <li>Windows 10 ou superior</li>
+                        <li>4 GB RAM (mínimo)</li>
+                        <li>500 MB espaço em disco</li>
+                        <li>Processador 64-bit</li>
+                    </ul>
+                </div>
+
+                <div class="req-card">
+                    <h3>🐧 Linux</h3>
+                    <ul>
+                        <li>Ubuntu 20.04+ / Debian 11+</li>
+                        <li>4 GB RAM (mínimo)</li>
+                        <li>500 MB espaço em disco</li>
+                        <li>Processador 64-bit</li>
+                        <li>WebKit2GTK instalado</li>
+                    </ul>
+                </div>
+
+                <div class="req-card">
+                    <h3>📱 Mobile</h3>
+                    <ul>
+                        <li>Android 8.0+ ou iOS 13+</li>
+                        <li>2 GB RAM (mínimo)</li>
+                        <li>200 MB espaço livre</li>
+                        <li>Conexão WiFi</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Arkheion Corp. Todos os direitos reservados.</p>
+            <p style="margin-top: 1rem;">
+                <a href="https://github.com/jhonslife/GIRO">GitHub</a> • 
+                <a href="https://github.com/jhonslife/GIRO/issues">Suporte</a> • 
+                <a href="https://github.com/jhonslife/GIRO/blob/main/docs/00-OVERVIEW.md">Documentação</a>
+            </p>
+            <p style="margin-top: 1rem; font-size: 0.9rem; color: #999;">
+                Feito com ❤️ por <a href="https://github.com/jhonslife">@jhonslife</a>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Update download links based on latest release
+        async function updateDownloadLinks() {
+            try {
+                const response = await fetch('https://api.github.com/repos/jhonslife/GIRO/releases/latest');
+                const release = await response.json();
+                
+                const downloadButtons = {
+                    'Windows (.msi)': release.assets.find(a => a.name.endsWith('.msi')),
+                    'Windows (.exe)': release.assets.find(a => a.name.endsWith('-setup.exe')),
+                    'Linux (.deb)': release.assets.find(a => a.name.endsWith('.deb')),
+                    'Linux (.AppImage)': release.assets.find(a => a.name.endsWith('.AppImage'))
+                };
+
+                document.querySelectorAll('.download-btn').forEach(btn => {
+                    const text = btn.textContent.trim();
+                    for (const [key, asset] of Object.entries(downloadButtons)) {
+                        if (text.includes(key) && asset) {
+                            btn.href = asset.browser_download_url;
+                        }
+                    }
+                });
+
+                // Update version
+                if (release.tag_name) {
+                    document.querySelector('.version').textContent = release.tag_name;
+                }
+            } catch (error) {
+                console.error('Erro ao buscar release:', error);
+            }
+        }
+
+        // Run on page load
+        updateDownloadLinks();
+    </script>
+</body>
+</html>
