@@ -97,7 +97,7 @@ export const FiscalSettings = () => {
 
     try {
       // UF padrão - em produção deveria vir das configurações da empresa
-      const uf = fiscal.emitterUf || 'SP';
+      const uf = fiscal.uf || 'SP';
 
       const response = await invoke<{
         active: boolean;

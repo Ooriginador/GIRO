@@ -4,6 +4,7 @@
 
 use tauri::State;
 use crate::license::MetricsPayload;
+use crate::license::LicenseInfo;
 use crate::AppState;
 
 /// Get the hardware ID for this machine
@@ -17,7 +18,7 @@ pub async fn get_hardware_id(state: State<'_, AppState>) -> Result<String, Strin
 pub async fn activate_license(
     license_key: String,
     state: State<'_, AppState>,
-) -> Result<String, String> {
+) -> Result<LicenseInfo, String> {
     let client = &state.license_client;
     let hardware_id = &state.hardware_id;
 
@@ -26,20 +27,20 @@ pub async fn activate_license(
     // Save license key to config
     // TODO: Implement secure storage
 
-    Ok(serde_json::to_string(&info).unwrap())
+    Ok(info)
 }
 
 #[tauri::command]
 pub async fn validate_license(
     license_key: String,
     state: State<'_, AppState>,
-) -> Result<String, String> {
+) -> Result<LicenseInfo, String> {
     let client = &state.license_client;
     let hardware_id = &state.hardware_id;
 
     let info = client.validate(&license_key, hardware_id).await?;
 
-    Ok(serde_json::to_string(&info).unwrap())
+    Ok(info)
 }
 
 #[tauri::command]

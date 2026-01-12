@@ -28,10 +28,11 @@ impl Default for LicenseClientConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LicenseStatus {
+    Pending,
     Active,
     Suspended,
     Expired,
-    Cancelled,
+    Revoked,
 }
 
 /// License information
@@ -46,6 +47,10 @@ pub struct LicenseInfo {
     pub company_name: String,
     pub max_users: i32,
     pub features: Vec<String>,
+    pub plan_type: Option<String>,
+    pub support_expires_at: Option<DateTime<Utc>>,
+    pub is_lifetime: Option<bool>,
+    pub can_offline: Option<bool>,
 }
 
 /// Activation request
@@ -156,7 +161,15 @@ impl LicenseClient {
         #[derive(Deserialize)]
         struct ActivateResponse {
             status: LicenseStatus,
-            expires_at: DateTime<Utc>,
+            expires_at: Option<DateTime<Utc>>,
+            license_key: String,
+            plan_type: String,
+            company_name: String,
+            max_users: i32,
+            features: Vec<String>,
+            support_expires_at: Option<DateTime<Utc>>,
+            is_lifetime: bool,
+            can_offline: bool,
             message: String,
         }
 
@@ -166,15 +179,19 @@ impl LicenseClient {
             .map_err(|e| format!("Erro ao processar resposta: {}", e))?;
 
         Ok(LicenseInfo {
-            key: Some(license_key.to_string()),
+            key: Some(api_resp.license_key),
             status: api_resp.status,
             message: Some(api_resp.message),
             valid: Some(true),
-            expires_at: Some(api_resp.expires_at),
+            expires_at: api_resp.expires_at,
             days_remaining: None,
-            company_name: String::new(),
-            max_users: 1,
-            features: vec![],
+            company_name: api_resp.company_name,
+            max_users: api_resp.max_users,
+            features: api_resp.features,
+            plan_type: Some(api_resp.plan_type),
+            support_expires_at: api_resp.support_expires_at,
+            is_lifetime: Some(api_resp.is_lifetime),
+            can_offline: Some(api_resp.can_offline),
         })
     }
 
@@ -221,6 +238,14 @@ impl LicenseClient {
             status: LicenseStatus,
             expires_at: Option<DateTime<Utc>>,
             days_remaining: Option<i64>,
+            license_key: String,
+            plan_type: String,
+            company_name: String,
+            max_users: i32,
+            features: Vec<String>,
+            support_expires_at: Option<DateTime<Utc>>,
+            is_lifetime: bool,
+            can_offline: bool,
             message: String,
         }
 
@@ -230,15 +255,19 @@ impl LicenseClient {
             .map_err(|e| format!("Erro ao processar resposta: {}", e))?;
 
         Ok(LicenseInfo {
-            key: Some(license_key.to_string()),
+            key: Some(api_resp.license_key),
             status: api_resp.status,
             message: Some(api_resp.message),
             valid: Some(api_resp.valid),
             expires_at: api_resp.expires_at,
             days_remaining: api_resp.days_remaining,
-            company_name: String::new(),
-            max_users: 1,
-            features: vec![],
+            company_name: api_resp.company_name,
+            max_users: api_resp.max_users,
+            features: api_resp.features,
+            plan_type: Some(api_resp.plan_type),
+            support_expires_at: api_resp.support_expires_at,
+            is_lifetime: Some(api_resp.is_lifetime),
+            can_offline: Some(api_resp.can_offline),
         })
     }
 

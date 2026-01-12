@@ -295,19 +295,27 @@ async fn main() {
 }
 
 /// Generate hardware ID following server specification:
-/// Format: CPU:xxx|MB:xxx|MAC:xxx|DISK:xxx
+/// Format: SHA256 hash (64 chars) of CPU:xxx|MB:xxx|MAC:xxx|DISK:xxx
 /// This creates a unique fingerprint for hardware binding
 fn generate_hardware_id() -> String {
+    use sha2::{Digest, Sha256};
+    
     let cpu_id = get_cpu_id();
     let mb_serial = get_motherboard_serial();
     let mac_address = get_primary_mac_address();
     let disk_serial = get_disk_serial();
 
-    // Format: CPU:xxx|MB:xxx|MAC:xxx|DISK:xxx
-    format!(
+    // Format raw fingerprint
+    let raw_fingerprint = format!(
         "CPU:{}|MB:{}|MAC:{}|DISK:{}",
         cpu_id, mb_serial, mac_address, disk_serial
-    )
+    );
+
+    // Hash with SHA256 to create 64-char hex string (required by server)
+    let mut hasher = Sha256::new();
+    hasher.update(raw_fingerprint.as_bytes());
+    let result = hasher.finalize();
+    hex::encode(result)
 }
 
 /// Get CPU identifier

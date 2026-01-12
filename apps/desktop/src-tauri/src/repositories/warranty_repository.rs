@@ -32,15 +32,15 @@ impl WarrantyRepository {
             SELECT
                 wc.id,
                 c.name as customer_name,
-                p.name as product_name,
+                p.name as "product_name?: String",
                 wc.source_type,
                 CASE 
-                    WHEN wc.source_type = 'SALE' THEN 'Venda #' || (SELECT daily_number FROM sales WHERE id IN (SELECT sale_id FROM sale_items WHERE id = wc.sale_item_id))
-                    WHEN wc.source_type = 'SERVICE_ORDER' THEN 'OS #' || (SELECT order_number FROM service_orders WHERE id IN (SELECT order_id FROM order_products WHERE id = wc.order_item_id))
-                END as source_number,
+                    WHEN wc.source_type = 'SALE' THEN 'Venda #' || CAST((SELECT daily_number FROM sales WHERE id IN (SELECT sale_id FROM sale_items WHERE id = wc.sale_item_id)) AS TEXT)
+                    WHEN wc.source_type = 'SERVICE_ORDER' THEN 'OS #' || CAST((SELECT order_number FROM service_orders WHERE id IN (SELECT order_id FROM order_products WHERE id = wc.order_item_id)) AS TEXT)
+                END as "source_number?: String",
                 wc.status,
                 wc.description,
-                CAST(wc.created_at AS TEXT) as "created_at!: String"
+                wc.created_at as "created_at!: String"
             FROM warranty_claims wc
             INNER JOIN customers c ON c.id = wc.customer_id
             LEFT JOIN products p ON p.id = wc.product_id
@@ -169,12 +169,12 @@ impl WarrantyRepository {
                 resolution,
                 resolution_type,
                 resolved_by_id,
-                CAST(resolved_at AS TEXT) as resolved_at,
+                resolved_at as "resolved_at?: String",
                 refund_amount,
                 replacement_cost,
                 notes,
-                CAST(created_at AS TEXT) as "created_at!: String",
-                CAST(updated_at AS TEXT) as "updated_at!: String"
+                created_at as "created_at!: String",
+                updated_at as "updated_at!: String"
             FROM warranty_claims WHERE id = ?"#,
             id
         )
@@ -211,19 +211,19 @@ impl WarrantyRepository {
                 wc.id, wc.customer_id, wc.source_type, wc.sale_item_id, wc.order_item_id,
                 wc.product_id, wc.description, wc.reason, wc.status, wc.resolution,
                 wc.resolution_type, wc.resolved_by_id, 
-                CAST(wc.resolved_at AS TEXT) as resolved_at,
+                wc.resolved_at as "resolved_at?: String",
                 wc.refund_amount, wc.replacement_cost, wc.notes, 
-                CAST(wc.created_at AS TEXT) as "created_at!: String", 
-                CAST(wc.updated_at AS TEXT) as "updated_at!: String",
+                wc.created_at as "created_at!: String", 
+                wc.updated_at as "updated_at!: String",
                 c.name as customer_name,
-                c.phone as customer_phone,
-                p.name as product_name,
-                p.barcode as product_barcode,
-                e.name as resolved_by_name,
+                c.phone as "customer_phone?: String",
+                p.name as "product_name?: String",
+                p.barcode as "product_barcode?: String",
+                e.name as "resolved_by_name?: String",
                 CASE 
-                    WHEN wc.source_type = 'SALE' THEN (SELECT daily_number FROM sales WHERE id IN (SELECT sale_id FROM sale_items WHERE id = wc.sale_item_id))
-                    WHEN wc.source_type = 'SERVICE_ORDER' THEN (SELECT order_number FROM service_orders WHERE id IN (SELECT order_id FROM order_products WHERE id = wc.order_item_id))
-                END as source_number
+                    WHEN wc.source_type = 'SALE' THEN CAST((SELECT daily_number FROM sales WHERE id IN (SELECT sale_id FROM sale_items WHERE id = wc.sale_item_id)) AS TEXT)
+                    WHEN wc.source_type = 'SERVICE_ORDER' THEN CAST((SELECT order_number FROM service_orders WHERE id IN (SELECT order_id FROM order_products WHERE id = wc.order_item_id)) AS TEXT)
+                END as "source_number?: String"
             FROM warranty_claims wc
             INNER JOIN customers c ON c.id = wc.customer_id
             LEFT JOIN products p ON p.id = wc.product_id
@@ -262,7 +262,7 @@ impl WarrantyRepository {
                 product_name: c.product_name,
                 product_barcode: c.product_barcode,
                 resolved_by_name: c.resolved_by_name,
-                source_number: c.source_number.map(|n| n.to_string()),
+                source_number: c.source_number,
             })),
             None => Ok(None),
         }

@@ -459,7 +459,7 @@ export interface CashMovementInput {
 }
 
 // License Types
-export type LicenseStatus = 'active' | 'suspended' | 'expired' | 'cancelled';
+export type LicenseStatus = 'pending' | 'active' | 'suspended' | 'expired' | 'revoked';
 
 export interface LicenseInfo {
   key?: string;
@@ -471,5 +471,8 @@ export interface LicenseInfo {
   company_name: string;
   max_users: number;
   features: string[];
+  plan_type?: string;
+  support_expires_at?: string;
+  is_lifetime?: boolean;
+  can_offline?: boolean;
 }
-
