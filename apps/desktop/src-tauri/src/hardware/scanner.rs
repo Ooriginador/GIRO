@@ -467,6 +467,76 @@ pub fn normalize_barcode(code: &str) -> String {
     code.chars().filter(|c| c.is_ascii_alphanumeric()).collect()
 }
 
+/// Parse raw bytes from a serial scanner and extract a barcode string.
+/// Many scanners send the barcode followed by newline or carriage return.
+pub fn parse_serial_input(bytes: &[u8]) -> Option<String> {
+    if bytes.is_empty() {
+        return None;
+    }
+
+    // Trim whitespace and non-printable
+    let s = bytes
+        .iter()
+        .filter_map(|b| {
+            if b.is_ascii() {
+                Some(*b as char)
+            } else {
+                None
+            }
+        })
+        .collect::<String>();
+
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+/// Inicia leitor serial para um scanner USB/Serial e envia eventos para o estado.
+/// Esta função roda em background em uma thread separada e retorna imediatamente.
+pub fn start_serial_scanner(state: Arc<ScannerServerState>, port: &str, baud: u32) -> HardwareResult<()> {
+    let port_path = port.to_string();
+
+    std::thread::spawn(move || {
+        match serialport::new(&port_path, baud).timeout(std::time::Duration::from_millis(1000)).open() {
+            Ok(mut sp) => {
+                let mut buf: Vec<u8> = vec![0; 1024];
+                loop {
+                    match sp.read(buf.as_mut_slice()) {
+                        Ok(n) if n > 0 => {
+                            if let Some(code) = parse_serial_input(&buf[..n]) {
+                                let event = ScanEvent {
+                                    code: code.clone(),
+                                    format: BarcodeFormat::detect(&code),
+                                    timestamp: chrono::Utc::now().timestamp_millis(),
+                                    device_id: None,
+                                    source: ScanSource::Usb,
+                                };
+                                state.send_scan_event(event);
+                            }
+                        }
+                        Ok(_) => {
+                            // no data
+                        }
+                        Err(e) => {
+                            // read timeout or error - continue
+                            tracing::debug!("serial read error on {}: {}", port_path, e);
+                            std::thread::sleep(std::time::Duration::from_millis(200));
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::error!("Failed to open serial port {}: {}", port_path, e);
+            }
+        }
+    });
+
+    Ok(())
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // GERADOR DE QR CODE PARA PAREAMENTO
 // ════════════════════════════════════════════════════════════════════════════
@@ -527,5 +597,15 @@ mod tests {
     fn test_normalize_barcode() {
         assert_eq!(normalize_barcode("789 123 456"), "789123456");
         assert_eq!(normalize_barcode("ABC-123-XYZ"), "ABC123XYZ");
+    }
+
+    #[test]
+    fn test_parse_serial_input() {
+        let raw = b"7891234567895\r\n";
+        let parsed = parse_serial_input(raw).unwrap();
+        assert_eq!(parsed, "7891234567895");
+
+        let raw2 = b"\n";
+        assert!(parse_serial_input(raw2).is_none());
     }
 }

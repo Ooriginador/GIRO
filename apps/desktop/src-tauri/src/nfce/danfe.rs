@@ -203,12 +203,14 @@ impl DanfePrinter {
         // Imprimir QR Code (se suportado)
         if !data.qrcode_png.is_empty() {
             commands.extend_from_slice(&Self::cmd_lf());
-            // NOTE: A impressão de imagem PNG ainda não está implementada.
-            // Por enquanto, usamos um placeholder seguro.
-            // Por ora, apenas inserir espaço e logar que recurso não está disponível
-            // eprintln!("Aviso: Impressão de QR Code PNG ainda não implementada para ESC/POS");
-            commands.extend_from_slice(&Self::cmd_lf());
-            commands.extend_from_slice(&Self::cmd_lf());
+            // Tentar renderizar PNG para ESC/POS raster (GS v 0)
+            if let Ok(img_cmds) = Self::rasterize_png_to_escpos(&data.qrcode_png) {
+                commands.extend_from_slice(&img_cmds);
+            } else {
+                // Fallback: apenas espaço
+                commands.extend_from_slice(&Self::cmd_lf());
+                commands.extend_from_slice(&Self::cmd_lf());
+            }
             commands.extend_from_slice(&Self::cmd_lf());
         }
 
@@ -349,6 +351,121 @@ impl DanfePrinter {
             "99" => "Outros",
             _ => "Nao Identificado",
         }
+    }
+}
+
+impl DanfePrinter {
+    /// Converte PNG (bytes) para comandos ESC/POS raster (GS v 0)
+    fn rasterize_png_to_escpos(png: &[u8]) -> Result<Vec<u8>, String> {
+        let img = image::load_from_memory(png).map_err(|e| format!("Erro ao abrir PNG: {}", e))?;
+
+        // Target width for 80mm thermal printers (commonly 384 pixels)
+        let target_width: u32 = 384;
+
+        // Resize image if wider than target, preserving aspect ratio
+        let (mut width, mut height) = img.dimensions();
+        let img = if width > target_width {
+            let scale = target_width as f32 / width as f32;
+            let new_h = (height as f32 * scale).max(1.0) as u32;
+            let resized = image::imageops::resize(
+                &img,
+                target_width,
+                new_h,
+                image::imageops::FilterType::Lanczos3,
+            );
+            width = resized.width();
+            height = resized.height();
+            resized
+        } else {
+            img
+        };
+
+        // Convert to grayscale
+        let mut gray = img.to_luma8();
+
+        if width == 0 || height == 0 {
+            return Err("Imagem vazia".to_string());
+        }
+
+        // Apply Floyd–Steinberg dithering to convert to monochrome
+        for y in 0..height {
+            for x in 0..width {
+                let old = gray.get_pixel(x, y).0[0] as i16;
+                let new_val = if old < 128 { 0i16 } else { 255i16 };
+                let err = old - new_val;
+                gray.put_pixel(x, y, image::Luma([new_val as u8]));
+
+                if x + 1 < width {
+                    let p = gray.get_pixel(x + 1, y).0[0] as i16;
+                    let v = (p + (err * 7) / 16).clamp(0, 255) as u8;
+                    gray.put_pixel(x + 1, y, image::Luma([v]));
+                }
+                if x > 0 && y + 1 < height {
+                    let p = gray.get_pixel(x - 1, y + 1).0[0] as i16;
+                    let v = (p + (err * 3) / 16).clamp(0, 255) as u8;
+                    gray.put_pixel(x - 1, y + 1, image::Luma([v]));
+                }
+                if y + 1 < height {
+                    let p = gray.get_pixel(x, y + 1).0[0] as i16;
+                    let v = (p + (err * 5) / 16).clamp(0, 255) as u8;
+                    gray.put_pixel(x, y + 1, image::Luma([v]));
+                }
+                if x + 1 < width && y + 1 < height {
+                    let p = gray.get_pixel(x + 1, y + 1).0[0] as i16;
+                    let v = (p + (err * 1) / 16).clamp(0, 255) as u8;
+                    gray.put_pixel(x + 1, y + 1, image::Luma([v]));
+                }
+            }
+        }
+
+        // Build monochrome buffer (1 for black, 0 for white)
+        let mut mono: Vec<u8> = vec![0; (width * height) as usize];
+        for y in 0..height {
+            for x in 0..width {
+                let pix = gray.get_pixel(x, y).0[0];
+                mono[(y * width + x) as usize] = if pix == 0 { 1 } else { 0 };
+            }
+        }
+
+        let bytes_per_row = ((width + 7) / 8) as usize;
+        let mut cmds: Vec<u8> = Vec::new();
+
+        // For each row stripe of 8 pixels tall
+        for y0 in (0..height).step_by(8) {
+            // GS v 0 m
+            cmds.extend_from_slice(&[0x1D, 0x76, 0x30, 0x00]);
+
+            // xL xH
+            let x_l = (bytes_per_row & 0xFF) as u8;
+            let x_h = ((bytes_per_row >> 8) & 0xFF) as u8;
+            cmds.push(x_l);
+            cmds.push(x_h);
+
+            // yL yH (height of this stripe)
+            let stripe_h = std::cmp::min(8, (height - y0) as u32) as u16;
+            let y_l = (stripe_h & 0xFF) as u8;
+            let y_h = ((stripe_h >> 8) & 0xFF) as u8;
+            cmds.push(y_l);
+            cmds.push(y_h);
+
+            // data: for each column, build bytes representing 8 vertical pixels
+            for x in 0..width {
+                let mut byte: u8 = 0;
+                for bit in 0..8 {
+                    let yy = y0 + bit;
+                    if yy >= height {
+                        continue;
+                    }
+                    let v = mono[(yy * width + x) as usize];
+                    if v != 0 {
+                        byte |= 1 << (7 - bit);
+                    }
+                }
+                cmds.push(byte);
+            }
+        }
+
+        Ok(cmds)
     }
 }
 

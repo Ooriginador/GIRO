@@ -17,7 +17,7 @@ Este módulo implementa integração completa com hardware comercial para PDV (P
 
 ### Instalação
 
-```bash
+````bash
 cd apps/desktop/src-tauri
 cargo build --release
 ```text
@@ -173,11 +173,14 @@ const barcode = '2023456012347';
 
 ## 📱 Scanner de Código de Barras
 
-### ✅ Leitor LB-120 (USB HID)
+### ✅ Leitor LB-129 (USB HID / Serial)
 
-- Deve funcionar como **teclado USB** (keyboard wedge) sem driver.
-- Teste rápido: abra um campo de texto (ou o input de código no PDV), escaneie um EAN-13 e confirme se ele envia também **Enter** ao final.
-- Se o código "fica" no campo e não confirma, configure no leitor um **sufixo Enter/CRLF** (via códigos de programação do manual do LB-120).
+- **Modo USB HID**: Funciona como teclado USB. Configure no leitor um sufixo Enter/CRLF.
+- **Modo Serial**: Recomendado para uso em background sem foco no campo.
+  - Conecte o leitor em uma porta COM/USB Serial.
+  - No PDV, vá em **Configurações > Hardware > Leitor**.
+  - Selecione **Modo Serial** e a porta correspondente.
+  - Clique em **Ativar Leitor Serial**.
 
 ### Modos
 
@@ -424,3 +427,4 @@ nc -zv 127.0.0.1 3847
 ## 📄 Licença
 
 MIT © 2026 Arkheion Corp
+````

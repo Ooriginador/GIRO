@@ -417,7 +417,6 @@ pub async fn get_scanner_server_info(
 #[tauri::command]
 pub async fn generate_pairing_qr(state: State<'_, HardwareState>) -> AppResult<String> {
     let server = state.scanner_server.read().await;
-
     match server.as_ref() {
         Some(scanner_state) => {
             let local_ip =
@@ -430,6 +429,26 @@ pub async fn generate_pairing_qr(state: State<'_, HardwareState>) -> AppResult<S
         }
         None => {
             Err(HardwareError::NotConfigured("Servidor de scanner não está rodando".into()).into())
+        }
+    }
+}
+
+/// Inicia leitor serial
+#[tauri::command]
+pub async fn start_serial_scanner(
+    port: String,
+    baud: u32,
+    state: State<'_, HardwareState>,
+) -> AppResult<()> {
+    let scanner_server = state.scanner_server.read().await;
+
+    match scanner_server.as_ref() {
+        Some(scanner_state) => {
+            hardware::scanner::start_serial_scanner(scanner_state.clone(), &port, baud)?;
+            Ok(())
+        }
+        None => {
+            Err(HardwareError::NotConfigured("Servidor de scanner não iniciado. Inicie o servidor mobile ou as configurações de scanner primeiro.".into()).into())
         }
     }
 }
@@ -497,6 +516,7 @@ macro_rules! hardware_commands {
             $crate::commands::hardware::get_scanner_server_info,
             $crate::commands::hardware::generate_pairing_qr,
             $crate::commands::hardware::generate_qr_svg,
+            $crate::commands::hardware::start_serial_scanner,
             // Mobile Server comandos estão em mobile.rs
         ]
     };

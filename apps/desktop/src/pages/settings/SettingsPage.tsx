@@ -40,7 +40,9 @@ import {
   Sun,
   Volume2,
 } from 'lucide-react';
-import { useState, type FC } from 'react';
+import { useCallback, useEffect, useState, type FC } from 'react';
+
+type SerialPort = string;
 
 type BackendPrinterModel = 'epson' | 'elgin' | 'bematech' | 'daruma' | 'generic';
 type BackendPrinterConnection = 'usb' | 'serial' | 'network';
@@ -95,8 +97,51 @@ export const SettingsPage: FC = () => {
   const [scalePort, setScalePort] = useState(scale.port);
   const [scaleEnabled, setScaleEnabled] = useState(scale.enabled);
 
+  const [availablePorts, setAvailablePorts] = useState<SerialPort[]>([]);
+  const [isLoadingPorts, setIsLoadingPorts] = useState(false);
+
+  const [scannerEnabled, setScannerEnabled] = useState(false);
+  const [scannerMode, setScannerMode] = useState<'hid' | 'serial'>('hid');
+  const [scannerPort, setScannerPort] = useState('');
+  const [lastScan, setLastScan] = useState('');
+
   const [testQrSvg, setTestQrSvg] = useState<string>('');
   const [testQrValue, setTestQrValue] = useState<string>('');
+
+  const fetchPorts = useCallback(async () => {
+    setIsLoadingPorts(true);
+    try {
+      const ports = await invoke<SerialPort[]>('list_serial_ports');
+      setAvailablePorts(ports);
+    } catch (error) {
+      console.error('Erro ao listar portas:', error);
+    } finally {
+      setIsLoadingPorts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPorts();
+
+    // Listen for scan events (Serial Scanner)
+    let unlisten: any;
+    const setupListener = async () => {
+      try {
+        const { listen } = await import('@tauri-apps/api/event');
+        unlisten = await listen('scan_event', (event: any) => {
+          const { code } = event.payload;
+          setLastScan(code);
+        });
+      } catch (e) {
+        console.error('Erro ao configurar listener de scan:', e);
+      }
+    };
+    setupListener();
+
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [fetchPorts]);
 
   // const [alertsEnabled, setAlertsEnabled] = useState(true); // Unused
 
@@ -524,6 +569,7 @@ export const SettingsPage: FC = () => {
                       <SelectItem value="EPSON TM-T88">EPSON TM-T88</SelectItem>
                       <SelectItem value="ELGIN I9">ELGIN I9</SelectItem>
                       <SelectItem value="BEMATECH MP-4200">BEMATECH MP-4200</SelectItem>
+                      <SelectItem value="C3TECH IT-100">C3Tech IT-100</SelectItem>
                       <SelectItem value="GENERIC">Genérica (ESC/POS)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -532,14 +578,17 @@ export const SettingsPage: FC = () => {
                   <Label htmlFor="printerPort">Porta</Label>
                   <Select value={printerPort} onValueChange={setPrinterPort}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue
+                        placeholder={isLoadingPorts ? 'Carregando...' : 'Selecione...'}
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USB">USB</SelectItem>
-                      <SelectItem value="COM1">COM1</SelectItem>
-                      <SelectItem value="COM2">COM2</SelectItem>
-                      <SelectItem value="COM3">COM3</SelectItem>
-                      <SelectItem value="LPT1">LPT1</SelectItem>
+                      <SelectItem value="USB">USB (Físico/Raw)</SelectItem>
+                      {availablePorts.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -628,10 +677,11 @@ export const SettingsPage: FC = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="COM1">COM1</SelectItem>
-                      <SelectItem value="COM2">COM2</SelectItem>
-                      <SelectItem value="COM3">COM3</SelectItem>
-                      <SelectItem value="COM4">COM4</SelectItem>
+                      {availablePorts.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -640,6 +690,92 @@ export const SettingsPage: FC = () => {
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Testar Balança
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Scanner */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <QrCode className="h-5 w-5" />
+                    Leitor de Código de Barras
+                  </CardTitle>
+                  <CardDescription>Configure o scanner C3Tech LB-129 ou genérico</CardDescription>
+                </div>
+                <Switch checked={scannerEnabled} onCheckedChange={setScannerEnabled} />
+              </div>
+            </CardHeader>
+            <CardContent
+              className={`space-y-4 ${!scannerEnabled ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label>Modo de Funcionamento</Label>
+                  <Select value={scannerMode} onValueChange={(v: any) => setScannerMode(v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hid">USB HID (Emulação Teclado)</SelectItem>
+                      <SelectItem value="serial">Serial (Background)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {scannerMode === 'serial' && (
+                  <div>
+                    <Label>Porta Serial</Label>
+                    <Select value={scannerPort} onValueChange={setScannerPort}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availablePorts.map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {p}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              {scannerMode === 'serial' && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={async () => {
+                    try {
+                      await invoke('start_serial_scanner', {
+                        port: scannerPort,
+                        baud: 9600,
+                      });
+                      toast({
+                        title: 'Scanner iniciado',
+                        description: 'O leitor serial está ativo.',
+                      });
+                    } catch (e: any) {
+                      toast({
+                        title: 'Erro ao iniciar scanner',
+                        description: e.message || 'Falha desconhecida',
+                        variant: 'destructive',
+                      });
+                    }
+                  }}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Ativar Leitor Serial
+                </Button>
+              )}
+
+              {lastScan && (
+                <div className="p-4 rounded-lg bg-muted text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Última leitura:</p>
+                  <p className="text-xl font-mono font-bold">{lastScan}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

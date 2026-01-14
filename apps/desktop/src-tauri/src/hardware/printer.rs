@@ -91,6 +91,7 @@ pub enum PrinterModel {
     Elgin,
     Bematech,
     Daruma,
+    C3Tech,
     Generic,
 }
 
