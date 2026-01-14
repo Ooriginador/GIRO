@@ -1,11 +1,12 @@
 import { LicenseGuard } from '@/components/guards';
 import { AppShell } from '@/components/layout';
+import { FirstAdminWizard } from '@/components/setup/FirstAdminWizard';
 import { BusinessProfileWizard } from '@/components/shared';
 import { UpdateChecker } from '@/components/UpdateChecker';
-import { FirstAdminWizard } from '@/components/setup/FirstAdminWizard';
 import { useHasAdmin } from '@/hooks/useSetup';
 /* force refresh */
 import { useAuthStore } from '@/stores/auth-store';
+import { useLicenseStore } from '@/stores/license-store';
 import { useBusinessProfile } from '@/stores/useBusinessProfile';
 import { type FC, useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes, useNavigate } from 'react-router-dom';
@@ -69,24 +70,29 @@ const RootRedirect: FC = () => {
     return <Navigate to="/wizard" replace />;
   }
 
+  // Se configurado, agora sim vai para o PDV
   return <Navigate to="/pdv" replace />;
 };
 
 // Hook para atalho F1 - Ajuda
 const useHelpHotkey = () => {
   const navigate = useNavigate();
+  const { state } = useLicenseStore();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F1') {
         e.preventDefault();
-        navigate('/tutorials');
+        // Só permite ajuda se a licença estiver ativa (valid) ou carregando (loading)
+        if (state === 'valid' || state === 'loading') {
+          navigate('/tutorials');
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate]);
+  }, [navigate, state]);
 };
 
 const AdminCheck: FC = () => {
@@ -104,15 +110,18 @@ const AdminCheck: FC = () => {
     );
   }
 
+  // Se não tem admin, força o wizard de criação de admin
   if (!hasAdmin && !isAuthenticated) {
     return <FirstAdminWizard />;
   }
 
+  // Se não está autenticado, vai para o login (que é protegido pela licença)
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  return <Navigate to="/pdv" replace />;
+  // Se autenticado, vai para a raiz do layout (RootRedirect)
+  return <Navigate to="/" replace />;
 };
 
 const App: FC = () => {
@@ -138,7 +147,7 @@ const App: FC = () => {
           path="/login"
           element={
             <LicenseGuard>
-              {isAuthenticated ? <Navigate to="/pdv" replace /> : <LoginPage />}
+              {isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
             </LicenseGuard>
           }
         />
@@ -246,7 +255,7 @@ const App: FC = () => {
           <Route path="tutorials" element={<TutorialsPage />} />
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/pdv" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </>

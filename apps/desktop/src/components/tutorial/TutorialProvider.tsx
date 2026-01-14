@@ -113,7 +113,8 @@ export const TutorialProvider: FC<TutorialProviderProps> = ({ children }) => {
     if (!welcomeProgress || welcomeProgress.status === 'not-started') {
       // Aguardar um momento para a UI carregar
       const timeout = setTimeout(() => {
-        if (location.pathname !== '/login') {
+        const restrictedRoutes = ['/login', '/license', '/setup', '/wizard'];
+        if (!restrictedRoutes.includes(location.pathname)) {
           startTutorial('welcome');
         }
       }, 1000);

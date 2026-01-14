@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { activateLicense, getHardwareId, validateLicense } from '@/lib/tauri';
+import { activateLicense, getHardwareId, setSetting, validateLicense } from '@/lib/tauri';
 import { useLicenseStore } from '@/stores/license-store';
 import { AlertCircle, Key, Loader2, Monitor, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -96,15 +96,26 @@ export function LicenseActivationPage() {
       setLicenseInfo(info);
       updateLastValidation();
 
+      // Sincronizar dados do proprietário se existirem na licença
+      if (info.company_name) {
+        try {
+          await setSetting('company.name', info.company_name);
+        } catch (err) {
+          console.error('Falha ao salvar nome da empresa da licença:', err);
+        }
+      }
+
       toast({
         title: 'Licença Ativada!',
-        description: 'Seu software foi ativado com sucesso.',
+        description: info.company_name
+          ? `Bem-vindo, ${info.company_name}. Software ativado.`
+          : 'Seu software foi ativado com sucesso.',
       });
 
-      // Redirect to login
+      // Redirect to login (which will then lead to wizard if not configured)
       setTimeout(() => {
         navigate('/login', { replace: true });
-      }, 1000);
+      }, 1500);
     } catch (error) {
       const errorMessage =
         typeof error === 'string'
@@ -133,7 +144,7 @@ export function LicenseActivationPage() {
 
   const handleKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatLicenseKey(e.target.value);
-    setLicenseKey(formatted.slice(0, 23)); // Max: XXXX-XXXX-XXXX-XXXX (19 chars + dashes)
+    setLicenseKey(formatted.slice(0, 24)); // Max: GIRO-XXXX-XXXX-XXXX-XXXX (24 chars)
   };
 
   // Loading state while validating stored license
@@ -229,7 +240,7 @@ export function LicenseActivationPage() {
           {/* Help Links */}
           <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
             <a
-              href="https://giro.arkheion.com.br/licencas"
+              href="https://giro-website-production.up.railway.app/#precos"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-primary underline-offset-4 hover:underline"

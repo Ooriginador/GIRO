@@ -357,28 +357,27 @@ impl DanfePrinter {
 impl DanfePrinter {
     /// Converte PNG (bytes) para comandos ESC/POS raster (GS v 0)
     fn rasterize_png_to_escpos(png: &[u8]) -> Result<Vec<u8>, String> {
+        use image::GenericImageView;
         let img = image::load_from_memory(png).map_err(|e| format!("Erro ao abrir PNG: {}", e))?;
 
         // Target width for 80mm thermal printers (commonly 384 pixels)
         let target_width: u32 = 384;
 
         // Resize image if wider than target, preserving aspect ratio
-        let (mut width, mut height) = img.dimensions();
+        let (width, height) = img.dimensions();
         let img = if width > target_width {
             let scale = target_width as f32 / width as f32;
             let new_h = (height as f32 * scale).max(1.0) as u32;
-            let resized = image::imageops::resize(
-                &img,
+            img.resize(
                 target_width,
                 new_h,
                 image::imageops::FilterType::Lanczos3,
-            );
-            width = resized.width();
-            height = resized.height();
-            resized
+            )
         } else {
             img
         };
+
+        let (width, height) = img.dimensions();
 
         // Convert to grayscale
         let mut gray = img.to_luma8();
