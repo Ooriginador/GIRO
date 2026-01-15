@@ -63,7 +63,9 @@ describe('tauri.ts', () => {
   describe('tauriInvoke (Tauri path)', () => {
     it('should call tauriCoreInvoke when in Tauri runtime', async () => {
       setTauriEnv(true);
-      (tauriCoreInvoke as unknown as TauriInvokeMock).mockResolvedValue([{ id: '1', name: 'Product 1' }]);
+      (tauriCoreInvoke as unknown as TauriInvokeMock).mockResolvedValue([
+        { id: '1', name: 'Product 1' },
+      ]);
 
       const result = await tauriLib.getProducts();
       expect(tauriCoreInvoke).toHaveBeenCalledWith('get_products', { filter: undefined });
