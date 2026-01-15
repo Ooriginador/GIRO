@@ -11,11 +11,11 @@ test.describe('Sessão de Caixa E2E', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Login com 1234 (Admin)
-    await page.locator('button:has-text("1")').first().click();
-    await page.locator('button:has-text("2")').first().click();
-    await page.locator('button:has-text("3")').first().click();
-    await page.locator('button:has-text("4")').first().click();
+    // Login com 8899 (Admin)
+    await page.locator('button:has-text("8")').first().click();
+    await page.locator('button:has-text("8")').first().click();
+    await page.locator('button:has-text("9")').first().click();
+    await page.locator('button:has-text("9")').first().click();
 
     const loginButton = page.locator('button:has-text("Entrar")');
     await loginButton.click();

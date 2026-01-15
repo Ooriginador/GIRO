@@ -397,8 +397,9 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total }) =>
               'text-money font-bold',
               change >= 0 ? 'text-success' : 'text-destructive'
             )}
+            data-testid="change-amount"
           >
-            {formatCurrency(Math.max(0, change))}
+            {formatCurrency(amountPaidNum - total)}
           </span>
         </div>
       </div>
@@ -548,7 +549,9 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total }) =>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Total Pago</span>
-          <span className="text-money font-medium">{formatCurrency(splitTotal)}</span>
+          <span className="text-money font-medium" data-testid="total-paid">
+            {formatCurrency(splitTotal)}
+          </span>
         </div>
         <Separator />
         <div className="flex justify-between text-lg">
@@ -558,6 +561,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total }) =>
               'text-money font-bold',
               splitRemaining <= 0 ? 'text-success' : 'text-destructive'
             )}
+            data-testid="remaining-amount"
           >
             {formatCurrency(Math.max(0, splitRemaining))}
           </span>

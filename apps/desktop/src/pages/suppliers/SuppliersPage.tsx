@@ -239,7 +239,8 @@ export const SuppliersPage: FC = () => {
         });
       }
       handleCloseDialog();
-    } catch {
+    } catch (error) {
+      console.error('Erro ao salvar fornecedor:', error);
       // Toast é tratado pelo hook
     }
   };

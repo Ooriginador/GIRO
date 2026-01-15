@@ -61,7 +61,7 @@ async function seedEmployee() {
     create: {
       name: 'Administrador',
       cpf: '00000000000',
-      pin: hashPin('1234'),
+      pin: hashPin('8899'),
       password: hashPassword('admin123'),
       role: EmployeeRole.ADMIN,
       email: 'admin@mercearias.local',
@@ -94,7 +94,7 @@ async function seedEmployee() {
     },
   });
 
-  console.log(`   ✅ Admin criado (PIN: 1234, Senha: admin123)`);
+  console.log(`   ✅ Admin criado (PIN: 8899, Senha: admin123)`);
   console.log(`   ✅ Operador criado (PIN: 0000)`);
   console.log(`   ✅ Gerente criado (PIN: 9999, Senha: gerente123)`);
   return admin;

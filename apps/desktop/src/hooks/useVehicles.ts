@@ -1,5 +1,5 @@
+import { invoke } from '@/lib/tauri';
 import { VehicleBrand, VehicleComplete, VehicleModel, VehicleYear } from '@/types/motoparts';
-import { invoke } from '@tauri-apps/api/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════════════

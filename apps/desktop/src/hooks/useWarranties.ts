@@ -10,8 +10,8 @@
  * - Filtros e estatísticas
  */
 
+import { invoke } from '@/lib/tauri';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { invoke } from '@tauri-apps/api/core';
 import { useCallback, useState } from 'react';
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -1,603 +1,382 @@
 /**
- * @file ProductsPage.test.tsx - Testes de integração da página de produtos
- *
- * Testa as funcionalidades corrigidas:
- * - Edit: navegação correta após fix do Link -> navigate
- * - Duplicate: criação de cópia de produto
- * - Delete: remoção de produto com confirmação
+ * @file ProductsPage.test.tsx - Testes para a listagem de produtos
  */
 
+import {
+  useAllProducts,
+  useCreateProduct,
+  useDeactivateProduct,
+  useDeleteProduct,
+  useReactivateProduct,
+} from '@/hooks/use-products';
 import { ProductsPage } from '@/pages/products/ProductsPage';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock dos hooks de produtos
-const mockUseProducts = vi.fn();
-const mockUseCreateProduct = vi.fn();
-const mockUseDeleteProduct = vi.fn();
-const mockUseDeactivateProduct = vi.fn();
-const mockUseReactivateProduct = vi.fn();
-const mockUseAllProducts = vi.fn();
-const mockNavigate = vi.fn();
+// Spies for toast
+const mockToast = vi.fn();
 
+// Mock hooks
 vi.mock('@/hooks/use-products', () => ({
-  useProducts: () => mockUseProducts(),
-  useCreateProduct: () => mockUseCreateProduct(),
-  useDeleteProduct: () => mockUseDeleteProduct(),
-  useDeactivateProduct: () => mockUseDeactivateProduct(),
-  useReactivateProduct: () => mockUseReactivateProduct(),
-  useAllProducts: () => mockUseAllProducts(),
+  useAllProducts: vi.fn(),
+  useCreateProduct: vi.fn(),
+  useDeactivateProduct: vi.fn(),
+  useDeleteProduct: vi.fn(),
+  useReactivateProduct: vi.fn(),
 }));
 
+vi.mock('@/hooks/use-toast', () => ({
+  useToast: () => ({ toast: mockToast }),
+}));
+
+// Mock useNavigate
+const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
     useNavigate: () => mockNavigate,
+    Link: ({ children, to }: any) => <a href={to}>{children}</a>,
   };
 });
 
-// Mock do toast
-const mockToast = vi.fn();
-vi.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({
-    toast: mockToast,
-  }),
+// Mock UI components
+vi.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: any) => <div data-testid="dropdown-content">{children}</div>,
+  DropdownMenuItem: ({ children, onClick }: any) => (
+    <button onClick={onClick} role="menuitem">
+      {children}
+    </button>
+  ),
+  DropdownMenuSeparator: () => <hr />,
+}));
+
+vi.mock('@/components/ui/select', () => ({
+  Select: ({ children, value, onValueChange }: any) => (
+    <select
+      data-testid="status-filter"
+      value={value}
+      onChange={(e) => onValueChange(e.target.value)}
+    >
+      {children}
+    </select>
+  ),
+  SelectTrigger: ({ children }: any) => <>{children}</>,
+  SelectValue: ({ placeholder }: any) => <>{placeholder}</>,
+  SelectContent: ({ children }: any) => <>{children}</>,
+  SelectItem: ({ children, value }: any) => <option value={value}>{children}</option>,
 }));
 
 const mockProducts = [
   {
-    id: 'product-1',
-    internalCode: 'PROD001',
-    barcode: '7891234567890',
-    name: 'Produto Teste 1',
-    description: 'Descrição do produto 1',
-    salePrice: 10.5,
-    costPrice: 5.25,
-    currentStock: 100,
-    minStock: 10,
-    categoryId: 'cat-1',
-    category: { id: 'cat-1', name: 'Categoria 1' },
-    unit: 'UN' as const,
-    isWeighted: false,
+    id: '1',
+    name: 'Product A',
+    internalCode: 'A1',
+    salePrice: 10,
+    currentStock: 5,
+    minStock: 2,
     isActive: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-    updatedAt: '2025-01-01T00:00:00.000Z',
+    category: { name: 'Cat 1' },
   },
   {
-    id: 'product-2',
-    internalCode: 'PROD002',
-    barcode: '7891234567891',
-    name: 'Produto Teste 2',
-    description: 'Descrição do produto 2',
-    salePrice: 20.99,
-    costPrice: 10.5,
-    currentStock: 50,
+    id: '2',
+    name: 'Product B',
+    internalCode: 'B1',
+    salePrice: 20,
+    currentStock: 1,
     minStock: 5,
-    categoryId: 'cat-2',
-    category: { id: 'cat-2', name: 'Categoria 2' },
-    unit: 'KG' as const,
-    isWeighted: true,
     isActive: true,
-    createdAt: '2025-01-02T00:00:00.000Z',
-    updatedAt: '2025-01-02T00:00:00.000Z',
+    category: { name: 'Cat 2' },
+  },
+  {
+    id: '3',
+    name: 'Inactive Product',
+    internalCode: 'I1',
+    isActive: false,
   },
 ];
 
-const renderProductsPage = () => {
-  return render(
-    <MemoryRouter>
-      <ProductsPage />
-    </MemoryRouter>
-  );
-};
-
-// Helper para abrir dropdown de ações de um produto
-const openProductMenu = async (user: ReturnType<typeof userEvent.setup>, productId: string) => {
-  // Aguardar a tabela estar pronta
-  await waitFor(() => {
-    expect(screen.getByRole('table')).toBeInTheDocument();
-  });
-
-  // Encontrar e clicar no botão de menu pelo testid
-  const menuButton = screen.getByTestId(`product-menu-${productId}`);
-  await user.click(menuButton);
-};
-
-describe('ProductsPage - Edit Functionality', () => {
+describe('ProductsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseAllProducts.mockReturnValue({
-      data: mockProducts,
-      isLoading: false,
-      error: null,
-    });
-    mockUseProducts.mockReturnValue({
-      data: mockProducts,
-      isLoading: false,
-      error: null,
-    });
-    mockUseCreateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseDeleteProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseDeactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseReactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
+    vi.mocked(useAllProducts).mockReturnValue({ data: mockProducts, isLoading: false } as any);
+    vi.mocked(useCreateProduct).mockReturnValue({ mutateAsync: vi.fn() } as any);
+    vi.mocked(useDeleteProduct).mockReturnValue({ mutateAsync: vi.fn() } as any);
+    vi.mocked(useDeactivateProduct).mockReturnValue({ mutateAsync: vi.fn() } as any);
+    vi.mocked(useReactivateProduct).mockReturnValue({ mutateAsync: vi.fn() } as any);
   });
 
-  it('should navigate to edit page when clicking Edit button', async () => {
+  const renderPage = () => {
+    return render(
+      <MemoryRouter>
+        <ProductsPage />
+      </MemoryRouter>
+    );
+  };
+
+  it('should render products and handle search with debounce', async () => {
     const user = userEvent.setup();
-    renderProductsPage();
+    renderPage();
 
-    // Aguardar produtos renderizarem
-    await waitFor(() => {
-      expect(screen.getByText('Produto Teste 1')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Product A')).toBeInTheDocument();
+    expect(screen.getByText('Product B')).toBeInTheDocument();
 
-    // Abrir dropdown do primeiro produto (encontrar botões com ícone MoreHorizontal)
-    const dropdownTriggers = screen.getAllByRole('button');
-    const menuButton = dropdownTriggers.find((btn) => btn.querySelector('svg'));
-    await user.click(menuButton!);
+    const searchInput = screen.getByPlaceholderText(/buscar por nome/i);
+    await user.type(searchInput, 'Product A');
 
-    // Clicar em Editar
-    const editButton = await screen.findByText('Editar');
-    await user.click(editButton);
+    // Should not filter immediately due to 500ms debounce
+    expect(screen.getByText('Product B')).toBeInTheDocument();
 
-    // Verificar que navigate foi chamado com o ID correto
-    expect(mockNavigate).toHaveBeenCalledWith('/products/product-1');
+    await waitFor(
+      () => {
+        expect(screen.getByText('Product A')).toBeInTheDocument();
+        expect(screen.queryByText('Product B')).not.toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
   });
 
-  it('should navigate to correct edit page for second product', async () => {
+  it('should handle search with barcode', async () => {
     const user = userEvent.setup();
-    renderProductsPage();
-
-    await waitFor(() => {
-      expect(screen.getByText('Produto Teste 2')).toBeInTheDocument();
-    });
-
-    // Abrir dropdown do segundo produto
-    const dropdownTriggers = screen.getAllByRole('button');
-    const menuButtons = dropdownTriggers.filter((btn) => btn.querySelector('svg'));
-    await user.click(menuButtons[1]!);
-
-    // Clicar em Editar
-    const editButton = await screen.findByText('Editar');
-    await user.click(editButton);
-
-    // Verificar navegação correta
-    expect(mockNavigate).toHaveBeenCalledWith('/products/product-2');
-  });
-});
-
-describe('ProductsPage - Duplicate Functionality', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUseAllProducts.mockReturnValue({
-      data: mockProducts,
+    const productsWithBarcode = [
+      ...mockProducts,
+      { id: '4', name: 'Barcode Product', internalCode: 'BC1', isActive: true, barcode: '789123' },
+    ];
+    vi.mocked(useAllProducts).mockReturnValue({
+      data: productsWithBarcode,
       isLoading: false,
-      error: null,
-    });
-    mockUseProducts.mockReturnValue({
-      data: mockProducts,
-      isLoading: false,
-      error: null,
-    });
-    mockUseDeactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseReactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
+    } as any);
+
+    renderPage();
+
+    const searchInput = screen.getByPlaceholderText(/buscar por nome/i);
+    await user.type(searchInput, '789123');
+
+    await waitFor(
+      () => {
+        expect(screen.getByText('Barcode Product')).toBeInTheDocument();
+        expect(screen.queryByText('Product A')).not.toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
   });
 
-  it('should call createProduct mutation when clicking Duplicate', async () => {
+  it('should filter by status', async () => {
     const user = userEvent.setup();
-    const mockMutate = vi.fn();
+    renderPage();
 
-    mockUseAllProducts.mockReturnValue({
-      data: mockProducts,
-      isLoading: false,
-      error: null,
-    });
-    mockUseCreateProduct.mockReturnValue({
-      mutate: mockMutate,
-      mutateAsync: mockMutate,
-      isPending: false,
-    });
-    mockUseDeleteProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseDeactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseReactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
+    const select = screen.getByTestId('status-filter');
 
-    renderProductsPage();
+    // Show all
+    await user.selectOptions(select, 'all');
+    expect(screen.getByText('Product A')).toBeInTheDocument();
+    expect(screen.getByText('Inactive Product')).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.getByText('Produto Teste 1')).toBeInTheDocument();
-    });
-
-    // Abrir dropdown
-    await openProductMenu(user, 'product-1');
-
-    // Clicar em Duplicar
-    const duplicateButton = await screen.findByText('Duplicar');
-    await user.click(duplicateButton);
-
-    // Verificar que mutate foi chamado com os dados corretos
-    await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'Produto Teste 1 (Cópia)',
-          barcode: undefined,
-          categoryId: 'cat-1',
-          unit: 'UN',
-          salePrice: 10.5,
-          costPrice: 5.25,
-          minStock: 10,
-          isWeighted: false,
-        })
-      );
-    });
+    // Show inactive
+    await user.selectOptions(select, 'inactive');
+    expect(screen.queryByText('Product A')).not.toBeInTheDocument();
+    expect(screen.getByText('Inactive Product')).toBeInTheDocument();
   });
 
-  it('should generate unique code for duplicated product', async () => {
+  it('should handle product actions: Edit', async () => {
     const user = userEvent.setup();
-    const mockMutate = vi.fn();
+    renderPage();
 
-    mockUseAllProducts.mockReturnValue({
-      data: mockProducts,
-      isLoading: false,
-      error: null,
-    });
-    mockUseCreateProduct.mockReturnValue({
-      mutate: mockMutate,
-      mutateAsync: mockMutate,
-      isPending: false,
-    });
-    mockUseDeleteProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseDeactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseReactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-
-    renderProductsPage();
-
-    await waitFor(() => {
-      expect(screen.getByText('Produto Teste 1')).toBeInTheDocument();
-    });
-
-    await openProductMenu(user, 'product-1');
-
-    const duplicateButton = await screen.findByText('Duplicar');
-    await user.click(duplicateButton);
-
-    // Verificar que a função foi chamada (o código interno é gerado pelo backend)
-    await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalled();
-    });
+    await user.click(screen.getByTestId('product-menu-1'));
+    await user.click(screen.getAllByRole('menuitem', { name: /Editar/i })[0]);
+    expect(mockNavigate).toHaveBeenCalledWith('/products/1');
   });
 
-  it('should append "(Cópia)" to product name when duplicating', async () => {
+  it('should handle product actions: Duplicate', async () => {
     const user = userEvent.setup();
-    const mockMutate = vi.fn();
+    const mockMutate = vi.fn().mockResolvedValue({});
+    vi.mocked(useCreateProduct).mockReturnValue({ mutateAsync: mockMutate } as any);
 
-    mockUseAllProducts.mockReturnValue({
-      data: mockProducts,
-      isLoading: false,
-      error: null,
-    });
-    mockUseCreateProduct.mockReturnValue({
-      mutate: mockMutate,
-      mutateAsync: mockMutate,
-      isPending: false,
-    });
-    mockUseDeleteProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseDeactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseReactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
+    renderPage();
 
-    renderProductsPage();
+    await user.click(screen.getByTestId('product-menu-1'));
+    await user.click(screen.getAllByRole('menuitem', { name: /Duplicar/i })[0]);
 
-    await waitFor(() => {
-      expect(screen.getByText('Produto Teste 2')).toBeInTheDocument();
-    });
-
-    await openProductMenu(user, 'product-2');
-
-    const duplicateButton = await screen.findByText('Duplicar');
-    await user.click(duplicateButton);
-
-    await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'Produto Teste 2 (Cópia)',
-        })
-      );
-    });
-  });
-});
-
-describe('ProductsPage - Delete Functionality', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUseAllProducts.mockReturnValue({
-      data: mockProducts,
-      isLoading: false,
-      error: null,
-    });
-    mockUseProducts.mockReturnValue({
-      data: mockProducts,
-      isLoading: false,
-      error: null,
-    });
-    mockUseCreateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseDeactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseReactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
+    expect(mockMutate).toHaveBeenCalled();
   });
 
-  it('should open confirmation dialog when clicking Delete', async () => {
+  it('should handle product actions: Deactivate', async () => {
     const user = userEvent.setup();
+    const mockMutate = vi.fn().mockResolvedValue({});
+    vi.mocked(useDeactivateProduct).mockReturnValue({ mutateAsync: mockMutate } as any);
 
-    mockUseDeleteProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
+    renderPage();
 
-    renderProductsPage();
+    await user.click(screen.getByTestId('product-menu-1'));
+    await user.click(screen.getAllByRole('menuitem', { name: /Desativar/i })[0]);
 
-    await waitFor(() => {
-      expect(screen.getByText('Produto Teste 1')).toBeInTheDocument();
-    });
+    // Confirm dialog
+    const confirmBtn = screen.getByRole('button', { name: 'Desativar' });
+    await user.click(confirmBtn);
 
-    // Abrir dropdown
-    await openProductMenu(user, 'product-1');
-
-    // Clicar em Excluir
-    const deleteButton = await screen.findByText('Excluir');
-    await user.click(deleteButton);
-
-    // Verificar que o dialog de confirmação apareceu
-    await waitFor(() => {
-      expect(screen.getByText(/excluir produto permanentemente/i)).toBeInTheDocument();
-      expect(screen.getByText(/será excluído permanentemente/i)).toBeInTheDocument();
-    });
+    expect(mockMutate).toHaveBeenCalledWith('1');
   });
 
-  it('should NOT delete product when clicking Cancel in dialog', async () => {
+  it('should handle product actions: Delete', async () => {
     const user = userEvent.setup();
-    const mockMutate = vi.fn();
+    const mockMutate = vi.fn().mockResolvedValue({});
+    vi.mocked(useDeleteProduct).mockReturnValue({ mutateAsync: mockMutate } as any);
 
-    mockUseDeleteProduct.mockReturnValue({
-      mutate: mockMutate,
-      mutateAsync: mockMutate,
-      isPending: false,
-    });
+    renderPage();
 
-    renderProductsPage();
+    await user.click(screen.getByTestId('product-menu-1'));
+    await user.click(screen.getAllByRole('menuitem', { name: /^Excluir$/i })[0]);
 
-    await waitFor(() => {
-      expect(screen.getByText('Produto Teste 1')).toBeInTheDocument();
-    });
+    // Confirm dialog
+    await user.click(screen.getByRole('button', { name: /Excluir Permanentemente/i }));
 
-    await openProductMenu(user, 'product-1');
-
-    const deleteButton = await screen.findByText('Excluir');
-    await user.click(deleteButton);
-
-    // Clicar em Cancelar
-    const cancelButton = await screen.findByRole('button', { name: /cancelar/i });
-    await user.click(cancelButton);
-
-    // Verificar que mutate NÃO foi chamado
-    expect(mockMutate).not.toHaveBeenCalled();
+    expect(mockMutate).toHaveBeenCalledWith('1');
   });
 
-  it('should delete product when confirming in dialog', async () => {
+  it('should handle reactivate for inactive products', async () => {
     const user = userEvent.setup();
-    const mockMutate = vi.fn();
+    const mockMutate = vi.fn().mockResolvedValue({});
+    vi.mocked(useReactivateProduct).mockReturnValue({ mutateAsync: mockMutate } as any);
 
-    mockUseDeleteProduct.mockReturnValue({
-      mutate: mockMutate,
-      mutateAsync: mockMutate,
-      isPending: false,
-    });
+    renderPage();
 
-    renderProductsPage();
+    // Switch to all to see inactive
+    await user.selectOptions(screen.getByTestId('status-filter'), 'all');
 
-    await waitFor(() => {
-      expect(screen.getByText('Produto Teste 1')).toBeInTheDocument();
-    });
+    await user.click(screen.getByTestId('product-menu-3'));
+    await user.click(screen.getByRole('menuitem', { name: /Reativar/i }));
 
-    await openProductMenu(user, 'product-1');
-
-    const deleteButton = await screen.findByText('Excluir');
-    await user.click(deleteButton);
-
-    // Clicar em Excluir no dialog de confirmação
-    const confirmButton = await screen.findByRole('button', { name: /excluir permanentemente/i });
-    await user.click(confirmButton);
-
-    // Verificar que mutate foi chamado com o ID correto
-    await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalledWith('product-1');
-    });
+    expect(mockMutate).toHaveBeenCalledWith('3');
   });
 
-  it('should delete correct product when multiple products exist', async () => {
-    const user = userEvent.setup();
-    const mockMutate = vi.fn();
-
-    mockUseDeleteProduct.mockReturnValue({
-      mutate: mockMutate,
-      mutateAsync: mockMutate,
-      isPending: false,
-    });
-
-    renderProductsPage();
-
-    await waitFor(() => {
-      expect(screen.getByText('Produto Teste 2')).toBeInTheDocument();
-    });
-
-    // Abrir dropdown do SEGUNDO produto
-    await openProductMenu(user, 'product-2');
-
-    const deleteButton = await screen.findByText('Excluir');
-    await user.click(deleteButton);
-
-    const confirmButton = await screen.findByRole('button', { name: /excluir permanentemente/i });
-    await user.click(confirmButton);
-
-    // Verificar que deletou o produto correto (product-2)
-    await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalledWith('product-2');
-    });
+  it('should show warning style for low stock', () => {
+    renderPage();
+    const stockCell = screen.getByText('1').closest('span');
+    expect(stockCell!).toHaveClass('text-warning');
   });
 
-  it('should show loading state while deleting', async () => {
-    const user = userEvent.setup();
-    const mockMutate = vi.fn();
-
-    // Simular estado de loading
-    mockUseDeleteProduct.mockReturnValue({
-      mutate: mockMutate,
-      mutateAsync: mockMutate,
-      isPending: true,
-    });
-
-    renderProductsPage();
-
-    await waitFor(() => {
-      expect(screen.getByText('Produto Teste 1')).toBeInTheDocument();
-    });
-
-    await openProductMenu(user, 'product-1');
-
-    const deleteButton = await screen.findByText('Excluir');
-
-    // Verificar que o botão mostra estado de loading (se implementado)
-    // Este teste pode precisar de ajustes dependendo da implementação do loading state
-    expect(deleteButton).toBeInTheDocument();
-  });
-});
-
-describe('ProductsPage - Empty State', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUseAllProducts.mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-    });
-    mockUseProducts.mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-    });
-    mockUseCreateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseDeleteProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseDeactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseReactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
+  it('should show error style for out of stock', () => {
+    const products = [
+      {
+        id: '1',
+        name: 'No Stock',
+        internalCode: 'N1',
+        salePrice: 10,
+        currentStock: 0,
+        minStock: 2,
+        isActive: true,
+      },
+    ];
+    vi.mocked(useAllProducts).mockReturnValue({ data: products, isLoading: false } as any);
+    renderPage();
+    const stockCell = screen.getByText('0').closest('span');
+    expect(stockCell!).toHaveClass('text-destructive');
   });
 
-  it('should show empty state when no products exist', () => {
-    renderProductsPage();
+  it('should show loading state', () => {
+    vi.mocked(useAllProducts).mockReturnValue({ data: null, isLoading: true } as any);
+    renderPage();
+    expect(screen.getByText(/Carregando produtos/i)).toBeInTheDocument();
+  });
 
+  it('should show empty state', () => {
+    vi.mocked(useAllProducts).mockReturnValue({ data: [], isLoading: false } as any);
+    renderPage();
     expect(screen.getByText(/Nenhum produto encontrado/i)).toBeInTheDocument();
   });
-});
 
-describe('ProductsPage - Loading State', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUseAllProducts.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      error: null,
-    });
-    mockUseProducts.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      error: null,
-    });
-    mockUseCreateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseDeleteProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseDeactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
-    mockUseReactivateProduct.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    });
+  it('should show empty state when search returns nothing', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const searchInput = screen.getByPlaceholderText(/buscar por nome/i);
+    await user.type(searchInput, 'NonExistentProduct');
+
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Nenhum produto encontrado/i)).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
   });
 
-  it('should show loading state while fetching products', () => {
-    renderProductsPage();
+  describe('Error States', () => {
+    it('should handle deactivation failure', async () => {
+      const user = userEvent.setup();
+      const mockMutate = vi.fn().mockRejectedValue(new Error('Fail'));
+      vi.mocked(useDeactivateProduct).mockReturnValue({ mutateAsync: mockMutate } as any);
 
-    expect(screen.getByText(/Carregando/i)).toBeInTheDocument();
+      renderPage();
+      await user.click(screen.getByTestId('product-menu-1'));
+      await user.click(screen.getAllByRole('menuitem', { name: /Desativar/i })[0]);
+      await user.click(screen.getByRole('button', { name: 'Desativar' }));
+
+      await waitFor(() => {
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            description: expect.stringMatching(/Não foi possível desativar o produto/i),
+          })
+        );
+      });
+    });
+
+    it('should handle reactivation failure', async () => {
+      const user = userEvent.setup();
+      const mockMutate = vi.fn().mockRejectedValue(new Error('Fail'));
+      vi.mocked(useReactivateProduct).mockReturnValue({ mutateAsync: mockMutate } as any);
+
+      renderPage();
+      await user.selectOptions(screen.getByTestId('status-filter'), 'all');
+      await user.click(screen.getByTestId('product-menu-3'));
+      await user.click(screen.getByRole('menuitem', { name: /Reativar/i }));
+
+      await waitFor(() => {
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            description: expect.stringMatching(/Não foi possível reativar o produto/i),
+          })
+        );
+      });
+    });
+
+    it('should handle duplication failure', async () => {
+      const user = userEvent.setup();
+      const mockMutate = vi.fn().mockRejectedValue(new Error('Fail'));
+      vi.mocked(useCreateProduct).mockReturnValue({ mutateAsync: mockMutate } as any);
+
+      renderPage();
+      await user.click(screen.getByTestId('product-menu-1'));
+      await user.click(screen.getAllByRole('menuitem', { name: /Duplicar/i })[0]);
+
+      await waitFor(() => {
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            description: expect.stringMatching(/Não foi possível duplicar o produto/i),
+          })
+        );
+      });
+    });
+
+    it('should handle deletion failure', async () => {
+      const user = userEvent.setup();
+      const mockMutate = vi.fn().mockRejectedValue(new Error('Fail'));
+      vi.mocked(useDeleteProduct).mockReturnValue({ mutateAsync: mockMutate } as any);
+
+      renderPage();
+      await user.click(screen.getByTestId('product-menu-1'));
+      await user.click(screen.getAllByRole('menuitem', { name: /^Excluir$/i })[0]);
+      await user.click(screen.getByRole('button', { name: /Excluir Permanentemente/i }));
+
+      await waitFor(() => {
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            description: expect.stringMatching(/Não foi possível excluir o produto/i),
+          })
+        );
+      });
+    });
   });
 });

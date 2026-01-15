@@ -14,7 +14,7 @@ test.describe('Gerenciamento de Estoque E2E', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // UI usa teclado numérico para PIN
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
     await dismissTutorialIfPresent(page);
 
     await page.goto('/stock');

@@ -31,7 +31,7 @@ export const createCashSession = (overrides: Partial<CashSession> = {}): CashSes
       id: 'emp-1',
       name: 'Admin',
       role: 'ADMIN',
-      pin: '1234',
+      pin: '8899',
       isActive: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

@@ -5,7 +5,7 @@ export const createEmployee = (overrides: Partial<Employee> = {}): Employee => {
     id: crypto.randomUUID(),
     name: 'John Doe',
     email: 'john@example.com',
-    pin: '1234',
+    pin: '8899',
     role: 'CASHIER' as EmployeeRole,
     isActive: true,
     createdAt: new Date().toISOString(),

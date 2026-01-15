@@ -69,7 +69,7 @@ export const StockMovementsPage: FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} data-testid="back-button">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>

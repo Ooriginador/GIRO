@@ -1,121 +1,167 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@/lib/tauri';
+import { createQueryWrapper } from '@/test/queryWrapper';
 import { renderHook, waitFor } from '@testing-library/react';
-import React from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useProducts } from '../useProducts';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  useAllProducts,
+  useCategories,
+  useCategory,
+  useCreateCategory,
+  useCreateProduct,
+  useDeactivateProduct,
+  useDeleteCategory,
+  useInactiveProducts,
+  useProduct,
+  useProductByBarcode,
+  useProducts,
+  useProductSearch,
+  useReactivateProduct,
+  useUpdateCategory,
+  useUpdateProduct,
+} from '../useProducts';
 
-// Mock Tauri
-vi.mock('@tauri-apps/api/core', () => ({
+// Mock Tauri invoke
+vi.mock('@/lib/tauri', () => ({
   invoke: vi.fn(),
 }));
 
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
+const queryWrapper = createQueryWrapper();
 
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
-};
-
-describe('useProducts', () => {
+describe('useProducts hooks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Simular ambiente Tauri para usar o mock do invoke
-    Object.defineProperty(window, '__TAURI__', {
-      value: {},
-      writable: true,
-      configurable: true,
+  });
+
+  const mockProduct = { id: '1', name: 'Test Product', salePrice: 10, categoryId: 'cat1' };
+  const mockCategory = { id: 'cat1', name: 'Test Category' };
+
+  describe('Queries', () => {
+    it('useProducts should fetch products', async () => {
+      vi.mocked(invoke).mockResolvedValue([mockProduct]);
+      const { result } = renderHook(() => useProducts({ search: 'test' }), {
+        wrapper: queryWrapper.Wrapper,
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data).toEqual([mockProduct]);
+      expect(invoke).toHaveBeenCalledWith('get_products', { filter: { search: 'test' } });
+    });
+
+    it('useProduct should fetch single product', async () => {
+      vi.mocked(invoke).mockResolvedValue(mockProduct);
+      const { result } = renderHook(() => useProduct('1'), { wrapper: queryWrapper.Wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data).toEqual(mockProduct);
+      expect(invoke).toHaveBeenCalledWith('get_product', { id: '1' });
+    });
+
+    it('useProductByBarcode should fetch by barcode', async () => {
+      vi.mocked(invoke).mockResolvedValue(mockProduct);
+      const { result } = renderHook(() => useProductByBarcode('12345'), {
+        wrapper: queryWrapper.Wrapper,
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(invoke).toHaveBeenCalledWith('get_product_by_barcode', { barcode: '12345' });
+    });
+
+    it('useProductSearch should autocomplete', async () => {
+      vi.mocked(invoke).mockResolvedValue([mockProduct]);
+      const { result } = renderHook(() => useProductSearch('te'), {
+        wrapper: queryWrapper.Wrapper,
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(invoke).toHaveBeenCalledWith('search_products', { search: 'te', limit: 10 });
+    });
+
+    it('useCategories should fetch categories', async () => {
+      vi.mocked(invoke).mockResolvedValue([mockCategory]);
+      const { result } = renderHook(() => useCategories(), { wrapper: queryWrapper.Wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(invoke).toHaveBeenCalledWith('get_categories');
+    });
+
+    it('useCategory should fetch single category', async () => {
+      vi.mocked(invoke).mockResolvedValue(mockCategory);
+      const { result } = renderHook(() => useCategory('cat1'), { wrapper: queryWrapper.Wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(invoke).toHaveBeenCalledWith('get_category', { id: 'cat1' });
+    });
+
+    it('useInactiveProducts should fetch inactive', async () => {
+      vi.mocked(invoke).mockResolvedValue([mockProduct]);
+      const { result } = renderHook(() => useInactiveProducts(), { wrapper: queryWrapper.Wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(invoke).toHaveBeenCalledWith('get_inactive_products');
+    });
+
+    it('useAllProducts should fetch all', async () => {
+      vi.mocked(invoke).mockResolvedValue([mockProduct]);
+      const { result } = renderHook(() => useAllProducts(true), { wrapper: queryWrapper.Wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(invoke).toHaveBeenCalledWith('get_all_products', { includeInactive: true });
     });
   });
 
-  afterEach(() => {
-    // Limpar simulação
-    // @ts-ignore
-    delete window.__TAURI__;
-  });
-
-  const invokeMock = invoke as unknown as ReturnType<typeof vi.fn>;
-
-  describe('useProducts (list)', () => {
-    it('should fetch products successfully', async () => {
-      const mockProducts = [
-        { id: '1', name: 'Product 1', salePrice: 10.0, currentStock: 100 },
-        { id: '2', name: 'Product 2', salePrice: 20.0, currentStock: 50 },
-      ];
-
-      invokeMock.mockResolvedValue(mockProducts);
-
-      const { result } = renderHook(() => useProducts(), {
-        wrapper: createWrapper(),
+  describe('Mutations', () => {
+    it('useCreateProduct should call create_product', async () => {
+      vi.mocked(invoke).mockResolvedValue(mockProduct);
+      const { result } = renderHook(() => useCreateProduct(), { wrapper: queryWrapper.Wrapper });
+      await result.current.mutateAsync({
+        name: 'New',
+        categoryId: 'cat1',
+        salePrice: 15,
+        unit: 'un',
       });
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(result.current.data).toEqual(mockProducts);
-      expect(invoke).toHaveBeenCalledWith('get_products', { filter: undefined });
+      expect(invoke).toHaveBeenCalledWith('create_product', expect.any(Object));
     });
 
-    it('should handle error state', async () => {
-      invokeMock.mockRejectedValue(new Error('Network error'));
-
-      const { result } = renderHook(() => useProducts(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
+    it('useUpdateProduct should call update_product', async () => {
+      vi.mocked(invoke).mockResolvedValue(mockProduct);
+      const { result } = renderHook(() => useUpdateProduct(), { wrapper: queryWrapper.Wrapper });
+      await result.current.mutateAsync({ id: '1', name: 'Updated' });
+      expect(invoke).toHaveBeenCalledWith('update_product', {
+        input: { id: '1', name: 'Updated' },
       });
     });
-  });
 
-  describe('useCreateProduct', () => {
-    it('should create product successfully', async () => {
-      const newProduct = {
-        id: '3',
-        name: 'New Product',
-        barcode: '7890000000001',
-        salePrice: 30.0,
-      };
-
-      invokeMock.mockResolvedValue(newProduct);
-
-      // Este hook precisa ser importado quando for criado
-      // const { result } = renderHook(() => useCreateProduct(), {
-      //   wrapper: createWrapper(),
-      // });
-
-      // await result.current.mutateAsync({
-      //   name: 'New Product',
-      //   barcode: '7890000000001',
-      //   salePrice: 30.0,
-      // });
-
-      // expect(invoke).toHaveBeenCalledWith('create_product', expect.any(Object));
+    it('useDeactivateProduct should call deactivate_product', async () => {
+      vi.mocked(invoke).mockResolvedValue(undefined);
+      const { result } = renderHook(() => useDeactivateProduct(), {
+        wrapper: queryWrapper.Wrapper,
+      });
+      await result.current.mutateAsync('1');
+      expect(invoke).toHaveBeenCalledWith('deactivate_product', { id: '1' });
     });
-  });
 
-  describe('useSearchProducts', () => {
-    it('should search products by query', async () => {
-      const mockResults = [{ id: '1', name: 'Arroz Tipo 1', barcode: '7890000000001' }];
+    it('useReactivateProduct should call reactivate_product', async () => {
+      vi.mocked(invoke).mockResolvedValue(mockProduct);
+      const { result } = renderHook(() => useReactivateProduct(), {
+        wrapper: queryWrapper.Wrapper,
+      });
+      await result.current.mutateAsync('1');
+      expect(invoke).toHaveBeenCalledWith('reactivate_product', { id: '1' });
+    });
 
-      invokeMock.mockResolvedValue(mockResults);
+    it('useCreateCategory should call create_category', async () => {
+      vi.mocked(invoke).mockResolvedValue(mockCategory);
+      const { result } = renderHook(() => useCreateCategory(), { wrapper: queryWrapper.Wrapper });
+      await result.current.mutateAsync({ name: 'New Cat' });
+      expect(invoke).toHaveBeenCalledWith('create_category', expect.any(Object));
+    });
 
-      // Este hook precisa ser implementado
-      // const { result } = renderHook(() => useSearchProducts('arroz'), {
-      //   wrapper: createWrapper(),
-      // });
+    it('useUpdateCategory should call update_category', async () => {
+      vi.mocked(invoke).mockResolvedValue(mockCategory);
+      const { result } = renderHook(() => useUpdateCategory(), { wrapper: queryWrapper.Wrapper });
+      await result.current.mutateAsync({ id: 'cat1', name: 'Updated' });
+      expect(invoke).toHaveBeenCalledWith('update_category', {
+        input: { id: 'cat1', name: 'Updated' },
+      });
+    });
 
-      // await waitFor(() => {
-      //   expect(result.current.data).toEqual(mockResults);
-      // });
+    it('useDeleteCategory should call delete_category', async () => {
+      vi.mocked(invoke).mockResolvedValue(undefined);
+      const { result } = renderHook(() => useDeleteCategory(), { wrapper: queryWrapper.Wrapper });
+      await result.current.mutateAsync('cat1');
+      expect(invoke).toHaveBeenCalledWith('delete_category', { id: 'cat1' });
     });
   });
 });

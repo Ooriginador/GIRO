@@ -457,6 +457,36 @@ pub struct Receipt {
     pub change: f64,
 }
 
+/// Dados para impressão de Ordem de Serviço
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceOrderReceipt {
+    pub company_name: String,
+    pub company_address: String,
+    pub company_cnpj: Option<String>,
+    pub company_phone: Option<String>,
+
+    pub order_number: i32,
+    pub date_time: String,
+    pub status: String,
+    pub mechanic_name: String,
+
+    pub customer_name: String,
+    pub customer_phone: Option<String>,
+    pub vehicle_display_name: String,
+    pub vehicle_plate: Option<String>,
+    pub vehicle_km: Option<i32>,
+    pub symptoms: Option<String>,
+
+    pub items: Vec<ReceiptItem>,
+    pub labor_cost: f64,
+    pub parts_cost: f64,
+    pub discount: f64,
+    pub total: f64,
+
+    pub warranty_days: i32,
+    pub notes: Option<String>,
+}
+
 impl ThermalPrinter {
     /// Imprime cupom de venda completo
     pub fn print_receipt(&mut self, receipt: &Receipt) -> &mut Self {
@@ -567,6 +597,142 @@ impl ThermalPrinter {
         self.align(TextAlign::Center);
         self.line("Obrigado pela preferência!");
         self.line("Volte sempre!");
+
+        // Corte
+        if self.config.auto_cut {
+            self.cut(true);
+        } else {
+            self.feed(4);
+        }
+
+        self
+    }
+
+    /// Imprime Ordem de Serviço completa
+    pub fn print_service_order(&mut self, os: &ServiceOrderReceipt) -> &mut Self {
+        self.init();
+
+        // Cabeçalho
+        self.align(TextAlign::Center);
+        self.style(TextStyle {
+            bold: true,
+            double_height: true,
+            ..Default::default()
+        });
+        self.line(&os.company_name);
+
+        self.style(TextStyle::default());
+        if let Some(ref cnpj) = os.company_cnpj {
+            self.line(&format!("CNPJ: {}", cnpj));
+        }
+        self.line(&os.company_address);
+        if let Some(ref phone) = os.company_phone {
+            self.line(&format!("Tel: {}", phone));
+        }
+
+        self.feed(1);
+        self.separator('-');
+        self.style(TextStyle {
+            bold: true,
+            ..Default::default()
+        });
+        self.line("ORDEM DE SERVIÇO");
+        self.style(TextStyle::default());
+        self.separator('-');
+
+        // Info da OS
+        self.align(TextAlign::Left);
+        self.line(&format!("OS: #{:06}", os.order_number));
+        self.line(&format!("Status: {}", os.status));
+        self.line(&format!("Data: {}", os.date_time));
+        self.line(&format!("Mecânico: {}", os.mechanic_name));
+        self.separator('-');
+
+        // Info do Cliente/Veículo
+        self.line(&format!("Cliente: {}", os.customer_name));
+        if let Some(ref phone) = os.customer_phone {
+            self.line(&format!("Telefone: {}", phone));
+        }
+        self.line(&format!("Veículo: {}", os.vehicle_display_name));
+        if let Some(ref plate) = os.vehicle_plate {
+            self.line(&format!("Placa: {}", plate));
+        }
+        if let Some(km) = os.vehicle_km {
+            self.line(&format!("KM: {}", km));
+        }
+        if let Some(ref symptoms) = os.symptoms {
+            self.feed(1);
+            self.line("Sintomas relatados:");
+            self.line(symptoms);
+        }
+        self.separator('-');
+
+        // Itens
+        self.style(TextStyle {
+            bold: true,
+            ..Default::default()
+        });
+        self.line("SERVIÇOS E PEÇAS");
+        self.style(TextStyle::default());
+
+        for item in &os.items {
+            let name = if item.name.len() > 24 {
+                &item.name[..24]
+            } else {
+                &item.name
+            };
+
+            let price_str = format!("R$ {:.2}", item.total);
+            let spaces = self.config.paper_width as usize - name.len() - price_str.len();
+            self.line(&format!(
+                "{}{:>width$}",
+                name,
+                price_str,
+                width = spaces + price_str.len()
+            ));
+            if item.quantity != 1.0 {
+                self.line(&format!("  {} x R$ {:.2}", item.quantity, item.unit_price));
+            }
+        }
+
+        self.separator('-');
+
+        // Totais
+        self.align(TextAlign::Right);
+        if os.labor_cost > 0.0 {
+            self.line(&format!("MÃO DE OBRA: R$ {:.2}", os.labor_cost));
+        }
+        if os.parts_cost > 0.0 {
+            self.line(&format!("PEÇAS: R$ {:.2}", os.parts_cost));
+        }
+        if os.discount > 0.0 {
+            self.line(&format!("DESCONTO: -R$ {:.2}", os.discount));
+        }
+
+        self.style(TextStyle {
+            bold: true,
+            double_height: true,
+            ..Default::default()
+        });
+        self.line(&format!("TOTAL: R$ {:.2}", os.total));
+        self.style(TextStyle::default());
+
+        // Rodapé
+        self.feed(1);
+        if os.warranty_days > 0 {
+            self.line(&format!("Garantia: {} dias", os.warranty_days));
+        }
+        if let Some(ref notes) = os.notes {
+            self.line("Observações:");
+            self.line(notes);
+        }
+
+        self.feed(2);
+        self.align(TextAlign::Center);
+        self.line("___________________________");
+        self.line("Assinatura do Cliente");
+        self.feed(1);
+        self.line("Obrigado pela preferência!");
 
         // Corte
         if self.config.auto_cut {

@@ -1,0 +1,101 @@
+
+ RUN  v2.1.9 /home/jhonslife/GIRO/apps/desktop
+      Coverage enabled with v8
+
+ ✓ tests/unit/utils/formatters.test.ts (51 tests) 415ms
+ ✓ src/hooks/__tests__/useSales.test.tsx (15 tests) 816ms
+ ✓ src/stores/__tests__/alert-store.test.ts (14 tests) 72ms
+ ✓ src/lib/__tests__/formatters.test.ts (48 tests) 313ms
+ ✓ src/hooks/__tests__/useDashboard.test.tsx (7 tests) 937ms
+   ✓ useDashboardStats > should fetch dashboard stats successfully 508ms
+ ✓ src/stores/__tests__/settings-store.test.ts (20 tests) 14ms
+stderr | src/components/motoparts/__tests__/ServiceOrderForm.test.tsx > ServiceOrderForm > should show toast on submission error
+Erro ao criar ordem de serviço: Error: API Fail
+    at /home/jhonslife/GIRO/apps/desktop/src/components/motoparts/__tests__/ServiceOrderForm.test.tsx:248:43
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/vitest@2.1.9_@types+node@22.19.3_@vitest+ui@4.0.16_jsdom@25.0.1/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
+
+ ✓ src/components/motoparts/__tests__/ServiceOrderForm.test.tsx (5 tests) 1702ms
+   ✓ ServiceOrderForm > should auto-populate KM when vehicle is selected 307ms
+   ✓ ServiceOrderForm > should show toast if employee is not logged in 384ms
+   ✓ ServiceOrderForm > should show toast on submission error 493ms
+ ✓ src/hooks/__tests__/usePDV.test.tsx (10 tests) 795ms
+stdout | src/pages/cash/__tests__/CashControlPage.test.tsx > CashControlPage > should handle adding a cash movement (Suprimento)
+Clicking confirm-supply
+
+ ✓ src/pages/cash/__tests__/CashControlPage.test.tsx (6 tests) 4731ms
+   ✓ CashControlPage > should render "Cash Closed" state when no session exists 627ms
+   ✓ CashControlPage > should handle opening a cash session 1695ms
+   ✓ CashControlPage > should render dashboard when session is open 418ms
+   ✓ CashControlPage > should handle adding a cash movement (Suprimento) 993ms
+   ✓ CashControlPage > should handle closing a cash session 764ms
+ ✓ src/hooks/__tests__/useCategories.test.tsx (12 tests) 947ms
+stderr | src/pages/products/__tests__/CategoriesPage.test.tsx > CategoriesPage > Error States > should handle creation failure
+Erro ao criar categoria: Error: Fail
+    at /home/jhonslife/GIRO/apps/desktop/src/pages/products/__tests__/CategoriesPage.test.tsx:250:52
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+
+ ✓ src/hooks/__tests__/useSuppliers.test.tsx (10 tests) 848ms
+   ✓ useSuppliers Hooks > useSuppliers > should fetch active suppliers 418ms
+ ✓ src/hooks/__tests__/useCustomers.test.ts (11 tests) 962ms
+   ✓ useCustomers hooks > useCustomerSearch > should perform debounced search 358ms
+stderr | src/pages/products/__tests__/CategoriesPage.test.tsx > CategoriesPage > Error States > should handle deactivation failure
+Erro ao processar ação na categoria: Error: Fail
+    at /home/jhonslife/GIRO/apps/desktop/src/pages/products/__tests__/CategoriesPage.test.tsx:268:52
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+
+ ✓ src/hooks/__tests__/useStock.test.tsx (9 tests) 678ms
+ ✓ src/pages/pdv/__tests__/PDVPage.test.tsx (9 tests) 8237ms
+   ✓ PDVPage > should render PDV and handle search interactions 541ms
+   ✓ PDVPage > should handle weighted product selection 339ms
+   ✓ PDVPage > should handle F shortcuts 1213ms
+   ✓ PDVPage > should handle quantity and discount confirmations via mouse with comma/dot logic 1607ms
+   ✓ PDVPage > should handle invalid quantity/discount inputs 3325ms
+   ✓ PDVPage > should open payment modal via buttons 529ms
+stderr | src/pages/products/__tests__/CategoriesPage.test.tsx > CategoriesPage > Error States > should handle reactivation failure
+Erro ao processar ação na categoria: Error: Fail
+    at /home/jhonslife/GIRO/apps/desktop/src/pages/products/__tests__/CategoriesPage.test.tsx:285:52
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+
+ ✓ src/pages/products/__tests__/CategoriesPage.test.tsx (13 tests) 10982ms
+   ✓ CategoriesPage > should render active categories by default 831ms
+   ✓ CategoriesPage > should create a new category 2742ms
+   ✓ CategoriesPage > should closeModal when clicking cancel in create dialog 667ms
+   ✓ CategoriesPage > should deactivate a category 978ms
+   ✓ CategoriesPage > should close confirm dialog when clicking cancel 817ms
+   ✓ CategoriesPage > should reactivate an inactive category 402ms
+   ✓ CategoriesPage > should show empty state and allow opening create dialog 457ms
+   ✓ CategoriesPage > Error States > should handle creation failure 1877ms
+   ✓ CategoriesPage > Error States > should handle deactivation failure 813ms
+   ✓ CategoriesPage > Error States > should handle reactivation failure 865ms

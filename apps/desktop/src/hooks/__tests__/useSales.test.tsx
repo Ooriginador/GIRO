@@ -4,14 +4,20 @@
 
 import {
   useCancelSale,
+  useCashMovement,
+  useCloseCashSession,
   useCreateSale,
+  useCurrentCashSession,
   useDailySalesTotal,
+  useOpenCashSession,
+  usePDV,
   useSale,
   useSales,
+  useSalesReport,
   useTodaySales,
 } from '@/hooks/useSales';
 import * as tauriLib from '@/lib/tauri';
-import type { Sale } from '@/types';
+import type { CashSession, Sale } from '@/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,6 +28,8 @@ vi.mock('@/lib/tauri', () => ({
   getSaleById: vi.fn(),
   getTodaySales: vi.fn(),
   getDailySalesTotal: vi.fn(),
+  getSalesReport: vi.fn(),
+  getTopProducts: vi.fn(),
   createSale: vi.fn(),
   cancelSale: vi.fn(),
   getCurrentCashSession: vi.fn(),
@@ -271,5 +279,142 @@ describe('useCancelSale', () => {
     });
 
     expect(tauriLib.cancelSale).toHaveBeenCalledWith('sale-1', 'Cliente desistiu');
+  });
+});
+
+describe('Cash Session Hooks', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const mockSession: CashSession = {
+    id: 'sess-1',
+    status: 'OPEN',
+    openedAt: new Date().toISOString(),
+    employeeId: 'emp-1',
+    openingBalance: 100,
+    payments: [],
+  };
+
+  it('useCurrentCashSession should fetch current session', async () => {
+    vi.mocked(tauriLib.getCurrentCashSession).mockResolvedValue(mockSession);
+
+    const { result } = renderHook(() => useCurrentCashSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data).toEqual(mockSession);
+  });
+
+  it('useOpenCashSession should open a session', async () => {
+    vi.mocked(tauriLib.openCashSession).mockResolvedValue(mockSession);
+
+    const { result } = renderHook(() => useOpenCashSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await result.current.mutateAsync({ openingBalance: 100, employeeId: 'emp-1' });
+
+    expect(tauriLib.openCashSession).toHaveBeenCalledWith({
+      openingBalance: 100,
+      employeeId: 'emp-1',
+    });
+  });
+
+  it('useCloseCashSession should close a session', async () => {
+    const closedSession = {
+      ...mockSession,
+      status: 'CLOSED' as const,
+      closedAt: new Date().toISOString(),
+      difference: 0,
+    };
+    vi.mocked(tauriLib.closeCashSession).mockResolvedValue(closedSession);
+
+    const { result } = renderHook(() => useCloseCashSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await result.current.mutateAsync({ id: 'sess-1', closing_balance: 200 });
+
+    expect(tauriLib.closeCashSession).toHaveBeenCalledWith({ id: 'sess-1', closing_balance: 200 });
+  });
+
+  it('useCashMovement should add movement', async () => {
+    vi.mocked(tauriLib.addCashMovement).mockResolvedValue({ id: 'mov-1' } as any);
+
+    const { result } = renderHook(() => useCashMovement(), {
+      wrapper: createWrapper(),
+    });
+
+    const input = {
+      type: 'SUPPLY' as const,
+      amount: 50,
+      reason: 'Troco',
+      description: 'Troco inicial',
+    };
+    await result.current.mutateAsync(input);
+
+    expect(tauriLib.addCashMovement).toHaveBeenCalledWith(input);
+  });
+});
+
+describe('usePDV', () => {
+  it('should return PDV state', async () => {
+    const mockSession: CashSession = {
+      id: 'sess-1',
+      status: 'OPEN',
+      employeeId: 'emp-1',
+      openedAt: new Date().toISOString(),
+      openingBalance: 100,
+      payments: [],
+    };
+    vi.mocked(tauriLib.getCurrentCashSession).mockResolvedValue(mockSession);
+    vi.mocked(tauriLib.getTodaySales).mockResolvedValue([mockSale]);
+    vi.mocked(tauriLib.getDailySalesTotal).mockResolvedValue(100);
+
+    const { result } = renderHook(() => usePDV(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.session).toEqual(mockSession);
+    });
+
+    expect(result.current.isCashOpen).toBe(true);
+    expect(result.current.todaySales).toHaveLength(1);
+    expect(result.current.dailyTotal).toBe(100);
+  });
+});
+
+describe('useSalesReport', () => {
+  it('should fetch sales report when params are provided', async () => {
+    const mockReport = {
+      totalSales: 2,
+      totalRevenue: 200,
+      averageTicket: 100,
+      salesByHour: { '10': 200 },
+      salesByPaymentMethod: { CASH: 200 },
+    };
+    const mockTopProducts = [{ product: { name: 'Prod A' }, quantity: 5, revenue: 500 }];
+
+    vi.mocked(tauriLib.getSalesReport).mockResolvedValue(mockReport);
+    vi.mocked(tauriLib.getTopProducts).mockResolvedValue(mockTopProducts as any);
+
+    const params = { startDate: '2025-01-01', endDate: '2025-01-02' };
+    const { result } = renderHook(() => useSalesReport(params), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data?.totalAmount).toBe(200);
+    expect(result.current.data?.topProducts).toHaveLength(1);
+    expect(result.current.data?.periods).toHaveLength(1);
   });
 });

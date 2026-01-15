@@ -1,5 +1,6 @@
 import {
   closeCashSession,
+  getCashSessionMovements,
   getCashSessionSummary,
   getCurrentCashSession,
   openCashSession,
@@ -17,6 +18,7 @@ export const cashSessionKeys = {
   all: ['cashSession'] as const,
   current: () => [...cashSessionKeys.all, 'current'] as const,
   summary: (id: string) => [...cashSessionKeys.all, 'summary', id] as const,
+  movements: (id: string) => [...cashSessionKeys.all, 'movements', id] as const,
 };
 
 /**
@@ -28,6 +30,18 @@ export function useCashSessionSummary(sessionId?: string) {
     queryFn: () => getCashSessionSummary(sessionId!),
     enabled: !!sessionId,
     refetchInterval: 1000 * 30, // 30 segundos
+  });
+}
+
+/**
+ * Busca movimentações de uma sessão de caixa
+ */
+export function useCashMovements(sessionId?: string) {
+  return useQuery({
+    queryKey: cashSessionKeys.movements(sessionId ?? ''),
+    queryFn: () => getCashSessionMovements(sessionId!),
+    enabled: !!sessionId,
+    refetchInterval: 1000 * 15, // 15 segundos
   });
 }
 

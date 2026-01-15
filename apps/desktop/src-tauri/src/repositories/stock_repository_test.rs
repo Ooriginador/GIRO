@@ -26,7 +26,7 @@ async fn setup_test_db() -> SqlitePool {
     // Create test employee
     sqlx::query(
         "INSERT INTO employees (id, name, pin, role, is_active, created_at, updated_at) 
-         VALUES ('emp-001', 'Test Employee', '1234', 'OPERATOR', 1, datetime('now'), datetime('now'))",
+         VALUES ('emp-001', 'Test Employee', '8899', 'OPERATOR', 1, datetime('now'), datetime('now'))",
     )
     .execute(&pool)
     .await

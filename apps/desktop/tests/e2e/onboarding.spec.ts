@@ -21,8 +21,8 @@ test.describe('Onboarding Flow E2E', () => {
     await page.goto('/');
     await expect(page).toHaveURL('/login');
 
-    // 2. Fazer login com PIN 1234
-    await loginWithPin(page, '1234');
+    // 2. Fazer login com PIN 8899
+    await loginWithPin(page, '8899');
 
     // 3. Deve redirecionar para /wizard (perfil não configurado)
     await expect(page).toHaveURL('/wizard');
@@ -35,7 +35,7 @@ test.describe('Onboarding Flow E2E', () => {
   test('should complete full onboarding flow - Grocery profile', async ({ page }) => {
     // 1. Login
     await page.goto('/');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
 
     // 2. Deve estar no wizard
     await expect(page).toHaveURL('/wizard');
@@ -74,7 +74,7 @@ test.describe('Onboarding Flow E2E', () => {
   test('should complete full onboarding flow - Motoparts profile', async ({ page }) => {
     // 1. Login
     await page.goto('/');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
 
     // 2. Wizard
     await expect(page).toHaveURL('/wizard');
@@ -126,7 +126,7 @@ test.describe('Onboarding Flow E2E', () => {
 
     // 2. Login
     await page.goto('/login');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
 
     // 3. Deve ir direto para PDV (sem wizard)
     await expect(page).toHaveURL(/\/(pdv|dashboard|cash)/);
@@ -140,7 +140,7 @@ test.describe('Onboarding Flow E2E', () => {
   }) => {
     // 1. Login primeiro
     await page.goto('/');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
 
     // 2. Deve estar no wizard
     await expect(page).toHaveURL('/wizard');
@@ -172,7 +172,7 @@ test.describe('Onboarding Flow E2E', () => {
 
     // 2. Login
     await page.goto('/login');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
 
     // 3. Tentar acessar wizard
     await page.goto('/wizard');
@@ -184,7 +184,7 @@ test.describe('Onboarding Flow E2E', () => {
   test('should show all available profiles in wizard', async ({ page }) => {
     // 1. Login
     await page.goto('/');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
     await expect(page).toHaveURL('/wizard');
 
     // 2. Verificar perfis disponíveis
@@ -196,7 +196,7 @@ test.describe('Onboarding Flow E2E', () => {
   test('should display profile features correctly', async ({ page }) => {
     // 1. Login e ir para wizard
     await page.goto('/');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
     await expect(page).toHaveURL('/wizard');
 
     // 2. Selecionar Mercearia
@@ -223,7 +223,7 @@ test.describe('Onboarding Flow E2E', () => {
   test('should persist profile after page reload', async ({ page }) => {
     // 1. Completar onboarding
     await page.goto('/');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
     await expect(page).toHaveURL('/wizard');
 
     await page.locator('text=Mercearia').click();
@@ -249,7 +249,7 @@ test.describe('Onboarding Flow E2E', () => {
   test('should show tooltip explaining profile importance', async ({ page }) => {
     // 1. Login e ir para wizard
     await page.goto('/');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
     await expect(page).toHaveURL('/wizard');
 
     // 2. Clicar no botão de info
@@ -264,7 +264,7 @@ test.describe('Onboarding Flow E2E', () => {
   test('should allow changing profile in settings after initial setup', async ({ page }) => {
     // 1. Completar onboarding com Mercearia
     await page.goto('/');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
     await page.locator('text=Mercearia').click();
     await page.getByRole('button', { name: /Continuar/i }).click();
 
@@ -299,7 +299,7 @@ test.describe('Onboarding - Edge Cases', () => {
 
     // 2. Login
     await page.goto('/login');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
     await expect(page).toHaveURL(/\/pdv/);
     await dismissTutorialIfPresent(page);
 
@@ -311,7 +311,7 @@ test.describe('Onboarding - Edge Cases', () => {
     await expect(page).toHaveURL('/login');
 
     // 5. Login novamente
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
 
     // 6. Deve ir direto para PDV (perfil ainda configurado)
     await expect(page).toHaveURL(/\/pdv/);
@@ -321,7 +321,7 @@ test.describe('Onboarding - Edge Cases', () => {
   test('should maintain profile even after clearing auth', async ({ page }) => {
     // 1. Configurar e fazer login
     await page.goto('/');
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
     await page.locator('text=Mercearia').click();
     await page.getByRole('button', { name: /Continuar/i }).click();
     await dismissTutorialIfPresent(page);
@@ -338,7 +338,7 @@ test.describe('Onboarding - Edge Cases', () => {
     await expect(page).toHaveURL('/login');
 
     // 5. Login novamente
-    await loginWithPin(page, '1234');
+    await loginWithPin(page, '8899');
 
     // 6. Deve pular wizard (perfil ainda está salvo)
     await expect(page).toHaveURL(/\/pdv/);

@@ -89,30 +89,40 @@ export const CategoriesPage: FC = () => {
   const handleCreate = async () => {
     if (!newCategoryName.trim()) return;
 
-    await createCategory.mutateAsync({
-      name: newCategoryName,
-      color: selectedColor,
-    });
+    try {
+      await createCategory.mutateAsync({
+        name: newCategoryName,
+        color: selectedColor,
+      });
 
-    setNewCategoryName('');
-    setSelectedColor(CATEGORY_COLORS[0]!.value);
-    setIsDialogOpen(false);
+      setNewCategoryName('');
+      setSelectedColor(CATEGORY_COLORS[0]!.value);
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error('Erro ao criar categoria:', error);
+      // O erro é tratado pelo toast no hook, mas capturamos aqui para evitar unhandled rejection
+    }
   };
 
   const handleConfirmAction = async () => {
-    if (confirmDialog.type === 'deactivate') {
-      await deactivateCategory.mutateAsync(confirmDialog.categoryId);
-    } else {
-      await reactivateCategory.mutateAsync(confirmDialog.categoryId);
+    try {
+      if (confirmDialog.type === 'deactivate') {
+        await deactivateCategory.mutateAsync(confirmDialog.categoryId);
+      } else {
+        await reactivateCategory.mutateAsync(confirmDialog.categoryId);
+      }
+      setConfirmDialog({ ...confirmDialog, open: false });
+    } catch (error) {
+      console.error('Erro ao processar ação na categoria:', error);
+      // Capturamos para evitar unhandled rejection, o toast já é exibido pelo hook
     }
-    setConfirmDialog({ ...confirmDialog, open: false });
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} data-testid="back-button">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">

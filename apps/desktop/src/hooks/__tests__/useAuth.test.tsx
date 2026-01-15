@@ -48,13 +48,13 @@ describe('useAuth Hooks', () => {
 
       const { result } = renderHook(() => useLoginWithPin(), { wrapper: createWrapper() });
 
-      result.current.mutate('1234');
+      result.current.mutate('8899');
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(invoke).toHaveBeenCalledWith('login_with_pin', { pin: '1234' });
+      expect(invoke).toHaveBeenCalledWith('login_with_pin', { pin: '8899' });
       expect(mockLogin).toHaveBeenCalledWith(mockEmployee);
     });
 

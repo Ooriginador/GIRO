@@ -27,19 +27,19 @@ pub async fn activate_license(
 
     let info = client.activate(&normalized_key, hardware_id).await?;
 
-    // Save license key to config
+    // Save license key and info to config
     let config_path = state.db_path.parent()
         .ok_or("Invalid DB path")?
         .join("license.json");
 
     let license_data = serde_json::json!({
-        "key": license_key,
-        "activated_at": chrono::Utc::now().to_rfc3339()
+        "key": normalized_key,
+        "activated_at": chrono::Utc::now().to_rfc3339(),
+        "last_validated_at": chrono::Utc::now().to_rfc3339(),
+        "info": info
     });
 
     if let Err(e) = std::fs::write(&config_path, serde_json::to_string_pretty(&license_data).unwrap()) {
-         // Log error but don't fail activation? Or fail? Better to warn.
-         // For now, returning error to ensure operator knows persistence failed.
          return Err(format!("Falha ao salvar licença: {}", e));
     }
 
@@ -58,6 +58,23 @@ pub async fn validate_license(
 
     let info = client.validate(&normalized_key, hardware_id).await?;
 
+    // Update last_validated_at in license.json
+    let config_path = state.db_path.parent()
+        .ok_or("Invalid DB path")?
+        .join("license.json");
+
+    if config_path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&config_path) {
+            if let Ok(mut data) = serde_json::from_str::<serde_json::Value>(&content) {
+                if let Some(obj) = data.as_object_mut() {
+                    obj.insert("last_validated_at".to_string(), serde_json::json!(chrono::Utc::now().to_rfc3339()));
+                    obj.insert("info".to_string(), serde_json::to_value(&info).unwrap_or(serde_json::Value::Null));
+                    let _ = std::fs::write(&config_path, serde_json::to_string_pretty(&data).unwrap());
+                }
+            }
+        }
+    }
+
     Ok(info)
 }
 
@@ -73,6 +90,25 @@ pub async fn sync_metrics(
     let normalized_key = license_key.trim().to_uppercase().replace(" ", "");
 
     client.sync_metrics(&normalized_key, hardware_id, metrics).await
+}
+
+#[tauri::command]
+pub async fn get_stored_license(state: State<'_, AppState>) -> Result<Option<serde_json::Value>, String> {
+    let config_path = state.db_path.parent()
+        .ok_or("Invalid DB path")?
+        .join("license.json");
+
+    if !config_path.exists() {
+        return Ok(None);
+    }
+
+    let content = std::fs::read_to_string(&config_path)
+        .map_err(|e| format!("Falha ao ler licença: {}", e))?;
+    
+    let data: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| format!("Falha ao processar licença: {}", e))?;
+
+    Ok(Some(data))
 }
 
 #[tauri::command]

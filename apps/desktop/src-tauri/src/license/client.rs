@@ -122,6 +122,7 @@ impl LicenseClient {
         hardware_id: &str,
     ) -> Result<LicenseInfo, String> {
         let url = format!("{}/api/v1/licenses/{}/activate", self.config.server_url, license_key);
+        tracing::info!("[LicenseClient] Ativando licença na URL: {}", url);
 
         let system_info = std::env::consts::OS;
         let arch_info = std::env::consts::ARCH;
@@ -142,12 +143,18 @@ impl LicenseClient {
             .json(&payload)
             .send()
             .await
-            .map_err(|e| format!("Erro ao conectar com servidor de licenças: {}", e))?;
+            .map_err(|e| {
+                let err_msg = format!("Erro ao conectar com servidor de licenças: {}", e);
+                tracing::error!("[LicenseClient] {}", err_msg);
+                err_msg
+            })?;
 
         if !response.status().is_success() {
-            let error: serde_json::Value = response
-                .json()
-                .await
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            tracing::error!("[LicenseClient] Erro do servidor ({}): {}", status, error_text);
+            
+            let error: serde_json::Value = serde_json::from_str(&error_text)
                 .unwrap_or_else(|_| serde_json::json!({"error": "Erro desconhecido"}));
             
             let msg = error.get("message")

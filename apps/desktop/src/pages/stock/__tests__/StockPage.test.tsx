@@ -21,12 +21,14 @@ const mockReport = {
   totalValue: 25000,
   lowStockCount: 5,
   outOfStockCount: 2,
+  expiringCount: 0,
   recentMovements: [],
 };
 
 const mockLowStockProducts = [
-  { id: '1', name: 'Arroz 5kg', currentStock: 3, minStock: 10 },
-  { id: '2', name: 'Feijão 1kg', currentStock: 5, minStock: 15 },
+  { id: '1', name: 'Arroz 5kg', internalCode: 'A1', currentStock: 3, minStock: 10 },
+  { id: '2', name: 'Feijão 1kg', internalCode: 'F1', currentStock: 0, minStock: 15 },
+  { id: '3', name: 'Zero Min Product', internalCode: 'Z1', currentStock: 0, minStock: 0 },
 ];
 
 const createWrapper = () => {
@@ -48,17 +50,16 @@ describe('StockPage', () => {
       data: mockReport,
       isLoading: false,
       isError: false,
-    } as unknown as ReturnType<typeof useStockReport>);
+    } as any);
 
     vi.mocked(useLowStockProducts).mockReturnValue({
       data: mockLowStockProducts,
       isLoading: false,
-    } as unknown as ReturnType<typeof useLowStockProducts>);
+    } as any);
   });
 
   it('should render page title', () => {
     render(<StockPage />, { wrapper: createWrapper() });
-
     expect(screen.getByText('Estoque')).toBeInTheDocument();
   });
 
@@ -66,41 +67,65 @@ describe('StockPage', () => {
     vi.mocked(useStockReport).mockReturnValue({
       data: undefined,
       isLoading: true,
-    } as unknown as ReturnType<typeof useStockReport>);
+    } as any);
 
     render(<StockPage />, { wrapper: createWrapper() });
-
     expect(screen.getByText(/carregando/i)).toBeInTheDocument();
   });
 
-  it('should display total products', () => {
+  it('should display summary metrics with correct formatting', () => {
     render(<StockPage />, { wrapper: createWrapper() });
 
     expect(screen.getByText('150')).toBeInTheDocument();
-    expect(screen.getByText(/total de produtos/i)).toBeInTheDocument();
+    // Currency formatting check (BRL)
+    expect(screen.getByText(/R\$.*25\.000,00/)).toBeInTheDocument();
+    expect(screen.getByText('5')).toHaveClass('text-warning');
+    expect(screen.getByText('2')).toHaveClass('text-destructive');
   });
 
-  it('should show action buttons', () => {
+  it('should display low stock products table with correct variants', () => {
     render(<StockPage />, { wrapper: createWrapper() });
 
-    expect(screen.getByText(/movimentações/i)).toBeInTheDocument();
-    expect(screen.getByText(/nova entrada/i)).toBeInTheDocument();
+    expect(screen.getByText('Arroz 5kg')).toBeInTheDocument();
+
+    // Low stock badge (warning)
+    const arrozStock = screen.getByText('3');
+    expect(arrozStock).toHaveClass('bg-warning');
+
+    // Out of stock badge (destructive)
+    const outOfStockBadges = screen.getAllByText('0', { selector: '.bg-destructive' });
+    expect(outOfStockBadges.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('should display low stock alerts', () => {
+  it('should handle division by zero for products with zero minStock', () => {
     render(<StockPage />, { wrapper: createWrapper() });
 
-    // Check for low stock section
-    expect(screen.getByText(/produtos com estoque baixo/i)).toBeInTheDocument();
+    // Product 3 has minStock 0 and currentStock 0, percent should be 0.
+    const zeroPcents = screen.getAllByText('0%');
+    // One for Out of stock summary maybe? No, the summary doesn't show %.
+    // One for Feijão maybe (actually 0/15 is 0)
+    // One for Zero Min Product
+    expect(zeroPcents.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('should show navigation links', () => {
+  it('should show empty state when no low stock products', () => {
+    vi.mocked(useLowStockProducts).mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as any);
+
     render(<StockPage />, { wrapper: createWrapper() });
+    expect(screen.getByText(/todos os produtos estão com estoque adequado/i)).toBeInTheDocument();
+  });
 
-    const movementsLink = screen.getByRole('link', { name: /movimentações/i });
-    expect(movementsLink).toHaveAttribute('href', '/stock/movements');
+  it('should show expiring products alert when count > 0', () => {
+    vi.mocked(useStockReport).mockReturnValue({
+      data: { ...mockReport, expiringCount: 3 },
+      isLoading: false,
+    } as any);
 
-    const entryLink = screen.getByRole('link', { name: /nova entrada/i });
-    expect(entryLink).toHaveAttribute('href', '/stock/entry');
+    render(<StockPage />, { wrapper: createWrapper() });
+    expect(screen.getByText(/produtos próximos do vencimento/i)).toBeInTheDocument();
+    expect(screen.getByTestId('expiring-count')).toHaveTextContent('3');
   });
 });

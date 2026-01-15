@@ -3,6 +3,7 @@
  * Envolve a aplicação e renderiza o spotlight + tooltip
  */
 
+import { useAuthStore } from '@/stores/auth-store';
 import { type FC, type ReactNode, useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Spotlight } from './Spotlight';
@@ -17,6 +18,7 @@ interface TutorialProviderProps {
 export const TutorialProvider: FC<TutorialProviderProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
 
   const {
     activeTutorial,
@@ -95,36 +97,70 @@ export const TutorialProvider: FC<TutorialProviderProps> = ({ children }) => {
 
   const handleClickOutside = useCallback(() => {
     // Opcionalmente pausar ou avançar
-    // Por padrão, não faz nada (usuário deve usar navegação explícita)
   }, []);
 
   const handleClickTarget = useCallback(() => {
     if (step?.action === 'click') {
-      // Se a ação é clicar, avançar após clique
       handleNext();
     }
   }, [step, handleNext]);
 
+  // LOGS DE DEPURAÇÃO
+  useEffect(() => {
+    console.log(
+      `[TutorialProvider] Path=${location.pathname}, Auth=${isAuthenticated}, Active=${activeTutorial}, Paused=${isPaused}`
+    );
+  }, [location.pathname, isAuthenticated, activeTutorial, isPaused]);
+
+  // GUARDA DEFINITIVA: Se estiver em rota restrita ou deslogado, FORÇA a parada de qualquer tutorial
+  useEffect(() => {
+    const restrictedRoutes = ['/', '/login', '/license', '/setup', '/wizard'];
+    const isRestricted = restrictedRoutes.includes(location.pathname);
+
+    if (activeTutorial && (!isAuthenticated || isRestricted)) {
+      console.warn(
+        `[TutorialProvider] FORCING SKIP: Tutorial ${activeTutorial} is restricted on path ${location.pathname} (Authenticated: ${isAuthenticated})`
+      );
+      skipTutorial();
+    }
+  }, [activeTutorial, isAuthenticated, location.pathname, skipTutorial]);
+
   // Mostrar tutorial de boas-vindas no primeiro login
   useEffect(() => {
-    if (!settings.enabled || !settings.showWelcomeOnFirstLogin) return;
+    if (!settings.enabled || !settings.showWelcomeOnFirstLogin || !isAuthenticated) return;
 
     const welcomeProgress = getTutorialProgress('welcome');
     if (!welcomeProgress || welcomeProgress.status === 'not-started') {
       // Aguardar um momento para a UI carregar
       const timeout = setTimeout(() => {
-        const restrictedRoutes = ['/login', '/license', '/setup', '/wizard'];
+        const restrictedRoutes = ['/', '/login', '/license', '/setup', '/wizard'];
         if (!restrictedRoutes.includes(location.pathname)) {
+          console.log('[TutorialProvider] Auto-starting welcome tutorial');
           startTutorial('welcome');
+        } else {
+          console.log(
+            `[TutorialProvider] Skip auto-start on restricted route: ${location.pathname}`
+          );
         }
-      }, 1000);
+      }, 2000); // Increased delay for safety
 
       return () => clearTimeout(timeout);
     }
-  }, [settings, getTutorialProgress, startTutorial, location.pathname]);
+  }, [settings, getTutorialProgress, startTutorial, location.pathname, isAuthenticated]);
 
-  // Não renderizar nada se tutoriais desabilitados ou nenhum ativo
-  if (!settings.enabled || !activeTutorial || !tutorial || !step || isPaused) {
+  // Não renderizar nada se tutoriais desabilitados ou nenhum ativo ou rota restrita
+  const restrictedRoutes = ['/', '/login', '/license', '/setup', '/wizard'];
+  const isRestricted = restrictedRoutes.includes(location.pathname);
+
+  if (
+    !settings.enabled ||
+    !activeTutorial ||
+    !tutorial ||
+    !step ||
+    isPaused ||
+    !isAuthenticated ||
+    isRestricted
+  ) {
     return <>{children}</>;
   }
 

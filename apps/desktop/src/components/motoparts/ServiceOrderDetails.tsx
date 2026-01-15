@@ -38,7 +38,9 @@ import {
   useServiceOrders,
   type ServiceOrderStatus,
 } from '@/hooks/useServiceOrders';
+import { invoke } from '@/lib/tauri';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils';
+import { useCompany } from '@/stores/settings-store';
 import {
   Calendar,
   Car,
@@ -51,6 +53,7 @@ import {
   Phone,
   Play,
   Plus,
+  Printer,
   Send,
   Trash2,
   User,
@@ -67,6 +70,7 @@ interface ServiceOrderDetailsProps {
 
 export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDetailsProps) {
   const { toast } = useToast();
+  const { company } = useCompany();
   const { orderDetails, isLoading, refetch } = useServiceOrderDetails(orderId);
   const { items, removeItem } = useServiceOrderItems(orderId);
   const { startOrder, completeOrder, deliverOrder, cancelOrder } = useServiceOrders();
@@ -193,6 +197,55 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     }
   };
 
+  const handlePrintOrder = async () => {
+    if (!orderDetails) return;
+
+    try {
+      const receiptData = {
+        company_name: company.name,
+        company_address: company.address || '',
+        company_cnpj: company.cnpj,
+        company_phone: company.phone,
+        order_number: order.order_number,
+        date_time: formatDateTime(order.created_at),
+        status: ServiceOrderUtils.getStatusLabel(order.status as ServiceOrderStatus),
+        mechanic_name: employee_name,
+        customer_name: customer_name,
+        customer_phone: customer_phone,
+        vehicle_display_name: vehicle_display_name,
+        vehicle_plate: vehicle_plate,
+        vehicle_km: order.vehicle_km,
+        symptoms: order.symptoms,
+        items: items.map((item) => ({
+          code: '',
+          name: item.description,
+          quantity: item.quantity,
+          unit: item.item_type === 'PART' ? 'UN' : 'SV',
+          unit_price: item.unit_price,
+          total: item.total,
+        })),
+        labor_cost: order.labor_cost,
+        parts_cost: order.parts_cost,
+        discount: order.discount,
+        total: order.total,
+        warranty_days: order.warranty_days,
+        notes: order.notes,
+      };
+
+      await invoke('print_service_order', { os: receiptData });
+      toast({
+        title: 'Impressão enviada',
+        description: 'A ordem de serviço está sendo impressa',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro na impressão',
+        description: String(error),
+        variant: 'destructive',
+      });
+    }
+  };
+
   const canEdit = ServiceOrderUtils.canEdit(order.status as ServiceOrderStatus);
   const canStart = ServiceOrderUtils.canStart(order.status as ServiceOrderStatus);
   const canComplete = ServiceOrderUtils.canComplete(order.status as ServiceOrderStatus);
@@ -229,6 +282,10 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
                   Editar
                 </Button>
               )}
+              <Button variant="outline" size="sm" onClick={handlePrintOrder}>
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir
+              </Button>
               {onClose && (
                 <Button variant="ghost" size="sm" onClick={onClose}>
                   Fechar

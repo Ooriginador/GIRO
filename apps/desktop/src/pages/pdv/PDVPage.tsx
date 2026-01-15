@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -398,6 +399,7 @@ export const PDVPage: FC = () => {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Alterar Quantidade</DialogTitle>
+            <DialogDescription>Digite a nova quantidade para o item selecionado.</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Label htmlFor="quantity">Nova quantidade</Label>
@@ -431,6 +433,9 @@ export const PDVPage: FC = () => {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Aplicar Desconto</DialogTitle>
+            <DialogDescription>
+              Informe o valor do desconto a ser aplicado no total da venda.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Label htmlFor="discount">Valor do desconto (R$)</Label>

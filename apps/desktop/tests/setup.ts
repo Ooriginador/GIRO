@@ -61,3 +61,25 @@ console.warn = (...args: unknown[]) => {
   if (typeof args[0] === 'string' && args[0].includes('React Router')) return;
   originalWarn.apply(console, args);
 };
+
+// Polyfill para scrollIntoView (usado pelo Radix UI / cmdk)
+if (typeof window !== 'undefined' && !window.HTMLElement.prototype.scrollIntoView) {
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
+}
+
+// Polyfill para PointerEvent (usado pelo Radix UI)
+if (typeof window !== 'undefined' && !window.PointerEvent) {
+  class PointerEvent extends MouseEvent {
+    constructor(type: string, params: PointerEventInit = {}) {
+      super(type, params);
+    }
+  }
+  window.PointerEvent = PointerEvent as any;
+}
+
+// Mock Pointer Capture methods (Radix UI)
+if (typeof window !== 'undefined') {
+  window.HTMLElement.prototype.hasPointerCapture = vi.fn();
+  window.HTMLElement.prototype.setPointerCapture = vi.fn();
+  window.HTMLElement.prototype.releasePointerCapture = vi.fn();
+}

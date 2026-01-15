@@ -345,7 +345,11 @@ export const EmployeesPage: FC = () => {
                     <Button type="button" variant="outline" onClick={resetForm}>
                       Cancelar
                     </Button>
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                    <Button
+                      type="submit"
+                      disabled={form.formState.isSubmitting}
+                      data-testid="submit-employee"
+                    >
                       {editingEmployee ? 'Salvar' : 'Criar'}
                     </Button>
                   </DialogFooter>
@@ -388,22 +392,34 @@ export const EmployeesPage: FC = () => {
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    data-testid={`employee-actions-${employee.id}`}
+                  >
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleEdit(employee)}>
+                  <DropdownMenuItem
+                    onClick={() => handleEdit(employee)}
+                    data-testid="edit-employee"
+                  >
                     <Edit className="mr-2 h-4 w-4" />
                     Editar
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toggleActive(employee)}>
+                  <DropdownMenuItem
+                    onClick={() => toggleActive(employee)}
+                    data-testid="toggle-active"
+                  >
                     <Shield className="mr-2 h-4 w-4" />
                     {employee.isActive ? 'Desativar' : 'Ativar'}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-destructive"
                     onClick={() => handleSoftDelete(employee)}
+                    data-testid="soft-delete"
                   >
                     <Power className="mr-2 h-4 w-4" />
                     {employee.isActive ? 'Desativar' : 'Reativar'}

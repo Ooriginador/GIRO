@@ -22,6 +22,9 @@ const CATEGORIES: &[(&str, &str)] = &[
     ("Limpeza", "Produtos de limpeza geral"),
     ("Higiene", "Cuidados pessoais"),
     ("Frios", "Queijos, presuntos e iogurtes"),
+    ("Motopeças - Peças", "Peças e componentes para motocicletas"),
+    ("Motopeças - Serviços", "Serviços de mecânica e manutenção"),
+    ("Motopeças - Acessórios", "Capacetes, capas e acessórios"),
 ];
 
 const PRODUCTS: &[(&str, f64, &str)] = &[
@@ -67,6 +70,15 @@ const PRODUCTS: &[(&str, f64, &str)] = &[
     ("Queijo Mussarela kg", 59.90, "Frios"),
     ("Presunto Cozido kg", 39.90, "Frios"),
     ("Iogurte Natural 170g", 3.90, "Frios"),
+    // Motopeças - Peças
+    ("Filtro de Óleo Honda CG", 35.00, "Motopeças - Peças"),
+    ("Pneu Traseiro 90/90-18", 189.90, "Motopeças - Peças"),
+    ("Kit Relação (Coroa/Pinhão/Corrente)", 150.00, "Motopeças - Peças"),
+    ("Pastilha de Freio Dianteira", 45.00, "Motopeças - Peças"),
+    ("Lâmpada Farol H4", 25.00, "Motopeças - Peças"),
+    // Motopeças - Acessórios
+    ("Capacete Preto Fosco Tam 58", 299.00, "Motopeças - Acessórios"),
+    ("Capa de Chuva PVC G", 85.00, "Motopeças - Acessórios"),
 ];
 
 const SUPPLIERS: &[&str] = &[
@@ -76,7 +88,13 @@ const SUPPLIERS: &[&str] = &[
     "Laticínios da Serra",
     "Bebidas Nacionais SA",
     "Produtos de Limpeza Brilho",
+    "Moto Distribuidora LTDA",
+    "Pneus & Cia",
 ];
+
+const VEHICLE_BRANDS: &[&str] = &["Honda", "Yamaha", "Suzuki", "Kawasaki", "BMW"];
+const HONDA_MODELS: &[&str] = &["CG 160 Titan", "CB 300F Twister", "XRE 300", "Biz 125"];
+const YAMAHA_MODELS: &[&str] = &["Fazer FZ25", "Lander 250", "MT-03", "Factor 150"];
 
 #[tauri::command]
 pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
@@ -166,35 +184,92 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
     }
 
     // 4. Seed Products
-    let mut products = Vec::new();
-    for (name, price, cat_name) in PRODUCTS {
-        let existing = product_repo
-            .find_by_barcode(&format!("BAR-{}", name))
-            .await?; // Simple fake barcode
-
-        let product = if let Some(p) = existing {
-            p
-        } else {
-            let cat_id = category_ids.get(cat_name).unwrap();
-            let cost = price * 0.65; // 35% margin
-
-            product_repo
-                .create(CreateProduct {
-                    name: name.to_string(),
-                    barcode: Some(format!("BAR-{}", name)),
-                    internal_code: None,
-                    description: None,
-                    category_id: cat_id.clone(),
-                    unit: None,
-                    sale_price: *price,
-                    cost_price: Some(cost),
-                    min_stock: Some(10.0),
-                    current_stock: Some(1000.0), // Start with plenty
-                    is_weighted: None,
-                })
-                .await?
-        };
         products.push(product);
+    }
+
+    // 4.1 Seed Services
+    let services = &[
+        ("TRC01", "Troca de Óleo", "Troca de óleo e filtro", 25.0, 30, 90),
+        ("REV01", "Revisão Geral", "Revisão completa da motocicleta", 250.0, 240, 180),
+        ("LAV01", "Lavagem Simples", "Lavagem completa", 40.0, 60, 0),
+        ("FRE01", "Manutenção de Freios", "Troca de pastilhas e limpeza", 60.0, 90, 90),
+    ];
+
+    let service_repo = crate::repositories::ServiceOrderRepository::new(pool.clone());
+    for (code, name, desc, price, time, warranty) in services {
+        let existing = sqlx::query_scalar::<_, String>("SELECT id FROM Service WHERE code = ?")
+            .bind(code)
+            .fetch_optional(pool)
+            .await?;
+
+        if existing.is_none() {
+            service_repo.create_service(crate::models::CreateService {
+                code: code.to_string(),
+                name: name.to_string(),
+                description: Some(desc.to_string()),
+                default_price: *price,
+                estimated_time: Some(*time),
+                default_warranty_days: Some(*warranty),
+            }).await?;
+        }
+    }
+
+    // 4.2 Seed Vehicles
+    let vehicle_repo = crate::repositories::VehicleRepository::new(pool);
+    for brand_name in VEHICLE_BRANDS {
+        let existing_brand = sqlx::query_scalar::<_, String>("SELECT id FROM VehicleBrand WHERE name = ?")
+            .bind(brand_name)
+            .fetch_optional(pool)
+            .await?;
+
+        let brand_id = if let Some(id) = existing_brand {
+            id
+        } else {
+            let b = vehicle_repo.create_brand(crate::models::CreateVehicleBrand {
+                name: brand_name.to_string(),
+                description: None,
+                logo_url: None,
+            }).await?;
+            b.id
+        };
+
+        let models = if *brand_name == "Honda" { HONDA_MODELS } else if *brand_name == "Yamaha" { YAMAHA_MODELS } else { &[] };
+        for model_name in models {
+            let existing_model = sqlx::query_scalar::<_, String>("SELECT id FROM VehicleModel WHERE name = ? AND brand_id = ?")
+                .bind(model_name)
+                .bind(&brand_id)
+                .fetch_optional(pool)
+                .await?;
+
+            let model_id = if let Some(id) = existing_model {
+                id
+            } else {
+                let m = vehicle_repo.create_model(crate::models::CreateVehicleModel {
+                    brand_id: brand_id.clone(),
+                    name: model_name.to_string(),
+                    vehicle_type: "Motorcycle".to_string(),
+                }).await?;
+                m.id
+            };
+
+            // Seed some years
+            for year in [2021, 2022, 2023, 2024] {
+                let existing_year = sqlx::query_scalar::<_, String>("SELECT id FROM VehicleYear WHERE model_id = ? AND year = ?")
+                    .bind(&model_id)
+                    .bind(year)
+                    .fetch_optional(pool)
+                    .await?;
+
+                if existing_year.is_none() {
+                    vehicle_repo.create_year(crate::models::CreateVehicleYear {
+                        model_id: model_id.clone(),
+                        year,
+                        fipe_code: None,
+                        reference_price: None,
+                    }).await?;
+                }
+            }
+        }
     }
 
     // 5. Seed History (5 Months)

@@ -22,7 +22,7 @@ describe('Auth Store', () => {
         id: '1',
         name: 'João Silva',
         role: 'ADMIN' as const,
-        pin: '1234',
+        pin: '8899',
       };
 
       useAuthStore.getState().login(mockEmployee);

@@ -8,4 +8,4 @@ rm -f "$DB_PATH"
 
 echo "Banco removido com sucesso."
 echo "Ao iniciar o GIRO novamente, ele recriará o banco com o usuário Admin padrão."
-echo "PIN Padrão: 1234"
+echo "PIN Padrão: 8899"

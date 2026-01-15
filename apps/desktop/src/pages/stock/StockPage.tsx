@@ -206,7 +206,9 @@ export const StockPage: FC = () => {
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-warning" />
               Produtos Próximos do Vencimento
-              <Badge variant="warning">{report.expiringCount}</Badge>
+              <Badge variant="warning" data-testid="expiring-count">
+                {report.expiringCount}
+              </Badge>
             </CardTitle>
             <CardDescription>Produtos que vencem nos próximos 30 dias</CardDescription>
           </CardHeader>

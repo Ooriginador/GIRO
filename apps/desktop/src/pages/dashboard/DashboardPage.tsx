@@ -33,7 +33,7 @@ interface StatCardProps {
   variant?: 'default' | 'success' | 'warning' | 'destructive';
 }
 
-const StatCard: FC<StatCardProps> = ({
+export const StatCard: FC<StatCardProps> = ({
   title,
   value,
   description,

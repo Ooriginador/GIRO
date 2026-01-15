@@ -1,6 +1,5 @@
 import { LicenseGuard } from '@/components/guards';
 import { AppShell } from '@/components/layout';
-import { FirstAdminWizard } from '@/components/setup/FirstAdminWizard';
 import { BusinessProfileWizard } from '@/components/shared';
 import { UpdateChecker } from '@/components/UpdateChecker';
 import { useHasAdmin } from '@/hooks/useSetup';
@@ -110,9 +109,9 @@ const AdminCheck: FC = () => {
     );
   }
 
-  // Se não tem admin, força o wizard de criação de admin
+  // Se não tem admin, redireciona para o setup inicial
   if (!hasAdmin && !isAuthenticated) {
-    return <FirstAdminWizard />;
+    return <Navigate to="/setup" replace />;
   }
 
   // Se não está autenticado, vai para o login (que é protegido pela licença)

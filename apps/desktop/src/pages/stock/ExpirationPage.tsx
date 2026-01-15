@@ -100,7 +100,9 @@ export const ExpirationPage: FC = () => {
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats.expired}</div>
+            <div className="text-2xl font-bold text-destructive" data-testid="stat-expired">
+              {stats.expired}
+            </div>
             <p className="text-xs text-muted-foreground">Retirar do estoque</p>
           </CardContent>
         </Card>
@@ -110,7 +112,9 @@ export const ExpirationPage: FC = () => {
             <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{stats.critical}</div>
+            <div className="text-2xl font-bold text-warning" data-testid="stat-critical">
+              {stats.critical}
+            </div>
             <p className="text-xs text-muted-foreground">Vender com urgência</p>
           </CardContent>
         </Card>
@@ -120,7 +124,9 @@ export const ExpirationPage: FC = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.warning}</div>
+            <div className="text-2xl font-bold" data-testid="stat-warning">
+              {stats.warning}
+            </div>
             <p className="text-xs text-muted-foreground">Considerar promoção</p>
           </CardContent>
         </Card>

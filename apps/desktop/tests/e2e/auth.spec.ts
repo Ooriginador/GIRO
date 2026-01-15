@@ -53,19 +53,19 @@ test.describe('Autenticação E2E', () => {
     await expect(instruction).toBeVisible();
   });
 
-  test('deve fazer login com PIN de admin (1234)', async ({ page }) => {
+  test('deve fazer login com PIN de admin (8899)', async ({ page }) => {
     // Clicar nos botões do teclado numérico
-    await page.locator('button:has-text("1")').first().click();
-    await page.locator('button:has-text("2")').first().click();
-    await page.locator('button:has-text("3")').first().click();
-    await page.locator('button:has-text("4")').first().click();
+    await page.locator('button:has-text("8")').first().click();
+    await page.locator('button:has-text("8")').first().click();
+    await page.locator('button:has-text("9")').first().click();
+    await page.locator('button:has-text("9")').first().click();
 
     // Clicar em Entrar
     const loginButton = page.locator('button:has-text("Entrar")');
     await loginButton.click();
 
-    // Aguardar redirecionamento (após login redireciona para dashboard/pdv/cash)
-    await page.waitForURL(/\/(dashboard|pdv|cash)/, { timeout: 5000 });
+    // Aguardar redirecionamento (após login pode redirecionar para dashboard/pdv/cash ou wizard)
+    await page.waitForURL(/\/(dashboard|pdv|cash|wizard)/, { timeout: 5000 });
 
     // Verificar que não está mais na página de login
     await expect(page).not.toHaveURL(/login/);
@@ -75,14 +75,14 @@ test.describe('Autenticação E2E', () => {
     // Digitar PIN inválido (8888)
     await page.locator('button:has-text("8")').first().click();
     await page.locator('button:has-text("8")').first().click();
-    await page.locator('button:has-text("8")').first().click();
-    await page.locator('button:has-text("8")').first().click();
+    await page.locator('button:has-text("9")').first().click();
+    await page.locator('button:has-text("9")').first().click();
 
     const loginButton = page.locator('button:has-text("Entrar")');
     await loginButton.click();
 
-    // Aguardar possível resposta
-    await page.waitForTimeout(1000);
+    // Aguardar possível resposta e mensagem de erro aparecer
+    await page.waitForSelector('p.text-destructive', { timeout: 5000 });
 
     // Verificar mensagem de erro
     const errorElement = page.locator('p.text-destructive');

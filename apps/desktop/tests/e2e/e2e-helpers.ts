@@ -68,6 +68,14 @@ export const ensureLicensePresent = async (page: Page): Promise<void> => {
       // ignore
     }
   }, licenseState);
+
+  // Also mark business profile as configured to avoid wizard redirection during E2E
+  await page.context().addInitScript(() => {
+    try {
+      const profile = { businessType: 'RETAIL', isConfigured: true };
+      localStorage.setItem('giro-business-profile', JSON.stringify(profile));
+    } catch {}
+  });
 };
 
 export const loginWithPin = async (page: Page, pin: string): Promise<void> => {

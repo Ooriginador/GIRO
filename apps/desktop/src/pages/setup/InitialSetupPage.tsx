@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createEmployee, hasAnyEmployee } from '@/lib/tauri';
+import { useCreateFirstAdmin } from '@/hooks/useSetup';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth-store';
 import { CheckCircle2, Loader2, Shield, UserPlus } from 'lucide-react';
 import { useEffect, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -45,20 +46,13 @@ export const InitialSetupPage: FC = () => {
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
-  useEffect(() => {
-    const guardAlreadySetup = async () => {
-      try {
-        const exists = await hasAnyEmployee();
-        if (exists) {
-          navigate('/login', { replace: true });
-        }
-      } catch (err) {
-        console.error('Erro ao verificar setup inicial:', err);
-      }
-    };
+  const { login } = useAuthStore();
+  const createAdmin = useCreateFirstAdmin();
 
-    guardAlreadySetup();
-  }, [navigate]);
+  useEffect(() => {
+    // No mount check if admin exists - if they are here manually we should probably let them work
+    // but the Guard in App.tsx already sends them here if needed.
+  }, []);
 
   const validateCPF = (cpf: string): boolean => {
     const cleaned = cpf.replace(/\D/g, '');
@@ -138,23 +132,26 @@ export const InitialSetupPage: FC = () => {
     setIsLoading(true);
 
     try {
-      await createEmployee({
+      const admin = await createAdmin.mutateAsync({
         name: formData.name.trim(),
-        cpf: formData.cpf.replace(/\D/g, ''),
-        phone: formData.phone.replace(/\D/g, ''),
-        email: formData.email.trim(),
+        email: formData.email.trim() || undefined,
         pin: formData.pin,
+      });
+
+      // Login imediato para hidratar o estado
+      login({
+        id: admin.id,
+        name: admin.name,
         role: 'ADMIN',
-        password: undefined,
-        isActive: true,
+        email: admin.email,
+        pin: formData.pin,
       });
 
       setStep('success');
 
-      // Redirecionar para login após 2 segundos
+      // Redirecionar para o wizard de perfil de negócio após breve sucesso
       setTimeout(() => {
-        // Força reload para o App revalidar `hasAdmin()` e evitar loop de /setup
-        window.location.href = '/login';
+        navigate('/wizard', { replace: true });
       }, 2000);
     } catch (err) {
       console.error('Erro ao criar admin:', err);

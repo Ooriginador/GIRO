@@ -14,13 +14,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
+  useCashMovements,
   useCashSessionSummary,
   useCloseCashSession,
   useCurrentCashSession,
   useOpenCashSession,
 } from '@/hooks/usePDV';
+import { invoke } from '@/lib/tauri';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
+import type { CashMovement } from '@/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -35,11 +38,11 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useState, type FC } from 'react';
-import type { CashMovement } from '@/types';
 
 export const CashControlPage: FC = () => {
   const { toast } = useToast();
   const { data: sessionData } = useCurrentCashSession();
+  const { data: movementsData } = useCashMovements(sessionData?.id);
   const openSession = useOpenCashSession();
   const closeSession = useCloseCashSession();
   const { employee, hasPermission } = useAuthStore();
@@ -52,26 +55,46 @@ export const CashControlPage: FC = () => {
   const [isSupplyOpen, setIsSupplyOpen] = useState(false);
   const [movementAmount, setMovementAmount] = useState('');
   const [movementReason, setMovementReason] = useState('');
-  const [movements, setMovements] = useState<CashMovement[]>([]);
 
-  const addMovement = (type: CashMovement['type']) => {
+  const addMovement = async (type: CashMovement['type']) => {
     const value = parseFloat(movementAmount.replace(',', '.')) || 0;
-    const id = String(Date.now());
-    const newMovement: CashMovement = {
-      id,
-      sessionId: session?.id || '',
-      type: type === 'WITHDRAWAL' ? 'WITHDRAWAL' : 'DEPOSIT',
-      amount: value,
-      description: movementReason || undefined,
-      employeeId: employee?.id || '',
-      createdAt: new Date().toISOString(),
-    };
 
-    setMovements((s) => [newMovement, ...s]);
-    setMovementAmount('');
-    setMovementReason('');
-    setIsWithdrawOpen(false);
-    setIsSupplyOpen(false);
+    if (value <= 0) {
+      toast({ title: 'Valor inválido', variant: 'destructive' });
+      return;
+    }
+
+    if (!sessionData?.id) {
+      toast({ title: 'Nenhuma sessão aberta', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await invoke('add_cash_movement', {
+        input: {
+          sessionId: sessionData.id,
+          type: type === 'WITHDRAWAL' ? 'WITHDRAWAL' : 'DEPOSIT',
+          amount: value,
+          description: movementReason || '',
+          employeeId: employee?.id || '',
+        },
+      });
+
+      toast({ title: 'Movimentação registrada!' });
+
+      // Limpar campos e fechar dialogs
+      setMovementAmount('');
+      setMovementReason('');
+      setIsWithdrawOpen(false);
+      setIsSupplyOpen(false);
+
+      // Recarregar os dados do sumário (isso deve atualizar o saldo esperado)
+      // O React Query vai cuidar de invalidar as queries se configurarmos corretamente,
+      // ou podemos disparar o refetch manualmente.
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Erro ao registrar movimentação', variant: 'destructive' });
+    }
   };
 
   const handleOpenSession = async () => {
@@ -266,21 +289,31 @@ export const CashControlPage: FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {movements.length === 0 ? (
+                  {movementsData && movementsData.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-4 text-center text-sm text-muted-foreground">
                         Nenhuma movimentação registrada
                       </td>
                     </tr>
                   ) : (
-                    movements.map((m) => (
-                      <tr key={m.id} className="align-top">
-                        <td className="py-2">{m.type}</td>
-                        <td className="py-2">{formatCurrency(m.amount)}</td>
-                        <td className="py-2">{m.description || '-'}</td>
-                        <td className="py-2">{m.employee?.name || session?.employee?.name}</td>
+                    (movementsData || []).map((m: any) => (
+                      <tr key={m.id} className="align-top border-b border-muted/20">
                         <td className="py-2">
-                          {format(new Date(m.createdAt), 'dd/MM/yyyy HH:mm')}
+                          {m.type === 'DEPOSIT' || m.type === 'SUPPLY' ? (
+                            <span className="flex items-center text-green-600 gap-1">
+                              <ArrowUpRight className="h-3 w-3" /> Suprimento
+                            </span>
+                          ) : (
+                            <span className="flex items-center text-red-600 gap-1">
+                              <ArrowDownRight className="h-3 w-3" /> Sangria
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 font-medium">{formatCurrency(m.amount)}</td>
+                        <td className="py-2 text-muted-foreground">{m.description || '-'}</td>
+                        <td className="py-2">{m.employeeName || m.employee?.name || 'Operador'}</td>
+                        <td className="py-2 text-xs">
+                          {format(new Date(m.createdAt), 'dd/MM/yy HH:mm')}
                         </td>
                       </tr>
                     ))
@@ -326,7 +359,7 @@ export const CashControlPage: FC = () => {
                 <Wallet className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold" data-testid="opening-balance">
                   {formatCurrency(session?.openingBalance || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">abertura do caixa</p>
@@ -339,7 +372,7 @@ export const CashControlPage: FC = () => {
                 <Calculator className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-blue-600" data-testid="expected-balance">
                   {formatCurrency(summary.expectedBalance)}
                 </div>
                 <p className="text-xs text-muted-foreground">em dinheiro no caixa</p>
@@ -402,6 +435,7 @@ export const CashControlPage: FC = () => {
             <Label htmlFor="openingBalance">Valor de Abertura (R$)</Label>
             <Input
               id="openingBalance"
+              data-testid="opening-balance-input"
               type="text"
               inputMode="decimal"
               value={openingBalance}
@@ -430,9 +464,10 @@ export const CashControlPage: FC = () => {
           </DialogHeader>
 
           <div className="py-4">
-            <Label htmlFor="supplyAmount">Valor (R$)</Label>
+            <Label htmlFor="supplyAmount">Valor do Suprimento (R$)</Label>
             <Input
               id="supplyAmount"
+              data-testid="supply-amount-input"
               type="text"
               inputMode="decimal"
               value={movementAmount}
@@ -441,15 +476,24 @@ export const CashControlPage: FC = () => {
               className="text-2xl h-14 text-center"
               autoFocus
             />
-            <Label className="mt-2">Motivo (opcional)</Label>
-            <Input value={movementReason} onChange={(e) => setMovementReason(e.target.value)} />
+            <Label className="mt-2" htmlFor="supplyReason">
+              Motivo (opcional)
+            </Label>
+            <Input
+              id="supplyReason"
+              data-testid="movement-reason-input"
+              value={movementReason}
+              onChange={(e) => setMovementReason(e.target.value)}
+            />
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsSupplyOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={() => addMovement('DEPOSIT')}>Confirmar</Button>
+            <Button data-testid="confirm-supply" onClick={() => addMovement('DEPOSIT')}>
+              Confirmar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -463,9 +507,10 @@ export const CashControlPage: FC = () => {
           </DialogHeader>
 
           <div className="py-4">
-            <Label htmlFor="withdrawAmount">Valor (R$)</Label>
+            <Label htmlFor="withdrawAmount">Valor da Sangria (R$)</Label>
             <Input
               id="withdrawAmount"
+              data-testid="withdrawal-amount-input"
               type="text"
               inputMode="decimal"
               value={movementAmount}
@@ -474,15 +519,24 @@ export const CashControlPage: FC = () => {
               className="text-2xl h-14 text-center"
               autoFocus
             />
-            <Label className="mt-2">Motivo</Label>
-            <Input value={movementReason} onChange={(e) => setMovementReason(e.target.value)} />
+            <Label className="mt-2" htmlFor="withdrawReason">
+              Motivo
+            </Label>
+            <Input
+              id="withdrawReason"
+              data-testid="withdrawal-reason-input"
+              value={movementReason}
+              onChange={(e) => setMovementReason(e.target.value)}
+            />
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsWithdrawOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={() => addMovement('WITHDRAWAL')}>Confirmar</Button>
+            <Button data-testid="confirm-withdrawal" onClick={() => addMovement('WITHDRAWAL')}>
+              Confirmar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -551,7 +605,12 @@ export const CashControlPage: FC = () => {
             <Button variant="outline" onClick={() => setIsCloseDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={handleCloseSession}>
+            <Button
+              variant="destructive"
+              data-testid="confirm-close-cash"
+              onClick={handleCloseSession}
+              disabled={!closingBalance}
+            >
               Confirmar Fechamento
             </Button>
           </DialogFooter>

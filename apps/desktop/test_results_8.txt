@@ -1,0 +1,565 @@
+
+ RUN  v2.1.9 /home/jhonslife/GIRO/apps/desktop
+
+ ✓ tests/unit/utils/formatters.test.ts (51 tests) 49ms
+ ✓ src/stores/__tests__/alert-store.test.ts (14 tests) 30ms
+ ✓ src/lib/__tests__/formatters.test.ts (48 tests) 85ms
+ ✓ src/hooks/__tests__/useDashboard.test.tsx (7 tests) 458ms
+ ✓ src/hooks/__tests__/useSales.test.tsx (15 tests) 789ms
+stderr | src/components/motoparts/__tests__/ServiceOrderForm.test.tsx > ServiceOrderForm > should show toast on submission error
+Erro ao criar ordem de serviço: Error: API Fail
+    at /home/jhonslife/GIRO/apps/desktop/src/components/motoparts/__tests__/ServiceOrderForm.test.tsx:248:43
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/vitest@2.1.9_@types+node@22.19.3_@vitest+ui@4.0.16_jsdom@25.0.1/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
+
+ ✓ src/components/motoparts/__tests__/ServiceOrderForm.test.tsx (5 tests) 718ms
+ ✓ src/stores/__tests__/settings-store.test.ts (20 tests) 22ms
+stdout | src/pages/cash/__tests__/CashControlPage.test.tsx > CashControlPage > should handle adding a cash movement (Suprimento)
+Clicking confirm-supply
+
+ ✓ src/pages/cash/__tests__/CashControlPage.test.tsx (6 tests) 697ms
+ ✓ src/hooks/__tests__/usePDV.test.tsx (10 tests) 561ms
+ ✓ src/hooks/__tests__/useCategories.test.tsx (12 tests) 776ms
+stderr | src/pages/pdv/__tests__/PDVPage.test.tsx > PDVPage > should handle F shortcuts
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+stderr | src/pages/pdv/__tests__/PDVPage.test.tsx > PDVPage > should handle quantity and discount confirmations via mouse with comma/dot logic
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+stderr | src/pages/pdv/__tests__/PDVPage.test.tsx > PDVPage > should handle quantity and discount confirmations via mouse with comma/dot logic
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+stderr | src/pages/pdv/__tests__/PDVPage.test.tsx > PDVPage > should handle invalid quantity/discount inputs
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+stderr | src/pages/pdv/__tests__/PDVPage.test.tsx > PDVPage > should handle invalid quantity/discount inputs
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+stderr | src/pages/pdv/__tests__/PDVPage.test.tsx > PDVPage > should handle invalid quantity/discount inputs
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+stderr | src/pages/pdv/__tests__/PDVPage.test.tsx > PDVPage > should handle invalid quantity/discount inputs
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+ ✓ src/hooks/__tests__/useSuppliers.test.tsx (10 tests) 392ms
+ ✓ src/pages/pdv/__tests__/PDVPage.test.tsx (9 tests) 2469ms
+   ✓ PDVPage > should show closed message when no session and allow opening cash 428ms
+   ✓ PDVPage > should handle F shortcuts 370ms
+   ✓ PDVPage > should handle quantity and discount confirmations via mouse with comma/dot logic 387ms
+   ✓ PDVPage > should handle invalid quantity/discount inputs 689ms
+ ✓ src/hooks/__tests__/useStock.test.tsx (9 tests) 523ms
+stderr | src/pages/products/__tests__/CategoriesPage.test.tsx > CategoriesPage > Error States > should handle creation failure
+Erro ao criar categoria: Error: Fail
+    at /home/jhonslife/GIRO/apps/desktop/src/pages/products/__tests__/CategoriesPage.test.tsx:250:52
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+
+ ✓ src/hooks/__tests__/useCustomers.test.ts (11 tests) 535ms
+   ✓ useCustomers hooks > useCustomerSearch > should perform debounced search 314ms
+stderr | src/pages/products/__tests__/CategoriesPage.test.tsx > CategoriesPage > Error States > should handle deactivation failure
+Erro ao processar ação na categoria: Error: Fail
+    at /home/jhonslife/GIRO/apps/desktop/src/pages/products/__tests__/CategoriesPage.test.tsx:268:52
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+
+stderr | src/pages/products/__tests__/CategoriesPage.test.tsx > CategoriesPage > Error States > should handle reactivation failure
+Erro ao processar ação na categoria: Error: Fail
+    at /home/jhonslife/GIRO/apps/desktop/src/pages/products/__tests__/CategoriesPage.test.tsx:285:52
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+
+ ✓ src/pages/products/__tests__/CategoriesPage.test.tsx (13 tests) 2935ms
+   ✓ CategoriesPage > should create a new category 939ms
+   ✓ CategoriesPage > Error States > should handle creation failure 363ms
+ ✓ src/hooks/__tests__/useProducts.test.tsx (15 tests) 588ms
+ ✓ src/pages/suppliers/__tests__/SuppliersPage.test.tsx (7 tests) 3759ms
+   ✓ SuppliersPage > should render active suppliers by default 316ms
+   ✓ SuppliersPage > should create a new supplier 1017ms
+   ✓ SuppliersPage > should show validation errors for invalid inputs 611ms
+   ✓ SuppliersPage > should edit a supplier and handle optional fields omission 526ms
+   ✓ SuppliersPage > should filter by search text (name, tradeName, cnpj) 984ms
+stdout | src/stores/__tests__/license-store.test.ts > license-store > should hydrate from disk successfully
+[LicenseStore] Hydrating from disk...
+[LicenseStore] Data from disk: {
+  key: 'disk-key',
+  info: { status: 'active', license_key: 'disk-key' },
+  last_validated_at: '2026-01-15T12:52:01.066Z'
+}
+[LicenseStore] Within grace period, setting state to valid
+
+stdout | src/stores/__tests__/license-store.test.ts > license-store > should handle missing license on disk
+[LicenseStore] Hydrating from disk...
+[LicenseStore] Data from disk: null
+[LicenseStore] No key found on disk, setting unlicensed
+
+stdout | src/stores/__tests__/license-store.test.ts > license-store > should handle disk hydration error
+[LicenseStore] Hydrating from disk...
+
+stderr | src/stores/__tests__/license-store.test.ts > license-store > should handle disk hydration error
+[LicenseStore] Failed to hydrate license from disk: Error: Disk error
+    at /home/jhonslife/GIRO/apps/desktop/src/stores/__tests__/license-store.test.ts:185:51
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+
+ ✓ src/stores/__tests__/license-store.test.ts (11 tests) 37ms
+ ✓ src/components/tutorial/__tests__/tutorial-store.test.ts (15 tests) 25ms
+stderr | src/components/motoparts/__tests__/ProductCompatibilityEditor.test.tsx > ProductCompatibilityEditor > should render the editor in full mode
+Warning: Received `true` for a non-boolean attribute `layout`.
+
+If you want to write it to the DOM, pass a string instead: layout="true" or layout={value.toString()}.
+    at div
+    at div (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/__tests__/ProductCompatibilityEditor.test.tsx:51:13)
+    at CompatibilityItem (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/ProductCompatibilityEditor.tsx:477:30)
+    at AnimatePresence (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/__tests__/ProductCompatibilityEditor.test.tsx:57:23)
+    at div
+    at div
+    at div
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-primitive@2.1.3_@types+react-dom@18.3.7_@types+react@18.3.27__@types+re_fcd3de21280e20c51ab14304cef2fe55/node_modules/@radix-ui/react-primitive/dist/index.mjs:28:13
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-scroll-area@1.2.10_@types+react-dom@18.3.7_@types+react@18.3.27__@types_5bcbc5a51cd2460e88b2b8df9637afcd/node_modules/@radix-ui/react-scroll-area/dist/index.mjs:94:13
+    at div
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-primitive@2.1.3_@types+react-dom@18.3.7_@types+react@18.3.27__@types+re_fcd3de21280e20c51ab14304cef2fe55/node_modules/@radix-ui/react-primitive/dist/index.mjs:28:13
+    at Provider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-context@1.1.2_@types+react@18.3.27_react@18.3.1/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-scroll-area@1.2.10_@types+react-dom@18.3.7_@types+react@18.3.27__@types_5bcbc5a51cd2460e88b2b8df9637afcd/node_modules/@radix-ui/react-scroll-area/dist/index.mjs:32:7
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/scroll-area.tsx:9:56
+    at div
+    at div
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/card.tsx:81:57
+    at div
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/card.tsx:7:50
+    at ProductCompatibilityEditor (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/ProductCompatibilityEditor.tsx:32:3)
+    at QueryClientProvider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@tanstack+react-query@5.90.16_react@18.3.1/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Wrapper (/home/jhonslife/GIRO/apps/desktop/src/test/queryWrapper.tsx:12:22)
+
+stderr | src/components/motoparts/__tests__/ProductCompatibilityEditor.test.tsx > ProductCompatibilityEditor > should handle removal confirmation
+`AlertDialogContent` requires a description for the component to be accessible for screen reader users.
+
+You can add a description to the `AlertDialogContent` by passing a `AlertDialogDescription` component as a child, which also benefits sighted users by adding visible context to the dialog.
+
+Alternatively, you can use your own component as a description by assigning it an `id` and passing the same value to the `aria-describedby` prop in `AlertDialogContent`. If the description is confusing or duplicative for sighted users, you can use the `@radix-ui/react-visually-hidden` primitive as a wrapper around your description component.
+
+For more information, see https://radix-ui.com/primitives/docs/components/alert-dialog
+Warning: Missing `Description` or `aria-describedby={undefined}` for {AlertDialogContent}.
+
+stderr | src/components/motoparts/__tests__/WarrantyDetails.test.tsx > WarrantyDetails > should handle resolve error gracefully
+Erro ao resolver garantia: Error: Fail
+    at /home/jhonslife/GIRO/apps/desktop/src/components/motoparts/__tests__/WarrantyDetails.test.tsx:213:40
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+
+ ✓ src/components/motoparts/__tests__/WarrantyDetails.test.tsx (9 tests) 1060ms
+stderr | src/components/motoparts/__tests__/ProductCompatibilityEditor.test.tsx > ProductCompatibilityEditor > should handle saving changes
+Warning: An update to ProductCompatibilityEditor inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at ProductCompatibilityEditor (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/ProductCompatibilityEditor.tsx:32:3)
+    at QueryClientProvider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@tanstack+react-query@5.90.16_react@18.3.1/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Wrapper (/home/jhonslife/GIRO/apps/desktop/src/test/queryWrapper.tsx:12:22)
+Warning: An update to Tooltip inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Tooltip (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-tooltip@1.2.8_@types+react-dom@18.3.7_@types+react@18.3.27__@types+reac_aced610d253c20559c8767bd1bee51a9/node_modules/@radix-ui/react-tooltip/dist/index.mjs:73:5)
+    at Provider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-context@1.1.2_@types+react@18.3.27_react@18.3.1/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-tooltip@1.2.8_@types+react-dom@18.3.7_@types+react@18.3.27__@types+reac_aced610d253c20559c8767bd1bee51a9/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at Provider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-context@1.1.2_@types+react@18.3.27_react@18.3.1/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at Dialog (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-dialog@1.1.15_@types+react-dom@18.3.7_@types+react@18.3.27__@types+reac_714ecc194868bb6245bac079a4c1dd41/node_modules/@radix-ui/react-dialog/dist/index.mjs:25:5)
+    at AlertDialog (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-alert-dialog@1.1.15_@types+react-dom@18.3.7_@types+react@18.3.27__@type_2938e8bb4531c18dd665808ca65dbf8b/node_modules/@radix-ui/react-alert-dialog/dist/index.mjs:18:11)
+    at div
+    at div (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/__tests__/ProductCompatibilityEditor.test.tsx:51:13)
+    at CompatibilityItem (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/ProductCompatibilityEditor.tsx:477:30)
+    at AnimatePresence (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/__tests__/ProductCompatibilityEditor.test.tsx:57:23)
+    at div
+    at div
+    at div
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-primitive@2.1.3_@types+react-dom@18.3.7_@types+react@18.3.27__@types+re_fcd3de21280e20c51ab14304cef2fe55/node_modules/@radix-ui/react-primitive/dist/index.mjs:28:13
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-scroll-area@1.2.10_@types+react-dom@18.3.7_@types+react@18.3.27__@types_5bcbc5a51cd2460e88b2b8df9637afcd/node_modules/@radix-ui/react-scroll-area/dist/index.mjs:94:13
+    at div
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-primitive@2.1.3_@types+react-dom@18.3.7_@types+react@18.3.27__@types+re_fcd3de21280e20c51ab14304cef2fe55/node_modules/@radix-ui/react-primitive/dist/index.mjs:28:13
+    at Provider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-context@1.1.2_@types+react@18.3.27_react@18.3.1/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-scroll-area@1.2.10_@types+react-dom@18.3.7_@types+react@18.3.27__@types_5bcbc5a51cd2460e88b2b8df9637afcd/node_modules/@radix-ui/react-scroll-area/dist/index.mjs:32:7
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/scroll-area.tsx:9:56
+    at div
+    at div
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/card.tsx:81:57
+    at div
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/card.tsx:7:50
+    at ProductCompatibilityEditor (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/ProductCompatibilityEditor.tsx:32:3)
+    at QueryClientProvider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@tanstack+react-query@5.90.16_react@18.3.1/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Wrapper (/home/jhonslife/GIRO/apps/desktop/src/test/queryWrapper.tsx:12:22)
+Warning: An update to ScrollArea inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-scroll-area@1.2.10_@types+react-dom@18.3.7_@types+react@18.3.27__@types_5bcbc5a51cd2460e88b2b8df9637afcd/node_modules/@radix-ui/react-scroll-area/dist/index.mjs:32:7
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/scroll-area.tsx:9:56
+    at div
+    at div
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/card.tsx:81:57
+    at div
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/card.tsx:7:50
+    at ProductCompatibilityEditor (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/ProductCompatibilityEditor.tsx:32:3)
+    at QueryClientProvider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@tanstack+react-query@5.90.16_react@18.3.1/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Wrapper (/home/jhonslife/GIRO/apps/desktop/src/test/queryWrapper.tsx:12:22)
+Warning: An update to Tooltip inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Tooltip (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-tooltip@1.2.8_@types+react-dom@18.3.7_@types+react@18.3.27__@types+reac_aced610d253c20559c8767bd1bee51a9/node_modules/@radix-ui/react-tooltip/dist/index.mjs:73:5)
+    at Provider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-context@1.1.2_@types+react@18.3.27_react@18.3.1/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-tooltip@1.2.8_@types+react-dom@18.3.7_@types+react@18.3.27__@types+reac_aced610d253c20559c8767bd1bee51a9/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at Provider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-context@1.1.2_@types+react@18.3.27_react@18.3.1/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at Dialog (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-dialog@1.1.15_@types+react-dom@18.3.7_@types+react@18.3.27__@types+reac_714ecc194868bb6245bac079a4c1dd41/node_modules/@radix-ui/react-dialog/dist/index.mjs:25:5)
+    at AlertDialog (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-alert-dialog@1.1.15_@types+react-dom@18.3.7_@types+react@18.3.27__@type_2938e8bb4531c18dd665808ca65dbf8b/node_modules/@radix-ui/react-alert-dialog/dist/index.mjs:18:11)
+    at div
+    at div (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/__tests__/ProductCompatibilityEditor.test.tsx:51:13)
+    at CompatibilityItem (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/ProductCompatibilityEditor.tsx:477:30)
+    at AnimatePresence (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/__tests__/ProductCompatibilityEditor.test.tsx:57:23)
+    at div
+    at div
+    at div
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-primitive@2.1.3_@types+react-dom@18.3.7_@types+react@18.3.27__@types+re_fcd3de21280e20c51ab14304cef2fe55/node_modules/@radix-ui/react-primitive/dist/index.mjs:28:13
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-scroll-area@1.2.10_@types+react-dom@18.3.7_@types+react@18.3.27__@types_5bcbc5a51cd2460e88b2b8df9637afcd/node_modules/@radix-ui/react-scroll-area/dist/index.mjs:94:13
+    at div
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-primitive@2.1.3_@types+react-dom@18.3.7_@types+react@18.3.27__@types+re_fcd3de21280e20c51ab14304cef2fe55/node_modules/@radix-ui/react-primitive/dist/index.mjs:28:13
+    at Provider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-context@1.1.2_@types+react@18.3.27_react@18.3.1/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-scroll-area@1.2.10_@types+react-dom@18.3.7_@types+react@18.3.27__@types_5bcbc5a51cd2460e88b2b8df9637afcd/node_modules/@radix-ui/react-scroll-area/dist/index.mjs:32:7
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/scroll-area.tsx:9:56
+    at div
+    at div
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/card.tsx:81:57
+    at div
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/card.tsx:7:50
+    at ProductCompatibilityEditor (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/ProductCompatibilityEditor.tsx:32:3)
+    at QueryClientProvider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@tanstack+react-query@5.90.16_react@18.3.1/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Wrapper (/home/jhonslife/GIRO/apps/desktop/src/test/queryWrapper.tsx:12:22)
+Warning: An update to ScrollArea inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@radix-ui+react-scroll-area@1.2.10_@types+react-dom@18.3.7_@types+react@18.3.27__@types_5bcbc5a51cd2460e88b2b8df9637afcd/node_modules/@radix-ui/react-scroll-area/dist/index.mjs:32:7
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/scroll-area.tsx:9:56
+    at div
+    at div
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/card.tsx:81:57
+    at div
+    at /home/jhonslife/GIRO/apps/desktop/src/components/ui/card.tsx:7:50
+    at ProductCompatibilityEditor (/home/jhonslife/GIRO/apps/desktop/src/components/motoparts/ProductCompatibilityEditor.tsx:32:3)
+    at QueryClientProvider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@tanstack+react-query@5.90.16_react@18.3.1/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Wrapper (/home/jhonslife/GIRO/apps/desktop/src/test/queryWrapper.tsx:12:22)
+
+ ✓ src/components/motoparts/__tests__/ProductCompatibilityEditor.test.tsx (11 tests) 842ms
+ ✓ src/lib/__tests__/tauri.test.ts (12 tests) 38ms
+ ✓ src/lib/__tests__/utils.test.ts (35 tests) 54ms
+ ✓ src/components/motoparts/__tests__/ServiceOrderDetails.test.tsx (8 tests) 1289ms
+   ✓ ServiceOrderDetails > should handle start action 304ms
+ ✓ src/pages/products/__tests__/ProductsPage.test.tsx (17 tests) 5373ms
+   ✓ ProductsPage > should render products and handle search with debounce 1061ms
+   ✓ ProductsPage > should handle search with barcode 771ms
+   ✓ ProductsPage > should filter by status 302ms
+   ✓ ProductsPage > should handle product actions: Edit 335ms
+   ✓ ProductsPage > should show empty state when search returns nothing 950ms
+ ✓ tests/unit/hardware/scanner.mock.test.ts (15 tests) 36ms
+ ✓ src/stores/__tests__/pdv-store.test.ts (13 tests) 9ms
+ ✓ src/pages/auth/__tests__/LoginPage.test.tsx (14 tests) 2008ms
+stderr | src/pages/settings/__tests__/SettingsPage.test.tsx > SettingsPage > should render company settings by default
+Warning: An update to SettingsPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at SettingsPage (/home/jhonslife/GIRO/apps/desktop/src/pages/settings/SettingsPage.tsx:57:58)
+Warning: An update to SettingsPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at SettingsPage (/home/jhonslife/GIRO/apps/desktop/src/pages/settings/SettingsPage.tsx:57:58)
+
+ ✓ src/components/pdv/__tests__/NumPad.test.tsx (19 tests) 1129ms
+   ✓ NumPad > rendering > should render all number buttons 445ms
+ ✓ src/components/ui/__tests__/Card.test.tsx (21 tests) 416ms
+ ✓ src/hooks/__tests__/useAlerts.test.tsx (8 tests) 562ms
+ ✓ src/hooks/__tests__/useCashSession.test.tsx (7 tests) 473ms
+ ✓ src/pages/stock/__tests__/ExpirationPage.test.tsx (6 tests) 682ms
+   ✓ ExpirationPage > should filter lots by status 367ms
+stderr | src/components/motoparts/__tests__/WarrantyForm.test.tsx > WarrantyForm > should show error toast on failure
+Erro ao registrar garantia: Error: Fail
+    at /home/jhonslife/GIRO/apps/desktop/src/components/motoparts/__tests__/WarrantyForm.test.tsx:148:46
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/vitest@2.1.9_@types+node@22.19.3_@vitest+ui@4.0.16_jsdom@25.0.1/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
+
+ ✓ src/components/motoparts/__tests__/WarrantyForm.test.tsx (5 tests) 1112ms
+ ✓ src/pages/stock/__tests__/StockMovementsPage.test.tsx (7 tests) 530ms
+ ✓ src/pages/settings/__tests__/SettingsPage.test.tsx (6 tests) 2601ms
+   ✓ SettingsPage > should render company settings by default 334ms
+   ✓ SettingsPage > should switch between all tabs 674ms
+   ✓ SettingsPage > should handle theme changes 426ms
+   ✓ SettingsPage > should handle scanner and ports 516ms
+   ✓ SettingsPage > should handle printer and scale tests 418ms
+ ✓ src/pages/dashboard/__tests__/DashboardPage.test.tsx (7 tests) 797ms
+ ✓ tests/unit/hardware/scale.mock.test.ts (18 tests) 33ms
+ ✓ src/components/ui/__tests__/Button.test.tsx (23 tests) 759ms
+ ✓ src/hooks/__tests__/usePriceHistory.test.tsx (14 tests) 333ms
+ ✓ src/hooks/__tests__/useKeyboard.test.tsx (11 tests) 193ms
+ ✓ src/components/nfce/__tests__/ContingencyManager.test.tsx (5 tests) 626ms
+stdout | src/pages/license/__tests__/LicenseActivationPage.test.tsx > LicenseActivationPage > should show loading state on mount
+[LicenseActivationPage] Initializing...
+
+stdout | src/pages/license/__tests__/LicenseActivationPage.test.tsx > LicenseActivationPage > should render activation form when no license exists
+[LicenseActivationPage] Initializing...
+[LicenseActivationPage] Hardware ID: MOCK-HWID-123
+[LicenseActivationPage] Hydrating from disk...
+[LicenseStore] Hydrating from disk...
+[LicenseStore] Data from disk: null
+[LicenseStore] No key found on disk, setting unlicensed
+[LicenseActivationPage] Post-hydration: key=null, state=unlicensed
+[LicenseActivationPage] No license found, requiring activation.
+
+stdout | src/pages/license/__tests__/LicenseActivationPage.test.tsx > LicenseActivationPage > should format license key during typing
+[LicenseActivationPage] Initializing...
+[LicenseActivationPage] Hardware ID: MOCK-HWID-123
+[LicenseActivationPage] Hydrating from disk...
+[LicenseStore] Hydrating from disk...
+[LicenseStore] Data from disk: null
+[LicenseStore] No key found on disk, setting unlicensed
+[LicenseActivationPage] Post-hydration: key=null, state=unlicensed
+[LicenseActivationPage] No license found, requiring activation.
+
+stdout | src/pages/license/__tests__/LicenseActivationPage.test.tsx > LicenseActivationPage > should handle successful activation
+[LicenseActivationPage] Initializing...
+[LicenseActivationPage] Hardware ID: MOCK-HWID-123
+[LicenseActivationPage] Hydrating from disk...
+[LicenseStore] Hydrating from disk...
+[LicenseStore] Data from disk: null
+[LicenseStore] No key found on disk, setting unlicensed
+[LicenseActivationPage] Post-hydration: key=null, state=unlicensed
+[LicenseActivationPage] No license found, requiring activation.
+
+ ✓ tests/integration/sale.flow.test.ts (6 tests) 16ms
+ ✓ src/__tests__/App.test.tsx (7 tests) 231ms
+ ✓ tests/unit/hardware/printer.mock.test.ts (13 tests) 13ms
+ ✓ src/components/ui/__tests__/Input.test.tsx (19 tests) 179ms
+ ✓ src/pages/reports/__tests__/SalesReportPage.test.tsx (9 tests) 813ms
+stdout | src/pages/license/__tests__/LicenseActivationPage.test.tsx > LicenseActivationPage > should handle activation error
+[LicenseActivationPage] Initializing...
+[LicenseActivationPage] Hardware ID: MOCK-HWID-123
+[LicenseActivationPage] Hydrating from disk...
+[LicenseStore] Hydrating from disk...
+[LicenseStore] Data from disk: null
+[LicenseStore] No key found on disk, setting unlicensed
+[LicenseActivationPage] Post-hydration: key=null, state=unlicensed
+[LicenseActivationPage] No license found, requiring activation.
+
+ ✓ tests/integration/cash.flow.test.ts (6 tests) 10ms
+stdout | src/pages/license/__tests__/LicenseActivationPage.test.tsx > LicenseActivationPage > should redirect if valid license is found on mount
+[LicenseActivationPage] Initializing...
+[LicenseActivationPage] Hardware ID: MOCK-HWID-123
+[LicenseActivationPage] Hydrating from disk...
+[LicenseActivationPage] Post-hydration: key=EXISTING-KEY, state=valid
+[LicenseActivationPage] Valid license or within grace period, proceeding to login
+
+stderr | src/hooks/__tests__/useVehicles.test.tsx > useVehicles > should reset state
+Warning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@testing-library+react@16.3.1_@testing-library+dom@10.4.1_@types+react-dom@18.3.7_@type_d9437e0482bb9cab2d9082dbcc570f70/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at QueryClientProvider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@tanstack+react-query@5.90.16_react@18.3.1/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Wrapper (/home/jhonslife/GIRO/apps/desktop/src/test/queryWrapper.tsx:12:22)
+Warning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@testing-library+react@16.3.1_@testing-library+dom@10.4.1_@types+react-dom@18.3.7_@type_d9437e0482bb9cab2d9082dbcc570f70/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at QueryClientProvider (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@tanstack+react-query@5.90.16_react@18.3.1/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Wrapper (/home/jhonslife/GIRO/apps/desktop/src/test/queryWrapper.tsx:12:22)
+
+ ✓ src/pages/license/__tests__/LicenseActivationPage.test.tsx (6 tests) 2003ms
+   ✓ LicenseActivationPage > should handle successful activation 1595ms
+ ✓ src/hooks/__tests__/useServiceOrders.test.tsx (8 tests) 200ms
+ ✓ src/hooks/__tests__/useVehicles.test.tsx (6 tests) 309ms
+ ✓ src/pages/employees/__tests__/EmployeesPage.test.tsx (7 tests) 3455ms
+   ✓ EmployeesPage > should render the employees list 394ms
+   ✓ EmployeesPage > should filter by search query 526ms
+   ✓ EmployeesPage > should filter by status (active/inactive/all) 572ms
+   ✓ EmployeesPage > should create a new employee 887ms
+   ✓ EmployeesPage > should edit an employee 713ms
+ ✓ src/components/tutorial/__tests__/useTutorial.test.tsx (9 tests) 81ms
+ ✓ src/components/motoparts/__tests__/ServiceOrderList.test.tsx (7 tests) 515ms
+ ✓ src/pages/stock/__tests__/StockPage.test.tsx (7 tests) 745ms
+ ✓ src/components/shared/__tests__/FeatureGate.test.tsx (7 tests) 107ms
+ ✓ src/components/motoparts/__tests__/MotopartsDashboard.test.tsx (3 tests) 365ms
+ ✓ src/stores/__tests__/auth-store.test.ts (7 tests) 11ms
+ ✓ src/lib/__tests__/design-tokens.test.ts (15 tests) 14ms
+ ✓ src/pages/reports/__tests__/ReportsPage.test.tsx (3 tests) 874ms
+   ✓ ReportsPage > should render all status cards including monthly stats 360ms
+   ✓ ReportsPage > should render all report category cards with correct links 441ms
+ ✓ src/hooks/__tests__/useWarranties.test.tsx (6 tests) 143ms
+ ✓ src/components/layout/__tests__/Sidebar.test.tsx (9 tests) 1015ms
+   ✓ Sidebar > should render sidebar 333ms
+ ✓ src/components/pdv/__tests__/CartItemRow.test.tsx (10 tests) 630ms
+ ✓ src/components/motoparts/__tests__/VehicleSelector.test.tsx (5 tests) 1176ms
+   ✓ VehicleSelector > should render and select brands 313ms
+   ✓ VehicleSearch > should search and select vehicle 701ms
+ ✓ src/pages/products/__tests__/ProductFormPage.test.tsx (4 tests) 1443ms
+   ✓ ProductFormPage > Create Mode > should render page title for new product 500ms
+   ✓ ProductFormPage > Validation > should show error when submitting without name 477ms
+ ✓ src/hooks/__tests__/useToast.test.ts (7 tests) 31ms
+ ✓ src/hooks/__tests__/useAuth.test.tsx (4 tests) 336ms
+ ✓ src/hooks/__tests__/useEmployees.test.ts (6 tests) 232ms
+ ✓ src/pages/stock/__tests__/StockEntryPage.test.tsx (4 tests) 1726ms
+   ✓ StockEntryPage > should allow searching and selecting a product 709ms
+   ✓ StockEntryPage > should submit stock entry with all fields 846ms
+ ✓ src/components/ui/__tests__/Badge.test.tsx (12 tests) 138ms
+ ✓ src/components/pdv/__tests__/ProductCard.test.tsx (11 tests) 531ms
+ ✓ src/components/motoparts/__tests__/CustomerSearch.test.tsx (5 tests) 925ms
+   ✓ CustomerSearch > should render and show search results 452ms
+ ✓ src/stores/__tests__/useBusinessProfile.test.ts (8 tests) 17ms
+ ✓ tests/unit/utils/validators.test.ts (11 tests) 24ms
+ ✓ src/components/ui/__tests__/Switch.test.tsx (11 tests) 387ms
+stderr | src/components/pdv/__tests__/PaymentModal.test.tsx > PaymentModal > renders correctly when open
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+stderr | src/components/pdv/__tests__/PaymentModal.test.tsx > PaymentModal > switches to cash payment view
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+stderr | src/components/pdv/__tests__/PaymentModal.test.tsx > PaymentModal > switches to split payment view
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+ ✓ src/components/pdv/__tests__/PaymentModal.test.tsx (3 tests) 686ms
+   ✓ PaymentModal > renders correctly when open 460ms
+ ✓ src/components/motoparts/__tests__/WarrantyManager.test.tsx (1 test) 244ms
+ ✓ src/components/motoparts/__tests__/ServiceOrderManager.test.tsx (1 test) 163ms
+ ✓ src/components/tutorial/__tests__/TutorialHub.test.tsx (6 tests) 524ms
+ ✓ src/components/layout/__tests__/Header.test.tsx (7 tests) 354ms
+stderr | src/components/layout/__tests__/Footer.test.tsx > Footer > should render footer element
+Warning: An update to Footer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Footer (/home/jhonslife/GIRO/apps/desktop/src/components/layout/Footer.tsx:107:20)
+
+ ✓ src/components/layout/__tests__/Footer.test.tsx (5 tests) 407ms
+ ✓ src/pages/alerts/__tests__/AlertsPage.test.tsx (3 tests) 460ms
+ ✓ src/components/layout/__tests__/AppShell.test.tsx (4 tests) 181ms
+ ✓ src/components/shared/__tests__/LoadingPage.test.tsx (3 tests) 62ms
+ ✓ src/components/pdv/__tests__/SaleReceipt.test.tsx (2 tests) 132ms
+ ✓ src/pages/motoparts/__tests__/WarrantiesPage.test.tsx (1 test) 80ms
+ ✓ src/pages/motoparts/__tests__/ServiceOrdersPage.test.tsx (1 test) 62ms
+ ✓ src/components/motoparts/__tests__/WarrantyList.test.tsx (2 tests) 338ms
+ ✓ src/pages/setup/__tests__/InitialSetupPage.test.tsx (2 tests) 151ms
+
+ Test Files  89 passed (89)
+      Tests  878 passed (878)
+   Start at  08:51:53
+   Duration  25.51s (transform 6.51s, setup 15.28s, collect 63.72s, tests 58.94s, environment 83.87s, prepare 17.41s)
+

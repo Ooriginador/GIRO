@@ -102,6 +102,36 @@ pub async fn print_receipt(receipt: Receipt, state: State<'_, HardwareState>) ->
     Ok(())
 }
 
+/// Imprime ordem de serviço
+#[tauri::command]
+pub async fn print_service_order(
+    os: crate::hardware::printer::ServiceOrderReceipt,
+    state: State<'_, HardwareState>,
+) -> AppResult<()> {
+    let config = state.printer_config.read().await;
+
+    if !config.enabled {
+        return Err(HardwareError::NotConfigured("Impressora não habilitada".into()).into());
+    }
+
+    let mut printer = ThermalPrinter::new(config.clone());
+    printer.print_service_order(&os);
+
+    match config.connection {
+        crate::hardware::printer::PrinterConnection::Usb => {
+            printer.print_usb()?;
+        }
+        crate::hardware::printer::PrinterConnection::Serial => {
+            printer.print_serial()?;
+        }
+        crate::hardware::printer::PrinterConnection::Network => {
+            printer.print_network().await?;
+        }
+    }
+
+    Ok(())
+}
+
 /// Testa impressão
 #[tauri::command]
 pub async fn test_printer(state: State<'_, HardwareState>) -> AppResult<()> {
@@ -497,6 +527,7 @@ macro_rules! hardware_commands {
             // Impressora
             $crate::commands::hardware::configure_printer,
             $crate::commands::hardware::print_receipt,
+            $crate::commands::hardware::print_service_order,
             $crate::commands::hardware::test_printer,
             $crate::commands::hardware::print_test_documents,
             $crate::commands::hardware::get_printer_config,

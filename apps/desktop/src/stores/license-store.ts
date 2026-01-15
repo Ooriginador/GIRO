@@ -1,9 +1,4 @@
-/**
- * License Store
- *
- * Gerencia o estado da licença do software.
- * A licença DEVE ser validada antes de qualquer acesso ao sistema.
- */
+import { getStoredLicense } from '@/lib/tauri';
 import { LicenseInfo } from '@/types';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -17,6 +12,7 @@ interface LicenseStore {
   state: LicenseState;
   error: string | null;
   lastValidation: string | null;
+  isHydrated: boolean;
 
   // Ações
   setLicenseKey: (key: string) => void;
@@ -29,10 +25,15 @@ interface LicenseStore {
   // Verificações
   isLicenseValid: () => boolean;
   needsValidation: () => boolean;
+  isWithinGracePeriod: () => boolean;
+  hydrateFromDisk: () => Promise<void>;
+  resetHydration: () => void;
 }
 
 // Validade da cache de licença (1 hora)
-const VALIDATION_CACHE_MS = 60 * 60 * 1000;
+const VALIDATION_CACHE_MS = 1 * 60 * 60 * 1000;
+// Período de graça offline (7 dias)
+const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const useLicenseStore = create<LicenseStore>()(
   persist(
@@ -42,6 +43,7 @@ export const useLicenseStore = create<LicenseStore>()(
       state: 'loading',
       error: null,
       lastValidation: null,
+      isHydrated: false,
 
       setLicenseKey: (key) => set({ licenseKey: key }),
 
@@ -75,7 +77,10 @@ export const useLicenseStore = create<LicenseStore>()(
           state: 'unlicensed',
           error: null,
           lastValidation: null,
+          isHydrated: true,
         }),
+
+      resetHydration: () => set({ isHydrated: false }),
 
       isLicenseValid: () => {
         const { state, licenseInfo } = get();
@@ -92,13 +97,83 @@ export const useLicenseStore = create<LicenseStore>()(
       },
 
       needsValidation: () => {
-        const { lastValidation, licenseKey } = get();
+        const { lastValidation, licenseKey, state, isHydrated } = get();
+        if (!isHydrated) return false; // Wait for hydration
         if (!licenseKey) return false;
+
+        // Se já deu erro, tenta validar de novo ao abrir/precisar
+        if (state === 'error') return true;
+
         if (!lastValidation) return true;
 
         const lastCheck = new Date(lastValidation).getTime();
         const now = Date.now();
         return now - lastCheck > VALIDATION_CACHE_MS;
+      },
+
+      isWithinGracePeriod: () => {
+        const { lastValidation, licenseKey, state, isHydrated } = get();
+        if (!isHydrated) return false; // Wait for hydration truth
+        if (!licenseKey) return false;
+
+        // Se já está válido, não precisa de grace period
+        if (state === 'valid') return true;
+
+        if (!lastValidation) return false;
+
+        const lastCheck = new Date(lastValidation).getTime();
+        const now = Date.now();
+        const diff = now - lastCheck;
+
+        return diff < GRACE_PERIOD_MS;
+      },
+
+      hydrateFromDisk: async () => {
+        console.log('[LicenseStore] Hydrating from disk...');
+        try {
+          const data = await getStoredLicense();
+          console.log('[LicenseStore] Data from disk:', data);
+
+          if (data && data.key) {
+            const info = data.info || null;
+            const lastVal = data.last_validated_at || data.activated_at || null;
+
+            // Determine initial state based on grace period
+            let initialState: LicenseState = 'loading';
+            if (info?.status === 'active') {
+              const lastCheck = lastVal ? new Date(lastVal).getTime() : 0;
+              const now = Date.now();
+              // Se validado nos últimos 7 dias, consideramos válido imediatamente para evitar bloqueios
+              if (now - lastCheck < GRACE_PERIOD_MS) {
+                console.log('[LicenseStore] Within grace period, setting state to valid');
+                initialState = 'valid';
+              } else {
+                console.log('[LicenseStore] Outside grace period, setting state to loading');
+              }
+            } else {
+              console.log('[LicenseStore] License info not active, setting state to loading');
+            }
+
+            set({
+              licenseKey: data.key,
+              licenseInfo: info,
+              lastValidation: lastVal,
+              state: initialState,
+              isHydrated: true,
+            });
+          } else {
+            console.log('[LicenseStore] No key found on disk, setting unlicensed');
+            set({
+              licenseKey: null,
+              licenseInfo: null,
+              state: 'unlicensed',
+              isHydrated: true,
+            });
+          }
+        } catch (error) {
+          console.error('[LicenseStore] Failed to hydrate license from disk:', error);
+          set({ state: 'error', isHydrated: true });
+        }
       },
     }),
     {

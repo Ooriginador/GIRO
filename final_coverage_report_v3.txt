@@ -1,0 +1,64 @@
+
+> @giro/desktop@1.0.0 test:coverage /home/jhonslife/GIRO/apps/desktop
+> vitest run --coverage --exclude tests/e2e
+
+
+ RUN  v2.1.9 /home/jhonslife/GIRO/apps/desktop
+      Coverage enabled with v8
+
+ ✓ src/stores/__tests__/alert-store.test.ts (14 tests) 88ms
+ ✓ src/lib/__tests__/formatters.test.ts (48 tests) 127ms
+ ✓ tests/unit/utils/formatters.test.ts (51 tests) 255ms
+ ✓ src/hooks/__tests__/useSales.test.tsx (15 tests) 933ms
+ ✓ src/hooks/__tests__/useDashboard.test.tsx (7 tests) 749ms
+   ✓ useDashboardStats > should fetch dashboard stats successfully 337ms
+ ✓ src/stores/__tests__/settings-store.test.ts (20 tests) 33ms
+stderr | src/components/motoparts/__tests__/ServiceOrderForm.test.tsx > ServiceOrderForm > should show toast on submission error
+Erro ao criar ordem de serviço: Error: API Fail
+    at /home/jhonslife/GIRO/apps/desktop/src/components/motoparts/__tests__/ServiceOrderForm.test.tsx:248:43
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+    at file:///home/jhonslife/GIRO/apps/desktop/node_modules/.pnpm/vitest@2.1.9_@types+node@22.19.3_@vitest+ui@4.0.16_jsdom@25.0.1/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
+
+ ✓ src/components/motoparts/__tests__/ServiceOrderForm.test.tsx (5 tests) 1744ms
+   ✓ ServiceOrderForm > should render the form and allow submission 600ms
+   ✓ ServiceOrderForm > should complete full successful flow 322ms
+ ✓ src/hooks/__tests__/useCategories.test.tsx (12 tests) 877ms
+ ✓ src/hooks/__tests__/usePDV.test.tsx (10 tests) 843ms
+   ✓ useCashSessionSummary > should fetch session summary when id provided 334ms
+stdout | src/pages/cash/__tests__/CashControlPage.test.tsx > CashControlPage > should handle adding a cash movement (Suprimento)
+Clicking confirm-supply
+
+ ✓ src/pages/cash/__tests__/CashControlPage.test.tsx (6 tests) 3787ms
+   ✓ CashControlPage > should render "Cash Closed" state when no session exists 477ms
+   ✓ CashControlPage > should handle opening a cash session 1049ms
+   ✓ CashControlPage > should render dashboard when session is open 374ms
+   ✓ CashControlPage > should handle adding a cash movement (Suprimento) 839ms
+   ✓ CashControlPage > should handle closing a cash session 806ms
+ ✓ src/hooks/__tests__/useSuppliers.test.tsx (10 tests) 661ms
+ ✓ src/pages/pdv/__tests__/PDVPage.test.tsx (9 tests) 5987ms
+   ✓ PDVPage > should show closed message when no session and allow opening cash 571ms
+   ✓ PDVPage > should render PDV and handle search interactions 571ms
+   ✓ PDVPage > should handle weighted product selection 321ms
+   ✓ PDVPage > should handle F shortcuts 889ms
+   ✓ PDVPage > should handle quantity and discount confirmations via mouse with comma/dot logic 1094ms
+   ✓ PDVPage > should handle invalid quantity/discount inputs 2119ms
+ ✓ src/hooks/__tests__/useStock.test.tsx (9 tests) 802ms
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: ENOENT: no such file or directory, open '/home/jhonslife/GIRO/apps/desktop/coverage/.tmp/coverage-11.json'
+ ❯ open node:internal/fs/promises:639:25
+ ❯ Object.writeFile node:internal/fs/promises:1216:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -2, code: 'ENOENT', syscall: 'open', path: '/home/jhonslife/GIRO/apps/desktop/coverage/.tmp/coverage-11.json' }
+
+
+
+ ELIFECYCLE  Command failed with exit code 1.

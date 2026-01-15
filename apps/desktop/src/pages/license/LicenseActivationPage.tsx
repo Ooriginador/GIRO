@@ -25,33 +25,71 @@ export function LicenseActivationPage() {
   const navigate = useNavigate();
 
   const {
-    licenseKey: storedKey,
     setLicenseKey: storeLicenseKey,
     setLicenseInfo,
     setState,
     updateLastValidation,
+    hydrateFromDisk,
   } = useLicenseStore();
 
   // Check for stored license on mount
   useEffect(() => {
     const initialize = async () => {
+      // Timeout de segurança para não ficar preso no loader se o backend não responder
+      const timeoutId = setTimeout(() => {
+        if (isValidating) {
+          console.warn('License initialization timed out, showing form.');
+          setIsValidating(false);
+          if (useLicenseStore.getState().state === 'loading') {
+            setState('unlicensed');
+          }
+        }
+      }, 5000);
+
       try {
+        console.log('[LicenseActivationPage] Initializing...');
         // Get hardware ID
         const hwId = await getHardwareId();
+        console.log('[LicenseActivationPage] Hardware ID:', hwId);
         setHardwareId(hwId);
 
-        // Check for stored license
-        if (storedKey) {
-          setLicenseKey(storedKey);
-          await validateStoredLicense(storedKey);
+        // Initialize from disk/local state
+        console.log('[LicenseActivationPage] Hydrating from disk...');
+        await hydrateFromDisk();
+
+        const store = useLicenseStore.getState();
+        const currentKey = store.licenseKey;
+        console.log(
+          `[LicenseActivationPage] Post-hydration: key=${currentKey}, state=${store.state}`
+        );
+
+        if (currentKey) {
+          setLicenseKey(currentKey);
+
+          // Check if we are within grace period (7 days) OR if already valid
+          if (store.isWithinGracePeriod() || store.state === 'valid') {
+            console.log(
+              '[LicenseActivationPage] Valid license or within grace period, proceeding to login'
+            );
+            clearTimeout(timeoutId);
+            navigate('/login', { replace: true });
+            return;
+          }
+
+          // Not in grace period and not valid, MUST validate online
+          console.log('[LicenseActivationPage] Triggering online validation...');
+          await validateStoredLicense(currentKey);
         } else {
+          console.log('[LicenseActivationPage] No license found, requiring activation.');
           setState('unlicensed');
           setIsValidating(false);
         }
       } catch (error) {
-        console.error('Failed to initialize license check:', error);
+        console.error('[LicenseActivationPage] Failed to initialize license check:', error);
         setState('error');
         setIsValidating(false);
+      } finally {
+        clearTimeout(timeoutId);
       }
     };
 

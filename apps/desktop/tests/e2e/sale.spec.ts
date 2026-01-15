@@ -11,8 +11,8 @@ test.describe('Sale Flow E2E', () => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Login com PIN 1234 (Admin) - UI usa teclado numérico
-    await loginWithPin(page, '1234');
+    // Login com PIN 8899 (Admin) - UI usa teclado numérico
+    await loginWithPin(page, '8899');
     await dismissTutorialIfPresent(page);
   });
 

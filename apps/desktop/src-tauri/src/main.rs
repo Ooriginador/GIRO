@@ -52,7 +52,7 @@ async fn main() {
     // Em produção (release), usa o servidor da Railway. Em dev, usa localhost ou env var.
     // IMPORTANTE: A URL base NÃO deve incluir /api/v1 - o LicenseClient adiciona isso
     #[cfg(debug_assertions)]
-    let default_server_url = "http://localhost:3001";
+    let default_server_url = "https://giro-license-server-production.up.railway.app";
 
     #[cfg(not(debug_assertions))]
     let default_server_url = "https://giro-license-server-production.up.railway.app";
@@ -294,6 +294,7 @@ async fn main() {
             commands::get_hardware_id,
             commands::activate_license,
             commands::validate_license,
+            commands::get_stored_license,
             commands::sync_metrics,
             commands::get_server_time,
         ])

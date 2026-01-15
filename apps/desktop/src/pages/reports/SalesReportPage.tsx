@@ -66,6 +66,35 @@ export const SalesReportPage: FC = () => {
     { label: 'Este mês', from: startOfMonth(new Date()), to: endOfMonth(new Date()) },
   ];
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExport = () => {
+    if (!report?.periods || report.periods.length === 0) return;
+
+    const headers = ['Período', 'Vendas', 'Valor', 'Ticket Médio', 'Porcentagem'];
+    const rows = report.periods.map((p) => [
+      p.date,
+      p.salesCount,
+      p.revenue.toFixed(2),
+      (p.revenue / (p.salesCount || 1)).toFixed(2),
+      p.percentage.toFixed(1),
+    ]);
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `relatorio-vendas-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -80,11 +109,11 @@ export const SalesReportPage: FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
             Imprimir
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Exportar
           </Button>
@@ -162,7 +191,9 @@ export const SalesReportPage: FC = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(report?.totalAmount ?? 0)}</div>
+            <div className="text-2xl font-bold" data-testid="total-amount">
+              {formatCurrency(report?.totalAmount ?? 0)}
+            </div>
             <p className="text-xs text-muted-foreground">
               {report?.salesCount ?? 0} vendas no período
             </p>
@@ -175,7 +206,9 @@ export const SalesReportPage: FC = () => {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(report?.averageTicket ?? 0)}</div>
+            <div className="text-2xl font-bold" data-testid="average-ticket">
+              {formatCurrency(report?.averageTicket ?? 0)}
+            </div>
             <p className="text-xs text-muted-foreground">média por venda</p>
           </CardContent>
         </Card>
@@ -197,10 +230,10 @@ export const SalesReportPage: FC = () => {
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">
+            <div className="text-2xl font-bold text-success" data-testid="gross-profit">
               {formatCurrency(report?.grossProfit ?? 0)}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground" data-testid="profit-margin">
               margem de {report?.profitMargin?.toFixed(1) ?? 0}%
             </p>
           </CardContent>

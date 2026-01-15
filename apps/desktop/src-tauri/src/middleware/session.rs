@@ -101,7 +101,7 @@ mod tests {
             id: "emp-001".to_string(),
             name: "Admin".to_string(),
             role: "ADMIN".to_string(),
-            pin: "1234".to_string(),
+            pin: "8899".to_string(),
             password: None,
             cpf: None,
             phone: None,

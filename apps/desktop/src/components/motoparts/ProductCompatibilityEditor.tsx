@@ -364,10 +364,10 @@ function CompatibilityItem({ compatibility, onRemove }: CompatibilityItemProps) 
         </div>
       </div>
 
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <AlertDialog>
+      <AlertDialog>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <AlertDialogTrigger asChild>
                 <Button
                   variant="ghost"
@@ -377,31 +377,32 @@ function CompatibilityItem({ compatibility, onRemove }: CompatibilityItemProps) 
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Remover Compatibilidade</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Deseja remover a compatibilidade com <strong>{vehicle.displayName}</strong>?
-                    <br />A alteração só será efetivada após salvar.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={onRemove}
-                    className="bg-destructive hover:bg-destructive/90"
-                  >
-                    Remover
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Remover compatibilidade</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Remover compatibilidade</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <AlertDialogContent aria-describedby="remove-compatibility-description">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Compatibilidade</AlertDialogTitle>
+            <AlertDialogDescription id="remove-compatibility-description">
+              Deseja remover a compatibilidade com <strong>{vehicle.displayName}</strong>?
+              <br />A alteração só será efetivada após salvar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={onRemove}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }

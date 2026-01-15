@@ -28,36 +28,66 @@ export const LicenseGuard: FC<LicenseGuardProps> = ({ children }) => {
     setLicenseInfo,
     setError,
     updateLastValidation,
-    needsValidation,
+    hydrateFromDisk,
+    isWithinGracePeriod,
   } = useLicenseStore();
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
     const checkLicense = async () => {
-      // No license key stored - need activation
-      if (!licenseKey) {
-        setState('unlicensed');
-        return;
+      const currentStore = useLicenseStore.getState();
+      console.log(
+        `[LicenseGuard] Checking license... isHydrated=${currentStore.isHydrated}, state=${state}`
+      );
+
+      // Always ensure we have the truth from disk on first load
+      if (!currentStore.isHydrated) {
+        console.log('[LicenseGuard] Store not hydrated, attempting hydration...');
+        await hydrateFromDisk();
       }
 
-      // Only revalidate if needed (cache expired or first check)
-      if (!needsValidation()) {
-        return;
-      }
+      const store = useLicenseStore.getState();
+      const currentKey = store.licenseKey;
+      console.log(`[LicenseGuard] Hydration finished: key=${currentKey}, state=${store.state}`);
 
-      // Validate with server
-      try {
-        setState('loading');
-        const info = await validateLicense(licenseKey);
-        setLicenseInfo(info);
-        updateLastValidation();
-      } catch (error) {
-        console.error('License validation failed:', error);
-        setError(typeof error === 'string' ? error : 'Falha ao validar licença');
+      // If still loading after hydration, handle properly
+      if (store.state === 'loading') {
+        if (isWithinGracePeriod()) {
+          console.log('[LicenseGuard] Within grace period, permitting access');
+          setState('valid');
+          return;
+        }
+
+        // No grace period? Must validate
+        try {
+          if (currentKey) {
+            console.log('[LicenseGuard] Triggering mandatory validation');
+            const info = await validateLicense(currentKey);
+            setLicenseInfo(info);
+            updateLastValidation();
+          } else {
+            setState('unlicensed');
+          }
+        } catch (e) {
+          console.error('[LicenseGuard] Validation failed', e);
+          setError('Erro de conexão com servidor de licença');
+        }
       }
     };
 
+    // Safety fallback: if stuck in loading for 10s, force unlicensed
+    timeoutId = setTimeout(() => {
+      if (useLicenseStore.getState().state === 'loading') {
+        console.warn('[LicenseGuard] Stuck in loading for 10s, forcing unlicensed state');
+        setState('unlicensed');
+      }
+    }, 10000);
+
     checkLicense();
-  }, [licenseKey]);
+
+    return () => clearTimeout(timeoutId);
+  }, [licenseKey, state]);
 
   // Loading state
   if (state === 'loading') {

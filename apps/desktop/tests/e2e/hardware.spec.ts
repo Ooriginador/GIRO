@@ -13,7 +13,7 @@ test.describe.skip('Integração de Hardware E2E', () => {
     await page.waitForLoadState('domcontentloaded');
 
     const pinInput = page.locator('input[type="password"]').first();
-    await pinInput.fill('1234');
+    await pinInput.fill('8899');
 
     const loginButton = page.locator('button:has-text("Entrar")').first();
     await loginButton.click();

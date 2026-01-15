@@ -65,7 +65,7 @@ const loadWebMockDb = (): WebMockDb => {
         {
           id: 'emp-admin',
           name: 'Admin',
-          pin: '1234',
+          pin: '8899',
           role: 'ADMIN',
           isActive: true,
           createdAt: nowIso(),
@@ -433,6 +433,10 @@ export async function getCashSessionSummary(sessionId: string): Promise<CashSess
   return tauriInvoke<CashSessionSummary>('get_cash_session_summary', { sessionId });
 }
 
+export async function getCashSessionMovements(sessionId: string): Promise<CashMovement[]> {
+  return tauriInvoke<CashMovement[]>('get_session_movements', { sessionId });
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // EMPLOYEES
 // ────────────────────────────────────────────────────────────────────────────
@@ -777,4 +781,8 @@ export async function activateLicense(licenseKey: string): Promise<LicenseInfo> 
 
 export async function validateLicense(licenseKey: string): Promise<LicenseInfo> {
   return tauriInvoke<LicenseInfo>('validate_license', { licenseKey });
+}
+
+export async function getStoredLicense(): Promise<any> {
+  return tauriInvoke<any>('get_stored_license');
 }

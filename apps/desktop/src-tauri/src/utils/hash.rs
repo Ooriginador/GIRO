@@ -37,7 +37,7 @@ mod tests {
 
     #[test]
     fn test_hash_and_verify_pin() {
-        let pin = "1234";
+        let pin = "8899";
         let hashed = hash_pin(pin).unwrap();
 
         assert_ne!(pin, hashed);
