@@ -48,9 +48,14 @@
       ]
     }
   },
+  "exclude": [
+    "src/**/__tests__/*",
+    "tests",
+    "**/*.test.tsx",
+    "**/*.test.ts"
+  ],
   "include": [
-    "src",
-    "tests"
+    "src"
   ],
   "references": [
     {
