@@ -32,7 +32,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "msi", "deb", "appimage"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -63,7 +63,7 @@
         "https://jhonslife.github.io/GIRO/updater/{{target}}/{{current_version}}"
       ],
       "dialog": false,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERDOUU0RkE1RDk0MjEwNDkKUldUeHAvZlJjSEN0VFM3UUtHNGNEcnFiNEhMQm1wMTFWZEt2RU9LVkxXN1I0eTZxUGFEMW9TcmIK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ2RTJGRTNGNzgyNDdCM0UKUldRK2V5UjRQLzdpMXUrYXgrekpWVW04M0lXTWNaVDRGOE5IR0g5aUVjcWlFWElGWGthb2xUWHgK"
     }
   }
 }
