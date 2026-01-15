@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { activateLicense, getHardwareId, setSetting, validateLicense } from '@/lib/tauri';
 import { useLicenseStore } from '@/stores/license-store';
 import { AlertCircle, Key, Loader2, Monitor, ShieldCheck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export function LicenseActivationPage() {
@@ -32,6 +32,28 @@ export function LicenseActivationPage() {
     hydrateFromDisk,
   } = useLicenseStore();
 
+  const validateStoredLicense = useCallback(
+    async (key: string) => {
+      try {
+        const info = await validateLicense(key);
+        setLicenseInfo(info);
+        updateLastValidation();
+
+        if (info.status === 'active') {
+          // License is valid, redirect to login
+          navigate('/login', { replace: true });
+        } else {
+          setIsValidating(false);
+        }
+      } catch (error) {
+        console.error('License validation failed:', error);
+        setState('error');
+        setIsValidating(false);
+      }
+    },
+    [navigate, setLicenseInfo, setState, updateLastValidation]
+  );
+
   // Check for stored license on mount
   useEffect(() => {
     const initialize = async () => {
@@ -40,7 +62,8 @@ export function LicenseActivationPage() {
         if (isValidating) {
           console.warn('License initialization timed out, showing form.');
           setIsValidating(false);
-          if (useLicenseStore.getState().state === 'loading') {
+          const currentState = useLicenseStore.getState().state;
+          if (currentState === 'loading') {
             setState('unlicensed');
           }
         }
@@ -94,26 +117,7 @@ export function LicenseActivationPage() {
     };
 
     initialize();
-  }, []);
-
-  const validateStoredLicense = async (key: string) => {
-    try {
-      const info = await validateLicense(key);
-      setLicenseInfo(info);
-      updateLastValidation();
-
-      if (info.status === 'active') {
-        // License is valid, redirect to login
-        navigate('/login', { replace: true });
-      } else {
-        setIsValidating(false);
-      }
-    } catch (error) {
-      console.error('License validation failed:', error);
-      setState('error');
-      setIsValidating(false);
-    }
-  };
+  }, [hydrateFromDisk, isValidating, navigate, setState, validateStoredLicense]);
 
   const handleActivate = async () => {
     if (!licenseKey.trim()) {

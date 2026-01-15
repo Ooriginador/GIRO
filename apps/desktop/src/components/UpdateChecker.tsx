@@ -48,12 +48,15 @@ export function UpdateChecker() {
     if (!updateInfo) return;
 
     setDownloading(true);
-    setDownloadProgress(0);
+    let downloaded = 0;
+    let contentLength = 0;
 
     try {
       await updateInfo.downloadAndInstall((event) => {
         switch (event.event) {
           case 'Started':
+            contentLength = event.data.contentLength ?? 0;
+            downloaded = 0;
             setDownloadProgress(0);
             toast({
               title: '⬇️ Download iniciado',
@@ -61,9 +64,8 @@ export function UpdateChecker() {
             });
             break;
           case 'Progress': {
-            const total = (event.data as any).contentLength ?? 0;
-            const current = (event.data as any).downloaded;
-            const progress = total > 0 ? (current / total) * 100 : 0;
+            downloaded += event.data.chunkLength;
+            const progress = contentLength > 0 ? (downloaded / contentLength) * 100 : 0;
             setDownloadProgress(Math.round(progress));
             break;
           }

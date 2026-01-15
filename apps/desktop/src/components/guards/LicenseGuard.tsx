@@ -87,7 +87,16 @@ export const LicenseGuard: FC<LicenseGuardProps> = ({ children }) => {
     checkLicense();
 
     return () => clearTimeout(timeoutId);
-  }, [licenseKey, state]);
+  }, [
+    hydrateFromDisk,
+    isWithinGracePeriod,
+    licenseKey,
+    setError,
+    setLicenseInfo,
+    setState,
+    state,
+    updateLastValidation,
+  ]);
 
   // Loading state
   if (state === 'loading') {

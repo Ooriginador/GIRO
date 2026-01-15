@@ -1,4 +1,5 @@
 import { invoke } from '@/lib/tauri';
+import { Employee } from '@/types';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 interface CreateFirstAdminInput {
@@ -20,7 +21,7 @@ export function useHasAdmin() {
 export function useCreateFirstAdmin() {
   return useMutation({
     mutationFn: async (input: CreateFirstAdminInput) => {
-      return await invoke<any>('create_first_admin', { input });
+      return await invoke<Employee>('create_first_admin', { input });
     },
   });
 }

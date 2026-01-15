@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { activateLicense, getSetting, setSetting, validateLicense } from '@/lib/tauri';
 import { LicenseInfo } from '@/types';
 import { Key, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export function LicenseSettings() {
   const [licenseKey, setLicenseKey] = useState('');
@@ -14,11 +14,7 @@ export function LicenseSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadLicense();
-  }, []);
-
-  const loadLicense = async () => {
+  const loadLicense = useCallback(async () => {
     try {
       const storedKey = await getSetting('system.license_key');
       if (storedKey) {
@@ -31,9 +27,9 @@ export function LicenseSettings() {
       console.error('Failed to load license:', error);
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const validate = async (key: string) => {
+  const validate = useCallback(async (key: string) => {
     setIsLoading(true);
     try {
       const result = await validateLicense(key);
@@ -44,7 +40,11 @@ export function LicenseSettings() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadLicense();
+  }, [loadLicense]);
 
   const handleActivate = async () => {
     if (!licenseKey.trim()) return;
