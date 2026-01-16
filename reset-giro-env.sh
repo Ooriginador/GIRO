@@ -24,7 +24,7 @@ else
 fi
 
 if [ -d "$DATA_DIR" ]; then
-    rm -rf "$DATA_DIR/*"
+    rm -rf "$DATA_DIR"/*
     echo "✅ Diretório de dados limpo: $DATA_DIR"
 else
     echo "ℹ️  Diretório de dados não encontrado ou já está limpo."

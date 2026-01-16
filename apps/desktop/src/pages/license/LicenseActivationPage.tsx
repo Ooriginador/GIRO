@@ -66,10 +66,10 @@ export function LicenseActivationPage() {
         });
 
         console.log('[LicenseActivationPage] Activation success, redirecting in 1.5s...');
-        // Redirect to login (which will then lead to wizard if not configured)
+        // Redirect to root (which will then check for admin and route appropriately)
         setTimeout(() => {
-          console.log('[LicenseActivationPage] Executing navigate to /login');
-          navigate('/login', { replace: true });
+          console.log('[LicenseActivationPage] Executing navigate to /');
+          navigate('/', { replace: true });
         }, 1500);
       } catch (error) {
         const errorMessage =
@@ -99,8 +99,8 @@ export function LicenseActivationPage() {
         updateLastValidation();
 
         if (info.status === 'active') {
-          // License is valid, redirect to login
-          navigate('/login', { replace: true });
+          // License is valid, redirect to root for proper routing
+          navigate('/', { replace: true });
         } else {
           setIsValidating(false);
         }
@@ -151,10 +151,10 @@ export function LicenseActivationPage() {
           // Check if we are within grace period (7 days) OR if already valid
           if (store.isWithinGracePeriod() || store.state === 'valid') {
             console.log(
-              '[LicenseActivationPage] Valid license or within grace period, proceeding to login'
+              '[LicenseActivationPage] Valid license or within grace period, proceeding to root'
             );
             clearTimeout(timeoutId);
-            navigate('/login', { replace: true });
+            navigate('/', { replace: true });
             return;
           }
 
