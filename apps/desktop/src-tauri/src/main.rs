@@ -44,6 +44,16 @@ async fn main() {
     let backup_dir = app_dir.join("backups");
     std::fs::create_dir_all(&backup_dir).ok();
 
+    // === DIAGNOSTIC LOGGING ===
+    tracing::warn!("============================================");
+    tracing::warn!("📂 DATABASE PATH: {:?}", db_path);
+    if db_path.exists() {
+        tracing::warn!("✅ DB FILE EXISTS on disk");
+    } else {
+        tracing::warn!("🆕 DB FILE DOES NOT EXIST (Fresh Install?)");
+    }
+    tracing::warn!("============================================");
+
     // Generate hardware ID (MAC address based)
     let hardware_id = generate_hardware_id();
     tracing::info!("Hardware ID: {}", hardware_id);

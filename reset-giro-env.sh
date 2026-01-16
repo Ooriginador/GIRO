@@ -39,5 +39,11 @@ if [[ "$build_response" =~ ^[Yy]$ ]]; then
     echo "✅ Cache de build limpo."
 fi
 
+DB_FILE="$HOME/.local/share/GIRO/giro.db"
+if [ -f "$DB_FILE" ]; then
+    echo "❌ AVISO: O arquivo de banco de dados $DB_FILE ainda existe. Tentando remover..."
+    rm -f "$DB_FILE"
+fi
+
 echo ""
 echo "✨ Ambiente resetado com sucesso! O próximo acesso solicitará a criação do primeiro administrador."

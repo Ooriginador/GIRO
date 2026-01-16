@@ -46,9 +46,12 @@ type WebMockDb = {
 const WEB_MOCK_DB_KEY = '__giro_web_mock_db__';
 
 const isTauriRuntime = (): boolean => {
+  // More robust check for Tauri environment
+  // @ts-ignore
   return (
-    typeof window !== 'undefined' &&
-    typeof (window as unknown as { __TAURI__?: unknown }).__TAURI__ !== 'undefined'
+    (typeof window !== 'undefined' && 'isTauri' in window) ||
+    (typeof window !== 'undefined' &&
+      typeof (window as unknown as { __TAURI__?: unknown }).__TAURI__ !== 'undefined')
   );
 };
 
@@ -61,41 +64,13 @@ const loadWebMockDb = (): WebMockDb => {
 
   const raw = window.localStorage.getItem(WEB_MOCK_DB_KEY);
   if (!raw) {
-    const seed: WebMockDb = {
-      employees: [
-        {
-          id: 'emp-admin',
-          name: 'Admin',
-          pin: '8899',
-          role: 'ADMIN',
-          isActive: true,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        },
-        {
-          id: 'emp-operator',
-          name: 'Operador',
-          pin: '0000',
-          role: 'CASHIER',
-          isActive: true,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        },
-        {
-          id: 'emp-manager',
-          name: 'Gerente',
-          pin: '9999',
-          role: 'MANAGER',
-          isActive: true,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        },
-      ],
+    // [FIX] DO NOT AUTO-SEED. Return empty state to ensure clean install flow.
+    const emptyDb: WebMockDb = {
+      employees: [],
       currentCashSession: null,
       cashSessionHistory: [],
     };
-    window.localStorage.setItem(WEB_MOCK_DB_KEY, JSON.stringify(seed));
-    return seed;
+    return emptyDb;
   }
 
   try {
@@ -266,10 +241,16 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
 };
 
 const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  let result: T;
   if (isTauriRuntime()) {
-    return tauriCoreInvoke<T>(command, args);
+    console.log(`[Tauri] Invoking ${command}`, args);
+    result = await tauriCoreInvoke<T>(command, args);
+  } else {
+    console.warn(`[WebMock] Invoking ${command} (MOCK MODE ACTIVE)`, args);
+    result = await webMockInvoke<T>(command, args);
   }
-  return webMockInvoke<T>(command, args);
+  console.log(`[Invoke Result] ${command}:`, result);
+  return result;
 };
 
 // Re-export invoke for backwards compatibility

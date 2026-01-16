@@ -240,7 +240,7 @@ export const InitialSetupPage: FC = () => {
             </div>
 
             <h2 className="mb-2 text-2xl font-bold">Administrador Criado!</h2>
-            <p className="mb-6 text-muted-foreground">Redirecionando para login...</p>
+            <p className="mb-6 text-muted-foreground">Redirecionando para seleção de perfil...</p>
 
             <div className="flex items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

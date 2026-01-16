@@ -48,7 +48,15 @@ pub async fn authenticate_employee(
 #[tauri::command]
 pub async fn has_admin(state: State<'_, AppState>) -> AppResult<bool> {
     let repo = EmployeeRepository::new(state.pool());
-    repo.has_admin().await
+    
+    // DEBUG: FORCE FALSE TO TEST FRONTEND/BACKEND CONNECTION
+    tracing::error!("🚨 [DEBUG] has_admin FORCED to FALSE by Developer!");
+    
+    // Check real state just for logging
+    let real_result = repo.has_admin().await?;
+    tracing::warn!("🔍 [DEBUG] Real DB has_admin result would be: {}", real_result);
+    
+    Ok(false)
 }
 
 #[derive(Debug, Deserialize)]

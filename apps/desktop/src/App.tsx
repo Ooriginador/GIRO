@@ -106,40 +106,55 @@ const AdminCheck: FC = () => {
   useEffect(() => {
     if (isLoading) return;
 
-    if (hasAdmin === false && !cleanupDone) {
-      console.log('[AdminCheck] No admin in DB. Checking for stale state...');
+    console.log('[AdminCheck] hasAdmin state:', hasAdmin);
+
+    // [FIX] If NO admin is found in backend, we MUST ensure the frontend is also clean.
+    // Otherwise, stale AuthStore or BusinessProfile might guard/redirect us wrong.
+    if (hasAdmin === false) {
+      console.log('🚨 [AdminCheck] No admin in DB. PURGING frontend state...', {
+        isAuthenticated,
+        isConfigured,
+      });
+
       let needsCleanup = false;
 
       if (isAuthenticated) {
-        console.log('[AdminCheck] Cleaning stale auth state...');
+        console.warn('❌ [AdminCheck] User was authenticated but no Admin exists! Logging out.');
+        logout();
         needsCleanup = true;
       }
+
       if (isConfigured) {
-        console.log('[AdminCheck] Cleaning stale business profile...');
+        console.warn('❌ [AdminCheck] Profile was configured but no Admin exists! Resetting.');
+        resetProfile();
         needsCleanup = true;
       }
 
       if (needsCleanup) {
         setIsCleaningUp(true);
-        // Use setTimeout to avoid React state update during render
         setTimeout(() => {
-          if (isAuthenticated) logout();
-          if (isConfigured) resetProfile();
           setIsCleaningUp(false);
           setCleanupDone(true);
-        }, 0);
+        }, 500); // Give it a moment to stabilize
       } else {
         setCleanupDone(true);
       }
+    } else {
+      // hasAdmin is true (or undefined/error?), just proceed
+      setCleanupDone(true);
     }
-  }, [hasAdmin, isLoading, isAuthenticated, isConfigured, logout, resetProfile, cleanupDone]);
+  }, [hasAdmin, isLoading, isAuthenticated, isConfigured, logout, resetProfile]);
 
   if (isLoading || isCleaningUp) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="mt-4 text-sm text-muted-foreground">Inicializando...</p>
+      <div className="flex h-screen flex-col items-center justify-center space-y-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        <p className="text-sm text-muted-foreground">Inicializando...</p>
+        <div className="rounded bg-black/80 p-4 text-xs font-mono text-white">
+          <p>DEBUG INFO:</p>
+          <p>hasAdmin: {isLoading ? 'LOADING' : hasAdmin ? 'TRUE' : 'FALSE'}</p>
+          <p>isAuthenticated: {isAuthenticated ? 'TRUE' : 'FALSE'}</p>
+          <p>isConfigured: {isConfigured ? 'TRUE' : 'FALSE'}</p>
         </div>
       </div>
     );
