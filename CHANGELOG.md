@@ -6,6 +6,14 @@ O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
 
 ---
 
+## [1.0.10] - 2026-01-18
+
+### Corrigido
+
+- **Emails atualizados**: Todos os emails do sistema agora usam o domínio real `arkheion-tiktrend.com.br`
+
+---
+
 ## [1.0.9] - 2026-01-18
 
 ### Corrigido
