@@ -1,4 +1,15 @@
 import { invoke } from '@/lib/tauri';
+import {
+  clearVehicleCache,
+  getCachedBrands,
+  getCachedModels,
+  getCachedSearch,
+  getCachedYears,
+  setCachedBrands,
+  setCachedModels,
+  setCachedSearch,
+  setCachedYears,
+} from '@/lib/vehicleCache';
 import { VehicleBrand, VehicleComplete, VehicleModel, VehicleYear } from '@/types/motoparts';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -40,6 +51,7 @@ interface UseVehiclesReturn {
   selectModel: (modelId: string | null) => Promise<void>;
   selectYear: (yearId: string | null) => void;
   reset: () => void;
+  forceReload: () => Promise<void>;
 
   // Busca
   searchVehicles: (query: string) => Promise<VehicleComplete[]>;
@@ -86,14 +98,23 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
     };
   }, [selectedBrand, selectedModel, selectedYear]);
 
-  // Carregar marcas
+  // Carregar marcas (cache-first)
   const loadBrands = useCallback(async () => {
+    // Tentar cache primeiro
+    const cached = getCachedBrands();
+    if (cached && cached.length > 0) {
+      setBrands(cached);
+      return;
+    }
+
     setIsLoadingBrands(true);
     setError(null);
 
     try {
       const result = await invoke<VehicleBrand[]>('get_vehicle_brands');
       setBrands(result);
+      // Salvar no cache
+      setCachedBrands(result);
     } catch (err) {
       console.error('Erro ao carregar marcas:', err);
       setError('Não foi possível carregar as marcas de veículos');
@@ -102,7 +123,7 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
     }
   }, []);
 
-  // Selecionar marca e carregar modelos
+  // Selecionar marca e carregar modelos (cache-first)
   const selectBrand = useCallback(
     async (brandId: string | null) => {
       // Reset seleções dependentes
@@ -121,6 +142,13 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
 
       if (!brand) return;
 
+      // Tentar cache primeiro
+      const cached = getCachedModels(brandId);
+      if (cached && cached.length > 0) {
+        setModels(cached);
+        return;
+      }
+
       // Carregar modelos da marca
       setIsLoadingModels(true);
       setError(null);
@@ -128,6 +156,8 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
       try {
         const result = await invoke<VehicleModel[]>('get_vehicle_models', { brandId });
         setModels(result);
+        // Salvar no cache
+        setCachedModels(brandId, result);
       } catch (err) {
         console.error('Erro ao carregar modelos:', err);
         setError('Não foi possível carregar os modelos');
@@ -138,7 +168,7 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
     [brands]
   );
 
-  // Selecionar modelo e carregar anos
+  // Selecionar modelo e carregar anos (cache-first)
   const selectModel = useCallback(
     async (modelId: string | null) => {
       // Reset seleção dependente
@@ -155,6 +185,13 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
 
       if (!model) return;
 
+      // Tentar cache primeiro
+      const cached = getCachedYears(modelId);
+      if (cached && cached.length > 0) {
+        setYears(cached);
+        return;
+      }
+
       // Carregar anos do modelo
       setIsLoadingYears(true);
       setError(null);
@@ -162,6 +199,8 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
       try {
         const result = await invoke<VehicleYear[]>('get_vehicle_years', { modelId });
         setYears(result);
+        // Salvar no cache
+        setCachedYears(modelId, result);
       } catch (err) {
         console.error('Erro ao carregar anos:', err);
         setError('Não foi possível carregar os anos');
@@ -196,20 +235,34 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
     setError(null);
   }, []);
 
-  // Busca de veículos por texto
+  // Busca de veículos por texto (cache-first)
   const searchVehicles = useCallback(async (query: string): Promise<VehicleComplete[]> => {
     if (!query || query.length < 2) {
       return [];
     }
 
+    // Tentar cache primeiro
+    const cached = getCachedSearch(query);
+    if (cached) {
+      return cached;
+    }
+
     try {
       const result = await invoke<VehicleComplete[]>('search_vehicles', { query });
+      // Salvar no cache
+      setCachedSearch(query, result);
       return result;
     } catch (err) {
       console.error('Erro ao buscar veículos:', err);
       return [];
     }
   }, []);
+
+  // Forçar recarregamento (ignorar cache)
+  const forceReload = useCallback(async () => {
+    clearVehicleCache();
+    await loadBrands();
+  }, [loadBrands]);
 
   // Auto-load brands
   useEffect(() => {
@@ -242,6 +295,7 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
     selectModel,
     selectYear,
     reset,
+    forceReload,
     searchVehicles,
   };
 }
