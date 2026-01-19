@@ -1,6 +1,6 @@
 {
   "name": "@giro/desktop",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "GIRO - Sistema de Gestao Comercial | Desenvolvido por Arkheion",
   "private": true,
   "type": "module",
