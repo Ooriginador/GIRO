@@ -49,7 +49,7 @@ const WEB_MOCK_DB_KEY = '__giro_web_mock_db__';
 
 const isTauriRuntime = (): boolean => {
   // More robust check for Tauri environment
-  // @ts-ignore
+  // @ts-expect-error: Tauri runtime check involves non-standard window property
   return (
     (typeof window !== 'undefined' && 'isTauri' in window) ||
     (typeof window !== 'undefined' &&
