@@ -477,6 +477,11 @@ export interface LicenseInfo {
   is_lifetime?: boolean;
   can_offline?: boolean;
   has_admin?: boolean;
+  admin?: {
+    name: string;
+    email?: string;
+    phone?: string;
+  };
 }
 
 export interface UpdateLicenseAdminRequest {

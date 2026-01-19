@@ -52,7 +52,8 @@
         "headerImage": "icons/128x128.png",
         "sidebarImage": "icons/128x128.png",
         "installerHooks": "./installer-hooks/installer.nsh",
-        "compression": "lzma"
+        "compression": "lzma",
+        "installMode": "perMachine"
       }
     }
   },

@@ -3,25 +3,20 @@
  * @description Primeira tela após instalação - cria o primeiro admin
  */
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useCreateFirstAdmin } from "@/hooks/useSetup";
-import { updateLicenseAdmin } from "@/lib/tauri";
-import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth-store";
-import { useLicenseStore } from "@/stores/license-store";
-import { CheckCircle2, Loader2, Shield, UserPlus } from "lucide-react";
-import { useEffect, useState, type FC } from "react";
-import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useCreateFirstAdmin } from '@/hooks/useSetup';
+import { updateLicenseAdmin } from '@/lib/tauri';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth-store';
+import { useLicenseStore } from '@/stores/license-store';
+import { CheckCircle2, Loader2, RefreshCw, Shield, UserPlus } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState, type FC } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface FormData {
   name: string;
@@ -43,17 +38,18 @@ interface FormErrors {
 
 export const InitialSetupPage: FC = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<"welcome" | "form" | "success">("welcome");
+  const [step, setStep] = useState<'welcome' | 'form' | 'success'>('welcome');
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
-    name: "",
-    cpf: "",
-    phone: "",
-    email: "",
-    pin: "",
-    confirmPin: "",
+    name: '',
+    cpf: '',
+    phone: '',
+    email: '',
+    pin: '',
+    confirmPin: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
+  const { toast } = useToast();
 
   const { login } = useAuthStore();
   const createAdmin = useCreateFirstAdmin();
@@ -65,7 +61,7 @@ export const InitialSetupPage: FC = () => {
   }, []);
 
   const validateCPF = (cpf: string): boolean => {
-    const cleaned = cpf.replace(/\D/g, "");
+    const cleaned = cpf.replace(/\D/g, '');
     if (cleaned.length !== 11) return false;
 
     // Validação básica de CPF
@@ -94,38 +90,38 @@ export const InitialSetupPage: FC = () => {
     const newErrors: FormErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Nome é obrigatório";
+      newErrors.name = 'Nome é obrigatório';
     }
 
-    const cleanedCPF = formData.cpf.replace(/\D/g, "");
+    const cleanedCPF = formData.cpf.replace(/\D/g, '');
     if (!cleanedCPF) {
-      newErrors.cpf = "CPF é obrigatório";
+      newErrors.cpf = 'CPF é obrigatório';
     } else if (!validateCPF(cleanedCPF)) {
-      newErrors.cpf = "CPF inválido";
+      newErrors.cpf = 'CPF inválido';
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = "Telefone é obrigatório";
+      newErrors.phone = 'Telefone é obrigatório';
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = "Email é obrigatório";
+      newErrors.email = 'Email é obrigatório';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Email inválido";
+      newErrors.email = 'Email inválido';
     }
 
     if (!formData.pin) {
-      newErrors.pin = "PIN é obrigatório";
+      newErrors.pin = 'PIN é obrigatório';
     } else if (formData.pin.length < 4) {
-      newErrors.pin = "PIN deve ter pelo menos 4 dígitos";
+      newErrors.pin = 'PIN deve ter pelo menos 4 dígitos';
     } else if (formData.pin.length > 6) {
-      newErrors.pin = "PIN deve ter no máximo 6 dígitos";
+      newErrors.pin = 'PIN deve ter no máximo 6 dígitos';
     } else if (!/^\d+$/.test(formData.pin)) {
-      newErrors.pin = "PIN deve conter apenas números";
+      newErrors.pin = 'PIN deve conter apenas números';
     }
 
     if (formData.pin !== formData.confirmPin) {
-      newErrors.confirmPin = "PINs não conferem";
+      newErrors.confirmPin = 'PINs não conferem';
     }
 
     setErrors(newErrors);
@@ -152,7 +148,7 @@ export const InitialSetupPage: FC = () => {
       login({
         id: admin.id,
         name: admin.name,
-        role: "ADMIN",
+        role: 'ADMIN',
         email: admin.email,
         pin: formData.pin,
       });
@@ -160,46 +156,46 @@ export const InitialSetupPage: FC = () => {
       // Tentar sincronizar com o servidor de licenças
       try {
         const licenseState = useLicenseStore.getState();
-        if (licenseState.licenseKey && licenseState.state === "valid") {
-          console.log("[Setup] Syncing admin to license server...");
+        if (licenseState.licenseKey && licenseState.state === 'valid') {
+          console.log('[Setup] Syncing admin to license server...');
           await updateLicenseAdmin(licenseState.licenseKey, {
             name: formData.name.trim(),
             email: formData.email.trim(),
             phone: formData.phone,
             pin: formData.pin,
           });
-          console.log("[Setup] Admin synced successfully");
+          console.log('[Setup] Admin synced successfully');
         }
       } catch (e) {
-        console.error("[Setup] Failed to sync admin to license server:", e);
+        console.error('[Setup] Failed to sync admin to license server:', e);
         // Não impedir o progresso, apenas logar o erro
       }
 
       // CRITICAL: Invalidate the has-admin query so GlobalSetupGate knows an admin now exists
       // This prevents the race condition where it redirects back to /setup
-      await queryClient.invalidateQueries({ queryKey: ["has-admin"] });
-      console.log("[Setup] has-admin query invalidated");
+      await queryClient.invalidateQueries({ queryKey: ['has-admin'] });
+      console.log('[Setup] has-admin query invalidated');
 
-      setStep("success");
+      setStep('success');
 
       // Redirecionar para o wizard de perfil de negócio após breve sucesso
       setTimeout(() => {
-        navigate("/wizard", { replace: true });
+        navigate('/wizard', { replace: true });
       }, 2000);
     } catch (err) {
-      console.error("Erro ao criar admin:", err);
-      setErrors({ name: "Erro ao criar administrador. Tente novamente." });
+      console.error('Erro ao criar admin:', err);
+      setErrors({ name: 'Erro ao criar administrador. Tente novamente.' });
     } finally {
       setIsLoading(false);
     }
   };
 
   const formatCPF = (value: string): string => {
-    const cleaned = value.replace(/\D/g, "");
+    const cleaned = value.replace(/\D/g, '');
     const match = cleaned.match(/^(\d{0,3})(\d{0,3})(\d{0,3})(\d{0,2})$/);
     if (!match) return value;
 
-    let formatted = match[1] || "";
+    let formatted = match[1] || '';
     if (match[2]) formatted += `.${match[2]}`;
     if (match[3]) formatted += `.${match[3]}`;
     if (match[4]) formatted += `-${match[4]}`;
@@ -208,19 +204,95 @@ export const InitialSetupPage: FC = () => {
   };
 
   const formatPhone = (value: string): string => {
-    const cleaned = value.replace(/\D/g, "");
+    const cleaned = value.replace(/\D/g, '');
     const match = cleaned.match(/^(\d{0,2})(\d{0,5})(\d{0,4})$/);
     if (!match) return value;
 
-    let formatted = "";
+    let formatted = '';
     if (match[1]) formatted += `(${match[1]}`;
     if (match[2]) formatted += `) ${match[2]}`;
     if (match[3]) formatted += `-${match[3]}`;
 
-    return formatted || "";
+    return formatted || '';
   };
 
-  if (step === "welcome") {
+  const handleSync = async () => {
+    setIsLoading(true);
+    try {
+      const licenseKey = useLicenseStore.getState().licenseKey;
+      if (!licenseKey) {
+        throw new Error('Chave de licença não encontrada');
+      }
+
+      // 1. Validate license again to get fresh data
+      // We import validateLicense dynamically to avoid circular deps if any
+      const { validateLicense } = await import('@/lib/tauri');
+      const info = await validateLicense(licenseKey);
+
+      // 2. Check if we have admin data
+      if (info.has_admin && info.admin) {
+        console.log('[Setup] Admin found in license, syncing...');
+
+        // 3. Create admin locally using the data from server
+        // Note: We don't have the PIN here for security.
+        // If the backend doesn't sync the DB, we might need to prompt for PIN or
+        // use a special "restore_admin" command.
+        // FOR NOW: We assume if we are here, we might need to ask the user to confirm/enter PIN
+        // OR we use a "restore" flow.
+
+        // Since we can't create admin without PIN, and we don't have it (hashed),
+        // we might just need to refresh the local state if the Backend ALREADY inserted it.
+
+        await queryClient.invalidateQueries({ queryKey: ['has-admin'] });
+        const hasAdminNow = await queryClient.fetchQuery({
+          queryKey: ['has-admin'],
+          queryFn: async () => {
+            const { invoke } = await import('@/lib/tauri');
+            return await invoke<boolean>('has_admin');
+          },
+        });
+
+        if (hasAdminNow) {
+          toast({
+            title: 'Sincronização Concluída',
+            description: 'Dados do administrador recuperados com sucesso.',
+          });
+          navigate('/login', { replace: true });
+          return;
+        }
+
+        // If still no admin, but server has it, we are in a tricky spot.
+        // We probably need to "Join" with just the email/pinned
+        toast({
+          title: 'Admin encontrado',
+          description:
+            'O servidor possui um administrador, tente reiniciar o sistema para sincronizar.',
+        });
+      } else if (info.has_admin) {
+        // Server says yes, but no data sent.
+        // Attempt a forced refresh
+        await queryClient.invalidateQueries({ queryKey: ['has-admin'] });
+        window.location.reload();
+      } else {
+        toast({
+          title: 'Nenhum dado encontrado',
+          description: 'Esta licença ainda não possui um administrador vinculado.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Erro na sincronização:', error);
+      toast({
+        title: 'Erro na sincronização',
+        description: 'Não foi possível conectar ao servidor de licenças.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (step === 'welcome') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 to-background p-4">
         <Card className="w-full max-w-2xl">
@@ -238,41 +310,49 @@ export const InitialSetupPage: FC = () => {
             <div className="space-y-4 rounded-lg border bg-muted/50 p-6">
               <h3 className="font-semibold">🎉 Primeira execução detectada</h3>
               <p className="text-sm text-muted-foreground">
-                Para começar a usar o GIRO, vamos criar o primeiro administrador
-                do sistema. Este usuário terá acesso total e poderá cadastrar
-                outros funcionários posteriormente.
+                Para começar, você pode criar um novo administrador ou sincronizar com uma conta
+                existente.
               </p>
 
               <div className="space-y-2 text-sm">
                 <h4 className="font-medium">O administrador poderá:</h4>
                 <ul className="space-y-1 pl-5 text-muted-foreground">
-                  <li className="list-disc">
-                    Cadastrar e gerenciar funcionários
-                  </li>
+                  <li className="list-disc">Cadastrar e gerenciar funcionários</li>
                   <li className="list-disc">Configurar o sistema completo</li>
                   <li className="list-disc">Acessar todos os relatórios</li>
-                  <li className="list-disc">
-                    Realizar vendas e operações de caixa
-                  </li>
+                  <li className="list-disc">Realizar vendas e operações de caixa</li>
                 </ul>
               </div>
             </div>
 
-            <Button
-              onClick={() => setStep("form")}
-              className="w-full"
-              size="lg"
-            >
-              <UserPlus className="mr-2 h-5 w-5" />
-              Criar Primeiro Administrador
-            </Button>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Button onClick={() => setStep('form')} className="w-full" size="lg">
+                <UserPlus className="mr-2 h-5 w-5" />
+                Criar Primeiro Administrador
+              </Button>
+
+              <Button
+                onClick={handleSync}
+                variant="outline"
+                className="w-full"
+                size="lg"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-5 w-5" />
+                )}
+                Sincronizar Dados
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  if (step === "success") {
+  if (step === 'success') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 to-background p-4">
         <Card className="w-full max-w-md">
@@ -282,9 +362,7 @@ export const InitialSetupPage: FC = () => {
             </div>
 
             <h2 className="mb-2 text-2xl font-bold">Administrador Criado!</h2>
-            <p className="mb-6 text-muted-foreground">
-              Redirecionando para seleção de perfil...
-            </p>
+            <p className="mb-6 text-muted-foreground">Redirecionando para seleção de perfil...</p>
 
             <div className="flex items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -300,9 +378,7 @@ export const InitialSetupPage: FC = () => {
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Criar Primeiro Administrador</CardTitle>
-          <CardDescription>
-            Preencha os dados do administrador principal do sistema
-          </CardDescription>
+          <CardDescription>Preencha os dados do administrador principal do sistema</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -319,13 +395,11 @@ export const InitialSetupPage: FC = () => {
                   setFormData({ ...formData, name: e.target.value });
                   setErrors({ ...errors, name: undefined });
                 }}
-                className={cn(errors.name && "border-destructive")}
+                className={cn(errors.name && 'border-destructive')}
                 placeholder="João da Silva"
                 autoFocus
               />
-              {errors.name && (
-                <p className="text-sm text-destructive">{errors.name}</p>
-              )}
+              {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
             </div>
 
             {/* CPF */}
@@ -341,13 +415,11 @@ export const InitialSetupPage: FC = () => {
                   setFormData({ ...formData, cpf: formatted });
                   setErrors({ ...errors, cpf: undefined });
                 }}
-                className={cn(errors.cpf && "border-destructive")}
+                className={cn(errors.cpf && 'border-destructive')}
                 placeholder="000.000.000-00"
                 maxLength={14}
               />
-              {errors.cpf && (
-                <p className="text-sm text-destructive">{errors.cpf}</p>
-              )}
+              {errors.cpf && <p className="text-sm text-destructive">{errors.cpf}</p>}
             </div>
 
             {/* Telefone */}
@@ -363,13 +435,11 @@ export const InitialSetupPage: FC = () => {
                   setFormData({ ...formData, phone: formatted });
                   setErrors({ ...errors, phone: undefined });
                 }}
-                className={cn(errors.phone && "border-destructive")}
+                className={cn(errors.phone && 'border-destructive')}
                 placeholder="(00) 00000-0000"
                 maxLength={15}
               />
-              {errors.phone && (
-                <p className="text-sm text-destructive">{errors.phone}</p>
-              )}
+              {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
             </div>
 
             {/* Email */}
@@ -385,12 +455,10 @@ export const InitialSetupPage: FC = () => {
                   setFormData({ ...formData, email: e.target.value });
                   setErrors({ ...errors, email: undefined });
                 }}
-                className={cn(errors.email && "border-destructive")}
+                className={cn(errors.email && 'border-destructive')}
                 placeholder="admin@exemplo.com"
               />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
-              )}
+              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
             </div>
 
             {/* PIN */}
@@ -405,7 +473,7 @@ export const InitialSetupPage: FC = () => {
                   inputMode="numeric"
                   value={formData.pin}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
                     setFormData({ ...formData, pin: value });
                     setErrors({
                       ...errors,
@@ -413,13 +481,11 @@ export const InitialSetupPage: FC = () => {
                       confirmPin: undefined,
                     });
                   }}
-                  className={cn(errors.pin && "border-destructive")}
+                  className={cn(errors.pin && 'border-destructive')}
                   placeholder="••••"
                   maxLength={6}
                 />
-                {errors.pin && (
-                  <p className="text-sm text-destructive">{errors.pin}</p>
-                )}
+                {errors.pin && <p className="text-sm text-destructive">{errors.pin}</p>}
               </div>
 
               <div className="space-y-2">
@@ -432,18 +498,16 @@ export const InitialSetupPage: FC = () => {
                   inputMode="numeric"
                   value={formData.confirmPin}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
                     setFormData({ ...formData, confirmPin: value });
                     setErrors({ ...errors, confirmPin: undefined });
                   }}
-                  className={cn(errors.confirmPin && "border-destructive")}
+                  className={cn(errors.confirmPin && 'border-destructive')}
                   placeholder="••••"
                   maxLength={6}
                 />
                 {errors.confirmPin && (
-                  <p className="text-sm text-destructive">
-                    {errors.confirmPin}
-                  </p>
+                  <p className="text-sm text-destructive">{errors.confirmPin}</p>
                 )}
               </div>
             </div>
@@ -452,7 +516,7 @@ export const InitialSetupPage: FC = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setStep("welcome")}
+                onClick={() => setStep('welcome')}
                 className="w-full"
                 disabled={isLoading}
               >

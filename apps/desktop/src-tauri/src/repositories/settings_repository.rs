@@ -132,4 +132,29 @@ impl<'a> SettingsRepository<'a> {
             .await?;
         Ok(())
     }
+    pub async fn upsert_from_sync(&self, setting: Setting) -> AppResult<()> {
+        sqlx::query(
+            "INSERT INTO settings (id, key, value, type, group_name, description, updated_by_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+                key=excluded.key,
+                value=excluded.value,
+                type=excluded.type,
+                group_name=excluded.group_name,
+                description=excluded.description,
+                updated_by_id=excluded.updated_by_id,
+                updated_at=excluded.updated_at"
+        )
+        .bind(&setting.id)
+        .bind(&setting.key)
+        .bind(&setting.value)
+        .bind(&setting.setting_type)
+        .bind(&setting.group_name)
+        .bind(&setting.description)
+        .bind(&setting.updated_by_id)
+        .bind(&setting.created_at)
+        .bind(&setting.updated_at)
+        .execute(self.pool)
+        .await?;
+        Ok(())
+    }
 }

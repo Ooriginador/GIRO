@@ -607,4 +607,45 @@ impl<'a> CustomerRepository<'a> {
 
         Ok(())
     }
+    pub async fn upsert_from_sync(&self, customer: Customer) -> AppResult<()> {
+        sqlx::query(
+            "INSERT INTO customers (id, name, cpf, phone, phone2, email, zip_code, street, number, complement, neighborhood, city, state, is_active, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+                name=excluded.name,
+                cpf=excluded.cpf,
+                phone=excluded.phone,
+                phone2=excluded.phone2,
+                email=excluded.email,
+                zip_code=excluded.zip_code,
+                street=excluded.street,
+                number=excluded.number,
+                complement=excluded.complement,
+                neighborhood=excluded.neighborhood,
+                city=excluded.city,
+                state=excluded.state,
+                is_active=excluded.is_active,
+                notes=excluded.notes,
+                updated_at=excluded.updated_at"
+        )
+        .bind(&customer.id)
+        .bind(&customer.name)
+        .bind(&customer.cpf)
+        .bind(&customer.phone)
+        .bind(&customer.phone2)
+        .bind(&customer.email)
+        .bind(&customer.zip_code)
+        .bind(&customer.street)
+        .bind(&customer.number)
+        .bind(&customer.complement)
+        .bind(&customer.neighborhood)
+        .bind(&customer.city)
+        .bind(&customer.state)
+        .bind(customer.is_active)
+        .bind(&customer.notes)
+        .bind(&customer.created_at)
+        .bind(&customer.updated_at)
+        .execute(self.pool)
+        .await?;
+        Ok(())
+    }
 }

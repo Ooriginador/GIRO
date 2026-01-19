@@ -420,6 +420,43 @@ impl<'a> ProductRepository<'a> {
             .await?;
         Ok(result)
     }
+    pub async fn upsert_from_sync(&self, product: Product) -> AppResult<()> {
+        sqlx::query(
+            "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, is_active, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+                barcode=excluded.barcode,
+                internal_code=excluded.internal_code,
+                name=excluded.name,
+                description=excluded.description,
+                unit=excluded.unit,
+                is_weighted=excluded.is_weighted,
+                sale_price=excluded.sale_price,
+                cost_price=excluded.cost_price,
+                current_stock=excluded.current_stock,
+                min_stock=excluded.min_stock,
+                is_active=excluded.is_active,
+                category_id=excluded.category_id,
+                updated_at=excluded.updated_at"
+        )
+        .bind(&product.id)
+        .bind(&product.barcode)
+        .bind(&product.internal_code)
+        .bind(&product.name)
+        .bind(&product.description)
+        .bind(&product.unit)
+        .bind(product.is_weighted)
+        .bind(product.sale_price)
+        .bind(product.cost_price)
+        .bind(product.current_stock)
+        .bind(product.min_stock)
+        .bind(product.is_active)
+        .bind(&product.category_id)
+        .bind(&product.created_at)
+        .bind(&product.updated_at)
+        .execute(self.pool)
+        .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

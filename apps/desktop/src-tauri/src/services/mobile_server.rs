@@ -4,11 +4,11 @@
 
 use crate::services::mobile_handlers::{
     AuthHandler, CategoriesHandler, ExpirationHandler, InventoryHandler, ProductsHandler,
-    StockHandler, SystemHandler,
+    StockHandler, SystemHandler, SyncHandler,
 };
 use crate::services::mobile_protocol::{
     LegacyScannerMessage, LegacyScannerResponse, MobileAction, MobileErrorCode, MobileEvent,
-    MobileRequest, MobileResponse,
+    MobileRequest, MobileResponse, SyncFullPayload, SyncDeltaPayload, SaleRemoteCreatePayload,
 };
 use crate::services::mobile_session::SessionManager;
 
@@ -73,6 +73,7 @@ pub struct MobileServer {
     event_tx: broadcast::Sender<MobileEvent>,
     shutdown_tx: RwLock<Option<mpsc::Sender<()>>>,
     system_handler: Arc<SystemHandler>,
+    sync_handler: Arc<SyncHandler>,
 }
 
 impl MobileServer {
@@ -101,6 +102,7 @@ impl MobileServer {
                 store_name,
                 store_document,
             )),
+            sync_handler: Arc::new(SyncHandler::new(pool.clone())),
         }
     }
 
@@ -165,6 +167,7 @@ impl MobileServer {
         let connections = self.connections.clone();
         let mut event_rx = self.event_tx.subscribe();
         let system_handler = self.system_handler.clone();
+        let sync_handler = self.sync_handler.clone();
         let timeout = self.config.connection_timeout_secs;
 
         tokio::spawn(async move {
@@ -261,6 +264,7 @@ impl MobileServer {
                                     &expiration_handler,
                                     &categories_handler,
                                     &system_handler,
+                                    &sync_handler,
                                 ).await;
 
                                 // Enviar resposta
@@ -359,6 +363,7 @@ async fn process_request(
     expiration_handler: &ExpirationHandler,
     categories_handler: &CategoriesHandler,
     system_handler: &SystemHandler,
+    sync_handler: &SyncHandler,
 ) -> MobileResponse {
     let id = request.id;
     let action_str = &request.action;
@@ -656,6 +661,47 @@ async fn process_request(
 
         // Categorias
         MobileAction::CategoryList => categories_handler.list(id).await,
+
+        // Sincronização (Master <-> Satellite)
+        MobileAction::SyncFull => {
+             let payload: SyncFullPayload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            sync_handler.full(id, payload).await
+        },
+        MobileAction::SyncDelta => {
+             let payload: SyncDeltaPayload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            sync_handler.delta(id, payload).await
+        },
+        MobileAction::SaleRemoteCreate => {
+             let payload: SaleRemoteCreatePayload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            sync_handler.remote_sale(id, payload).await
+        },
 
         // Ações não implementadas
         _ => MobileResponse::error(

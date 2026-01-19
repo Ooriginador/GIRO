@@ -9,6 +9,9 @@ pub mod employees;
 pub mod hardware;
 pub mod license;
 pub mod mobile;
+pub mod network;
+#[cfg(test)]
+pub mod network_test;
 pub mod price_history;
 pub mod products;
 pub mod reports;

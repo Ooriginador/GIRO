@@ -44,6 +44,7 @@ vi.mock('@/components/settings', () => ({
   FiscalSettings: () => <div data-testid="fiscal-settings">Fiscal Settings</div>,
   LicenseSettings: () => <div data-testid="license-settings">License Settings</div>,
   MobileServerSettings: () => <div data-testid="mobile-settings">Mobile Server Settings</div>,
+  NetworkSettings: () => <div data-testid="network-settings">Network Settings</div>,
 }));
 
 vi.mock('@/components/nfce/ContingencyManager', () => ({

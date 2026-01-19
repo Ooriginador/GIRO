@@ -156,10 +156,12 @@ describe('LoginPage', () => {
 
   it('should call authenticateEmployee on login', async () => {
     mockAuthenticateEmployee.mockResolvedValue({
-      id: 'emp-1',
-      name: 'Admin',
-      role: 'ADMIN',
-      email: 'admin@test.com',
+      token: 'fake-jwt-token',
+      employee: {
+        id: 'emp-1',
+        name: 'Admin',
+        role: 'ADMIN',
+      },
     });
 
     renderLoginPage();
@@ -181,10 +183,12 @@ describe('LoginPage', () => {
 
   it('should navigate to dashboard on successful login', async () => {
     mockAuthenticateEmployee.mockResolvedValue({
-      id: 'emp-1',
-      name: 'Admin',
-      role: 'ADMIN',
-      email: 'admin@test.com',
+      token: 'fake-jwt-token',
+      employee: {
+        id: 'emp-1',
+        name: 'Admin',
+        role: 'ADMIN',
+      },
     });
 
     renderLoginPage();

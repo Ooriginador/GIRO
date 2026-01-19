@@ -313,6 +313,10 @@ pub enum MobileAction {
     // System
     SystemPing,
     SystemInfo,
+    // Sync (PC-to-PC)
+    SyncFull,
+    SyncDelta,
+    SaleRemoteCreate,
 }
 
 impl MobileAction {
@@ -340,6 +344,9 @@ impl MobileAction {
             "category.list" => Some(Self::CategoryList),
             "system.ping" => Some(Self::SystemPing),
             "system.info" => Some(Self::SystemInfo),
+            "sync.full" => Some(Self::SyncFull),
+            "sync.delta" => Some(Self::SyncDelta),
+            "sale.remote_create" => Some(Self::SaleRemoteCreate),
             _ => None,
         }
     }
@@ -499,6 +506,29 @@ pub struct ExpirationActionPayload {
     pub notes: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub discount_percent: Option<f64>,
+}
+
+/// Payload de Sincronização Completa
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncFullPayload {
+    /// Tabelas solicitadas (products, customers, settings, etc)
+    pub tables: Vec<String>,
+}
+
+/// Payload de Sincronização Delta
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncDeltaPayload {
+    /// Timestamp da última sincronização
+    pub last_sync: i64,
+}
+
+/// Payload de Venda Remota (Satellite -> Master)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaleRemoteCreatePayload {
+    pub sale: serde_json::Value, // Full Sale object
 }
 
 // ════════════════════════════════════════════════════════════════════════════

@@ -6,6 +6,7 @@
 )]
 
 use giro_lib::commands::mobile::MobileServerState;
+use giro_lib::commands::network::NetworkState;
 use giro_lib::{commands, nfce, AppState, DatabaseManager, HardwareState};
 use std::path::PathBuf;
 use tokio::sync::RwLock;
@@ -96,6 +97,7 @@ async fn main() {
         .manage(app_state)
         .manage(HardwareState::default())
         .manage(RwLock::new(MobileServerState::default()))
+        .manage(RwLock::new(NetworkState::default()))
         .setup(|_app| {
             tracing::info!("Aplicação inicializada com sucesso");
             Ok(())
@@ -229,6 +231,10 @@ async fn main() {
             commands::get_mobile_server_status,
             commands::get_connected_devices,
             commands::disconnect_mobile_device,
+            // Rede (PC-to-PC Syn)
+            commands::network::start_network_client,
+            commands::network::stop_network_client,
+            commands::network::get_network_status,
             // Histórico de Preços
             commands::get_price_history_by_product,
             commands::get_recent_price_history,

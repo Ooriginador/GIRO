@@ -17,3 +17,6 @@ pub use inventory::InventoryHandler;
 pub use products::ProductsHandler;
 pub use stock::StockHandler;
 pub use system::SystemHandler;
+
+pub mod sync;
+pub use sync::SyncHandler;
