@@ -1,0 +1,13 @@
+{
+  "name": "giro-monorepo",
+  "private": true,
+  "license": "Proprietary",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "prisma",
+      "@prisma/client",
+      "@prisma/engines"
+    ]
+  }
+}

@@ -4,14 +4,7 @@
   "description": "GIRO - Sistema de Gestao Comercial | Desenvolvido por Arkheion",
   "private": true,
   "type": "module",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "prisma",
-      "@prisma/client",
-      "@prisma/engines"
-    ]
-  },
+
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
