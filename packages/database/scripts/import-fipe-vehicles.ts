@@ -1,8 +1,10 @@
 #!/usr/bin/env npx ts-node
 // ═══════════════════════════════════════════════════════════════════════════
-// Script de Importação de Veículos - API FIPE
+// Script de Importação de Veículos - API FIPE v2
 // ═══════════════════════════════════════════════════════════════════════════
 // Importa marcas, modelos e anos de motos da tabela FIPE para o banco local
+//
+// API: https://fipe.parallelum.com.br/api/v2 (500 req/dia grátis, 1000 com token)
 //
 // Uso:
 //   npx ts-node scripts/import-fipe-vehicles.ts
@@ -11,63 +13,61 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { PrismaClient } from '@prisma/client';
-import axios, { AxiosError } from 'axios';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CONFIGURAÇÃO
+// CONFIGURAÇÃO - API FIPE v2
 // ═══════════════════════════════════════════════════════════════════════════
 
-const FIPE_API_BASE = 'https://parallelum.com.br/fipe/api/v1';
-const BRASIL_API_BASE = 'https://brasilapi.com.br/api/fipe';
+const FIPE_API_BASE = 'https://fipe.parallelum.com.br/api/v2';
+
+// Tipos de veículo na API v2
+const VEHICLE_TYPE = 'motorcycles'; // ou 'cars' ou 'trucks'
 
 // Rate limiting (para não sobrecarregar a API)
 const DELAY_BETWEEN_BRANDS = 1000; // 1 segundo entre marcas
-const DELAY_BETWEEN_MODELS = 200; // 200ms entre modelos
-const DELAY_BETWEEN_YEARS = 100; // 100ms entre anos
+const DELAY_BETWEEN_MODELS = 300; // 300ms entre modelos
+const DELAY_BETWEEN_YEARS = 150; // 150ms entre anos
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 5000;
 
+// Token opcional (obtido em https://fipe.online/register)
+const FIPE_TOKEN = process.env.FIPE_TOKEN || '';
+
 // ═══════════════════════════════════════════════════════════════════════════
-// TIPOS
+// TIPOS - API v2 usa 'code' e 'name' em inglês
 // ═══════════════════════════════════════════════════════════════════════════
 
 interface FipeBrand {
-  codigo: string;
-  nome: string;
+  code: string;
+  name: string;
 }
 
 interface FipeModel {
-  codigo: number;
-  nome: string;
-}
-
-interface FipeModelResponse {
-  modelos: FipeModel[];
-  anos: FipeYear[];
+  code: string;
+  name: string;
 }
 
 interface FipeYear {
-  codigo: string;
-  nome: string;
+  code: string;
+  name: string;
 }
 
-interface FipePrice {
-  TipoVeiculo: number;
-  Valor: string;
-  Marca: string;
-  Modelo: string;
-  AnoModelo: number;
-  Combustivel: string;
-  CodigoFipe: string;
-  MesReferencia: string;
-  SiglaCombustivel: string;
+interface FipeVehicleInfo {
+  brand: string;
+  codeFipe: string;
+  fuel: string;
+  fuelAcronym: string;
+  model: string;
+  modelYear: number;
+  price: string;
+  referenceMonth: string;
+  vehicleType: number;
 }
 
 interface ImportOptions {
   dryRun: boolean;
   specificBrand?: string;
   verbose: boolean;
-  useBackupApi: boolean;
 }
 
 interface ImportStats {
@@ -215,35 +215,59 @@ function extractYear(yearCode: string): number {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// API CALLS
+// API CALLS - v2
 // ═══════════════════════════════════════════════════════════════════════════
+
+function getHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'GIRO-System/1.0',
+  };
+
+  if (FIPE_TOKEN) {
+    headers['X-Subscription-Token'] = FIPE_TOKEN;
+  }
+
+  return headers;
+}
 
 async function fetchWithRetry<T>(url: string, retries = MAX_RETRIES): Promise<T | null> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await axios.get<T>(url, {
-        timeout: 10000,
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'GIRO-System/1.0',
-        },
-      });
-      return response.data;
-    } catch (error) {
-      const axiosError = error as AxiosError;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getHeaders(),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // Se for rate limiting (429), esperar mais tempo
+        if (response.status === 429) {
+          log(`Rate limit atingido, aguardando ${RETRY_DELAY * 2}ms...`, 'warning');
+          await sleep(RETRY_DELAY * 2);
+          continue;
+        }
+        // 404 não exige retry
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json() as T;
+    } catch (error) {
       if (attempt === retries) {
         log(`Falha após ${retries} tentativas: ${url}`, 'error');
         return null;
       }
-
-      // Se for rate limiting (429), esperar mais tempo
-      if (axiosError.response?.status === 429) {
-        log(`Rate limit atingido, aguardando ${RETRY_DELAY * 2}ms...`, 'warning');
-        await sleep(RETRY_DELAY * 2);
-      } else {
-        await sleep(RETRY_DELAY);
-      }
+      log(`Tentativa ${attempt}/${retries} falhou, retentando...`, 'warning');
+      await sleep(RETRY_DELAY);
     }
   }
 
@@ -251,30 +275,25 @@ async function fetchWithRetry<T>(url: string, retries = MAX_RETRIES): Promise<T 
 }
 
 async function fetchBrands(): Promise<FipeBrand[]> {
-  log('Buscando marcas de motos...');
+  log('Buscando marcas de motos (API v2)...');
 
-  const brands = await fetchWithRetry<FipeBrand[]>(`${FIPE_API_BASE}/motos/marcas`);
+  const url = `${FIPE_API_BASE}/${VEHICLE_TYPE}/brands`;
+  const brands = await fetchWithRetry<FipeBrand[]>(url);
 
-  if (!brands) {
-    // Tentar API alternativa
-    log('Tentando API alternativa (Brasil API)...', 'warning');
-    const altBrands = await fetchWithRetry<FipeBrand[]>(`${BRASIL_API_BASE}/marcas/v1/motos`);
-    return altBrands || [];
-  }
-
-  return brands;
+  return brands || [];
 }
 
-async function fetchModels(brandCode: string): Promise<FipeModelResponse | null> {
-  return await fetchWithRetry<FipeModelResponse>(
-    `${FIPE_API_BASE}/motos/marcas/${brandCode}/modelos`
-  );
+async function fetchModels(brandCode: string): Promise<FipeModel[]> {
+  const url = `${FIPE_API_BASE}/${VEHICLE_TYPE}/brands/${brandCode}/models`;
+  const models = await fetchWithRetry<FipeModel[]>(url);
+
+  return models || [];
 }
 
-async function fetchYears(brandCode: string, modelCode: number): Promise<FipeYear[]> {
-  const years = await fetchWithRetry<FipeYear[]>(
-    `${FIPE_API_BASE}/motos/marcas/${brandCode}/modelos/${modelCode}/anos`
-  );
+async function fetchYears(brandCode: string, modelCode: string): Promise<FipeYear[]> {
+  const url = `${FIPE_API_BASE}/${VEHICLE_TYPE}/brands/${brandCode}/models/${modelCode}/years`;
+  const years = await fetchWithRetry<FipeYear[]>(url);
+
   return years || [];
 }
 
@@ -292,35 +311,35 @@ async function importBrand(
   try {
     // Verificar se já existe
     const existing = await prisma.vehicleBrand.findUnique({
-      where: { fipeCode: brand.codigo },
+      where: { fipeCode: brand.code },
     });
 
     if (existing) {
-      if (verbose) log(`Marca já existe: ${brand.nome}`, 'info');
+      if (verbose) log(`Marca já existe: ${brand.name}`, 'info');
       stats.brands.skipped++;
       return existing.id;
     }
 
     if (dryRun) {
-      log(`[DRY-RUN] Importaria marca: ${brand.nome}`, 'info');
+      log(`[DRY-RUN] Importaria marca: ${brand.name}`, 'info');
       stats.brands.imported++;
-      return `dry-run-${brand.codigo}`;
+      return `dry-run-${brand.code}`;
     }
 
     // Criar marca
     const created = await prisma.vehicleBrand.create({
       data: {
-        fipeCode: brand.codigo,
-        name: brand.nome,
+        fipeCode: brand.code,
+        name: brand.name,
         isActive: true,
       },
     });
 
-    log(`Marca importada: ${brand.nome}`, 'success');
+    log(`Marca importada: ${brand.name}`, 'success');
     stats.brands.imported++;
     return created.id;
   } catch (error) {
-    log(`Erro ao importar marca ${brand.nome}: ${error}`, 'error');
+    log(`Erro ao importar marca ${brand.name}: ${error}`, 'error');
     stats.brands.errors++;
     return null;
   }
@@ -334,7 +353,7 @@ async function importModel(
   stats: ImportStats
 ): Promise<string | null> {
   const { dryRun, verbose } = options;
-  const fipeCode = `${brandCode}-${model.codigo}`;
+  const fipeCode = `${brandCode}-${model.code}`;
 
   try {
     // Verificar se já existe
@@ -343,13 +362,13 @@ async function importModel(
     });
 
     if (existing) {
-      if (verbose) log(`Modelo já existe: ${model.nome}`, 'info');
+      if (verbose) log(`Modelo já existe: ${model.name}`, 'info');
       stats.models.skipped++;
       return existing.id;
     }
 
     if (dryRun) {
-      if (verbose) log(`[DRY-RUN] Importaria modelo: ${model.nome}`, 'info');
+      if (verbose) log(`[DRY-RUN] Importaria modelo: ${model.name}`, 'info');
       stats.models.imported++;
       return `dry-run-${fipeCode}`;
     }
@@ -358,19 +377,19 @@ async function importModel(
     const created = await prisma.vehicleModel.create({
       data: {
         fipeCode,
-        name: model.nome,
+        name: model.name,
         brandId,
-        category: determineCategory(model.nome) as any,
-        engineSize: extractEngineSize(model.nome),
+        category: determineCategory(model.name) as any,
+        engineSize: extractEngineSize(model.name),
         isActive: true,
       },
     });
 
-    if (verbose) log(`Modelo importado: ${model.nome}`, 'success');
+    if (verbose) log(`Modelo importado: ${model.name}`, 'success');
     stats.models.imported++;
     return created.id;
   } catch (error) {
-    log(`Erro ao importar modelo ${model.nome}: ${error}`, 'error');
+    log(`Erro ao importar modelo ${model.name}: ${error}`, 'error');
     stats.models.errors++;
     return null;
   }
@@ -383,8 +402,8 @@ async function importYear(
   stats: ImportStats
 ): Promise<void> {
   const { dryRun, verbose } = options;
-  const yearNumber = extractYear(year.codigo);
-  const fuelType = determineFuelType(year.nome);
+  const yearNumber = extractYear(year.code);
+  const fuelType = determineFuelType(year.name);
 
   try {
     // Verificar se já existe
@@ -410,8 +429,8 @@ async function importYear(
     await prisma.vehicleYear.create({
       data: {
         year: yearNumber,
-        yearLabel: year.nome,
-        fipeCode: year.codigo,
+        yearLabel: year.name,
+        fipeCode: year.code,
         fuelType,
         modelId,
       },
@@ -419,7 +438,7 @@ async function importYear(
 
     stats.years.imported++;
   } catch (error) {
-    if (verbose) log(`Erro ao importar ano ${year.nome}: ${error}`, 'error');
+    if (verbose) log(`Erro ao importar ano ${year.name}: ${error}`, 'error');
     stats.years.errors++;
   }
 }
@@ -433,9 +452,11 @@ async function runImport(options: ImportOptions): Promise<void> {
   };
 
   log('═══════════════════════════════════════════════════════════════');
-  log('    IMPORTAÇÃO DE VEÍCULOS - API FIPE                          ');
+  log('    IMPORTAÇÃO DE VEÍCULOS - API FIPE v2                       ');
   log('═══════════════════════════════════════════════════════════════');
+  log(`API: ${FIPE_API_BASE}`);
   log(`Modo: ${options.dryRun ? 'DRY-RUN (sem alterações)' : 'PRODUÇÃO'}`);
+  log(`Token: ${FIPE_TOKEN ? 'Configurado ✓' : 'Não configurado (limite 500 req/dia)'}`);
   if (options.specificBrand) {
     log(`Filtrando marca: ${options.specificBrand}`);
   }
@@ -454,7 +475,7 @@ async function runImport(options: ImportOptions): Promise<void> {
   // Filtrar se especificado
   if (options.specificBrand) {
     brands = brands.filter((b) =>
-      b.nome.toUpperCase().includes(options.specificBrand!.toUpperCase())
+      b.name.toUpperCase().includes(options.specificBrand!.toUpperCase())
     );
     log(`Após filtro: ${brands.length} marcas`);
   }
@@ -462,28 +483,28 @@ async function runImport(options: ImportOptions): Promise<void> {
   // 2. Processar cada marca
   for (const brand of brands) {
     log('');
-    log(`━━━ Processando ${brand.nome} ━━━`);
+    log(`━━━ Processando ${brand.name} ━━━`);
 
     // Importar marca
     const brandId = await importBrand(brand, options, stats);
     if (!brandId) continue;
 
     // Buscar modelos
-    const modelResponse = await fetchModels(brand.codigo);
-    if (!modelResponse) {
-      log(`Não foi possível buscar modelos de ${brand.nome}`, 'warning');
+    const models = await fetchModels(brand.code);
+    if (models.length === 0) {
+      log(`Não foi possível buscar modelos de ${brand.name}`, 'warning');
       continue;
     }
 
-    log(`Encontrados ${modelResponse.modelos.length} modelos`);
+    log(`Encontrados ${models.length} modelos`);
 
     // Processar modelos
-    for (const model of modelResponse.modelos) {
-      const modelId = await importModel(model, brandId, brand.codigo, options, stats);
+    for (const model of models) {
+      const modelId = await importModel(model, brandId, brand.code, options, stats);
       if (!modelId) continue;
 
       // Buscar anos
-      const years = await fetchYears(brand.codigo, model.codigo);
+      const years = await fetchYears(brand.code, model.code);
 
       // Importar anos
       for (const year of years) {
@@ -535,13 +556,12 @@ async function main() {
   const options: ImportOptions = {
     dryRun: args.includes('--dry-run'),
     verbose: args.includes('--verbose') || args.includes('-v'),
-    useBackupApi: args.includes('--backup-api'),
     specificBrand: args.find((a) => a.startsWith('--brand='))?.split('=')[1],
   };
 
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
-Importação de Veículos - API FIPE
+Importação de Veículos - API FIPE v2
 
 Uso:
   npx ts-node scripts/import-fipe-vehicles.ts [opções]
@@ -550,13 +570,21 @@ Opções:
   --dry-run       Simula a importação sem alterar o banco
   --brand=NOME    Importa apenas uma marca específica
   --verbose, -v   Mostra mais detalhes durante a importação
-  --backup-api    Usa a Brasil API como fonte primária
   --help, -h      Mostra esta ajuda
+
+Variáveis de ambiente:
+  FIPE_TOKEN      Token de acesso (opcional, obtido em https://fipe.online/register)
 
 Exemplos:
   npx ts-node scripts/import-fipe-vehicles.ts --dry-run
   npx ts-node scripts/import-fipe-vehicles.ts --brand="Honda"
   npx ts-node scripts/import-fipe-vehicles.ts --brand="Honda" --dry-run -v
+  FIPE_TOKEN=xxx npx ts-node scripts/import-fipe-vehicles.ts
+
+API:
+  Base URL: ${FIPE_API_BASE}
+  Limites: 500 req/dia (sem token), 1000 req/dia (com token gratuito)
+  Docs: https://deividfortuna.github.io/fipe/v2/
     `);
     return;
   }
