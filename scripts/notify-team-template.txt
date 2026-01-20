@@ -1,0 +1,26 @@
+Subject: [ACTION REQUIRED] Repo history rewritten — rotate secrets and re-clone
+
+Hi team,
+
+We performed a security remediation on the `GIRO` repository to remove
+committed secrets from the Git history. Actions taken:
+
+- Created a repository backup bundle: `repo-backup-*.bundle` (keep offline)
+- Removed flagged files from history (see `scripts/gitleaks_report.json`)
+
+What you must do now:
+1) Rotate credentials immediately for any affected service (Stripe, license
+   keys, JWT secrets, etc.). See `REPORTS/SECRETS_ROTATION_PLAYBOOK.md` for guidance.
+2) Re-clone the repository (recommended):
+   - `git clone <repo-url>`
+   OR if you must keep local changes, rebase/reset onto the cleaned origin.
+3) Update local development environment secrets as needed.
+
+If you have any outstanding branches or local work, follow the instructions in
+`REPORTS/SECRETS_ROTATION_PLAYBOOK.md` to rebase or preserve work before resetting.
+
+If you want me to force-push the cleaned history to `origin`, reply with
+`RUN_FORCE_PUSH` and I will perform the push and share the exact commands run.
+
+Thanks,
+Security Bot

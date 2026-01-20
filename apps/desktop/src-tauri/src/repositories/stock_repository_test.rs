@@ -66,6 +66,10 @@ async fn test_create_stock_movement_entry() {
         reference_id: None,
         reference_type: None,
         employee_id: Some("emp-001".to_string()),
+        cost_price: None,
+        lot_number: None,
+        expiration_date: None,
+        manufacturing_date: None,
     };
 
     let result = repo.create_movement(input).await;
@@ -91,6 +95,10 @@ async fn test_create_stock_movement_exit() {
         reference_id: Some("sale-001".to_string()),
         reference_type: Some("SALE".to_string()),
         employee_id: Some("emp-001".to_string()),
+        cost_price: None,
+        lot_number: None,
+        expiration_date: None,
+        manufacturing_date: None,
     };
 
     let result = repo.create_movement(input).await;
@@ -114,6 +122,10 @@ async fn test_find_movement_by_id() {
         reference_id: None,
         reference_type: None,
         employee_id: None,
+        cost_price: None,
+        lot_number: None,
+        expiration_date: None,
+        manufacturing_date: None,
     };
 
     let created = repo.create_movement(input).await.unwrap();
@@ -147,6 +159,10 @@ async fn test_find_movements_by_product() {
             reference_id: None,
             reference_type: None,
             employee_id: None,
+            cost_price: None,
+            lot_number: None,
+            expiration_date: None,
+            manufacturing_date: None,
         };
         repo.create_movement(input).await.unwrap();
     }
@@ -160,6 +176,10 @@ async fn test_find_movements_by_product() {
         reference_id: None,
         reference_type: None,
         employee_id: None,
+        cost_price: None,
+        lot_number: None,
+        expiration_date: None,
+        manufacturing_date: None,
     };
     repo.create_movement(input).await.unwrap();
 
@@ -191,6 +211,10 @@ async fn test_find_recent_movements() {
             reference_id: None,
             reference_type: None,
             employee_id: None,
+            cost_price: None,
+            lot_number: None,
+            expiration_date: None,
+            manufacturing_date: None,
         };
         repo.create_movement(input).await.unwrap();
     }
@@ -225,6 +249,10 @@ async fn test_stock_update_after_movement() {
         reference_id: None,
         reference_type: None,
         employee_id: None,
+        cost_price: None,
+        lot_number: None,
+        expiration_date: None,
+        manufacturing_date: None,
     };
     repo.create_movement(input).await.unwrap();
 

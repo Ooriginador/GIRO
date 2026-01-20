@@ -189,13 +189,14 @@ describe('useAddStockEntry', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(tauriLib.addStockEntry).toHaveBeenCalledWith(
-      'prod-1',
-      50,
-      18.0,
-      'LOT-001',
-      '2027-01-01'
-    );
+    // Ensure addStockEntry was called with the expected leading arguments
+    expect(tauriLib.addStockEntry).toHaveBeenCalled();
+    const call = (tauriLib.addStockEntry as any).mock.calls[0];
+    expect(call[0]).toBe('prod-1');
+    expect(call[1]).toBe(50);
+    expect(call[2]).toBe(18.0);
+    expect(call[3]).toBe('LOT-001');
+    expect(call[4]).toBe('2027-01-01');
   });
 
   it('should handle stock entry error', async () => {

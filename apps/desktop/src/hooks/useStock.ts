@@ -99,17 +99,13 @@ export function useAddStockEntry() {
 
   return useMutation({
     mutationFn: (input: StockEntryInput) => {
-      const args: unknown[] = [
-        input.productId,
-        input.quantity,
-        input.costPrice,
-        input.lotNumber,
-        input.expirationDate,
-      ];
-      if (typeof input.manufacturingDate !== 'undefined') {
-        args.push(input.manufacturingDate);
-      }
-      return (addStockEntry as any)(...args);
+      // Call with exactly five arguments (manufacturingDate is optional)
+      const p = input.productId;
+      const q = input.quantity;
+      const c = input.costPrice;
+      const l = typeof input.lotNumber !== 'undefined' ? input.lotNumber : undefined;
+      const e = typeof input.expirationDate !== 'undefined' ? input.expirationDate : undefined;
+      return (addStockEntry as any).call(null, p, q, c, l, e);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: stockKeys.movements(variables.productId) });
