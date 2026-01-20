@@ -4,6 +4,7 @@
 
 import { useAuthStore } from '@/stores/auth-store';
 import { beforeEach, describe, expect, it } from 'vitest';
+import fixtures from '@/test/fixtures';
 
 describe('Auth Store', () => {
   beforeEach(() => {
@@ -22,7 +23,7 @@ describe('Auth Store', () => {
         id: '1',
         name: 'João Silva',
         role: 'ADMIN' as const,
-        pin: '8899',
+        pin: fixtures.TEST_PIN,
       };
 
       useAuthStore.getState().login(mockEmployee);
@@ -95,7 +96,7 @@ describe('Auth Store', () => {
   describe('cash session', () => {
     it('should open cash session', () => {
       const session = {
-        id: 'session-1',
+        id: fixtures.TEST_SESSION_ID,
         employeeId: '1',
         employeeName: 'João',
         openedAt: new Date().toISOString(),
@@ -111,7 +112,7 @@ describe('Auth Store', () => {
 
     it('should close cash session', () => {
       const session = {
-        id: 'session-1',
+        id: fixtures.TEST_SESSION_ID,
         employeeId: '1',
         employeeName: 'João',
         openedAt: new Date().toISOString(),

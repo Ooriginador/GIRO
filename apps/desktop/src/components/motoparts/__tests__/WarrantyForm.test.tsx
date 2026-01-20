@@ -48,9 +48,9 @@ vi.mock('@/components/ui/command', () => ({
   CommandEmpty: ({ children }: any) => <div>{children}</div>,
   CommandGroup: ({ children }: any) => <div>{children}</div>,
   CommandItem: ({ children, onSelect, value }: any) => (
-    <div data-testid={`item-${value}`} onClick={() => onSelect(value)}>
+    <button data-testid={`item-${value}`} type="button" onClick={() => onSelect(value)}>
       {children}
-    </div>
+    </button>
   ),
 }));
 

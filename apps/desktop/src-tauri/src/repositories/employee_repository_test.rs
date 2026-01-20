@@ -8,9 +8,15 @@ mod tests {
     use sqlx::SqlitePool;
 
     async fn setup_test_db() -> SqlitePool {
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let url = format!("file:/tmp/giro_test_{}?mode=rwc", ts);
+
         let pool = SqlitePoolOptions::new()
             .max_connections(1)
-            .connect(":memory:")
+            .connect(&url)
             .await
             .unwrap();
 
@@ -18,6 +24,8 @@ mod tests {
 
         pool
     }
+
+    const TEST_PASSWORD: &str = "test-password";
 
     #[tokio::test]
     async fn test_create_employee() {
@@ -31,7 +39,7 @@ mod tests {
             email: Some("joao@example.com".to_string()),
             // Avoid collision with any migration/seeded default employee PINs.
             pin: "2345".to_string(),
-            password: Some("senha123".to_string()),
+            password: Some(TEST_PASSWORD.to_string()),
             role: Some(EmployeeRole::Cashier),
         };
 

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            DELETE FROM product_compatibility\n            WHERE product_id = ? AND vehicle_year_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "e8e0a8470dd28a4fcfab204b95c1d6a6ed2e6776f37ded3143d98d9425d463b7"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, employee_id, created_at) VALUES (?, ?, 'USAGE', ?, ?, ?, 'Uso em OS', ?, 'SERVICE_ORDER', ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "726498e0605fd4c861468631fa49500a8b5f5eea68745bc0b4f2e513322f0b2e"
+}

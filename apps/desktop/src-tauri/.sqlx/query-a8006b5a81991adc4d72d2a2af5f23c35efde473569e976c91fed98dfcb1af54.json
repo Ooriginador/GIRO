@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT \n                COALESCE(SUM(labor_cost), 0) as labor,\n                COALESCE(SUM(parts_cost), 0) as parts\n            FROM service_orders\n            WHERE status IN ('COMPLETED', 'DELIVERED')\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "labor",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "parts",
+        "ordinal": 1,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "a8006b5a81991adc4d72d2a2af5f23c35efde473569e976c91fed98dfcb1af54"
+}

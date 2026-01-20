@@ -36,5 +36,14 @@
       "description": "Bundle edits into a branch, create a PR, and include `REPORTS/DOCS_CLEANUP_REPORT.md` with a summary and next steps.",
       "status": "not-started"
     }
+    ,
+    {
+      "id": 7,
+      "title": "Applied fix: UNINSTALL-GUIDE.md",
+      "description": "Replaced ambiguous 'TODO o conteúdo da pasta' with explicit 'remover todo o conteúdo da pasta' in docs/UNINSTALL-GUIDE.md.",
+      "status": "completed"
+    }
   ]
 }
+
+

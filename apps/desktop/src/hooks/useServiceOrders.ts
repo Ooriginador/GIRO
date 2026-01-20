@@ -22,10 +22,12 @@ import { useCallback, useState } from 'react';
 export type ServiceOrderStatus =
   | 'OPEN'
   | 'IN_PROGRESS'
+  | 'QUOTE'
   | 'WAITING_PARTS'
   | 'COMPLETED'
   | 'DELIVERED'
-  | 'CANCELED';
+  | 'CANCELED'
+  | 'QUOTE';
 
 export type ServiceItemType = 'PART' | 'SERVICE';
 
@@ -118,6 +120,7 @@ export interface CreateServiceOrderInput {
   scheduled_date?: string;
   notes?: string;
   internal_notes?: string;
+  status?: string;
 }
 
 export interface UpdateServiceOrderInput {
@@ -362,12 +365,39 @@ export function useServiceOrderItems(orderId?: string) {
     },
   });
 
+  // Atualizar item
+  const updateItem = useMutation({
+    mutationFn: async (vars: {
+      itemId: string;
+      quantity?: number;
+      unitPrice?: number;
+      discount?: number;
+      notes?: string;
+      employeeId?: string;
+    }) => {
+      const result = await invoke<ServiceOrderItem>('update_service_order_item', {
+        itemId: vars.itemId,
+        quantity: vars.quantity,
+        unitPrice: vars.unitPrice,
+        discount: vars.discount,
+        notes: vars.notes,
+        employeeId: vars.employeeId,
+      });
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-order-items', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+    },
+  });
+
   return {
     items: items || [],
     isLoading,
     refetch,
     addItem,
     removeItem,
+    updateItem,
   };
 }
 
@@ -489,6 +519,7 @@ export const ServiceOrderUtils = {
   getStatusLabel(status: ServiceOrderStatus): string {
     const labels: Record<ServiceOrderStatus, string> = {
       OPEN: 'Aberta',
+      QUOTE: 'Orçamento',
       IN_PROGRESS: 'Em Andamento',
       WAITING_PARTS: 'Aguardando Peças',
       COMPLETED: 'Concluída',
@@ -501,6 +532,7 @@ export const ServiceOrderUtils = {
   getStatusColor(status: ServiceOrderStatus): string {
     const colors: Record<ServiceOrderStatus, string> = {
       OPEN: 'text-blue-600',
+      QUOTE: 'text-indigo-600',
       IN_PROGRESS: 'text-yellow-600',
       WAITING_PARTS: 'text-orange-600',
       COMPLETED: 'text-green-600',
@@ -519,7 +551,7 @@ export const ServiceOrderUtils = {
   },
 
   canEdit(status: ServiceOrderStatus): boolean {
-    return ['OPEN', 'IN_PROGRESS', 'WAITING_PARTS'].includes(status);
+    return ['OPEN', 'QUOTE', 'IN_PROGRESS', 'WAITING_PARTS'].includes(status);
   },
 
   canStart(status: ServiceOrderStatus): boolean {

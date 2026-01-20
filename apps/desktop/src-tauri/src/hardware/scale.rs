@@ -389,7 +389,7 @@ pub async fn auto_detect_scale_async() -> AutoDetectResult {
 
         // For each port, try detection in a blocking task with timeout
         let port_clone = port.clone();
-        let try_result = timeout(TokioDuration::from_secs(3), tokio::task::spawn_blocking(move || {
+        let timeout_res = timeout(TokioDuration::from_secs(3), tokio::task::spawn_blocking(move || {
             // Try known protocols
             for protocol in [
                 ScaleProtocol::Toledo,
@@ -418,10 +418,13 @@ pub async fn auto_detect_scale_async() -> AutoDetectResult {
         }))
         .await;
 
-        match try_result {
-            Ok(Ok(Some(config))) => return AutoDetectResult { config: Some(config), failures } ,
-            Ok(Ok(None)) => failures.push(format!("No protocol matched on port {}", port)),
-            Ok(Err(e)) => failures.push(format!("Error testing port {}: {}", port, e)),
+        match timeout_res {
+            Ok(join_result) => match join_result {
+                Ok(Ok(Some(config))) => return AutoDetectResult { config: Some(config), failures },
+                Ok(Ok(None)) => failures.push(format!("No protocol matched on port {}", port)),
+                Ok(Err(e)) => failures.push(format!("Error testing port {}: {}", port, e)),
+                Err(join_err) => failures.push(format!("Join error testing port {}: {}", port, join_err)),
+            },
             Err(_) => failures.push(format!("Timeout testing port {}", port)),
         }
     }

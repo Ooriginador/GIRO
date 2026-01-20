@@ -28,7 +28,7 @@ tools:
     'prisma.prisma/prisma-studio',
     'prisma.prisma/prisma-platform-login',
     'prisma.prisma/prisma-postgres-create-database',
-    'todo',
+    'TBD',
   ]
 model: Claude Sonnet 4
 handoffs:

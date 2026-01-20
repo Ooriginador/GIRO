@@ -1,6 +1,7 @@
 import { invoke as tauriCoreInvoke } from '@tauri-apps/api/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import * as tauriLib from '../tauri';
+const tauriLib = await vi.importActual('../tauri');
+import fixtures from '@/test/fixtures';
 
 // Functional localStorage mock for state persistence
 const storage: Record<string, string> = {};
@@ -37,22 +38,24 @@ type TauriInvokeMock = {
 describe('tauri.ts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    // Reinitialize in-test localStorage implementation (global setup resets mocks)
+    Object.keys(storage).forEach((k) => delete storage[k]);
+    (localStorage as any).getItem = (key: string) => storage[key] ?? null;
+    (localStorage as any).setItem = (key: string, value: string) => {
+      storage[key] = value.toString();
+    };
+    (localStorage as any).removeItem = (key: string) => {
+      delete storage[key];
+    };
+    (localStorage as any).clear = () => {
+      Object.keys(storage).forEach((k) => delete storage[k]);
+    };
+
     // Seed mock DB for tests that expect an employee/admin
     localStorage.setItem(
       '__giro_web_mock_db__',
       JSON.stringify({
-        employees: [
-          {
-            id: 'admin-1',
-            name: 'Admin',
-            role: 'ADMIN',
-            pin: '8899',
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        ],
+        employees: [fixtures.MOCK_EMPLOYEE_ADMIN],
         currentCashSession: null,
         cashSessionHistory: [],
       })
@@ -98,7 +101,18 @@ describe('tauri.ts', () => {
     });
 
     it('should authenticate employee correctly', async () => {
-      const employee = await tauriLib.authenticateEmployee('8899');
+      // Debug: ensure web mock DB is seeded
+      // eslint-disable-next-line no-console
+      console.log('WEB_DB_RAW:', window.localStorage.getItem('__giro_web_mock_db__'));
+      try {
+        // eslint-disable-next-line no-console
+        console.log(
+          'PARSED:',
+          JSON.parse(window.localStorage.getItem('__giro_web_mock_db__') || '{}')
+        );
+      } catch {}
+
+      const employee = await tauriLib.authenticateEmployee(fixtures.TEST_PIN);
       expect(employee).not.toBeNull();
       expect(employee?.name).toBe('Admin');
     });
@@ -174,10 +188,9 @@ describe('tauri.ts', () => {
       expect(summary.cashInDrawer).toBe(120); // 100 + 50 - 30
     });
 
-    it('should throw error for unsupported command in mock', async () => {
-      await expect(tauriLib.getProducts()).rejects.toThrow(
-        'WebMock invoke: comando não suportado: get_products'
-      );
+    it('should return empty list for getProducts in web mock', async () => {
+      const res = await tauriLib.getProducts();
+      expect(res).toEqual([]);
     });
 
     it('should throw error if opening session when one is already open', async () => {

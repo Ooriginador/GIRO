@@ -1,3 +1,28 @@
+# Docs & Tests Cleanup Report
+
+Date: 2026-01-20
+
+Summary:
+
+- Neutralized sensitive tokens and pins in frontend tests by introducing `apps/desktop/src/test/fixtures.ts`.
+- Added a small shared test setup helper `apps/desktop/src/test/setupTests.ts` (helpers for web mock DB and mocking helpers).
+- Updated the following tests to use fixtures instead of literal secrets:
+  - `apps/desktop/src/hooks/__tests__/useAuth.test.tsx`
+  - `apps/desktop/src/lib/__tests__/tauri.test.ts`
+  - `apps/desktop/src/stores/__tests__/auth-store.test.ts`
+  - `apps/desktop/src/components/layout/__tests__/Header.test.tsx`
+
+Open items (need owner/decision):
+
+- Replace other literal tokens and obvious test passwords found across the repo (see `REPORTS/SECRETS_TOP100.md`) — Owner: @backend-team or repo maintainers.
+- Consolidate all Tauri/web mocks fully into a single `setupTests` file and configure Vitest `setupFiles` if desired — Owner: @frontend-team.
+- Review CI workflows for leaked test credentials in `REPORTS` and replace any real values with encrypted secrets — Owner: @devops.
+
+Notes:
+
+- Tests updated use non-sensitive constant names (`TEST_TOKEN_*`, `TEST_PIN`) stored in `apps/desktop/src/test/fixtures.ts`.
+- I ran a small subset of tests locally (see next steps) to validate changes; full test run recommended in CI.
+
 # Relatório de Sanitização de Documentos
 
 Resumo rápido:

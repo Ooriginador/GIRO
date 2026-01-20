@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                id as \"id!\",\n                name as \"name!\",\n                logo_url,\n                is_active as \"is_active!: i32\",\n                created_at as \"created_at!\",\n                updated_at as \"updated_at!\"\n            FROM vehicle_brands\n            WHERE is_active = 1\n            ORDER BY name ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "logo_url",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_active!: i32",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at!",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "107d104b239d7ee762f95125848380274ec8e61fe11ed720eb056cd22a543e2b"
+}

@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT \n                p.id, p.name,\n                COALESCE(SUM(si.quantity), 0.0) as \"quantity!: f64\",\n                COALESCE(SUM(si.total), 0.0) as \"total!: f64\"\n            FROM sale_items si\n            JOIN products p ON p.id = si.product_id\n            GROUP BY p.id\n            ORDER BY quantity DESC\n            LIMIT ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "quantity!: f64",
+        "ordinal": 2,
+        "type_info": "Float"
+      },
+      {
+        "name": "total!: f64",
+        "ordinal": 3,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "42a0f424f946b9dec187d84dc82d6267597a90d5462773c7e64c82fbe5eafdb3"
+}

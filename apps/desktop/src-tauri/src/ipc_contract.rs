@@ -3,10 +3,7 @@ use serde::{Deserialize, Serialize};
 
 // Envelope returned by commands
 #[derive(Debug, Serialize, Deserialize)]
-pub struct InvokeResult<T>
-where
-    T: Serialize + DeserializeOwned,
-{
+pub struct InvokeResult<T> {
     pub ok: bool,
     pub code: Option<String>,
     pub error: Option<String>,

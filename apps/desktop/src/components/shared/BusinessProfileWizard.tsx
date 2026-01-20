@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useBusinessProfile } from '@/stores/useBusinessProfile';
 import { AVAILABLE_PROFILES, BusinessProfile, BusinessType } from '@/types/business-profile';
 import { AnimatePresence, motion } from 'framer-motion';
+import { clickableByKeyboard } from '@/lib/a11y';
 import { Bike, Check, ChevronRight, Dog, Info, ShoppingCart, Sparkles, Store } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -30,6 +31,10 @@ interface ProfileCardProps {
 function ProfileCard({ profile, isSelected, isComingSoon, onSelect }: ProfileCardProps) {
   const Icon = ICON_MAP[profile.icon] || Store;
 
+  const handleCardClick = () => {
+    if (!isComingSoon) onSelect();
+  };
+
   return (
     <Card
       className={cn(
@@ -37,7 +42,7 @@ function ProfileCard({ profile, isSelected, isComingSoon, onSelect }: ProfileCar
         isSelected && 'ring-2 ring-primary shadow-lg',
         isComingSoon && 'opacity-60 cursor-not-allowed'
       )}
-      onClick={() => !isComingSoon && onSelect()}
+      {...(!isComingSoon ? clickableByKeyboard(handleCardClick) : {})}
     >
       <CardContent className="p-6 text-center">
         {/* Coming Soon Badge */}

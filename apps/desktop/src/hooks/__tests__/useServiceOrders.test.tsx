@@ -55,6 +55,7 @@ describe('useServiceOrders', () => {
       vehicle_year_id: 'year-1',
       employee_id: 'emp-1',
       vehicle_km: 10000,
+      status: 'QUOTE',
     });
 
     expect(newOrder.id).toBe('os-1');

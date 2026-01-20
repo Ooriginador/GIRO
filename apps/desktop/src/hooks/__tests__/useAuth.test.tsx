@@ -26,6 +26,12 @@ vi.mock('@/stores', () => ({
 }));
 
 import { invoke } from '@/lib/tauri';
+import fixtures from '@/test/fixtures';
+
+// Test constants (non-sensitive placeholders)
+const TEST_TOKEN_ABC = 'test-token-abc';
+const TEST_TOKEN_XYZ = 'test-token-xyz';
+const TEST_PASSWORD = 'test-password';
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -44,17 +50,20 @@ describe('useAuth Hooks', () => {
   describe('useLoginWithPin', () => {
     it('should call login on successful PIN login', async () => {
       const mockEmployee = { id: 'emp1', name: 'João', role: 'OPERATOR' };
-      vi.mocked(invoke).mockResolvedValue({ employee: mockEmployee, token: 'abc123' });
+      vi.mocked(invoke).mockResolvedValue({
+        employee: mockEmployee,
+        token: fixtures.TEST_TOKEN_USER,
+      });
 
       const { result } = renderHook(() => useLoginWithPin(), { wrapper: createWrapper() });
 
-      result.current.mutate('8899');
+      result.current.mutate(fixtures.TEST_PIN);
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(invoke).toHaveBeenCalledWith('login_with_pin', { pin: '8899' });
+      expect(invoke).toHaveBeenCalledWith('login_with_pin', { pin: fixtures.TEST_PIN });
       expect(mockLogin).toHaveBeenCalledWith(mockEmployee);
     });
 
@@ -74,11 +83,14 @@ describe('useAuth Hooks', () => {
   describe('useLoginWithPassword', () => {
     it('should call login on successful password login', async () => {
       const mockEmployee = { id: 'emp2', name: 'Maria', role: 'ADMIN' };
-      vi.mocked(invoke).mockResolvedValue({ employee: mockEmployee, token: 'xyz789' });
+      vi.mocked(invoke).mockResolvedValue({
+        employee: mockEmployee,
+        token: fixtures.TEST_TOKEN_ADMIN,
+      });
 
       const { result } = renderHook(() => useLoginWithPassword(), { wrapper: createWrapper() });
 
-      result.current.mutate({ cpf: '123.456.789-00', password: 'senha123' });
+      result.current.mutate({ cpf: '123.456.789-00', password: TEST_PASSWORD });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -86,7 +98,7 @@ describe('useAuth Hooks', () => {
 
       expect(invoke).toHaveBeenCalledWith('login_with_password', {
         cpf: '123.456.789-00',
-        password: 'senha123',
+        password: TEST_PASSWORD,
       });
       expect(mockLogin).toHaveBeenCalledWith(mockEmployee);
     });

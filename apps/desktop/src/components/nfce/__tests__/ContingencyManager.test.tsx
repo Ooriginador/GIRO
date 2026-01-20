@@ -1,4 +1,5 @@
 import * as tauri from '@/lib/tauri';
+import fixtures from '@/test/fixtures';
 import { createQueryWrapper } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,7 +10,7 @@ const { mockToast, mockFiscal, mockCompany } = vi.hoisted(() => ({
   mockToast: vi.fn(),
   mockFiscal: {
     certPath: 'path/to/cert.pfx',
-    certPassword: 'password123',
+    certPassword: fixtures.TEST_TOKEN_USER,
     environment: 2,
     uf: 'SP',
     serie: 1,
@@ -21,14 +22,18 @@ const { mockToast, mockFiscal, mockCompany } = vi.hoisted(() => ({
   },
 }));
 
-// Mock Lucide icons
-vi.mock('lucide-react', () => ({
-  AlertTriangle: () => <div data-testid="icon-alert" />,
-  CheckCircle2: () => <div data-testid="icon-check" />,
-  Loader2: () => <div data-testid="icon-loader" />,
-  RefreshCw: () => <div data-testid="icon-refresh" />,
-  Send: () => <div data-testid="icon-send" />,
-}));
+// Mock Lucide icons (extend original exports when available)
+vi.mock('lucide-react', async (importOriginal) => {
+  const original = await importOriginal();
+  return {
+    ...original,
+    AlertTriangle: () => <div data-testid="icon-alert" />,
+    CheckCircle2: () => <div data-testid="icon-check" />,
+    Loader2: () => <div data-testid="icon-loader" />,
+    RefreshCw: () => <div data-testid="icon-refresh" />,
+    Send: () => <div data-testid="icon-send" />,
+  };
+});
 
 // Mock Tauri functions
 vi.mock('@/lib/tauri', () => ({

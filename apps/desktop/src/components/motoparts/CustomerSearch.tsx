@@ -30,6 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ChevronRight, FileText, Loader2, Phone, Plus, Search, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { clickableByKeyboard } from '@/lib/a11y';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CUSTOMER SEARCH - Busca e seleção de cliente
@@ -258,7 +259,7 @@ export function CustomerCard({ customer, onClick, compact = false, className }: 
           'flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer',
           className
         )}
-        onClick={onClick}
+        {...(onClick ? clickableByKeyboard(onClick) : {})}
       >
         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
           <User className="h-5 w-5 text-primary" />
@@ -276,7 +277,7 @@ export function CustomerCard({ customer, onClick, compact = false, className }: 
   return (
     <Card
       className={cn('cursor-pointer hover:shadow-md transition-shadow', className)}
-      onClick={onClick}
+      {...(onClick ? clickableByKeyboard(onClick) : {})}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-4">

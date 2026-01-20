@@ -457,8 +457,14 @@ mod tests {
     use crate::models::{CreateSaleItem, DiscountType, PaymentMethod};
     use sqlx::SqlitePool;
 
-    async fn setup_test_db() -> SqlitePool {
-        let pool = SqlitePool::connect(":memory:").await.unwrap();
+        async fn setup_test_db() -> SqlitePool {
+            let ts = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let url = format!("file:/tmp/giro_test_{}?mode=rwc", ts);
+
+            let pool = SqlitePool::connect(&url).await.unwrap();
 
         sqlx::migrate!("./migrations").run(&pool).await.unwrap();
 

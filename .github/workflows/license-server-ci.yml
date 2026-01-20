@@ -90,7 +90,7 @@ jobs:
         env:
           POSTGRES_DB: giro_licenses_test
           POSTGRES_USER: giro
-          POSTGRES_PASSWORD: giro_test_password
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         ports:
           - 5432:5432
         options: >-
@@ -110,9 +110,9 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://giro:giro_test_password@localhost:5432/giro_licenses_test
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       REDIS_URL: redis://localhost:6379
-      JWT_SECRET: test_secret_key_for_ci_only_do_not_use_in_production
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
       APP_ENV: test
 
     steps:

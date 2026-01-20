@@ -6,9 +6,9 @@ Source: REPORTS/secrets-grep.txt and repo grep outputs. Filter rules applied: ex
 
 This file lists up to 100 candidate findings (ordered by perceived severity / explicitness). Treat this as an investigative artifact — each entry should be manually validated before any rotation/removal action.
 
-1. .github/workflows/license-server-ci.yml — `POSTGRES_PASSWORD: giro_test_password`
-2. .github/workflows/license-server-ci.yml — `DATABASE_URL: postgresql://giro:giro_test_password@localhost:5432/giro_licenses_test`
-3. .github/workflows/license-server-ci.yml — `JWT_SECRET: test_secret_key_for_ci_only_do_not_use_in_production`
+1. .github/workflows/license-server-ci.yml — `POSTGRES_PASSWORD: POSTGRES_PASSWORD_PLACEHOLDER`
+2. .github/workflows/license-server-ci.yml — `DATABASE_URL: postgresql://giro:POSTGRES_PASSWORD_PLACEHOLDER@localhost:5432/giro_licenses_test`
+3. .github/workflows/license-server-ci.yml — `JWT_SECRET: JWT_SECRET_PLACEHOLDER`
 4. .github/workflows/license-server-cd.yml — `password: ${{ secrets.GITHUB_TOKEN }}` (verify no plain token elsewhere)
 5. .github/workflows/license-server-cd.yml — `RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}` / `RAILWAY_TOKEN_STAGING`
 6. .github/workflows/release.yml — references to `GH_TOKEN`, `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, `LICENSE_API_KEY`
@@ -26,13 +26,13 @@ This file lists up to 100 candidate findings (ordered by perceived severity / ex
 18. apps/desktop/src-tauri/src/services/mobile_session.rs — test uses `SessionManager::new("test_secret")` and other `test_secret` tokens
 19. apps/desktop/src-tauri/src/services/mobile_session.rs — `with_random_secret()` used in tests; ensure production secret not committed
 20. apps/desktop/src/components/nfce/**tests**/ContingencyManager.test.tsx — `certPassword: 'password123'`
-21. apps/desktop/src/hooks/**tests**/useAuth.test.tsx — mocked tokens: `'abc123'`, `'xyz789'` and test password `'senha123'`
+21. apps/desktop/src/hooks/**tests**/useAuth.test.tsx — mocked tokens: `TEST_TOKEN_ABC`, `TEST_TOKEN_XYZ` and test password `TEST_PASSWORD_PLACEHOLDER`
 22. apps/desktop/src/lib/tauri.ts — localStorage key `backup_token` referenced (verify tokens not checked into source)
 23. docs/deployment.md — instructs to create `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` secrets (check CI config)
 24. docs/website/README.md — describes `TAURI_SIGNING_PRIVATE_KEY` content should be `.key` file content (verify not committed)
 25. apps/desktop/src-tauri/src/services/backup_service.rs — OAuth exchange posts `client_secret` and receives `access_token` (inspect persisted tokens)
 26. apps/desktop/src-tauri/src/repositories/fiscal_repository.rs — uses `cert_password` in DB bindings (possible seed or config leakage)
-27. apps/desktop/src-tauri/src/repositories/employee_repository_test.rs — fixture `password: Some("senha123".to_string())`
+27. apps/desktop/src-tauri/src/repositories/employee_repository_test.rs — fixture `password: Some("TEST_PASSWORD_PLACEHOLDER".to_string())`
 28. apps/desktop/src-tauri/src/services/network_client.rs — token fields shown as `token: None` in examples; scan for concrete values
 29. apps/desktop/src-tauri/src/services/mobile_server.rs — session token handling; many code paths reference `token` fields
 30. packages/database/prisma/schema.prisma — `password String?` field; seeds set to hash of `'admin123'` in docs

@@ -214,6 +214,24 @@ describe('ServiceOrderDetails', () => {
     expect(mockDeliver).toHaveBeenCalledWith({ id: 'os-1', paymentMethod: 'DINHEIRO' });
   });
 
+  it('should handle approve quote action', async () => {
+    vi.mocked(useServiceOrderDetails).mockReturnValue({
+      orderDetails: {
+        ...mockOrderDetails,
+        order: { ...mockOrder, status: 'QUOTE' },
+      },
+      isLoading: false,
+      refetch: mockRefetch,
+    } as any);
+
+    render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+
+    fireEvent.click(screen.getByRole('button', { name: /Aprovar Orçamento/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar/i }));
+
+    expect(vi.mocked(useServiceOrders)().startOrder.mutateAsync).toHaveBeenCalledWith('os-1');
+  });
+
   it('should show "Not Found" message if order data is missing', () => {
     vi.mocked(useServiceOrderDetails).mockReturnValue({
       orderDetails: null,

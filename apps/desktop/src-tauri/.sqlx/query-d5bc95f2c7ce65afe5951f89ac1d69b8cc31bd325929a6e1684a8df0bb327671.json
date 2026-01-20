@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO customer_vehicles (\n                id, customer_id, vehicle_year_id, plate, chassis, renavam,\n                color, current_km, nickname, is_active, notes, created_at, updated_at\n            )\n            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 12
+    },
+    "nullable": []
+  },
+  "hash": "d5bc95f2c7ce65afe5951f89ac1d69b8cc31bd325929a6e1684a8df0bb327671"
+}

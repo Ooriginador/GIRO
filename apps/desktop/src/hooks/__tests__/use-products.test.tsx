@@ -35,6 +35,14 @@ vi.mock('@/lib/tauri', () => ({
   getInactiveProducts: vi.fn(),
 }));
 
+// Provide a stable useAuthStore with getState for mutation hooks that call
+// `useAuthStore.getState().employee?.id` inside the implementation.
+vi.mock('@/stores/auth-store', () => {
+  const fn = () => ({ employee: { id: 'admin-1' } });
+  (fn as any).getState = () => ({ employee: { id: 'admin-1' } });
+  return { useAuthStore: fn };
+});
+
 const queryWrapper = createQueryWrapper();
 
 describe('use-products hooks', () => {

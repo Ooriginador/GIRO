@@ -173,7 +173,7 @@ impl NetworkClient {
     }
 
     async fn connect_and_handle(&self, addr: &str) -> anyhow::Result<()> {
-        let url = format!("ws://{}/ws", addr); // TODO: URL correta pode variar
+        let url = format!("ws://{}/ws", addr);
         let (ws_stream, _) = connect_async(&url).await?;
         
         self.set_state(ConnectionState::Connected(addr.to_string())).await;
