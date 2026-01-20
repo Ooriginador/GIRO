@@ -178,6 +178,7 @@ export const ExpirationPage: FC = () => {
                   <TableHead>Lote</TableHead>
                   <TableHead className="text-center">Quantidade</TableHead>
                   <TableHead className="text-right">Custo Unit.</TableHead>
+                  <TableHead>Fabricação</TableHead>
                   <TableHead>Validade</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                 </TableRow>
@@ -195,6 +196,9 @@ export const ExpirationPage: FC = () => {
                       </TableCell>
                       <TableCell className="text-center">{lot.quantity}</TableCell>
                       <TableCell className="text-right">{formatCurrency(lot.costPrice)}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {lot.manufacturingDate ? formatDate(new Date(lot.manufacturingDate)) : '-'}
+                      </TableCell>
                       <TableCell>
                         <div>
                           <p className={cn('font-medium', status.color)}>

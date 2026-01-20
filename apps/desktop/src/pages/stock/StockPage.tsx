@@ -111,6 +111,17 @@ export const StockPage: FC = () => {
             <p className="text-xs text-muted-foreground">zerados</p>
           </CardContent>
         </Card>
+
+        <Card className={cn(report.excessStockCount > 0 && 'border-blue-500')}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Excesso de Estoque</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-500">{report.excessStockCount}</div>
+            <p className="text-xs text-muted-foreground">acima do máximo</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Produtos com Estoque Baixo */}

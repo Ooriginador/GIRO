@@ -3,42 +3,39 @@
  * @description Formulário completo para criar ou editar produto
  */
 
-import { PriceHistoryCard } from "@/components/shared/PriceHistoryCard";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { PriceHistoryCard } from '@/components/shared/PriceHistoryCard';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import {
-  useCreateProduct,
-  useProduct,
-  useUpdateProduct,
-} from "@/hooks/use-products";
-import { useToast } from "@/hooks/use-toast";
-import { useCategories } from "@/hooks/useCategories";
-import { calculateMargin, formatCurrency } from "@/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, BarChart3, DollarSign, Package, Save } from "lucide-react";
-import { type FC, useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { z } from "zod";
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { useCreateProduct, useProduct, useUpdateProduct } from '@/hooks/use-products';
+import { useToast } from '@/hooks/use-toast';
+import { useCategories } from '@/hooks/useCategories';
+import { calculateMargin, formatCurrency } from '@/lib/utils';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowLeft, BarChart3, DollarSign, Package, Save } from 'lucide-react';
+import { type FC, useEffect } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { z } from 'zod';
 
 const productSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
+  name: z.string().min(1, 'Nome é obrigatório'),
   barcode: z.string().optional(),
-  categoryId: z.string().min(1, "Categoria é obrigatória"),
-  unit: z.string().min(1, "Unidade é obrigatória"),
-  salePrice: z.number().positive("Preço deve ser maior que zero"),
-  costPrice: z.number().min(0, "Custo não pode ser negativo").optional(),
+  categoryId: z.string().min(1, 'Categoria é obrigatória'),
+  unit: z.string().min(1, 'Unidade é obrigatória'),
+  salePrice: z.number().positive('Preço deve ser maior que zero'),
+  costPrice: z.number().min(0, 'Custo não pode ser negativo').optional(),
   minStock: z.number().min(0).default(0),
+  maxStock: z.number().min(0).optional(),
   isWeighted: z.boolean().default(false),
 });
 
@@ -66,7 +63,7 @@ export const ProductFormPage: FC = () => {
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      unit: "UNIT",
+      unit: 'UNIT',
       minStock: 0,
       isWeighted: false,
     },
@@ -77,21 +74,22 @@ export const ProductFormPage: FC = () => {
     if (product) {
       reset({
         name: product.name,
-        barcode: product.barcode || "",
+        barcode: product.barcode || '',
         categoryId: product.categoryId,
         unit: product.unit,
         salePrice: product.salePrice,
         costPrice: product.costPrice,
         minStock: product.minStock,
+        maxStock: product.maxStock ?? undefined,
         isWeighted: product.isWeighted,
       });
     }
   }, [product, reset]);
 
-  const salePrice = watch("salePrice") || 0;
-  const costPrice = watch("costPrice") || 0;
+  const salePrice = watch('salePrice') || 0;
+  const costPrice = watch('costPrice') || 0;
   const margin = calculateMargin(salePrice, costPrice);
-  const isWeighted = watch("isWeighted");
+  const isWeighted = watch('isWeighted');
 
   const onSubmit = async (data: ProductFormData) => {
     try {
@@ -102,8 +100,8 @@ export const ProductFormPage: FC = () => {
           unit: data.unit as any,
         });
         toast({
-          title: "Produto atualizado",
-          description: "As alterações foram salvas com sucesso.",
+          title: 'Produto atualizado',
+          description: 'As alterações foram salvas com sucesso.',
         });
       } else {
         await createProduct.mutateAsync({
@@ -112,16 +110,16 @@ export const ProductFormPage: FC = () => {
           unit: data.unit as any,
         });
         toast({
-          title: "Produto criado",
-          description: "O produto foi cadastrado com sucesso.",
+          title: 'Produto criado',
+          description: 'O produto foi cadastrado com sucesso.',
         });
       }
-      navigate("/products");
+      navigate('/products');
     } catch {
       toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao salvar o produto.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Ocorreu um erro ao salvar o produto.',
+        variant: 'destructive',
       });
     }
   };
@@ -144,21 +142,14 @@ export const ProductFormPage: FC = () => {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">
-            {isEditing ? "Editar Produto" : "Novo Produto"}
-          </h1>
+          <h1 className="text-2xl font-bold">{isEditing ? 'Editar Produto' : 'Novo Produto'}</h1>
           <p className="text-muted-foreground">
-            {isEditing
-              ? "Altere as informações do produto"
-              : "Cadastre um novo produto no sistema"}
+            {isEditing ? 'Altere as informações do produto' : 'Cadastre um novo produto no sistema'}
           </p>
         </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="grid gap-6 lg:grid-cols-3"
-      >
+      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 lg:grid-cols-3">
         {/* Coluna Principal */}
         <div className="lg:col-span-2 space-y-6">
           {/* Informações Básicas */}
@@ -175,25 +166,17 @@ export const ProductFormPage: FC = () => {
                   <Label htmlFor="name">Nome do Produto *</Label>
                   <Input
                     id="name"
-                    {...register("name")}
+                    {...register('name')}
                     placeholder="Ex: Arroz Tio João 5kg"
                     aria-invalid={!!errors.name}
                     autoComplete="off"
                   />
-                  {errors.name && (
-                    <p className="text-sm text-destructive">
-                      {errors.name.message}
-                    </p>
-                  )}
+                  {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="barcode">Código de Barras</Label>
-                  <Input
-                    id="barcode"
-                    {...register("barcode")}
-                    placeholder="Ex: 7891234567890"
-                  />
+                  <Input id="barcode" {...register('barcode')} placeholder="Ex: 7891234567890" />
                 </div>
               </div>
 
@@ -204,17 +187,10 @@ export const ProductFormPage: FC = () => {
                     name="categoryId"
                     control={control}
                     render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
+                      <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger>
                           <SelectValue
-                            placeholder={
-                              isLoadingCategories
-                                ? "Carregando..."
-                                : "Selecione..."
-                            }
+                            placeholder={isLoadingCategories ? 'Carregando...' : 'Selecione...'}
                           />
                         </SelectTrigger>
                         <SelectContent>
@@ -228,9 +204,7 @@ export const ProductFormPage: FC = () => {
                     )}
                   />
                   {errors.categoryId && (
-                    <p className="text-sm text-destructive">
-                      {errors.categoryId.message}
-                    </p>
+                    <p className="text-sm text-destructive">{errors.categoryId.message}</p>
                   )}
                 </div>
 
@@ -240,23 +214,16 @@ export const ProductFormPage: FC = () => {
                     name="unit"
                     control={control}
                     render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
+                      <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="UNIT">Unidade (un)</SelectItem>
-                          <SelectItem value="KILOGRAM">
-                            Quilograma (kg)
-                          </SelectItem>
+                          <SelectItem value="KILOGRAM">Quilograma (kg)</SelectItem>
                           <SelectItem value="GRAM">Grama (g)</SelectItem>
                           <SelectItem value="LITER">Litro (L)</SelectItem>
-                          <SelectItem value="MILLILITER">
-                            Mililitro (ml)
-                          </SelectItem>
+                          <SelectItem value="MILLILITER">Mililitro (ml)</SelectItem>
                           <SelectItem value="METER">Metro (m)</SelectItem>
                           <SelectItem value="BOX">Caixa (cx)</SelectItem>
                           <SelectItem value="PACK">Pacote (pct)</SelectItem>
@@ -265,11 +232,7 @@ export const ProductFormPage: FC = () => {
                       </Select>
                     )}
                   />
-                  {errors.unit && (
-                    <p className="text-sm text-destructive">
-                      {errors.unit.message}
-                    </p>
-                  )}
+                  {errors.unit && <p className="text-sm text-destructive">{errors.unit.message}</p>}
                 </div>
               </div>
 
@@ -312,14 +275,12 @@ export const ProductFormPage: FC = () => {
                       step="0.01"
                       min="0"
                       className="pl-10"
-                      {...register("salePrice", { valueAsNumber: true })}
+                      {...register('salePrice', { valueAsNumber: true })}
                       placeholder="0,00"
                     />
                   </div>
                   {errors.salePrice && (
-                    <p className="text-sm text-destructive">
-                      {errors.salePrice.message}
-                    </p>
+                    <p className="text-sm text-destructive">{errors.salePrice.message}</p>
                   )}
                 </div>
 
@@ -335,14 +296,12 @@ export const ProductFormPage: FC = () => {
                       step="0.01"
                       min="0"
                       className="pl-10"
-                      {...register("costPrice", { valueAsNumber: true })}
+                      {...register('costPrice', { valueAsNumber: true })}
                       placeholder="0,00"
                     />
                   </div>
                   {errors.costPrice && (
-                    <p className="text-sm text-destructive">
-                      {errors.costPrice.message}
-                    </p>
+                    <p className="text-sm text-destructive">{errors.costPrice.message}</p>
                   )}
                 </div>
               </div>
@@ -372,17 +331,14 @@ export const ProductFormPage: FC = () => {
               <div className="h-px bg-border" />
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Margem de Lucro</span>
-                <span
-                  className={`font-medium ${margin >= 0 ? "text-green-600" : "text-red-600"}`}
-                >
+                <span className={`font-medium ${margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {margin.toFixed(1)}%
                 </span>
               </div>
               {isWeighted && (
                 <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg">
                   <p className="text-sm text-amber-700 dark:text-amber-300">
-                    Produto pesável - será solicitada a quantidade na balança no
-                    PDV
+                    Produto pesável - será solicitada a quantidade na balança no PDV
                   </p>
                 </div>
               )}
@@ -392,20 +348,34 @@ export const ProductFormPage: FC = () => {
           {/* Estoque */}
           <Card>
             <CardHeader>
-              <CardTitle>Estoque Mínimo</CardTitle>
+              <CardTitle>Controle de Estoque</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="minStock">Quantidade Mínima</Label>
+                <Label htmlFor="minStock">Estoque Mínimo</Label>
                 <Input
                   id="minStock"
                   type="number"
                   min="0"
-                  {...register("minStock", { valueAsNumber: true })}
+                  {...register('minStock', { valueAsNumber: true })}
                   placeholder="0"
                 />
                 <p className="text-xs text-muted-foreground">
                   Alerta será gerado quando o estoque estiver abaixo
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="maxStock">Estoque Máximo</Label>
+                <Input
+                  id="maxStock"
+                  type="number"
+                  min="0"
+                  {...register('maxStock', { valueAsNumber: true })}
+                  placeholder="Opcional"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Sugestão de compra quando o estoque estiver baixo
                 </p>
               </div>
             </CardContent>
@@ -415,7 +385,7 @@ export const ProductFormPage: FC = () => {
           <div className="flex flex-col gap-2">
             <Button type="submit" disabled={isSubmitting}>
               <Save className="h-4 w-4 mr-2" />
-              {isSubmitting ? "Salvando..." : "Salvar Produto"}
+              {isSubmitting ? 'Salvando...' : 'Salvar Produto'}
             </Button>
             <Button variant="outline" type="button" asChild>
               <Link to="/products">Cancelar</Link>

@@ -58,6 +58,7 @@ pub struct Product {
     pub cost_price: f64,
     pub current_stock: f64,
     pub min_stock: f64,
+    pub max_stock: Option<f64>, // Added for schema sync
     pub is_active: bool,
     pub category_id: String,
     pub created_at: String, // SQLite armazena como TEXT
@@ -88,6 +89,7 @@ pub struct CreateProduct {
     pub cost_price: Option<f64>,
     pub current_stock: Option<f64>,
     pub min_stock: Option<f64>,
+    pub max_stock: Option<f64>,
     pub category_id: String,
 }
 
@@ -104,6 +106,7 @@ pub struct UpdateProduct {
     pub cost_price: Option<f64>,
     pub current_stock: Option<f64>,
     pub min_stock: Option<f64>,
+    pub max_stock: Option<f64>,
     pub is_active: Option<bool>,
     pub category_id: Option<String>,
     /// ID do funcionário que está fazendo a alteração (para auditoria)

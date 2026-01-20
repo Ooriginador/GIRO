@@ -15,7 +15,7 @@ impl<'a> ProductRepository<'a> {
         Self { pool }
     }
 
-    const PRODUCT_COLUMNS: &'static str = "id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, is_active, category_id, created_at, updated_at";
+    const PRODUCT_COLUMNS: &'static str = "id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, max_stock, is_active, category_id, created_at, updated_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Product>> {
         let query = format!(
@@ -154,6 +154,17 @@ impl<'a> ProductRepository<'a> {
         Ok(result)
     }
 
+    pub async fn find_excess_stock(&self) -> AppResult<Vec<Product>> {
+        let query = format!(
+            "SELECT {} FROM products WHERE is_active = 1 AND max_stock IS NOT NULL AND current_stock > max_stock ORDER BY current_stock DESC",
+            Self::PRODUCT_COLUMNS
+        );
+        let result = sqlx::query_as::<_, Product>(&query)
+            .fetch_all(self.pool)
+            .await?;
+        Ok(result)
+    }
+
     pub async fn get_next_internal_code(&self) -> AppResult<String> {
         let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM products")
             .fetch_one(self.pool)
@@ -176,9 +187,10 @@ impl<'a> ProductRepository<'a> {
         let cost_price = data.cost_price.unwrap_or(0.0);
         let current_stock = data.current_stock.unwrap_or(0.0);
         let min_stock = data.min_stock.unwrap_or(0.0);
+        let max_stock = data.max_stock;
 
         sqlx::query(
-            "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, is_active, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)"
+            "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, max_stock, is_active, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)"
         )
         .bind(&id)
         .bind(&data.barcode)
@@ -191,6 +203,7 @@ impl<'a> ProductRepository<'a> {
         .bind(cost_price)
         .bind(current_stock)
         .bind(min_stock)
+        .bind(max_stock)
         .bind(&data.category_id)
         .bind(&now)
         .bind(&now)
@@ -224,6 +237,7 @@ impl<'a> ProductRepository<'a> {
         let cost_price = data.cost_price.unwrap_or(existing.cost_price);
         let current_stock = data.current_stock.unwrap_or(existing.current_stock);
         let min_stock = data.min_stock.unwrap_or(existing.min_stock);
+        let max_stock = data.max_stock.or(existing.max_stock);
         let is_active = data.is_active.unwrap_or(existing.is_active);
         let category_id = data.category_id.unwrap_or(existing.category_id);
 
@@ -242,7 +256,7 @@ impl<'a> ProductRepository<'a> {
         }
 
         sqlx::query(
-            "UPDATE products SET name = ?, barcode = ?, description = ?, unit = ?, is_weighted = ?, sale_price = ?, cost_price = ?, current_stock = ?, min_stock = ?, is_active = ?, category_id = ?, updated_at = ? WHERE id = ?"
+            "UPDATE products SET name = ?, barcode = ?, description = ?, unit = ?, is_weighted = ?, sale_price = ?, cost_price = ?, current_stock = ?, min_stock = ?, max_stock = ?, is_active = ?, category_id = ?, updated_at = ? WHERE id = ?"
         )
         .bind(&name)
         .bind(&barcode)
@@ -253,6 +267,7 @@ impl<'a> ProductRepository<'a> {
         .bind(cost_price)
         .bind(current_stock)
         .bind(min_stock)
+        .bind(max_stock)
         .bind(is_active)
         .bind(&category_id)
         .bind(&now)
@@ -396,7 +411,7 @@ impl<'a> ProductRepository<'a> {
     /// Lista produtos com excesso de estoque (compatível com mobile)
     pub async fn list_excess_stock(&self, limit: i32, offset: i32) -> AppResult<Vec<Product>> {
         let query = format!(
-            "SELECT {} FROM products WHERE is_active = 1 AND current_stock > min_stock * 3 ORDER BY current_stock DESC LIMIT ? OFFSET ?",
+            "SELECT {} FROM products WHERE is_active = 1 AND ((max_stock IS NOT NULL AND current_stock > max_stock) OR (max_stock IS NULL AND current_stock > min_stock * 3)) ORDER BY current_stock DESC LIMIT ? OFFSET ?",
             Self::PRODUCT_COLUMNS
         );
         let result = sqlx::query_as::<_, Product>(&query)
@@ -422,7 +437,7 @@ impl<'a> ProductRepository<'a> {
     }
     pub async fn upsert_from_sync(&self, product: Product) -> AppResult<()> {
         sqlx::query(
-            "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, is_active, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, max_stock, is_active, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(id) DO UPDATE SET
                 barcode=excluded.barcode,
                 internal_code=excluded.internal_code,
@@ -434,6 +449,7 @@ impl<'a> ProductRepository<'a> {
                 cost_price=excluded.cost_price,
                 current_stock=excluded.current_stock,
                 min_stock=excluded.min_stock,
+                max_stock=excluded.max_stock,
                 is_active=excluded.is_active,
                 category_id=excluded.category_id,
                 updated_at=excluded.updated_at"
@@ -449,6 +465,7 @@ impl<'a> ProductRepository<'a> {
         .bind(product.cost_price)
         .bind(product.current_stock)
         .bind(product.min_stock)
+        .bind(product.max_stock)
         .bind(product.is_active)
         .bind(&product.category_id)
         .bind(&product.created_at)

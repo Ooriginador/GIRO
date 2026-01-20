@@ -31,6 +31,7 @@ const entrySchema = z.object({
   costPrice: z.number().min(0, 'Custo não pode ser negativo'),
   lotNumber: z.string().optional(),
   expirationDate: z.date().optional(),
+  manufacturingDate: z.date().optional(),
 });
 
 type EntryFormData = z.infer<typeof entrySchema>;
@@ -80,6 +81,7 @@ export const StockEntryPage: FC = () => {
       costPrice: data.costPrice,
       lotNumber: data.lotNumber,
       expirationDate: data.expirationDate?.toISOString(),
+      manufacturingDate: data.manufacturingDate?.toISOString(),
     });
 
     navigate('/stock');
@@ -215,34 +217,67 @@ export const StockEntryPage: FC = () => {
                 <Input id="lotNumber" placeholder="Ex: LOT-2026-001" {...register('lotNumber')} />
               </div>
 
-              {/* Data de Validade */}
-              <div className="space-y-2">
-                <Label>Data de Validade</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !expirationDate && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {expirationDate
-                        ? format(expirationDate, 'PPP', { locale: ptBR })
-                        : 'Selecionar data'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={expirationDate}
-                      onSelect={(date) => setValue('expirationDate', date)}
-                      initialFocus
-                      disabled={(date) => date < new Date()}
-                    />
-                  </PopoverContent>
-                </Popover>
+              {/* Datas */}
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Data de Fabricação */}
+                <div className="space-y-2">
+                  <Label>Data de Fabricação</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !watch('manufacturingDate') && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {watch('manufacturingDate')
+                          ? format(watch('manufacturingDate')!, 'PPP', { locale: ptBR })
+                          : 'Selecionar data'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={watch('manufacturingDate')}
+                        onSelect={(date) => setValue('manufacturingDate', date || undefined)}
+                        initialFocus
+                        disabled={(date) => date > new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Data de Validade */}
+                <div className="space-y-2">
+                  <Label>Data de Validade</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !expirationDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {expirationDate
+                          ? format(expirationDate, 'PPP', { locale: ptBR })
+                          : 'Selecionar data'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={expirationDate}
+                        onSelect={(date) => setValue('expirationDate', date || undefined)}
+                        initialFocus
+                        disabled={(date) => date < (watch('manufacturingDate') || new Date())}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
               {/* Ações */}

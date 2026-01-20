@@ -182,10 +182,10 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
 
       // Map movementType (SUPPLY/BLEED) to CashMovement type for UI compatibility
       const typeMap: Record<string, CashMovementType> = {
-        'SUPPLY': 'DEPOSIT',
-        'BLEED': 'WITHDRAWAL',
-        'OPENING': 'OPENING',
-        'CLOSING': 'CLOSING',
+        SUPPLY: 'DEPOSIT',
+        BLEED: 'WITHDRAWAL',
+        OPENING: 'OPENING',
+        CLOSING: 'CLOSING',
       };
 
       const movement: CashMovement = {
@@ -534,7 +534,8 @@ export async function addStockEntry(
   quantity: number,
   costPrice: number,
   lotNumber?: string,
-  expirationDate?: string
+  expirationDate?: string,
+  manufacturingDate?: string
 ): Promise<void> {
   const employeeId = useAuthStore.getState().employee?.id;
   if (!employeeId) throw new Error('Operação requer um funcionário autenticado');
@@ -548,6 +549,7 @@ export async function addStockEntry(
       costPrice,
       lotNumber,
       expirationDate,
+      manufacturingDate,
     },
     employee_id: employeeId,
   });
@@ -751,6 +753,7 @@ export async function getStockReport(): Promise<{
   lowStockCount: number;
   outOfStockCount: number;
   expiringCount: number;
+  excessStockCount: number;
 }> {
   return invoke('get_stock_report');
 }
@@ -828,7 +831,9 @@ export function setCloudBackupToken(token: string): void {
 /**
  * Upload local backup to cloud server
  */
-export async function uploadBackupToCloud(backupData: Blob | ArrayBuffer): Promise<CloudBackupUploadResponse> {
+export async function uploadBackupToCloud(
+  backupData: Blob | ArrayBuffer
+): Promise<CloudBackupUploadResponse> {
   const token = getAuthToken();
   if (!token) {
     throw new Error('Não autenticado. Faça login no servidor de licenças primeiro.');
@@ -837,7 +842,7 @@ export async function uploadBackupToCloud(backupData: Blob | ArrayBuffer): Promi
   const response = await fetch(`${LICENSE_SERVER_URL}/backups`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/octet-stream',
     },
     body: backupData,
@@ -863,7 +868,7 @@ export async function listCloudBackups(): Promise<CloudBackupListResponse> {
   const response = await fetch(`${LICENSE_SERVER_URL}/backups`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
   });
 
@@ -887,7 +892,7 @@ export async function getCloudBackup(backupId: string): Promise<CloudBackupMeta>
   const response = await fetch(`${LICENSE_SERVER_URL}/backups/${backupId}`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
   });
 
@@ -911,7 +916,7 @@ export async function deleteCloudBackup(backupId: string): Promise<void> {
   const response = await fetch(`${LICENSE_SERVER_URL}/backups/${backupId}`, {
     method: 'DELETE',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
   });
 
@@ -929,7 +934,7 @@ export async function syncBackupToCloud(): Promise<CloudBackupUploadResponse | n
   try {
     // Create local backup first
     const localResult = await createBackup();
-    
+
     if (!localResult.success || !localResult.data) {
       console.error('[Backup] Failed to create local backup:', localResult.error);
       return null;
@@ -938,7 +943,7 @@ export async function syncBackupToCloud(): Promise<CloudBackupUploadResponse | n
     // Read the backup file and upload to cloud
     // Note: This requires file system access which Tauri handles
     console.log('[Backup] Local backup created:', localResult.data);
-    
+
     // For now, we just return null - full implementation needs file reading
     // In production, use Tauri's fs API to read the file and upload
     console.log('[Backup] Cloud sync not yet fully implemented - local backup saved');

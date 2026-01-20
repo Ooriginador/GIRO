@@ -220,6 +220,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
                     cost_price: Some(*price * 0.7),
                     current_stock: Some(100.0),
                     min_stock: Some(10.0),
+                    max_stock: None,
                     category_id: cat_id,
                 })
                 .await?

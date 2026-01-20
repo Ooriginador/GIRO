@@ -99,9 +99,10 @@ impl<'a> SaleRepository<'a> {
     }
 
     pub async fn create(&self, data: CreateSale) -> AppResult<Sale> {
+        let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
-        let daily_number = self.get_next_daily_number().await?;
+        let daily_number = self.get_next_daily_number_tx(&mut tx).await?;
 
         // Calculate totals
         let subtotal: f64 = data.items.iter().map(|i| i.quantity * i.unit_price).sum();
@@ -130,13 +131,15 @@ impl<'a> SaleRepository<'a> {
         .bind(&data.cash_session_id)
         .bind(&now)
         .bind(&now)
-        .execute(self.pool)
+        .execute(&mut *tx)
         .await?;
 
-        // Insert items
+        // Insert items and update stock
         for item in &data.items {
-            self.create_item(&id, item).await?;
+            self.create_item_tx(&mut tx, &id, item, &data.employee_id).await?;
         }
+
+        tx.commit().await?;
 
         self.find_by_id(&id)
             .await?
@@ -146,28 +149,102 @@ impl<'a> SaleRepository<'a> {
             })
     }
 
-    async fn create_item(&self, sale_id: &str, item: &CreateSaleItem) -> AppResult<SaleItem> {
+    async fn get_next_daily_number_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>) -> AppResult<i32> {
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let result: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM sales WHERE date(created_at) = ?")
+                .bind(&today)
+                .fetch_one(&mut **tx)
+                .await?;
+        Ok((result.0 + 1) as i32)
+    }
+
+    async fn create_item_tx(
+        &self, 
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>, 
+        sale_id: &str, 
+        item: &CreateSaleItem,
+        employee_id: &str
+    ) -> AppResult<()> {
         let item_id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
         let discount = item.discount.unwrap_or(0.0);
         let total = (item.quantity * item.unit_price) - discount;
 
-        // Get product info
-        let product: Option<(String, Option<String>, String)> =
-            sqlx::query_as("SELECT name, barcode, unit FROM products WHERE id = ?")
+        // Get product info and current stock
+        let product: Option<(String, Option<String>, String, f64)> =
+            sqlx::query_as("SELECT name, barcode, unit, current_stock FROM products WHERE id = ?")
                 .bind(&item.product_id)
-                .fetch_optional(self.pool)
+                .fetch_optional(&mut **tx)
                 .await?;
 
-        let (product_name, product_barcode, product_unit) =
-            product.unwrap_or(("Unknown".into(), None, "UNIT".into()));
+        let (product_name, product_barcode, product_unit, current_stock) =
+            product.ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Product".into(),
+                id: item.product_id.clone(),
+            })?;
 
+        // Deduct stock from product
+        let new_stock = current_stock - item.quantity;
+        sqlx::query("UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?")
+            .bind(new_stock)
+            .bind(&now)
+            .bind(&item.product_id)
+            .execute(&mut **tx)
+            .await?;
+
+        // Consume from lots (FIFO)
+        let mut remaining_to_consume = item.quantity;
+        let lots: Vec<(String, f64)> = sqlx::query_as(
+            "SELECT id, current_quantity FROM product_lots WHERE product_id = ? AND current_quantity > 0 AND status = 'AVAILABLE' ORDER BY expiration_date ASC, purchase_date ASC"
+        )
+        .bind(&item.product_id)
+        .fetch_all(&mut **tx)
+        .await?;
+
+        let mut linked_lot_id: Option<String> = None;
+
+        for (lot_id, lot_qty) in lots {
+            if remaining_to_consume <= 0.0 { break; }
+            
+            let consume = lot_qty.min(remaining_to_consume);
+            sqlx::query("UPDATE product_lots SET current_quantity = current_quantity - ?, updated_at = ? WHERE id = ?")
+                .bind(consume)
+                .bind(&now)
+                .bind(&lot_id)
+                .execute(&mut **tx)
+                .await?;
+            
+            remaining_to_consume -= consume;
+            if linked_lot_id.is_none() {
+                linked_lot_id = Some(lot_id);
+            }
+        }
+
+        // Record stock movement (SALE)
+        let movement_id = new_id();
         sqlx::query(
-            "INSERT INTO sale_items (id, sale_id, product_id, quantity, unit_price, discount, total, product_name, product_barcode, product_unit, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, employee_id, created_at) VALUES (?, ?, 'SALE', ?, ?, ?, 'Venda', ?, 'SALE', ?, ?)"
+        )
+        .bind(&movement_id)
+        .bind(&item.product_id)
+        .bind(-item.quantity)
+        .bind(current_stock)
+        .bind(new_stock)
+        .bind(sale_id)
+        .bind(employee_id)
+        .bind(&now)
+        .execute(&mut **tx)
+        .await?;
+
+        // Insert sale item
+        sqlx::query(
+            "INSERT INTO sale_items (id, sale_id, product_id, lot_id, quantity, unit_price, discount, total, product_name, product_barcode, product_unit, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         )
         .bind(&item_id)
         .bind(sale_id)
         .bind(&item.product_id)
+        .bind(linked_lot_id)
         .bind(item.quantity)
         .bind(item.unit_price)
         .bind(discount)
@@ -176,27 +253,72 @@ impl<'a> SaleRepository<'a> {
         .bind(&product_barcode)
         .bind(&product_unit)
         .bind(&now)
-        .execute(self.pool)
+        .execute(&mut **tx)
         .await?;
 
-        let query = format!("SELECT {} FROM sale_items WHERE id = ?", Self::ITEM_COLS);
-        let result = sqlx::query_as::<_, SaleItem>(&query)
-            .bind(&item_id)
-            .fetch_one(self.pool)
-            .await?;
-        Ok(result)
+        Ok(())
     }
 
     pub async fn cancel(&self, id: &str, canceled_by: &str, reason: &str) -> AppResult<Sale> {
+        let mut tx = self.pool.begin().await?;
         let now = chrono::Utc::now().to_rfc3339();
+
+        // Get sale items to revert stock
+        let items = self.find_items_by_sale_tx(&mut tx, id).await?;
+
+        for item in items {
+            // Revert product stock
+            sqlx::query("UPDATE products SET current_stock = current_stock + ?, updated_at = ? WHERE id = ?")
+                .bind(item.quantity)
+                .bind(&now)
+                .bind(&item.product_id)
+                .execute(&mut *tx)
+                .await?;
+
+            // Revert lot stock if applicable
+            if let Some(lot_id) = item.lot_id {
+                sqlx::query("UPDATE product_lots SET current_quantity = current_quantity + ?, updated_at = ? WHERE id = ?")
+                    .bind(item.quantity)
+                    .bind(&now)
+                    .bind(&lot_id)
+                    .execute(&mut *tx)
+                    .await?;
+            }
+
+            // Record stock movement (RETURN/CANCEL)
+            let movement_id = new_id();
+            let current: (f64,) = sqlx::query_as("SELECT current_stock FROM products WHERE id = ?")
+                .bind(&item.product_id)
+                .fetch_one(&mut *tx)
+                .await?;
+
+            sqlx::query(
+                "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, employee_id, created_at) VALUES (?, ?, 'RETURN', ?, ?, ?, ?, ?, 'CANCEL', ?, ?)"
+            )
+            .bind(&movement_id)
+            .bind(&item.product_id)
+            .bind(item.quantity)
+            .bind(current.0 - item.quantity)
+            .bind(current.0)
+            .bind(format!("Cancelamento venda: {}", id))
+            .bind(id)
+            .bind(canceled_by)
+            .bind(&now)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        // Update sale status
         sqlx::query("UPDATE sales SET status = 'CANCELED', canceled_at = ?, canceled_by_id = ?, cancel_reason = ?, updated_at = ? WHERE id = ?")
             .bind(&now)
             .bind(canceled_by)
             .bind(reason)
             .bind(&now)
             .bind(id)
-            .execute(self.pool)
+            .execute(&mut *tx)
             .await?;
+
+        tx.commit().await?;
 
         self.find_by_id(id)
             .await?
@@ -204,6 +326,18 @@ impl<'a> SaleRepository<'a> {
                 entity: "Sale".into(),
                 id: id.into(),
             })
+    }
+
+    async fn find_items_by_sale_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>, sale_id: &str) -> AppResult<Vec<SaleItem>> {
+        let query = format!(
+            "SELECT {} FROM sale_items WHERE sale_id = ?",
+            Self::ITEM_COLS
+        );
+        let result = sqlx::query_as::<_, SaleItem>(&query)
+            .bind(sale_id)
+            .fetch_all(&mut **tx)
+            .await?;
+        Ok(result)
     }
 
     pub async fn get_daily_summary(&self, date: &str) -> AppResult<DailySalesSummary> {

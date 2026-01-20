@@ -106,6 +106,7 @@ export interface ProductLot {
   product?: Product;
   lotNumber?: string;
   expirationDate: string;
+  manufacturingDate?: string;
   quantity: number;
   costPrice: number;
   purchaseDate: string;
@@ -416,6 +417,7 @@ export interface CreateProductInput {
   salePrice: number;
   costPrice: number;
   minStock: number;
+  maxStock?: number;
   currentStock?: number;
   isWeighted?: boolean;
 }

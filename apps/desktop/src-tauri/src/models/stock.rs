@@ -79,12 +79,17 @@ pub struct StockMovement {
 #[serde(rename_all = "camelCase")]
 pub struct CreateStockMovement {
     pub product_id: String,
-    pub movement_type: String,
+    pub movement_type: String, // ENTRY, EXIT, ADJUSTMENT, etc.
     pub quantity: f64,
     pub reason: Option<String>,
     pub reference_id: Option<String>,
     pub reference_type: Option<String>,
     pub employee_id: Option<String>,
+    // Campos para ENTRADA (opcionais para outros tipos)
+    pub cost_price: Option<f64>,
+    pub lot_number: Option<String>,
+    pub expiration_date: Option<String>,
+    pub manufacturing_date: Option<String>,
 }
 
 /// Lote de produto
@@ -96,6 +101,7 @@ pub struct ProductLot {
     pub supplier_id: Option<String>,
     pub lot_number: Option<String>,
     pub expiration_date: Option<String>,
+    pub manufacturing_date: Option<String>,
     pub purchase_date: String,
     pub initial_quantity: f64,
     pub current_quantity: f64,
@@ -115,6 +121,7 @@ pub struct ProductLotWithProduct {
     pub barcode: Option<String>,
     pub lot_number: Option<String>,
     pub expiration_date: Option<String>,
+    pub manufacturing_date: Option<String>,
     pub quantity: f64,
     pub cost_price: f64,
 }

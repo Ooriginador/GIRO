@@ -103,6 +103,16 @@ impl ProductsHandler {
                     .into_iter()
                     .filter(|p| p.current_stock <= 0.0)
                     .collect(),
+                "excess" => products
+                    .into_iter()
+                    .filter(|p| {
+                        if let Some(max) = p.max_stock {
+                            p.current_stock > max
+                        } else {
+                            p.current_stock > p.min_stock * 3.0
+                        }
+                    })
+                    .collect(),
                 _ => products,
             }
         } else {

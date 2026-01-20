@@ -261,7 +261,8 @@ export const ProductsPage: FC = () => {
                 <TableHead>Produto</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead className="text-right">Preço</TableHead>
-                <TableHead className="text-right">Estoque</TableHead>
+                <TableHead className="text-right">Atual</TableHead>
+                <TableHead className="text-right">Máx.</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
@@ -299,11 +300,17 @@ export const ProductsPage: FC = () => {
                           product.currentStock <= 0 && 'text-destructive font-medium',
                           product.currentStock > 0 &&
                             product.currentStock <= product.minStock &&
-                            'text-warning font-medium'
+                            'text-warning font-medium',
+                          product.maxStock &&
+                            product.currentStock > product.maxStock &&
+                            'text-blue-500 font-medium'
                         )}
                       >
                         {product.currentStock}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {product.maxStock || '-'}
                     </TableCell>
                     <TableCell>
                       {product.isActive ? (

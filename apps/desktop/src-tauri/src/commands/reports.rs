@@ -17,6 +17,7 @@ pub struct StockReport {
     pub low_stock_count: i64,
     pub out_of_stock_count: i64,
     pub expiring_count: i64,
+    pub excess_stock_count: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -51,6 +52,7 @@ pub async fn get_stock_report(state: State<'_, AppState>) -> AppResult<StockRepo
 
     let low_stock_count = product_repo.find_low_stock().await?.len() as i64;
     let out_of_stock_count = product_repo.find_out_of_stock().await?.len() as i64;
+    let excess_stock_count = product_repo.find_excess_stock().await?.len() as i64;
 
     // "Expirando" em 30 dias (padrão simples)
     let expiring_count = stock_repo.find_expiring_lots(30).await?.len() as i64;
@@ -61,6 +63,7 @@ pub async fn get_stock_report(state: State<'_, AppState>) -> AppResult<StockRepo
         low_stock_count,
         out_of_stock_count,
         expiring_count,
+        excess_stock_count,
     })
 }
 

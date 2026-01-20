@@ -87,6 +87,7 @@ interface StockEntryInput {
   costPrice: number;
   lotNumber?: string;
   expirationDate?: string;
+  manufacturingDate?: string;
 }
 
 /**
@@ -103,7 +104,8 @@ export function useAddStockEntry() {
         input.quantity,
         input.costPrice,
         input.lotNumber,
-        input.expirationDate
+        input.expirationDate,
+        input.manufacturingDate
       ),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: stockKeys.movements(variables.productId) });
@@ -171,6 +173,7 @@ export function useStockDashboard() {
       lowStockCount: 0,
       outOfStockCount: 0,
       expiringCount: 0,
+      excessStockCount: 0,
     },
     isLoading: lowStockLoading || reportLoading,
   };

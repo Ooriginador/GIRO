@@ -71,12 +71,48 @@ impl<'a> StockRepository<'a> {
         let previous_stock = current.0;
         let new_stock = previous_stock + data.quantity;
 
+        // Lot handling for ENTRY/INPUT
+        let mut lot_id: Option<String> = None;
+        if (data.movement_type == "ENTRY" || data.movement_type == "INPUT") && data.quantity > 0.0 {
+            let nid = new_id();
+            let cost = data.cost_price.unwrap_or(0.0);
+            
+            sqlx::query(
+                "INSERT INTO product_lots (id, product_id, lot_number, expiration_date, manufacturing_date, initial_quantity, current_quantity, cost_price, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'AVAILABLE', ?, ?)"
+            )
+            .bind(&nid)
+            .bind(&data.product_id)
+            .bind(&data.lot_number)
+            .bind(&data.expiration_date)
+            .bind(&data.manufacturing_date)
+            .bind(data.quantity)
+            .bind(data.quantity)
+            .bind(cost)
+            .bind(&now)
+            .bind(&now)
+            .execute(self.pool)
+            .await?;
+            
+            lot_id = Some(nid);
+
+            // Update product cost price if provided
+            if cost > 0.0 {
+                sqlx::query("UPDATE products SET cost_price = ?, updated_at = ? WHERE id = ?")
+                    .bind(cost)
+                    .bind(&now)
+                    .bind(&data.product_id)
+                    .execute(self.pool)
+                    .await?;
+            }
+        }
+
         // Create movement
         sqlx::query(
-            "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, employee_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO stock_movements (id, product_id, lot_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, employee_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         )
         .bind(&id)
         .bind(&data.product_id)
+        .bind(lot_id)
         .bind(&data.movement_type)
         .bind(data.quantity)
         .bind(previous_stock)
