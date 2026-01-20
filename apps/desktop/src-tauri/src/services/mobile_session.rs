@@ -286,9 +286,11 @@ pub enum SessionError {
 mod tests {
     use super::*;
 
+    const TEST_SECRET: &str = "test-secret";
+
     #[tokio::test]
     async fn test_create_session() {
-        let manager = SessionManager::new("test_secret");
+        let manager = SessionManager::new(TEST_SECRET);
 
         let result = manager
             .create_session(
@@ -308,7 +310,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_token() {
-        let manager = SessionManager::new("test_secret");
+        let manager = SessionManager::new(TEST_SECRET);
 
         let (token, _) = manager
             .create_session(
@@ -331,7 +333,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_invalidate_session() {
-        let manager = SessionManager::new("test_secret");
+        let manager = SessionManager::new(TEST_SECRET);
 
         let (token, _) = manager
             .create_session(
@@ -352,7 +354,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_max_sessions_per_operator() {
-        let manager = SessionManager::new("test_secret");
+        let manager = SessionManager::new(TEST_SECRET);
 
         // Criar 3 sessões para mesmo operador
         let (token1, _) = manager

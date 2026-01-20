@@ -101,7 +101,9 @@ export const SettingsPage: FC = () => {
   const [printerEnabled, setPrinterEnabled] = useState(printer.enabled);
   const [printerBaudRate, setPrinterBaudRate] = useState<number>(printer.baudRate ?? 9600);
   const [printerDataBits, setPrinterDataBits] = useState<number>(printer.dataBits ?? 8);
-  const [printerParity, setPrinterParity] = useState<string>(printer.parity ?? 'none');
+  const [printerParity, setPrinterParity] = useState<'none' | 'odd' | 'even'>(
+    (printer.parity as 'none' | 'odd' | 'even') ?? 'none'
+  );
   const [printerTimeoutMs, setPrinterTimeoutMs] = useState<number>(printer.timeoutMs ?? 3000);
 
   const [scaleModel, setScaleModel] = useState(scale.model);
@@ -647,7 +649,10 @@ export const SettingsPage: FC = () => {
                 </div>
                 <div>
                   <Label htmlFor="printerParity">Parity</Label>
-                  <Select value={printerParity} onValueChange={setPrinterParity}>
+                  <Select
+                    value={printerParity}
+                    onValueChange={(v: string) => setPrinterParity(v as 'none' | 'odd' | 'even')}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

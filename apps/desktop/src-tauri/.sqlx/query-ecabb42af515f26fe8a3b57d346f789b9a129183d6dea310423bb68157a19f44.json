@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE customers SET\n                name = COALESCE(?, name),\n                cpf = COALESCE(?, cpf),\n                phone = COALESCE(?, phone),\n                phone2 = COALESCE(?, phone2),\n                email = COALESCE(?, email),\n                zip_code = COALESCE(?, zip_code),\n                street = COALESCE(?, street),\n                number = COALESCE(?, number),\n                complement = COALESCE(?, complement),\n                neighborhood = COALESCE(?, neighborhood),\n                city = COALESCE(?, city),\n                state = COALESCE(?, state),\n                is_active = COALESCE(?, is_active),\n                notes = COALESCE(?, notes),\n                updated_at = ?\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 16
+    },
+    "nullable": []
+  },
+  "hash": "ecabb42af515f26fe8a3b57d346f789b9a129183d6dea310423bb68157a19f44"
+}

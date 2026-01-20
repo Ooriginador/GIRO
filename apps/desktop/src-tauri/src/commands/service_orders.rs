@@ -8,7 +8,7 @@ use crate::error::AppResult;
 use crate::models::{
     AddServiceOrderItem, CreateService, CreateServiceOrder, Service, ServiceOrder,
     ServiceOrderFilters, ServiceOrderItem, ServiceOrderSummary, ServiceOrderWithDetails,
-    UpdateService, UpdateServiceOrder,
+    UpdateService, UpdateServiceOrder, UpdateServiceOrderItem,
 };
 use crate::repositories::{PaginatedResult, Pagination, ServiceOrderRepository};
 use crate::AppState;
@@ -102,6 +102,7 @@ pub async fn create_service_order(
     scheduled_date: Option<String>,
     notes: Option<String>,
     internal_notes: Option<String>,
+    status: Option<String>,
 ) -> AppResult<ServiceOrder> {
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
@@ -115,6 +116,7 @@ pub async fn create_service_order(
         scheduled_date,
         notes,
         internal_notes,
+        status,
     };
 
     repo.create(input).await
@@ -284,6 +286,31 @@ pub async fn remove_service_order_item(
 ) -> AppResult<()> {
     let repo = ServiceOrderRepository::new(state.pool().clone());
     repo.remove_item(&item_id).await
+}
+
+/// Atualiza item da ordem (com delta de estoque automático)
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn update_service_order_item(
+    state: State<'_, AppState>,
+    item_id: String,
+    quantity: Option<f64>,
+    unit_price: Option<f64>,
+    discount: Option<f64>,
+    notes: Option<String>,
+    employee_id: Option<String>,
+) -> AppResult<ServiceOrderItem> {
+    let repo = ServiceOrderRepository::new(state.pool().clone());
+
+    let input = UpdateServiceOrderItem {
+        quantity,
+        unit_price,
+        discount,
+        notes,
+        employee_id,
+    };
+
+    repo.update_item(&item_id, input).await
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

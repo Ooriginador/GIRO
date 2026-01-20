@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                id as \"id!\",\n                model_id as \"model_id!\",\n                year as \"year!: i32\",\n                year_label as \"year_label!\",\n                is_active as \"is_active!: i32\",\n                created_at as \"created_at!\",\n                updated_at as \"updated_at!\"\n            FROM vehicle_years\n            WHERE model_id = ? AND is_active = 1\n            ORDER BY year DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "model_id!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "year!: i32",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "year_label!",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_active!: i32",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at!",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "490c4c699d28343acb3eb18de80ae5f77f09e139e3bf6c12b1316befc04657d0"
+}

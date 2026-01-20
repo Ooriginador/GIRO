@@ -93,6 +93,7 @@ export interface Product {
   costPrice: number;
   minStock: number;
   currentStock: number;
+  maxStock?: number;
   isWeighted: boolean;
   isActive: boolean;
   imageUrl?: string;

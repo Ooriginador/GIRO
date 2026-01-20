@@ -161,7 +161,6 @@ pub struct ServiceOrderItem {
     pub subtotal: f64,
     pub total: f64,
     pub notes: Option<String>,
-    pub employee_id: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -213,6 +212,7 @@ pub struct CreateServiceOrder {
     pub scheduled_date: Option<String>,
     pub notes: Option<String>,
     pub internal_notes: Option<String>,
+    pub status: Option<String>,
 }
 
 /// Para atualizar ordem de serviço

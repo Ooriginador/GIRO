@@ -13,6 +13,7 @@ import type { CashSession, CashSessionSummary } from '@/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import fixtures from '@/test/fixtures';
 
 // Mock completo do Tauri
 vi.mock('@/lib/tauri', () => ({
@@ -33,7 +34,7 @@ vi.mock('@/stores', () => ({
       const state = {
         isAuthenticated: true,
         employee: mockEmployee,
-        currentSession: { id: 'session-1' },
+        currentSession: { id: fixtures.TEST_SESSION_ID },
         openCashSession: mockOpenCashSession,
         closeCashSession: mockCloseCashSession,
       };
@@ -76,7 +77,7 @@ const mockSession: CashSession = {
     id: 'emp-1',
     name: 'Admin',
     role: 'ADMIN',
-    pin: '8899',
+    pin: fixtures.TEST_PIN,
     isActive: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -85,7 +86,7 @@ const mockSession: CashSession = {
 
 const mockSummary: CashSessionSummary = {
   session: {
-    id: 'session-1',
+    id: fixtures.TEST_SESSION_ID,
     employeeId: 'emp-1',
     openedAt: new Date().toISOString(),
     openingBalance: 200,
@@ -108,7 +109,7 @@ describe('useCashSessionSummary', () => {
   it('should fetch session summary when id provided', async () => {
     vi.mocked(tauriLib.getCashSessionSummary).mockResolvedValue(mockSummary);
 
-    const { result } = renderHook(() => useCashSessionSummary('session-1'), {
+    const { result } = renderHook(() => useCashSessionSummary(fixtures.TEST_SESSION_ID), {
       wrapper: createWrapper(),
     });
 
@@ -117,7 +118,7 @@ describe('useCashSessionSummary', () => {
     });
 
     expect(result.current.data).toEqual(mockSummary);
-    expect(tauriLib.getCashSessionSummary).toHaveBeenCalledWith('session-1');
+    expect(tauriLib.getCashSessionSummary).toHaveBeenCalledWith(fixtures.TEST_SESSION_ID);
   });
 
   it('should not fetch when session id is empty', async () => {
@@ -248,7 +249,7 @@ describe('useCloseCashSession', () => {
     expect(tauriLib.closeCashSession).toHaveBeenCalledWith({
       actualBalance: 1650,
       notes: 'Fechamento noturno',
-      id: 'session-1',
+      id: fixtures.TEST_SESSION_ID,
     });
     expect(mockCloseCashSession).toHaveBeenCalled();
   });

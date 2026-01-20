@@ -8,9 +8,9 @@ Summary: found 36 notable candidates (lockfile integrity hashes suppressed). If 
 
 -- Prioritized Candidates --
 
-1. [High] `.github/workflows/license-server-ci.yml` — `POSTGRES_PASSWORD: giro_test_password`
-2. [High] `.github/workflows/license-server-ci.yml` — `DATABASE_URL: postgresql://giro:giro_test_password@localhost:5432/giro_licenses_test`
-3. [High] `.github/workflows/license-server-ci.yml` — `JWT_SECRET: test_secret_key_for_ci_only_do_not_use_in_production`
+1. [High] `.github/workflows/license-server-ci.yml` — `POSTGRES_PASSWORD: POSTGRES_PASSWORD_PLACEHOLDER`
+2. [High] `.github/workflows/license-server-ci.yml` — `DATABASE_URL: postgresql://giro:POSTGRES_PASSWORD_PLACEHOLDER@localhost:5432/giro_licenses_test`
+3. [High] `.github/workflows/license-server-ci.yml` — `JWT_SECRET: JWT_SECRET_PLACEHOLDER`
 4. [High] `.github/workflows/license-server-cd.yml` — `RAILWAY_TOKEN_STAGING` (referenced env variable; verify value in repo settings)
 5. [High] `.github/workflows/license-server-cd.yml` — `RAILWAY_TOKEN` (referenced env variable)
 6. [High] `.github/workflows/release.yml` — `TAURI_SIGNING_PRIVATE_KEY` (secret name used for signing)

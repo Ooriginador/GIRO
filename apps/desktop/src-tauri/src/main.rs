@@ -289,6 +289,7 @@ async fn main() {
             commands::get_service_order_items,
             commands::add_service_order_item,
             commands::remove_service_order_item,
+            commands::update_service_order_item,
             commands::get_services,
             commands::get_service_by_id,
             commands::get_service_by_code,

@@ -121,7 +121,7 @@ Durante a desinstalação, uma mensagem será exibida:
 ├── ❌ *.log (Logs do sistema)
 ├── ❌ config.json
 ├── ❌ .license (Licença ativa)
-└── ❌ TODO o conteúdo da pasta
+└── ❌ remover todo o conteúdo da pasta (inclui backups, logs e arquivos de configuração)
 
 🗂️ Registro do Windows
 ├── ❌ HKLM\Software\GIRO
@@ -154,7 +154,7 @@ C:\Users\[Usuário]\AppData\Local\GIRO\
 │
 ├── backups/                  # Backups automáticos
 │   ├── backup_2026-01-12_08-00.db
-└── ❌ remover todo o conteúdo da pasta
+└── ❌ remover todo o conteúdo da pasta (inclui backups, logs e arquivos de configuração)
 │   └── backup_2026-01-10_08-00.db
 │
 ├── logs/                     # Logs do sistema (opcional)

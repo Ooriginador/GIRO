@@ -15,7 +15,7 @@ impl<'a> StockRepository<'a> {
     }
 
     const MOVEMENT_COLS: &'static str = "id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, employee_id, created_at";
-    const LOT_COLS: &'static str = "id, product_id, supplier_id, lot_number, expiration_date, purchase_date, initial_quantity, current_quantity, cost_price, status, created_at, updated_at";
+    const LOT_COLS: &'static str = "id, product_id, supplier_id, lot_number, expiration_date, manufacturing_date, purchase_date, initial_quantity, current_quantity, cost_price, status, created_at, updated_at";
 
     pub async fn find_movement_by_id(&self, id: &str) -> AppResult<Option<StockMovementRow>> {
         let query = format!(
@@ -292,7 +292,13 @@ mod tests {
     use sqlx::SqlitePool;
 
     async fn setup_test_db() -> SqlitePool {
-        let pool = SqlitePool::connect(":memory:").await.unwrap();
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let url = format!("file:/tmp/giro_test_{}?mode=rwc", ts);
+
+        let pool = SqlitePool::connect(&url).await.unwrap();
 
         sqlx::migrate!("./migrations").run(&pool).await.unwrap();
 
@@ -482,8 +488,8 @@ mod tests {
 
         // Create a lot
         sqlx::query(
-            "INSERT INTO product_lots (id, product_id, supplier_id, lot_number, expiration_date, purchase_date, initial_quantity, current_quantity, cost_price, status, created_at, updated_at) 
-             VALUES ('lot-001', 'prod-001', 'sup-001', 'LOTE001', date('now', '+30 days'), datetime('now'), 100.0, 80.0, 5.0, 'AVAILABLE', datetime('now'), datetime('now'))"
+            "INSERT INTO product_lots (id, product_id, supplier_id, lot_number, expiration_date, manufacturing_date, purchase_date, initial_quantity, current_quantity, cost_price, status, created_at, updated_at) 
+             VALUES ('lot-001', 'prod-001', 'sup-001', 'LOTE001', date('now', '+30 days'), date('now'), datetime('now'), 100.0, 80.0, 5.0, 'AVAILABLE', datetime('now'), datetime('now'))"
         )
         .execute(&pool)
         .await
@@ -501,8 +507,8 @@ mod tests {
 
         // Create lot expiring in 5 days
         sqlx::query(
-            "INSERT INTO product_lots (id, product_id, supplier_id, lot_number, expiration_date, purchase_date, initial_quantity, current_quantity, cost_price, status, created_at, updated_at) 
-             VALUES ('lot-exp', 'prod-001', 'sup-001', 'LOTE-EXP', date('now', '+5 days'), datetime('now'), 50.0, 50.0, 5.0, 'AVAILABLE', datetime('now'), datetime('now'))"
+            "INSERT INTO product_lots (id, product_id, supplier_id, lot_number, expiration_date, manufacturing_date, purchase_date, initial_quantity, current_quantity, cost_price, status, created_at, updated_at) 
+             VALUES ('lot-exp', 'prod-001', 'sup-001', 'LOTE-EXP', date('now', '+5 days'), date('now'), datetime('now'), 50.0, 50.0, 5.0, 'AVAILABLE', datetime('now'), datetime('now'))"
         )
         .execute(&pool)
         .await

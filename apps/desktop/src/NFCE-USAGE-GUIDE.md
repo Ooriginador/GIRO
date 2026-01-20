@@ -10,7 +10,7 @@ Este guia documenta como utilizar o sistema de emissão de NFC-e totalmente inte
 
 Antes de iniciar vendas, você pode verificar se o serviço da SEFAZ está operante para a UF configurada.
 
-```typescript
+````typescript
 import { checkSefazStatus } from '@/lib/tauri';
 
 async function checkService() {
@@ -79,7 +79,7 @@ const payload: EmitNfceRequest = {
 
   // Certificado
   certPath: '/caminho/para/certificado.pfx',
-  certPassword: 'senha-do-certificado',
+  certPassword: '<CERT_PASSWORD_REDACTED>', // Configure via Settings store or env, do not hardcode
 };
 
 async function finalizeSale() {
@@ -122,3 +122,4 @@ Todos os tipos estão disponíveis em `@/types/nfce`:
 ---
 
 **Observação:** Em produção, nunca hardcode caminhos de certificado ou senhas. Utilize a store de `Settings` para recuperar essas informações de forma segura.
+````

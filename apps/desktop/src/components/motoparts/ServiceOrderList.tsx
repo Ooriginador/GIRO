@@ -22,6 +22,7 @@ import {
 } from '@/hooks/useServiceOrders';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { clickableByKeyboard } from '@/lib/a11y';
 import { CheckCircle, Clock, FileText, Filter, Plus, Search, XCircle } from 'lucide-react';
 import { useState } from 'react';
 
@@ -159,7 +160,10 @@ function ServiceOrderCard({ order, onClick }: ServiceOrderCardProps) {
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
     >
-      <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
+      <Card
+        className="cursor-pointer hover:shadow-md transition-shadow"
+        {...(onClick ? clickableByKeyboard(onClick) : {})}
+      >
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             {/* Info principal */}
@@ -223,6 +227,7 @@ export function ServiceOrderStatusBadge({ status, showIcon = true }: ServiceOrde
   const Icon = {
     OPEN: FileText,
     IN_PROGRESS: Clock,
+    QUOTE: FileText,
     WAITING_PARTS: XCircle,
     COMPLETED: CheckCircle,
     DELIVERED: CheckCircle,

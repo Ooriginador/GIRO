@@ -8,6 +8,8 @@ use crate::services::mobile_protocol::{
     MobileErrorCode, MobileResponse, SyncFullPayload, SyncDeltaPayload, SaleRemoteCreatePayload,
 };
 use sqlx::SqlitePool;
+// use chrono::Utc; // Removed unused import
+
 use std::collections::HashMap;
 
 /// Handler de sincronização
@@ -29,11 +31,11 @@ impl SyncHandler {
             match table.as_str() {
                 "products" => {
                     let repo = ProductRepository::new(&self.pool);
-                    match repo.search("", 99999).await { // TODO: Implement specific full dump method if needed
-                         Ok(products) => {
-                             data.insert("products".to_string(), serde_json::to_value(products).unwrap_or_default());
-                         },
-                         Err(e) => tracing::error!("Erro ao sync products: {}", e),
+                    match repo.find_all().await {
+                        Ok(products) => {
+                            data.insert("products".to_string(), serde_json::to_value(products).unwrap_or_default());
+                        }
+                        Err(e) => tracing::error!("Erro ao sync products: {}", e),
                     }
                 },
                 "customers" => {
@@ -61,14 +63,72 @@ impl SyncHandler {
         MobileResponse::success(id, data)
     }
 
-    /// Processa sincronização delta (por enquanto retorna full, TODO: implementar delta real)
-    pub async fn delta(&self, id: u64, _payload: SyncDeltaPayload) -> MobileResponse {
-         // Por enquanto, retorna vazio ou erro, ou reusa o full.
-         // Para simplificar a primeira versão, vamos retornar 'not implemented' ou tratar como full
-         // Mas como o mobile pode pedir, vamos retornar sucesso vazio por enquanto
-         MobileResponse::success(id, serde_json::json!({
-             "message": "Delta sync not yet implemented, please request full sync"
-         }))
+    /// Processa sincronização delta (fallback para full)
+    pub async fn delta(&self, id: u64, payload: SyncDeltaPayload) -> MobileResponse {
+         // Implementação simples de delta: retornamos somente registros com updated_at > last_sync
+         // Usa deserialização/parse de updated_at (RFC3339) e compara com o timestamp em segundos
+
+         let mut data = HashMap::new();
+         let last_sync = payload.last_sync;
+
+         // Products
+         let product_repo = ProductRepository::new(&self.pool);
+         match product_repo.find_all().await {
+             Ok(products) => {
+                 let filtered: Vec<_> = products
+                     .into_iter()
+                     .filter(|p| {
+                         if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&p.updated_at) {
+                             dt.timestamp() > last_sync
+                         } else {
+                             false
+                         }
+                     })
+                     .collect();
+                 data.insert("products".to_string(), serde_json::to_value(filtered).unwrap_or_default());
+             }
+             Err(e) => tracing::error!("Erro ao delta products: {}", e),
+         }
+
+         // Customers
+         let customer_repo = CustomerRepository::new(&self.pool);
+         match customer_repo.find_all_active().await {
+             Ok(customers) => {
+                 let filtered: Vec<_> = customers
+                     .into_iter()
+                     .filter(|c| {
+                         if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&c.updated_at) {
+                             dt.timestamp() > last_sync
+                         } else {
+                             false
+                         }
+                     })
+                     .collect();
+                 data.insert("customers".to_string(), serde_json::to_value(filtered).unwrap_or_default());
+             }
+             Err(e) => tracing::error!("Erro ao delta customers: {}", e),
+         }
+
+         // Settings
+         let settings_repo = SettingsRepository::new(&self.pool);
+         match settings_repo.find_all().await {
+             Ok(settings) => {
+                 let filtered: Vec<_> = settings
+                     .into_iter()
+                     .filter(|s| {
+                         if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&s.updated_at) {
+                             dt.timestamp() > last_sync
+                         } else {
+                             false
+                         }
+                     })
+                     .collect();
+                 data.insert("settings".to_string(), serde_json::to_value(filtered).unwrap_or_default());
+             }
+             Err(e) => tracing::error!("Erro ao delta settings: {}", e),
+         }
+
+         MobileResponse::success(id, data)
     }
 
     /// Processa criação de venda remota

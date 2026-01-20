@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerVehicles } from '@/hooks/useCustomers';
@@ -36,6 +37,7 @@ const formSchema = z.object({
   vehicle_km: z.coerce.number().min(0, 'KM inválida'),
   symptoms: z.string().min(1, 'Sintomas/Relato obrigatório'),
   scheduled_date: z.string().optional(),
+  is_quote: z.boolean().default(false),
 });
 
 interface ServiceOrderFormProps {
@@ -56,6 +58,7 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
     defaultValues: {
       vehicle_km: 0,
       symptoms: '',
+      is_quote: false,
     },
   });
 
@@ -88,11 +91,14 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
         vehicle_km: Number.isFinite(values.vehicle_km) ? Math.trunc(values.vehicle_km) : undefined,
         symptoms: values.symptoms,
         scheduled_date: values.scheduled_date || undefined,
+        status: values.is_quote ? 'QUOTE' : 'OPEN',
       });
 
+      const orderType = values.is_quote ? 'Orçamento' : 'Ordem de Serviço';
+
       toast({
-        title: 'OS Criada',
-        description: `Ordem de Serviço #${result.order_number} iniciada com sucesso.`,
+        title: `${orderType} Criada`,
+        description: `${orderType} #${result.order_number} iniciada com sucesso.`,
       });
       onSuccess(result.id);
     } catch (error) {
@@ -143,6 +149,25 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
                 </p>
               )}
             </div>
+
+            {/* Quote Toggle */}
+            <FormField
+              control={form.control}
+              name="is_quote"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Orçamento (Apenas Cotação)</FormLabel>
+                    <div className="text-[0.8rem] text-muted-foreground">
+                      Se marcado, não deduzirá estoque até ser aprovado.
+                    </div>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
             {/* Seleção de Veículo */}
             <FormField

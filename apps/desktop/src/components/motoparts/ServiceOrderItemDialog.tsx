@@ -7,6 +7,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Form,
   FormControl,
   FormField,
@@ -16,8 +23,10 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { useProducts } from '@/hooks/use-products';
-import { useServiceOrderItems, useServices } from '@/hooks/useServiceOrders';
+import { useServiceOrderItems, useServices, ServiceOrderItem } from '@/hooks/useServiceOrders';
+import { useEmployees } from '@/hooks/useEmployees';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Product } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,6 +34,7 @@ import { AlertTriangle, Loader2, Package, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { toast } from 'sonner';
 
 const formSchema = z
   .object({
@@ -50,25 +60,57 @@ interface ServiceOrderItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orderId: string;
+  itemToEdit?: ServiceOrderItem | null;
 }
 
 export function ServiceOrderItemDialog({
   open,
   onOpenChange,
   orderId,
+  itemToEdit,
 }: ServiceOrderItemDialogProps) {
   const [activeTab, setActiveTab] = useState<'PART' | 'SERVICE'>('PART');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quickServiceOpen, setQuickServiceOpen] = useState(false);
+  const [quickServiceName, setQuickServiceName] = useState('');
+  const [quickServicePrice, setQuickServicePrice] = useState('');
 
-  const { addItem } = useServiceOrderItems(orderId);
-  const { services, isLoading: isLoadingServices } = useServices();
+  const { addItem, updateItem } = useServiceOrderItems(orderId);
+  const { services, isLoading: isLoadingServices, createService } = useServices();
+  const { employees, isLoading: isLoadingEmployees } = useEmployees();
 
   // Busca de produtos
   const { data: products, isLoading: isLoadingProducts } = useProducts({
     search: searchQuery,
     isActive: true,
   });
+
+  // Helper function for stock badge
+  const getStockBadge = (product: Product) => {
+    if (product.currentStock <= 0) {
+      return (
+        <Badge variant="destructive" className="text-[10px] px-1 py-0">
+          🔴 Esgotado
+        </Badge>
+      );
+    }
+    if (product.currentStock <= 2) {
+      return (
+        <Badge variant="destructive" className="text-[10px] px-1 py-0">
+          🔴 Crítico
+        </Badge>
+      );
+    }
+    if (product.currentStock <= product.minStock) {
+      return (
+        <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-yellow-100 text-yellow-800">
+          🟡 Baixo
+        </Badge>
+      );
+    }
+    return null;
+  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -79,23 +121,69 @@ export function ServiceOrderItemDialog({
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      await addItem.mutateAsync({
-        order_id: orderId,
-        product_id: values.productId,
-        item_type: values.itemType,
-        description: values.description,
-        quantity: values.quantity,
-        unit_price: values.unitPrice,
-        discount: values.discount,
-        employee_id: values.employeeId,
+  // Preencher formulário ao editar
+  useEffect(() => {
+    if (open && itemToEdit) {
+      form.reset({
+        itemType: itemToEdit.item_type,
+        productId: itemToEdit.product_id || undefined,
+        description: itemToEdit.description,
+        quantity: itemToEdit.quantity,
+        unitPrice: itemToEdit.unit_price,
+        discount: itemToEdit.discount || undefined,
+        employeeId: itemToEdit.employee_id || undefined,
       });
+      setActiveTab(itemToEdit.item_type);
+      // Se for produto, idealmente buscaríamos os dados dele, mas por enquanto:
+      if (itemToEdit.item_type === 'PART' && itemToEdit.product_id) {
+        // Mas o diálogo busca produtos pelo nome/código na lista
+        // Para edição, talvez seja melhor só permitir alterar quantidade/preço
+        setSearchQuery(''); // Limpar busca
+      }
+    } else if (open && !itemToEdit) {
+      resetForm();
+    }
+  }, [open, itemToEdit, form]);
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Validar estoque para peças
+    if (values.itemType === 'PART' && selectedProduct) {
+      if (values.quantity > selectedProduct.currentStock) {
+        toast.error(`Estoque insuficiente. Disponível: ${selectedProduct.currentStock}`);
+        return;
+      }
+    }
+
+    try {
+      if (itemToEdit) {
+        await updateItem.mutateAsync({
+          itemId: itemToEdit.id,
+          quantity: values.quantity,
+          unitPrice: values.unitPrice,
+          discount: values.discount,
+          notes: undefined, // Notes not in form yet
+          employeeId: values.employeeId,
+        });
+        toast.success('Item atualizado com sucesso!');
+      } else {
+        await addItem.mutateAsync({
+          order_id: orderId,
+          product_id: values.productId,
+          item_type: values.itemType,
+          description: values.description,
+          quantity: values.quantity,
+          unit_price: values.unitPrice,
+          discount: values.discount,
+          employee_id: values.employeeId,
+        });
+        toast.success('Item adicionado com sucesso!');
+      }
 
       onOpenChange(false);
       resetForm();
     } catch (error) {
       console.error(error);
+      toast.error('Erro ao salvar item.');
     }
   };
 
@@ -128,6 +216,27 @@ export function ServiceOrderItemDialog({
     }
   };
 
+  const handleQuickServiceSubmit = async () => {
+    if (!quickServiceName.trim()) {
+      toast.error('Nome do serviço é obrigatório');
+      return;
+    }
+    try {
+      const newService = await createService.mutateAsync({
+        code: `SRV-${Date.now()}`,
+        name: quickServiceName.trim(),
+        default_price: parseFloat(quickServicePrice) || 0,
+      });
+      handleServiceSelect(newService.id);
+      setQuickServiceOpen(false);
+      setQuickServiceName('');
+      setQuickServicePrice('');
+      toast.success('Serviço cadastrado!');
+    } catch (error) {
+      toast.error('Erro ao cadastrar serviço');
+    }
+  };
+
   return (
     <Dialog
       open={open}
@@ -138,7 +247,7 @@ export function ServiceOrderItemDialog({
     >
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Adicionar Item</DialogTitle>
+          <DialogTitle>{itemToEdit ? 'Editar Item' : 'Adicionar Item'}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -187,37 +296,35 @@ export function ServiceOrderItemDialog({
                             Nenhum produto encontrado
                           </div>
                         ) : (
-                          products.map((product) => (
-                            <button
-                              key={product.id}
-                              type="button"
-                              onClick={() => handleProductSelect(product)}
-                              className="w-full text-left p-2 hover:bg-muted text-sm border-b last:border-0"
-                            >
-                              <div className="font-medium">{product.name}</div>
-                              <div className="flex justify-between text-muted-foreground text-xs">
-                                <span
-                                  className={cn(
-                                    product.currentStock <= 0
-                                      ? 'text-destructive font-bold'
-                                      : product.currentStock <= product.minStock
-                                      ? 'text-warning font-medium'
-                                      : ''
-                                  )}
-                                >
-                                  Estoque: {product.currentStock}
-                                  {product.currentStock <= 0
-                                    ? ' (Esgotado)'
-                                    : product.currentStock <= product.minStock
-                                    ? ' (Baixo)'
-                                    : ''}
-                                </span>
-                                <span className="font-mono">
-                                  {formatCurrency(product.salePrice)}
-                                </span>
-                              </div>
-                            </button>
-                          ))
+                          <>
+                            {products.map((product) => (
+                              <button
+                                key={product.id}
+                                type="button"
+                                onClick={() =>
+                                  product.currentStock > 0 && handleProductSelect(product)
+                                }
+                                disabled={product.currentStock <= 0}
+                                className={cn(
+                                  'w-full text-left p-2 text-sm border-b last:border-0 transition-colors',
+                                  product.currentStock <= 0
+                                    ? 'opacity-50 cursor-not-allowed bg-muted/50'
+                                    : 'hover:bg-muted cursor-pointer'
+                                )}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium">{product.name}</span>
+                                  {getStockBadge(product)}
+                                </div>
+                                <div className="flex justify-between text-muted-foreground text-xs mt-1">
+                                  <span>Estoque: {product.currentStock}</span>
+                                  <span className="font-mono">
+                                    {formatCurrency(product.salePrice)}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                          </>
                         )}
                       </div>
                     )}
@@ -283,23 +390,63 @@ export function ServiceOrderItemDialog({
                           {service.name}
                         </Button>
                       ))}
-                      {/* TODO: Implementar QuickServiceDialog */}
+                      {/* Quick Service Registration */}
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="h-8 px-2 text-muted-foreground dashed border"
-                        onClick={() => {
-                          // Focus description to type manual service
-                          form.setFocus('description');
-                          form.setValue('itemType', 'SERVICE');
-                          form.setValue('productId', undefined); // Ensure product is cleared
-                        }}
+                        className="h-8 px-2 border-dashed border-primary text-primary hover:bg-primary/10"
+                        onClick={() => setQuickServiceOpen(true)}
                       >
                         <Plus className="h-3 w-3 mr-1" />
-                        Outro
+                        Novo Serviço
                       </Button>
                     </div>
+
+                    {/* Quick Service Inline Form */}
+                    {quickServiceOpen && (
+                      <div className="border rounded-md p-3 bg-muted/30 space-y-2">
+                        <div className="text-sm font-medium">Cadastrar Novo Serviço</div>
+                        <Input
+                          placeholder="Nome do serviço"
+                          value={quickServiceName}
+                          onChange={(e) => setQuickServiceName(e.target.value)}
+                          autoFocus
+                        />
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="Preço padrão"
+                          value={quickServicePrice}
+                          onChange={(e) => setQuickServicePrice(e.target.value)}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleQuickServiceSubmit}
+                            disabled={createService.isPending}
+                          >
+                            {createService.isPending && (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            )}
+                            Salvar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setQuickServiceOpen(false);
+                              setQuickServiceName('');
+                              setQuickServicePrice('');
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                     <FormField
                       control={form.control}
@@ -363,13 +510,40 @@ export function ServiceOrderItemDialog({
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="employeeId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mecânico / Responsável (Comissão)</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o responsável..." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {employees?.map((employee) => (
+                        <SelectItem key={employee.id} value={employee.id}>
+                          {employee.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={addItem.isPending}>
-                {addItem.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Adicionar
+              <Button type="submit" disabled={addItem.isPending || updateItem.isPending}>
+                {(addItem.isPending || updateItem.isPending) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {itemToEdit ? 'Salvar Alterações' : 'Adicionar'}
               </Button>
             </DialogFooter>
           </form>

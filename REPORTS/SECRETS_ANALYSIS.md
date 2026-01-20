@@ -16,7 +16,7 @@ Observações iniciais
 
 Amostra de achados de alto risco (exemplos, **não** divulgar valores sensíveis em público)
 
-- [`.github/workflows/license-server-ci.yml`](.github/workflows/license-server-ci.yml#L113-L115): `DATABASE_URL` com `postgresql://giro:giro_test_password@...` e `JWT_SECRET: test_secret_key_for_ci_only_do_not_use_in_production` — indica credenciais de teste hardcoded em workflow.
+- [`.github/workflows/license-server-ci.yml`](.github/workflows/license-server-ci.yml#L113-L115): `DATABASE_URL` com `postgresql://giro:POSTGRES_PASSWORD_PLACEHOLDER@...` e `JWT_SECRET: JWT_SECRET_PLACEHOLDER` — indica credenciais de teste hardcoded em workflow.
 - [`apps/desktop/src-tauri/src/main.rs`](apps/desktop/src-tauri/src/main.rs#L79-L88): `LICENSE_API_KEY` lido de env var; revisar histórico de commits se já houve valor padrão commitado.
 - [`apps/desktop/src-tauri/src/commands/seed.rs`](apps/desktop/src-tauri/src/commands/seed.rs#L134): senha de seed `admin123` — apenas para teste, mas documentar e remover em produção.
 - Vários `cert_password` em migrations e NFCE commands (p.ex. `apps/desktop/src-tauri/src/nfce/commands.rs`) — confirmar se valores reais estão em repositório.

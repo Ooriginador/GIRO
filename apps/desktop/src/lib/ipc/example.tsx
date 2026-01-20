@@ -1,7 +1,5 @@
-import React from 'react';
 import { useState } from 'react';
 import ipc from './client';
-import { LicenseActivateRequest } from './contracts';
 
 export function LicenseActivateExample() {
   const [status, setStatus] = useState<string | null>(null);
@@ -63,7 +61,7 @@ export function LicenseActivateExample() {
                 paymentMethod: 'CASH',
                 amountPaid: 10,
                 employeeId: 'admin-1',
-                cashSessionId: 'session-1',
+                cashSessionId: 'YOUR_SESSION_ID',
               } as any);
               setStatus(`Created sale: ${JSON.stringify(sale)}`);
             } catch (e: any) {

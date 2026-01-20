@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT COUNT(id) as \"count!: i64\"\n            FROM service_orders \n            WHERE status NOT IN ('COMPLETED', 'DELIVERED', 'CANCELED')\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "count!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8945027bd79444ff475f9b1cb8e7233d22c0f38b8171cf760a8466c70568ed04"
+}

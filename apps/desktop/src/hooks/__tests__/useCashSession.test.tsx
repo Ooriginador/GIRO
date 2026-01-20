@@ -11,6 +11,7 @@ import {
 import { createWrapper } from '@/test/test-utils';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import fixtures from '@/test/fixtures';
 
 // Mock do Tauri
 vi.mock('@/lib/tauri', () => ({
@@ -32,7 +33,7 @@ describe('Cash Session Hooks', () => {
   describe('useCashSession', () => {
     it('should fetch current cash session', async () => {
       const mockSession = {
-        id: 'session-1',
+        id: fixtures.TEST_SESSION_ID,
         employeeId: 'emp-1',
         openingBalance: 200,
         status: 'OPEN' as const,
@@ -73,7 +74,7 @@ describe('Cash Session Hooks', () => {
   describe('useOpenCashSession', () => {
     it('should open a new cash session', async () => {
       const mockSession = {
-        id: 'session-new',
+        id: fixtures.TEST_SESSION_ID,
         employeeId: 'emp-1',
         openingBalance: 500,
         status: 'OPEN' as const,
@@ -126,7 +127,7 @@ describe('Cash Session Hooks', () => {
   describe('useCloseCashSession', () => {
     it('should close cash session successfully', async () => {
       const closedSession = {
-        id: 'session-1',
+        id: fixtures.TEST_SESSION_ID,
         employeeId: 'emp-1',
         openedAt: new Date().toISOString(),
         closedAt: new Date().toISOString(),
@@ -144,7 +145,7 @@ describe('Cash Session Hooks', () => {
       });
 
       const input = {
-        id: 'session-1',
+        id: fixtures.TEST_SESSION_ID,
         actualBalance: 750,
       };
 

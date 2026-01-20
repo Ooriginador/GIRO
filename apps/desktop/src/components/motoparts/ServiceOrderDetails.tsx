@@ -74,13 +74,16 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
   const { company } = useCompany();
   const { orderDetails, isLoading, refetch } = useServiceOrderDetails(orderId);
   const { items, removeItem } = useServiceOrderItems(orderId);
-  const { startOrder, completeOrder, deliverOrder, cancelOrder } = useServiceOrders();
+  const { startOrder, completeOrder, deliverOrder, cancelOrder, updateOrder } = useServiceOrders();
 
   const [actionDialog, setActionDialog] = useState<{
     open: boolean;
-    type: 'start' | 'complete' | 'deliver' | 'cancel' | null;
+    type: 'start' | 'complete' | 'deliver' | 'cancel' | 'approve' | null;
   }>({ open: false, type: null });
-  const [showAddItemDialog, setShowAddItemDialog] = useState(false);
+  const [itemDialogState, setItemDialogState] = useState<{
+    open: boolean;
+    item?: any | null; // Using any temporarily if ServiceOrderItem type isn't fully available here, but better use correct type
+  }>({ open: false, item: null });
 
   if (isLoading) {
     return (
@@ -176,6 +179,23 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     } catch (error) {
       toast({
         title: 'Erro ao cancelar ordem',
+        description: String(error),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleApproveOrder = async () => {
+    try {
+      await updateOrder.mutateAsync({ id: orderId, input: { status: 'OPEN' } });
+      toast({
+        title: 'Orçamento aprovado',
+        description: 'Status alterado para "Aberta" e estoque consumido',
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: 'Erro ao aprovar',
         description: String(error),
         variant: 'destructive',
       });
@@ -434,7 +454,11 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
               Itens
             </CardTitle>
             {canEdit && (
-              <Button size="sm" variant="outline" onClick={() => setShowAddItemDialog(true)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setItemDialogState({ open: true, item: null })}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Adicionar Item
               </Button>
@@ -486,6 +510,13 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
                     </TableCell>
                     {canEdit && (
                       <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setItemDialogState({ open: true, item })}
+                        >
+                          <Edit className="h-4 w-4 text-primary" />
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleRemoveItem(item.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -570,6 +601,12 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-2">
+            {order.status === 'QUOTE' && (
+              <Button onClick={() => setActionDialog({ open: true, type: 'approve' })}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Aprovar Orçamento
+              </Button>
+            )}
             {canStart && (
               <Button onClick={() => setActionDialog({ open: true, type: 'start' })}>
                 <Play className="h-4 w-4 mr-2" />
@@ -622,6 +659,8 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
                 'A ordem será entregue ao cliente e marcada como paga.'}
               {actionDialog.type === 'cancel' &&
                 'Esta ação não pode ser desfeita. A ordem será cancelada.'}
+              {actionDialog.type === 'approve' &&
+                'O orçamento será aprovado e os produtos serão debitados do estoque.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -632,6 +671,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
                 if (actionDialog.type === 'complete') handleCompleteOrder();
                 if (actionDialog.type === 'deliver') handleDeliverOrder();
                 if (actionDialog.type === 'cancel') handleCancelOrder();
+                if (actionDialog.type === 'approve') handleApproveOrder();
                 setActionDialog({ open: false, type: null });
               }}
             >
@@ -642,9 +682,10 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
       </AlertDialog>
 
       <ServiceOrderItemDialog
-        open={showAddItemDialog}
-        onOpenChange={setShowAddItemDialog}
+        open={itemDialogState.open}
+        onOpenChange={(open) => setItemDialogState({ open, item: itemDialogState.item })}
         orderId={orderId}
+        itemToEdit={itemDialogState.item}
       />
     </div>
   );

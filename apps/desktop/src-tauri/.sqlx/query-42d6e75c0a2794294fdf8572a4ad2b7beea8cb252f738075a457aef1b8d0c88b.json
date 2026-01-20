@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE order_services SET \n                    quantity = ?, unit_price = ?, discount_value = ?, subtotal = ?, total = ?,\n                    notes = COALESCE(?, notes), employee_id = COALESCE(?, employee_id), updated_at = ?\n                WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "42d6e75c0a2794294fdf8572a4ad2b7beea8cb252f738075a457aef1b8d0c88b"
+}

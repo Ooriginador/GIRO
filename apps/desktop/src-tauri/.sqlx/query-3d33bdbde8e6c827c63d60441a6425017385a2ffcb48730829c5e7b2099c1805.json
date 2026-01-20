@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE order_products SET \n                        quantity = ?, unit_price = ?, discount_value = ?, subtotal = ?, total = ?, updated_at = ?\n                    WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "3d33bdbde8e6c827c63d60441a6425017385a2ffcb48730829c5e7b2099c1805"
+}

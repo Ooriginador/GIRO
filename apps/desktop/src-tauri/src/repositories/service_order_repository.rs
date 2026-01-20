@@ -305,6 +305,7 @@ impl ServiceOrderRepository {
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
         let order_number = self.next_order_number().await?;
+        let status = input.status.unwrap_or_else(|| "OPEN".to_string());
 
         sqlx::query!(
             r#"
@@ -314,7 +315,7 @@ impl ServiceOrderRepository {
                 discount, total, warranty_days, scheduled_date, notes, internal_notes,
                 is_paid, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'OPEN', 0, 0, 0, 0, 30, ?, ?, ?, 0, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 30, ?, ?, ?, 0, ?, ?)
             "#,
             id,
             order_number,
@@ -324,6 +325,7 @@ impl ServiceOrderRepository {
             input.employee_id,
             input.vehicle_km,
             input.symptoms,
+            status,
             input.scheduled_date,
             input.notes,
             input.internal_notes,
@@ -550,8 +552,7 @@ impl ServiceOrderRepository {
 
     /// Lista itens de uma ordem
     pub async fn find_order_items(&self, order_id: &str) -> AppResult<Vec<ServiceOrderItem>> {
-        let items = sqlx::query_as!(
-            ServiceOrderItem,
+        let items = sqlx::query_as::<_, ServiceOrderItem>(
             r#"
             SELECT 
                 id as "id!", 
@@ -571,7 +572,7 @@ impl ServiceOrderRepository {
                 updated_at as "updated_at!"
             FROM (
                 SELECT 
-                    id, order_id, NULL as product_id, 'SERVICE' as item_type, description, 
+                    id, order_id, CAST(NULL AS TEXT) as product_id, 'SERVICE' as item_type, description, 
                     employee_id, quantity, unit_price, discount_percent, discount_value, 
                     subtotal, total, notes, created_at, updated_at
                 FROM order_services 
@@ -581,16 +582,17 @@ impl ServiceOrderRepository {
                 
                 SELECT 
                     op.id, op.order_id, op.product_id, 'PART' as item_type, p.name as description, 
-                    NULL as employee_id, op.quantity, op.unit_price, op.discount_percent, op.discount_value, 
-                    op.subtotal, op.total, NULL as notes, op.created_at, op.updated_at
+                    op.employee_id, op.quantity, op.unit_price, op.discount_percent, op.discount_value, 
+                    op.subtotal, op.total, CAST(NULL AS TEXT) as notes, op.created_at, op.updated_at
                 FROM order_products op
                 LEFT JOIN products p ON p.id = op.product_id
                 WHERE op.order_id = ?
             ) AS items
             ORDER BY created_at ASC
             "#,
-            order_id, order_id
         )
+        .bind(order_id)
+        .bind(order_id)
         .fetch_all(&self.pool)
         .await?;
 
@@ -606,15 +608,22 @@ impl ServiceOrderRepository {
         let subtotal = input.quantity * input.unit_price;
         let total = subtotal - discount_value;
         
-        let mut final_description = input.description.clone();
+        // Verificar status da ordem para saber se deve consumir estoque
+        let order = self.find_by_id(&input.order_id).await?
+            .ok_or_else(|| AppError::NotFound { 
+                entity: "ServiceOrder".into(), 
+                id: input.order_id.clone() 
+            })?;
+        let is_quote = order.status == "QUOTE";
         
         let mut tx = self.pool.begin().await?;
+        let mut linked_lot_id: Option<String> = None;
 
         if input.item_type == "PART" {
             let product_id = input.product_id.as_ref()
                 .ok_or_else(|| AppError::Validation("Product ID required for parts".into()))?;
 
-            // 1. Get product info to verify stock
+            // Verificar estoque mesmo para QUOTE (para feedback visual)
             let product = sqlx::query!(
                 "SELECT current_stock FROM products WHERE id = ?",
                 product_id
@@ -623,75 +632,84 @@ impl ServiceOrderRepository {
             .await?
             .ok_or_else(|| AppError::NotFound { entity: "Product".into(), id: product_id.clone() })?;
 
-            // 2. Deduct stock from product
-            let new_stock = product.current_stock - input.quantity;
-            sqlx::query!(
-                "UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?",
-                new_stock, now, product_id
-            )
-            .execute(&mut *tx)
-            .await?;
+            // Validar estoque disponível
+            if product.current_stock < input.quantity {
+                return Err(AppError::Validation(format!(
+                    "Estoque insuficiente. Disponível: {:.2}, Solicitado: {:.2}",
+                    product.current_stock, input.quantity
+                )));
+            }
 
-            // 3. Consume from lots (FIFO)
-            let mut remaining_to_consume = input.quantity;
-            let lots = sqlx::query!(
-                "SELECT id, current_quantity FROM product_lots WHERE product_id = ? AND current_quantity > 0 AND status = 'AVAILABLE' ORDER BY expiration_date ASC, purchase_date ASC",
-                product_id
-            )
-            .fetch_all(&mut *tx)
-            .await?;
-
-            let mut linked_lot_id: Option<String> = None;
-
-            for lot in lots {
-                if remaining_to_consume <= 0.0 { break; }
-                
-                let consume = lot.current_quantity.min(remaining_to_consume);
+            // Só consumir estoque se NÃO for orçamento
+            if !is_quote {
+                let new_stock = product.current_stock - input.quantity;
                 sqlx::query!(
-                    "UPDATE product_lots SET current_quantity = current_quantity - ?, updated_at = ? WHERE id = ?",
-                    consume, now, lot.id
+                    "UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?",
+                    new_stock, now, product_id
                 )
                 .execute(&mut *tx)
                 .await?;
-                
-                remaining_to_consume -= consume;
-                if linked_lot_id.is_none() {
-                    linked_lot_id = Some(lot.id);
+
+                // Consume from lots (FIFO)
+                let mut remaining_to_consume = input.quantity;
+                let lots = sqlx::query!(
+                    "SELECT id, current_quantity FROM product_lots WHERE product_id = ? AND current_quantity > 0 AND status = 'AVAILABLE' ORDER BY expiration_date ASC, purchase_date ASC",
+                    product_id
+                )
+                .fetch_all(&mut *tx)
+                .await?;
+
+                for lot in lots {
+                    if remaining_to_consume <= 0.0 { break; }
+                    
+                    let consume = lot.current_quantity.min(remaining_to_consume);
+                    sqlx::query!(
+                        "UPDATE product_lots SET current_quantity = current_quantity - ?, updated_at = ? WHERE id = ?",
+                        consume, now, lot.id
+                    )
+                    .execute(&mut *tx)
+                    .await?;
+                    
+                    remaining_to_consume -= consume;
+                    if linked_lot_id.is_none() {
+                        linked_lot_id = Some(lot.id);
+                    }
                 }
+
+                // Record stock movement
+                let movement_id = new_id();
+                let movement_qty = -input.quantity;
+                sqlx::query!(
+                    "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, employee_id, created_at) VALUES (?, ?, 'USAGE', ?, ?, ?, 'Uso em OS', ?, 'SERVICE_ORDER', ?, ?)",
+                    movement_id, product_id, movement_qty, product.current_stock, new_stock, input.order_id, input.employee_id, now
+                )
+                .execute(&mut *tx)
+                .await?;
             }
 
-            // 4. Record stock movement (SALE/USAGE)
-            let movement_id = new_id();
-            let movement_qty = -input.quantity;
-            sqlx::query!(
-                "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, employee_id, created_at) VALUES (?, ?, 'USAGE', ?, ?, ?, 'Uso em OS', ?, 'SERVICE_ORDER', ?, ?)",
-                movement_id, product_id, movement_qty, product.current_stock, new_stock, input.order_id, input.employee_id, now
-            )
-            .execute(&mut *tx)
-            .await?;
-
-            // 5. Insert into order_products
-            sqlx::query!(
+            // Insert into order_products
+            sqlx::query(
                 r#"
                 INSERT INTO order_products (
-                    id, order_id, product_id, quantity, unit_price, 
+                    id, order_id, product_id, employee_id, quantity, unit_price, 
                     discount_percent, discount_value, subtotal, total, 
                     lot_id, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
                 "#,
-                id,
-                input.order_id,
-                product_id,
-                input.quantity,
-                input.unit_price,
-                discount_value,
-                subtotal,
-                total,
-                linked_lot_id,
-                now,
-                now
             )
+            .bind(&id)
+            .bind(&input.order_id)
+            .bind(product_id)
+            .bind(&input.employee_id)
+            .bind(input.quantity)
+            .bind(input.unit_price)
+            .bind(discount_value)
+            .bind(subtotal)
+            .bind(total)
+            .bind(linked_lot_id)
+            .bind(&now)
+            .bind(&now)
             .execute(&mut *tx)
             .await?;
         } else {
@@ -770,25 +788,31 @@ impl ServiceOrderRepository {
                 .fetch_optional(&mut *tx)
                 .await? 
             {
-                order_id = Some(row.order_id);
+                // clone fields to avoid moved-value when using row later
+                let order_id_str = row.order_id.clone();
+                let product_id = row.product_id.clone();
+                let quantity = row.quantity;
+                let lot_id = row.lot_id.clone();
+
+                order_id = Some(order_id_str.clone());
                 
                 // Restore Stock
                 // 1. Restore Product Stock
-                let current_prod = sqlx::query!("SELECT current_stock FROM products WHERE id = ?", row.product_id)
+                let current_prod = sqlx::query!("SELECT current_stock FROM products WHERE id = ?", product_id)
                     .fetch_one(&mut *tx)
                     .await?;
                     
-                let new_stock = current_prod.current_stock + row.quantity;
+                let new_stock = current_prod.current_stock + quantity;
                 
                 sqlx::query!("UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?", 
-                    new_stock, now, row.product_id)
+                    new_stock, now, product_id)
                     .execute(&mut *tx)
                     .await?;
                     
                 // 2. Restore Lot Stock (if linked)
-                if let Some(lot_id) = row.lot_id {
+                if let Some(lot_id_val) = lot_id {
                     sqlx::query!("UPDATE product_lots SET current_quantity = current_quantity + ?, updated_at = ? WHERE id = ?",
-                        row.quantity, now, lot_id)
+                        quantity, now, lot_id_val)
                         .execute(&mut *tx)
                         .await?;
                 }
@@ -797,7 +821,7 @@ impl ServiceOrderRepository {
                 let movement_id = new_id();
                 sqlx::query!(
                     "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, created_at) VALUES (?, ?, 'RETURN', ?, ?, ?, 'Remoção de OS', ?, 'SERVICE_ORDER', ?)",
-                    movement_id, row.product_id, row.quantity, current_prod.current_stock, new_stock, row.order_id, now
+                    movement_id, product_id, quantity, current_prod.current_stock, new_stock, order_id_str, now
                 )
                 .execute(&mut *tx)
                 .await?;
@@ -816,6 +840,251 @@ impl ServiceOrderRepository {
         }
 
         Ok(())
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // FUNÇÕES AUXILIARES DE ESTOQUE
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// Consome estoque para todos os itens de uma ordem (usado na transição QUOTE → OPEN)
+    async fn consume_stock_for_order(&self, order_id: &str) -> AppResult<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        
+        // Buscar todos os produtos da ordem
+        let products = sqlx::query!(
+            r#"SELECT id, product_id, quantity FROM order_products WHERE order_id = ?"#,
+            order_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut tx = self.pool.begin().await?;
+
+        for prod in products {
+            let product_id = &prod.product_id;
+            let quantity = prod.quantity;
+
+            // Get current stock
+            let product = sqlx::query!(
+                "SELECT current_stock FROM products WHERE id = ?",
+                product_id
+            )
+            .fetch_optional(&mut *tx)
+            .await?;
+
+            if let Some(p) = product {
+                let new_stock = p.current_stock - quantity;
+                
+                // Update product stock
+                sqlx::query!(
+                    "UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?",
+                    new_stock, now, product_id
+                )
+                .execute(&mut *tx)
+                .await?;
+
+                // Consume from lots (FIFO)
+                let mut remaining = quantity;
+                let lots = sqlx::query!(
+                    "SELECT id, current_quantity FROM product_lots WHERE product_id = ? AND current_quantity > 0 AND status = 'AVAILABLE' ORDER BY expiration_date ASC, purchase_date ASC",
+                    product_id
+                )
+                .fetch_all(&mut *tx)
+                .await?;
+
+                for lot in lots {
+                    if remaining <= 0.0 { break; }
+                    let consume = lot.current_quantity.min(remaining);
+                    sqlx::query!(
+                        "UPDATE product_lots SET current_quantity = current_quantity - ?, updated_at = ? WHERE id = ?",
+                        consume, now, lot.id
+                    )
+                    .execute(&mut *tx)
+                    .await?;
+                    remaining -= consume;
+                }
+
+                // Record movement
+                let movement_id = new_id();
+                let movement_qty = -quantity;
+                sqlx::query!(
+                    "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, created_at) VALUES (?, ?, 'USAGE', ?, ?, ?, 'Consumo OS (Orçamento aprovado)', ?, 'SERVICE_ORDER', ?)",
+                    movement_id, product_id, movement_qty, p.current_stock, new_stock, order_id, now
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
+        }
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    /// Atualiza item da ordem com delta de estoque
+    pub async fn update_item(&self, item_id: &str, input: UpdateServiceOrderItem) -> AppResult<ServiceOrderItem> {
+        let now = chrono::Utc::now().to_rfc3339();
+        let mut order_id: Option<String> = None;
+
+        let mut tx = self.pool.begin().await?;
+
+        // Tentar encontrar em order_services
+        if let Some(svc) = sqlx::query!(
+            r#"SELECT id, order_id, quantity, unit_price, discount_value, notes, employee_id FROM order_services WHERE id = ?"#,
+            item_id
+        )
+        .fetch_optional(&mut *tx)
+        .await?
+        {
+            order_id = Some(svc.order_id.clone());
+            let new_qty = input.quantity.unwrap_or(svc.quantity);
+            let new_price = input.unit_price.unwrap_or(svc.unit_price);
+            let new_discount = input.discount.unwrap_or(svc.discount_value);
+            let subtotal = new_qty * new_price;
+            let total = subtotal - new_discount;
+
+            sqlx::query!(
+                r#"UPDATE order_services SET 
+                    quantity = ?, unit_price = ?, discount_value = ?, subtotal = ?, total = ?,
+                    notes = COALESCE(?, notes), employee_id = COALESCE(?, employee_id), updated_at = ?
+                WHERE id = ?"#,
+                new_qty, new_price, new_discount, subtotal, total,
+                input.notes, input.employee_id, now, item_id
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        // Tentar encontrar em order_products (com delta de estoque)
+        if order_id.is_none() {
+            if let Some(prod) = sqlx::query!(
+                r#"SELECT op.id, op.order_id, op.product_id, op.quantity, op.unit_price, op.discount_value, op.lot_id,
+                    so.status as order_status
+                FROM order_products op
+                JOIN service_orders so ON so.id = op.order_id
+                WHERE op.id = ?"#,
+                item_id
+            )
+            .fetch_optional(&mut *tx)
+            .await?
+            {
+                order_id = Some(prod.order_id.clone());
+                let old_qty = prod.quantity;
+                let new_qty = input.quantity.unwrap_or(old_qty);
+                let delta = new_qty - old_qty;
+                let new_price = input.unit_price.unwrap_or(prod.unit_price);
+                let new_discount = input.discount.unwrap_or(prod.discount_value);
+                let subtotal = new_qty * new_price;
+                let total = subtotal - new_discount;
+
+                // Só ajustar estoque se NÃO for QUOTE
+                if prod.order_status != "QUOTE" && delta.abs() > 0.001 {
+                    let product = sqlx::query!(
+                        "SELECT current_stock FROM products WHERE id = ?",
+                        prod.product_id
+                    )
+                    .fetch_one(&mut *tx)
+                    .await?;
+
+                    // delta > 0: consumir mais estoque
+                    // delta < 0: devolver estoque
+                    let new_stock = product.current_stock - delta;
+
+                    // Validar estoque suficiente
+                    if delta > 0.0 && new_stock < 0.0 {
+                        return Err(AppError::Validation(format!(
+                            "Estoque insuficiente. Disponível: {:.2}, Necessário adicional: {:.2}",
+                            product.current_stock, delta
+                        )));
+                    }
+
+                    sqlx::query!(
+                        "UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?",
+                        new_stock, now, prod.product_id
+                    )
+                    .execute(&mut *tx)
+                    .await?;
+
+                    // Ajustar lotes
+                    if delta > 0.0 {
+                        // Consumir mais (FIFO)
+                        let mut remaining = delta;
+                        let lots = sqlx::query!(
+                            "SELECT id, current_quantity FROM product_lots WHERE product_id = ? AND current_quantity > 0 AND status = 'AVAILABLE' ORDER BY expiration_date ASC, purchase_date ASC",
+                            prod.product_id
+                        )
+                        .fetch_all(&mut *tx)
+                        .await?;
+                        for lot in lots {
+                            if remaining <= 0.0 { break; }
+                            let consume = lot.current_quantity.min(remaining);
+                            sqlx::query!(
+                                "UPDATE product_lots SET current_quantity = current_quantity - ?, updated_at = ? WHERE id = ?",
+                                consume, now, lot.id
+                            )
+                            .execute(&mut *tx)
+                            .await?;
+                            remaining -= consume;
+                        }
+                    } else if let Some(lot_id) = &prod.lot_id {
+                        // Devolver ao lote original
+                        let return_qty = -delta;
+                        sqlx::query!(
+                            "UPDATE product_lots SET current_quantity = current_quantity + ?, updated_at = ? WHERE id = ?",
+                            return_qty, now, lot_id
+                        )
+                        .execute(&mut *tx)
+                        .await?;
+                    }
+
+                    // Registrar movimento
+                    let movement_id = new_id();
+                    let movement_type = if delta > 0.0 { "USAGE" } else { "RETURN" };
+                    let reason = if delta > 0.0 { "Aumento de quantidade em OS" } else { "Redução de quantidade em OS" };
+                    sqlx::query!(
+                        "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SERVICE_ORDER', ?)",
+                        movement_id, prod.product_id, movement_type, delta, product.current_stock, new_stock, reason, prod.order_id, now
+                    )
+                    .execute(&mut *tx)
+                    .await?;
+                }
+
+                sqlx::query(
+                    r#"UPDATE order_products SET 
+                        quantity = ?, unit_price = ?, discount_value = ?, subtotal = ?, total = ?, 
+                        employee_id = COALESCE(?, employee_id), updated_at = ?
+                    WHERE id = ?"#,
+                )
+                .bind(new_qty)
+                .bind(new_price)
+                .bind(new_discount)
+                .bind(subtotal)
+                .bind(total)
+                .bind(&input.employee_id)
+                .bind(&now)
+                .bind(item_id)
+                .execute(&mut *tx)
+                .await?;
+            }
+        }
+
+        tx.commit().await?;
+
+        if let Some(oid) = &order_id {
+            self.recalculate_totals(oid).await?;
+        }
+
+        // Retornar item atualizado
+        if let Some(oid) = order_id {
+            let items = self.find_order_items(&oid).await?;
+            if let Some(item) = items.into_iter().find(|i| i.id == item_id) {
+                return Ok(item);
+            }
+        }
+
+        Err(AppError::NotFound {
+            entity: "ServiceOrderItem".to_string(),
+            id: item_id.to_string(),
+        })
     }
 
     // ═══════════════════════════════════════════════════════════════════════

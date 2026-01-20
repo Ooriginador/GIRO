@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO product_compatibility (id, product_id, vehicle_year_id, is_verified, created_at, updated_at)\n                VALUES (?, ?, ?, 0, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "df26f95872f4abd6374e487db9a32d3ed169e659105ef7a0171805fa0a1c7445"
+}

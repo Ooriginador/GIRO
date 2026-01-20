@@ -10,20 +10,24 @@ vi.mock('@/hooks/useSales', () => ({
   useSalesReport: () => mockUseSalesReport(),
 }));
 
-// Mock Lucide icons
-vi.mock('lucide-react', () => ({
-  ArrowLeft: () => <div data-testid="icon-back" />,
-  BarChart3: () => <div data-testid="icon-chart" />,
-  CalendarIcon: () => <div data-testid="icon-calendar" />,
-  DollarSign: () => <div data-testid="icon-dollar" />,
-  Download: () => <div data-testid="icon-download" />,
-  Printer: () => <div data-testid="icon-printer" />,
-  ShoppingCart: () => <div data-testid="icon-cart" />,
-  TrendingUp: () => <div data-testid="icon-trending" />,
-  ChevronDown: () => <div data-testid="icon-chevron-down" />,
-  ChevronUp: () => <div data-testid="icon-chevron-up" />,
-  Check: () => <div data-testid="icon-check" />,
-}));
+// Mock Lucide icons (extend original exports when available)
+vi.mock('lucide-react', async (importOriginal) => {
+  const original = await importOriginal();
+  return {
+    ...original,
+    ArrowLeft: () => <div data-testid="icon-back" />,
+    BarChart3: () => <div data-testid="icon-chart" />,
+    CalendarIcon: () => <div data-testid="icon-calendar" />,
+    DollarSign: () => <div data-testid="icon-dollar" />,
+    Download: () => <div data-testid="icon-download" />,
+    Printer: () => <div data-testid="icon-printer" />,
+    ShoppingCart: () => <div data-testid="icon-cart" />,
+    TrendingUp: () => <div data-testid="icon-trending" />,
+    ChevronDown: () => <div data-testid="icon-chevron-down" />,
+    ChevronUp: () => <div data-testid="icon-chevron-up" />,
+    Check: () => <div data-testid="icon-check" />,
+  };
+});
 
 // Mock Radix UI components
 vi.mock('@/components/ui/calendar', () => ({

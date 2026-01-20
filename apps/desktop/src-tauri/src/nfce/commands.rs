@@ -443,23 +443,8 @@ pub async fn transmit_offline_note(
         .ok_or_else(|| "Nota não encontrada na fila de contingência".to_string())?;
 
     // Carregar certificado novamente (pois é uma nova sessão de envio)
-    let _cert = Certificate::from_pfx(&cert_path, &cert_password)?; // Apenas para validar senha/path antes de tentar
-                                                                    // Ops, SefazClient não precisa do certificado??
-                                                                    // Precisa sim para comunicação TLS?
-                                                                    // O Webservice atual `SefazClient` usa certificado?
-                                                                    // Verifiquei `webservice.rs` antes? Não detalhadamente.
-                                                                    // O XmlSigner usa o certificado. O SefazClient usa reqwest client com identity?
-
-    // Vamos assumir que SefazClient precisa configurar o Client TLS com o certificado.
-    // Se SefazClient::new apenas configura URL, onde o certificado entra na transmissão?
-    // Ah, o `SefazClient` deve ter métodos que aceitam o certificado ou deve ser construído com ele.
-    // Na função emit_nfce, o cert foi usado para assinar.
-    // O check_sefaz_status usa SefazClient sem certificado?
-    // Em produção, a conexão com SEFAZ exige Client Certificate (mTLS).
-    // Se o meu `SefazClient` atual não está recebendo o cert, a implementação do webservice pode estar incompleta quanto ao mTLS.
-    // Vou verificar `webservice.rs` agora. É critico.
-
-    // CONTINUANDO ASSUMINDO QUE ESTÁ CERTO POR ENQUANTO PARA NÃO BLOQUEAR A LÓGICA
+    // Validar certificado antes de prosseguir
+    let _cert = Certificate::from_pfx(&cert_path, &cert_password)?;
 
     let env = if environment == 1 {
         Environment::Production

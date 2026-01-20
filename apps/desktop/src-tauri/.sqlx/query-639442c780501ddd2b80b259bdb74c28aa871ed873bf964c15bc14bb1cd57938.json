@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT order_id, product_id, quantity, lot_id FROM order_products WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "order_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "product_id",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "quantity",
+        "ordinal": 2,
+        "type_info": "Float"
+      },
+      {
+        "name": "lot_id",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "639442c780501ddd2b80b259bdb74c28aa871ed873bf964c15bc14bb1cd57938"
+}

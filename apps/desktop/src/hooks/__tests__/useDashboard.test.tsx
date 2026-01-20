@@ -8,6 +8,7 @@ import type { Product, Sale } from '@/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import fixtures from '@/test/fixtures';
 
 // Mock completo do Tauri
 vi.mock('@/lib/tauri', () => ({
@@ -35,7 +36,7 @@ const createWrapper = () => {
 const mockSale: Sale = {
   id: 'sale-1',
   dailyNumber: 1,
-  cashSessionId: 'session-1',
+  cashSessionId: fixtures.TEST_SESSION_ID,
   employeeId: 'emp-1',
   subtotal: 100,
   discountValue: 0,

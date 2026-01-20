@@ -98,9 +98,9 @@ vi.mock('@/components/ui/command', () => ({
   CommandEmpty: ({ children }: any) => <div>{children}</div>,
   CommandGroup: ({ children }: any) => <div>{children}</div>,
   CommandItem: ({ children, onSelect, value }: any) => (
-    <div data-testid={`item-${value}`} onClick={() => onSelect(value)}>
+    <button data-testid={`item-${value}`} type="button" onClick={() => onSelect(value)}>
       {children}
-    </div>
+    </button>
   ),
 }));
 
@@ -163,6 +163,22 @@ describe('ServiceOrderForm', () => {
     expect(screen.getByDisplayValue('Moto não liga')).toBeInTheDocument();
   });
 
+  it('should render switch for quote and change button text', async () => {
+    render(<ServiceOrderForm onCancel={vi.fn()} onSuccess={vi.fn()} />, {
+      wrapper: queryWrapper,
+    });
+
+    const quoteSwitch = screen.getByRole('switch');
+    expect(quoteSwitch).toBeInTheDocument();
+    expect(screen.getByText('Abrir OS')).toBeInTheDocument();
+
+    fireEvent.click(quoteSwitch);
+
+    await waitFor(() => {
+      expect(screen.getByText('Gerar Orçamento')).toBeInTheDocument();
+    });
+  });
+
   it('should complete full successful flow', async () => {
     const onSuccess = vi.fn();
     render(<ServiceOrderForm onCancel={vi.fn()} onSuccess={onSuccess} />, {
@@ -189,6 +205,7 @@ describe('ServiceOrderForm', () => {
           customer_id: 'cust-1',
           customer_vehicle_id: 'veh-1',
           symptoms: 'Barulho no motor',
+          status: 'OPEN',
         })
       );
       expect(onSuccess).toHaveBeenCalledWith('os-1');

@@ -43,7 +43,8 @@ impl Certificate {
     /// use giro_lib::nfce::Certificate;
     ///
     /// # fn main() -> Result<(), String> {
-    /// let cert = Certificate::from_pfx("cert.pfx", "senha123")?;
+    /// // Substitua `PFX_PASSWORD_PLACEHOLDER` pela senha real do .pfx em ambiente seguro
+    /// let cert = Certificate::from_pfx("cert.pfx", "PFX_PASSWORD_PLACEHOLDER")?;
     /// println!("CNPJ: {}", cert.cnpj);
     /// # Ok(())
     /// # }

@@ -1,7 +1,6 @@
 import { invoke } from '@tauri-apps/api/tauri';
-import { z } from 'zod';
 import { InvokeResult as InvokeResultSchema } from './contracts';
-import type { CreateSale, CreateCashSession, Receipt } from '../../types';
+import type { CreateSale, CreateCashSession, Receipt } from './contracts';
 
 async function safeInvoke<T>(cmd: string, payload?: unknown): Promise<T> {
   const res = (await invoke('giro_invoke', { cmd, payload })) as unknown;
@@ -67,6 +66,12 @@ export default {
   safeInvoke,
   safeActivateLicense,
   safeGetHardwareId,
+  safeGetStoredLicense,
+  safeGetServerTime,
+  safeRestoreLicense,
+  safeCreateSale,
+  safeOpenCashSession,
+  safePrintReceipt,
   activateLicense,
   openCashSession,
   createSale,

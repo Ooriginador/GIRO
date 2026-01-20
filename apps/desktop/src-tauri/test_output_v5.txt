@@ -1,0 +1,32 @@
+   Compiling giro-desktop v1.0.19 (/home/jhonslife/CICLOGIRO/GIRO/apps/desktop/src-tauri)
+error: set `DATABASE_URL` to use query macros online, or run `cargo sqlx prepare` to update the query cache
+   --> src/repositories/service_order_repository.rs:691:13
+    |
+691 | /             sqlx::query!(
+692 | |                 r#"
+693 | |                 INSERT INTO order_products (
+694 | |                     id, order_id, product_id, employee_id, quantity, unit_price, 
+...   |
+711 | |                 now
+712 | |             )
+    | |_____________^
+    |
+    = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: set `DATABASE_URL` to use query macros online, or run `cargo sqlx prepare` to update the query cache
+    --> src/repositories/service_order_repository.rs:1051:17
+     |
+1051 | /                 sqlx::query!(
+1052 | |                     r#"UPDATE order_products SET 
+1053 | |                         quantity = ?, unit_price = ?, discount_value = ?, subtotal = ?, total = ?, 
+1054 | |                         employee_id = COALESCE(?, employee_id), updated_at = ?
+1055 | |                     WHERE id = ?"#,
+1056 | |                     new_qty, new_price, new_discount, subtotal, total, input.employee_id, now, item_id
+1057 | |                 )
+     | |_________________^
+     |
+     = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: could not compile `giro-desktop` (lib) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `giro-desktop` (lib test) due to 2 previous errors

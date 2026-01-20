@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import fixtures from '@/test/fixtures';
 
 // Mock dos stores
 const mockLogout = vi.fn();
@@ -98,7 +99,7 @@ describe('Header with Cash Session', () => {
     vi.doMock('@/stores/auth-store', () => ({
       useAuthStore: () => ({
         currentUser: { id: 'user-1', name: 'Admin', role: 'ADMIN' },
-        currentSession: { id: 'session-abc123' },
+        currentSession: { id: fixtures.TEST_SESSION_ID },
         logout: mockLogout,
       }),
     }));

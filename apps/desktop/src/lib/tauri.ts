@@ -244,17 +244,80 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
 
       return summary as T;
     }
+    case 'create_employee': {
+      const input = (args?.input as any) ?? {};
+      const newEmp: Employee = {
+        id: randomId('emp'),
+        name: (input.name as string) ?? 'Employee',
+        role: (input.role as any) ?? 'OPERATOR',
+        pin: (input.pin as string) ?? '0000',
+        isActive: true,
+      } as unknown as Employee;
+      db.employees = [newEmp, ...db.employees];
+      saveWebMockDb(db);
+      return newEmp as T;
+    }
+    case 'create_supplier': {
+      // Suppliers are not persisted in the simple WebMock DB yet; return a minimal stub
+      const input = (args?.input as any) ?? {};
+      const supplier: Supplier = {
+        id: randomId('supplier'),
+        name: (input.name as string) ?? 'Supplier',
+        contact: (input.contact as string) ?? '',
+      } as unknown as Supplier;
+      // We intentionally do not persist suppliers in this mock DB to keep it simple.
+      return supplier as T;
+    }
+    case 'get_products': {
+      // Return empty list by default in web mock to keep tests deterministic
+      return [] as unknown as T;
+    }
+    case 'get_product_by_id': {
+      const id = (args?.id as string | undefined) ?? '';
+      return null as unknown as T;
+    }
+    case 'get_product_by_barcode': {
+      return null as unknown as T;
+    }
+    case 'search_products': {
+      return [] as unknown as T;
+    }
+    case 'get_categories': {
+      return [] as unknown as T;
+    }
     default:
       throw new Error(`WebMock invoke: comando não suportado: ${command}`);
   }
 };
 
 const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  const DEFAULT_INVOKE_TIMEOUT = 15000; // ms
+
+  const withTimeout = async <R>(p: Promise<R>, ms: number, errMsg: string): Promise<R> => {
+    return new Promise<R>((resolve, reject) => {
+      const id = setTimeout(() => reject(new Error(errMsg)), ms);
+      p.then(
+        (v) => {
+          clearTimeout(id);
+          resolve(v);
+        },
+        (e) => {
+          clearTimeout(id);
+          reject(e);
+        }
+      );
+    });
+  };
+
   try {
     if (isTauriRuntime()) {
-      console.log(`[Tauri] Invoking ${command}`, args);
-      const raw = await tauriCoreInvoke<unknown>(command, args);
-      console.log(`[Tauri Raw Result] ${command}:`, raw);
+      console.log('[Tauri.invoke] %s %o', command, args);
+      const raw = await withTimeout(
+        tauriCoreInvoke<unknown>(command, args),
+        DEFAULT_INVOKE_TIMEOUT,
+        `Timeout invoking ${command}`
+      );
+      console.log('[Tauri.result] %s %o', command, raw);
 
       // If backend returns TauriResponse wrapper, unwrap it
       if (raw && typeof raw === 'object' && 'success' in (raw as any)) {
@@ -270,12 +333,16 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
       return raw as T;
     }
 
-    console.warn(`[WebMock] Invoking ${command} (MOCK MODE ACTIVE)`, args);
-    const mock = await webMockInvoke<T>(command, args);
-    console.log(`[WebMock Result] ${command}:`, mock);
+    console.warn('[WebMock.invoke] %s %o (MOCK MODE)', command, args);
+    const mock = await withTimeout(
+      webMockInvoke<T>(command, args),
+      DEFAULT_INVOKE_TIMEOUT,
+      `Timeout (mock) invoking ${command}`
+    );
+    console.log('[WebMock.result] %s %o', command, mock);
     return mock;
   } catch (err) {
-    console.error(`[Invoke Failure] ${command}:`, err);
+    console.error('[Invoke Failure] %s %o', command, err instanceof Error ? err.message : err);
     // Normalize error message
     if (err instanceof Error) throw err;
     throw new Error(String(err));

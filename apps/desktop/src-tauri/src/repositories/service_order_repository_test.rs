@@ -6,9 +6,15 @@ use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
 
 async fn setup_test_db() -> SqlitePool {
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let url = format!("file:/tmp/giro_test_{}?mode=rwc", ts);
+
     let pool = SqlitePoolOptions::new()
         .max_connections(1)
-        .connect(":memory:")
+        .connect(&url)
         .await
         .unwrap();
 
@@ -81,6 +87,7 @@ async fn test_create_service_order_increments_number() {
         scheduled_date: Some("2026-01-09T10:00:00Z".to_string()),
         notes: None,
         internal_notes: None,
+        status: None,
     };
 
     let os1 = repo.create(input.clone()).await.unwrap();

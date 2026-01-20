@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   ShieldQuestion,
 } from 'lucide-react';
+import { clickableByKeyboard } from '@/lib/a11y';
 import { useState } from 'react';
 
 interface WarrantyListProps {
@@ -132,7 +133,9 @@ export function WarrantyList({ onSelectWarranty, onCreateNew }: WarrantyListProp
             >
               <Card
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => onSelectWarranty?.(warranty.id)}
+                {...(onSelectWarranty
+                  ? clickableByKeyboard(() => onSelectWarranty?.(warranty.id))
+                  : {})}
               >
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
