@@ -45,6 +45,7 @@ mod tests {
             description: Some("Test description".to_string()),
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
+            max_stock: None,
         };
 
         let result = repo.create(input).await;
@@ -75,6 +76,7 @@ mod tests {
             description: None,
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
+            max_stock: None,
         };
         repo.create(input1).await.unwrap();
 
@@ -91,6 +93,7 @@ mod tests {
             description: None,
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
+            max_stock: None,
         };
 
         let result = repo.create(input2).await;
@@ -114,6 +117,7 @@ mod tests {
             description: None,
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
+            max_stock: None,
         };
         repo.create(input).await.unwrap();
 
@@ -142,6 +146,7 @@ mod tests {
             description: None,
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
+            max_stock: None,
         };
         let created = repo.create(input).await.unwrap();
 
@@ -172,6 +177,7 @@ mod tests {
                 description: None,
                 unit: Some(crate::models::ProductUnit::Unit),
                 is_weighted: Some(false),
+                max_stock: None,
             };
             repo.create(input).await.unwrap();
         }
@@ -200,6 +206,7 @@ mod tests {
             description: None,
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
+            max_stock: None,
         };
         let product = repo.create(input).await.unwrap();
 
@@ -234,6 +241,7 @@ mod tests {
             description: None,
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
+            max_stock: None,
         };
         let product = repo.create(input).await.unwrap();
 

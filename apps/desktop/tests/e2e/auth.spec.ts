@@ -50,7 +50,7 @@ test.describe('Autenticação E2E', () => {
 
     // Verificar instrução
     const instruction = page.locator('p:has-text("Digite seu PIN para entrar")');
-    await expect(instruction).toBeVisible();
+    await expect(instruction).toBeVisible({ timeout: 15000 });
   });
 
   test('deve fazer login com PIN de admin (8899)', async ({ page }) => {

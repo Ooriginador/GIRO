@@ -90,9 +90,8 @@ describe('StockEntryPage', () => {
 
     await user.type(screen.getByLabelText(/número do lote/i), 'LOT-123');
 
-    // Select date (use the expiration date picker - second button)
-    const dateButtons = screen.getAllByText(/selecionar data/i);
-    await user.click(dateButtons[1]);
+    // Select date (choose the second "Selecionar data" button - expiration date)
+    await user.click(screen.getAllByText(/selecionar data/i)[1]);
     await user.click(screen.getByTestId('calendar-day'));
 
     // Submit
