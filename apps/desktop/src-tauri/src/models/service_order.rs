@@ -19,6 +19,7 @@ pub enum ServiceOrderStatus {
     Completed,    // Serviço concluído
     Delivered,    // Entregue ao cliente
     Canceled,     // Cancelada
+    Quote,        // Orçamento (não consome estoque)
 }
 
 impl Default for ServiceOrderStatus {
@@ -36,6 +37,7 @@ impl std::fmt::Display for ServiceOrderStatus {
             Self::Completed => write!(f, "CONCLUÍDA"),
             Self::Delivered => write!(f, "ENTREGUE"),
             Self::Canceled => write!(f, "CANCELADA"),
+            Self::Quote => write!(f, "ORÇAMENTO"),
         }
     }
 }
@@ -49,6 +51,7 @@ impl From<String> for ServiceOrderStatus {
             "COMPLETED" => Self::Completed,
             "DELIVERED" => Self::Delivered,
             "CANCELED" => Self::Canceled,
+            "QUOTE" => Self::Quote,
             _ => Self::Open,
         }
     }
@@ -147,6 +150,8 @@ pub struct ServiceOrderSummary {
 pub struct ServiceOrderItem {
     pub id: String,
     pub order_id: String,
+    pub product_id: Option<String>,
+    pub item_type: String, // "PART" or "SERVICE"
     pub description: String,
     pub employee_id: Option<String>,
     pub quantity: f64,
@@ -156,6 +161,7 @@ pub struct ServiceOrderItem {
     pub subtotal: f64,
     pub total: f64,
     pub notes: Option<String>,
+    pub employee_id: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -232,12 +238,25 @@ pub struct UpdateServiceOrder {
 #[serde(rename_all = "camelCase")]
 pub struct AddServiceOrderItem {
     pub order_id: String,
+    pub product_id: Option<String>,
+    pub item_type: String,
     pub description: String,
     pub employee_id: Option<String>,
     pub quantity: f64,
     pub unit_price: f64,
     pub discount: Option<f64>,
     pub notes: Option<String>,
+}
+
+/// Para atualizar item da OS (com delta de estoque)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateServiceOrderItem {
+    pub quantity: Option<f64>,
+    pub unit_price: Option<f64>,
+    pub discount: Option<f64>,
+    pub notes: Option<String>,
+    pub employee_id: Option<String>,
 }
 
 /// Para criar serviço padrão

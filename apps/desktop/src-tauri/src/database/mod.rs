@@ -1,4 +1,5 @@
 //! Módulo de Banco de Dados - Conexão SQLite via SQLx
+pub mod decimal_config;
 
 use crate::error::AppResult;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
@@ -32,6 +33,19 @@ impl DatabaseManager {
         // Executar migrations automaticamente ao iniciar
         sqlx::migrate!("./migrations")
             .run(&pool)
+            .await
+            .map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+
+        // Apply runtime PRAGMA and maintenance tasks
+        // Ensure WAL checkpoint and reasonable autockpoint
+        sqlx::query("PRAGMA wal_autocheckpoint = 1000")
+            .execute(&pool)
+            .await
+            .map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+
+        // Perform a truncate checkpoint to keep DB file consistent after migrations
+        sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+            .execute(&pool)
             .await
             .map_err(|e| crate::error::AppError::Database(e.to_string()))?;
 

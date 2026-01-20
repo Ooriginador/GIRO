@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Loader2, User } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Loader2, User } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -199,15 +199,28 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
               <FormField
                 control={form.control}
                 name="vehicle_km"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>KM Atual</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const selectedVehicleId = form.watch('customer_vehicle_id');
+                  const selectedVehicle = vehicles.find((v: any) => v.id === selectedVehicleId);
+                  const currentKm = selectedVehicle?.currentKm || 0;
+                  const isKmLower = field.value < currentKm;
+
+                  return (
+                    <FormItem>
+                      <FormLabel>KM Atual</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      {isKmLower && (
+                        <p className="text-sm font-medium text-warning flex items-center gap-1 mt-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Menor que último registro ({currentKm} km)
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 

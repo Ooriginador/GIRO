@@ -1,3 +1,135 @@
+# GIRO — Overview Refinado
+
+Objetivo: consolidar e polir a visão arquitetural do sistema GIRO, aprofundar as camadas técnicas, aumentar a acessibilidade e definir a matriz de integrações para implementação e auditoria.
+
+**Resumo**
+
+- **Escopo:** Desktop Tauri (React + Rust) como núcleo offline-first, com sincronização segura com serviços cloud (License Server, Dashboard).
+- **Foco deste documento:** aprofundar camadas internas (presentation, application, backend, data, hardware), acessibilidade (WCAG) e integração completa (IPC, WebSocket, Backup, Licenciamento).
+
+**Relação com outros documentos**
+
+- Arquitetura detalhada: [docs/01-ARQUITETURA.md](docs/01-ARQUITETURA.md)
+- Schema do banco: [docs/02-DATABASE-SCHEMA.md](docs/02-DATABASE-SCHEMA.md)
+- Features e requisitos: [docs/03-FEATURES-CORE.md](docs/03-FEATURES-CORE.md)
+
+**Visão High-Level (resumida)**
+
+- Frontend (Renderer): React + TypeScript + Tailwind (UI acessível).
+- Bridge: Tauri IPC (commands/events) — limite superfície pública, validar tipos.
+- Backend: Rust (serviços, repositórios, drivers de hardware).
+- DB local: SQLite (migrations via Prisma, queries runtime com SQLx).
+- Integrações: Google Drive backup, License Server (ativação/sync), Mobile Scanner (WebSocket local), Impressora/Balança (Serial/USB/HID).
+
+**Refinamento por Camada**
+
+**Presentation Layer**
+
+- Arquitetura: dividir em `Shell` (layout, nav) + `PDV` + `Produtos` + `Estoque` + `Config`.
+- Pattern: Server Components (onde aplicável) + Client Components isolados (`use client`) para interações.
+- Acessibilidade: seguir WCAG 2.1 AA — checklist mínimo:
+  - Todos os controles com roles e labels acessíveis (ARIA).
+  - Keyboard-first: navegação por tab, atalhos configuráveis (F1-F12), e foco visível.
+  - Suporte a tamanhos de fonte escaláveis e tema de alto contraste.
+  - Testes automáticos com axe-core e Storybook + a11y.
+- Performance: virtualized lists (PDV, produtos), debounce em buscas, evitar re-renders caros.
+
+**Application Layer (Renderer ↔ Bridge)**
+
+- IPC surface: definir um contrato tipado (Rust <> TypeScript) usando JSON schema / Zod gerado.
+- Commands: idempotentes e com timeouts; Responses: envelope { ok, error, code }.
+- State: TanStack Query para dados remotos/sincronizados, Zustand para UI ephemeral.
+- Errors: mapeamento centralizado com user-friendly messages e logs estruturados (Sentry opcional, local logs rotativos).
+
+**Bridge / Tauri Layer**
+
+- Encapsular todos os invocables em módulos `commands/*` com validação de entrada (Serde) e documentação.
+- Segurança: não expor APIs de FS sem autorização; whitelisting por comando.
+- Telemetria mínima (opcional): contadores agregados para dashboard (respeitar privacidade).
+
+**Backend Layer (Rust Services)**
+
+- Estrutura recomendada:
+  - `services/` (domínio: vendas, estoque, vendas-print)
+  - `repositories/` (acesso a SQLx + transações)
+  - `drivers/` (impressora, balança, leitor barcode)
+  - `integrations/` (drive backup, license client, websocket gateway)
+  - `app.rs` (glue + orchestrator)
+- Transações: todas as operações que alteram estoque e venda devem usar transação ACID única no SQLite via SQLx (BEGIN/COMMIT/ROLLBACK).
+- Concurrency: reduzir escopo da transação; usar retry/backoff para contendas de DB.
+
+**Data Layer**
+
+- Prisma: manter schema como source-of-truth e gerar migrations; usar `prisma format` e revisão em PR.
+- SQLx: queries críticas (vendas, estoque) em arquivos `.sql` com macros para verificação em compile-time.
+- Backups: estratégia local + criptografia antes de upload para Google Drive; manter rolling backups (7 dias) e checksum.
+
+**Hardware Layer**
+
+- Driver abstraction: interface unificada `HardwarePort` com implementações `SerialPortDriver`, `UsbHidDriver`, `NetworkPrinterDriver`.
+- Test harness: simulador de hardware para CI (mock serial inputs, fake printer outputs).
+- Safety: timeouts, reconexões, saneamentos de input (tare, sinais não-UTF8), fallback manual.
+
+**Integrações e Contratos**
+
+- License Server: contrato minimalista HTTPs — endpoints: `/activate`, `/validate`, `/transfer`, `/metrics`.
+  - Ativação inicial: online required; validação periódica: 24h (grace 7d).
+- Mobile Scanner: WebSocket local (wss? no — ws em rede local) — autenticar por token temporário exibido via QR.
+  - Mensagens: JSON { type: 'scan', barcode, ts, deviceId }.
+- Backup: job assíncrono que gera `db_backup_{ts}.sqlite.enc` and uploads signed manifest.
+
+**Acessibilidade & Internacionalização**
+
+- i18n: extração de strings via i18next/formatjs; suporte inicial PT-BR + EN.
+- Accessibility tokens: garantir leitura de campos sensíveis (CPFs) por padrão apenas no modo admin e com máscara.
+- Keyboard shortcuts: configurável por usuário e exportável/importável.
+
+**Segurança, Privacidade e Compliance**
+
+- Minimizar PII sincronizado; enviar apenas métricas agregadas para dashboard.
+- Criptografia: backups com AES-256 e assinatura HMAC-SHA256 do manifest.
+- Secrets: nunca commitar chaves; usar env vars locais e vault durante CI/CD.
+
+**Testes, QA e Observabilidade**
+
+- Test matrix:
+  - Unit: services + drivers (Rust) e components (React).
+  - Integration: DB transactions, IPC contracts, hardware mocks.
+  - E2E: fluxo PDV completo (Playwright / desktop runner), incl. impressão mock.
+  - Accessibility: axe-core CI step and Storybook a11y.
+- CI: lint, typecheck, build (Tauri dev bundle), run unit tests, axe checks, run prisma migrate status.
+
+**Plano de Refinamento e Implementação (Fases)**
+
+1. Discovery & Contratos (1 week)
+   - Gerar OpenAPI minimal para License Server.
+   - Definir IPC schema (Zod/Serde) e exemplos.
+2. Core Backend Hardening (2 weeks)
+   - Implementar drivers e abstrações, transações ACID, hardware simulator.
+3. Frontend A11y & Performance (2 weeks)
+   - Storybook + a11y tests, virtualized lists, keyboard navigation.
+4. Integrations & Backup (1 week)
+   - Backup encryption, Google Drive uploader, License flow tests.
+5. QA, E2E, Release (1 week)
+   - Run full e2e, accessibility sweep, sign-off.
+
+**Checklist para Auditoria Técnica (mínimo)**
+
+- [ ] IPC schemas tipados e versionados
+- [ ] Queries críticas verificadas pelo SQLx
+- [ ] Transações atomicas para vendas/estoque
+- [ ] Backups criptografados e validados
+- [ ] Simulador de hardware para CI
+- [ ] Storybook com testes a11y automatizados
+- [ ] Política de privacidade documentada para sync
+
+**Próximos passos imediatos (posso executar agora)**
+
+- Gerar um primeiro rascunho de OpenAPI para o License Server.
+- Criar o contrato tipado IPC (Zod + Serde) e exemplo de código em `renderer` e `rust`.
+
+Quer que eu comece por gerar o OpenAPI do License Server ou pelo contrato IPC tipado?
+
 # 📋 Mercearias - Visão Geral do Produto
 
 > **Versão:** 1.0.0  
@@ -191,7 +323,7 @@ Cadastro rápido de produtos com:
 
 ## 🛣️ Roadmap de Alto Nível
 
-```text
+````text
 Q1 2026: MVP Desktop + Caixa + Estoque + Validade
          ├── Instalador Windows
          ├── Impressora térmica
@@ -248,3 +380,4 @@ Q4 2026: Multi-loja + Franquias
 ---
 
 _Documento gerado seguindo metodologia "Architect First, Code Later" - Arkheion Corp_
+````

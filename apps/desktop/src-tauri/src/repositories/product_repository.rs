@@ -5,6 +5,7 @@ use crate::models::{CreateProduct, Product, ProductFilters, StockSummary, Update
 use crate::repositories::new_id;
 use crate::repositories::PriceHistoryRepository;
 use sqlx::SqlitePool;
+use crate::database::decimal_config;
 
 pub struct ProductRepository<'a> {
     pool: &'a SqlitePool,
@@ -15,12 +16,36 @@ impl<'a> ProductRepository<'a> {
         Self { pool }
     }
 
-    const PRODUCT_COLUMNS: &'static str = "id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, max_stock, is_active, category_id, created_at, updated_at";
+    // Build column selection dynamically to support migrated *_decimal columns when enabled
+    fn product_columns_string(&self) -> String {
+        let mut cols: Vec<String> = vec![
+            "id".to_string(),
+            "barcode".to_string(),
+            "internal_code".to_string(),
+            "name".to_string(),
+            "description".to_string(),
+            "unit".to_string(),
+            "is_weighted".to_string(),
+        ];
+        // monetary/quantity fields may have *_decimal counterparts
+        cols.push(decimal_config::col("sale_price"));
+        cols.push(decimal_config::col("cost_price"));
+        cols.push(decimal_config::col("current_stock"));
+        cols.push(decimal_config::col("min_stock"));
+        cols.push(decimal_config::col("max_stock"));
+        cols.extend(vec![
+            "is_active".to_string(),
+            "category_id".to_string(),
+            "created_at".to_string(),
+            "updated_at".to_string(),
+        ]);
+        cols.join(", ")
+    }
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE id = ?",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(id)
@@ -32,7 +57,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn find_by_barcode(&self, barcode: &str) -> AppResult<Option<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE barcode = ? AND is_active = 1",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(barcode)
@@ -44,7 +69,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn find_by_internal_code(&self, code: &str) -> AppResult<Option<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE internal_code = ? AND is_active = 1",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(code)
@@ -56,7 +81,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn find_all_active(&self) -> AppResult<Vec<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE is_active = 1 ORDER BY name",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
@@ -67,7 +92,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn find_by_category(&self, category_id: &str) -> AppResult<Vec<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE category_id = ? AND is_active = 1 ORDER BY name",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(category_id)
@@ -78,7 +103,7 @@ impl<'a> ProductRepository<'a> {
 
     pub async fn search(&self, term: &str, limit: i32) -> AppResult<Vec<Product>> {
         let search_pattern = format!("%{}%", term);
-        let query = format!("SELECT {} FROM products WHERE is_active = 1 AND (name LIKE ? OR barcode LIKE ? OR internal_code LIKE ?) ORDER BY name LIMIT ?", Self::PRODUCT_COLUMNS);
+        let query = format!("SELECT {} FROM products WHERE is_active = 1 AND (name LIKE ? OR barcode LIKE ? OR internal_code LIKE ?) ORDER BY name LIMIT ?", self.product_columns_string());
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(&search_pattern)
             .bind(&search_pattern)
@@ -90,7 +115,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_with_filters(&self, filters: &ProductFilters) -> AppResult<Vec<Product>> {
-        let mut query = format!("SELECT {} FROM products WHERE 1=1", Self::PRODUCT_COLUMNS);
+        let mut query = format!("SELECT {} FROM products WHERE 1=1", self.product_columns_string());
         let mut binds = Vec::new();
 
         if let Some(ref search) = filters.search {
@@ -136,7 +161,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_low_stock(&self) -> AppResult<Vec<Product>> {
-        let query = format!("SELECT {} FROM products WHERE is_active = 1 AND current_stock <= min_stock AND current_stock > 0 ORDER BY current_stock ASC", Self::PRODUCT_COLUMNS);
+        let query = format!("SELECT {} FROM products WHERE is_active = 1 AND current_stock <= min_stock AND current_stock > 0 ORDER BY current_stock ASC", self.product_columns_string());
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -146,7 +171,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn find_out_of_stock(&self) -> AppResult<Vec<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= 0 ORDER BY name",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
@@ -157,7 +182,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn find_excess_stock(&self) -> AppResult<Vec<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE is_active = 1 AND max_stock IS NOT NULL AND current_stock > max_stock ORDER BY current_stock DESC",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
@@ -209,6 +234,19 @@ impl<'a> ProductRepository<'a> {
         .bind(&now)
         .execute(self.pool)
         .await?;
+
+        // If decimal columns are enabled, populate them as well for parity
+        if decimal_config::use_decimal_columns() {
+            sqlx::query("UPDATE products SET sale_price_decimal = ROUND(?,2), cost_price_decimal = ROUND(?,2), current_stock_decimal = ROUND(?,3), min_stock_decimal = ROUND(?,3), max_stock_decimal = ROUND(COALESCE(?,0),3) WHERE id = ?")
+                .bind(data.sale_price)
+                .bind(cost_price)
+                .bind(current_stock)
+                .bind(min_stock)
+                .bind(max_stock)
+                .bind(&id)
+                .execute(self.pool)
+                .await?;
+        }
 
         self.find_by_id(&id)
             .await?
@@ -275,6 +313,18 @@ impl<'a> ProductRepository<'a> {
         .execute(self.pool)
         .await?;
 
+        if decimal_config::use_decimal_columns() {
+            sqlx::query("UPDATE products SET sale_price_decimal = ROUND(?,2), cost_price_decimal = ROUND(?,2), current_stock_decimal = ROUND(?,3), min_stock_decimal = ROUND(?,3), max_stock_decimal = ROUND(COALESCE(?,0),3) WHERE id = ?")
+                .bind(sale_price)
+                .bind(cost_price)
+                .bind(current_stock)
+                .bind(min_stock)
+                .bind(max_stock)
+                .bind(id)
+                .execute(self.pool)
+                .await?;
+        }
+
         self.find_by_id(id)
             .await?
             .ok_or_else(|| crate::error::AppError::NotFound {
@@ -339,7 +389,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn find_all(&self) -> AppResult<Vec<Product>> {
         let query = format!(
             "SELECT {} FROM products ORDER BY name",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
@@ -350,8 +400,8 @@ impl<'a> ProductRepository<'a> {
     /// Retorna apenas produtos inativos
     pub async fn find_inactive(&self) -> AppResult<Vec<Product>> {
         let query = format!(
-            "SELECT {} FROM products WHERE is_active = 0 ORDER BY name",
-            Self::PRODUCT_COLUMNS
+            "SELECT {} FROM products WHERE is_active = 1 ORDER BY name",
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
@@ -384,7 +434,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn list_low_stock(&self, limit: i32, offset: i32) -> AppResult<Vec<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= min_stock AND current_stock > 0 ORDER BY current_stock ASC LIMIT ? OFFSET ?",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(limit)
@@ -398,7 +448,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn list_zero_stock(&self, limit: i32, offset: i32) -> AppResult<Vec<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= 0 ORDER BY name LIMIT ? OFFSET ?",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(limit)
@@ -412,7 +462,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn list_excess_stock(&self, limit: i32, offset: i32) -> AppResult<Vec<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE is_active = 1 AND ((max_stock IS NOT NULL AND current_stock > max_stock) OR (max_stock IS NULL AND current_stock > min_stock * 3)) ORDER BY current_stock DESC LIMIT ? OFFSET ?",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(limit)
@@ -426,7 +476,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn list_all(&self, limit: i32, offset: i32) -> AppResult<Vec<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE is_active = 1 ORDER BY name LIMIT ? OFFSET ?",
-            Self::PRODUCT_COLUMNS
+            self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(limit)
@@ -472,6 +522,18 @@ impl<'a> ProductRepository<'a> {
         .bind(&product.updated_at)
         .execute(self.pool)
         .await?;
+    // If decimal migration is enabled, mirror values into decimal columns for sync/upsert parity
+    if decimal_config::use_decimal_columns() {
+        sqlx::query("UPDATE products SET sale_price_decimal = ROUND(?,2), cost_price_decimal = ROUND(?,2), current_stock_decimal = ROUND(?,3), min_stock_decimal = ROUND(?,3), max_stock_decimal = ROUND(COALESCE(?,0),3) WHERE id = ?")
+            .bind(product.sale_price)
+            .bind(product.cost_price)
+            .bind(product.current_stock)
+            .bind(product.min_stock)
+            .bind(product.max_stock)
+            .bind(&product.id)
+            .execute(self.pool)
+            .await?;
+    }
         Ok(())
     }
 }

@@ -1,0 +1,4 @@
+-- Migration: 012_add_max_stock_and_lot_manufacturing_date
+-- No-op migration: initial schema already contains these columns.
+-- Created: 2026-01-20
+-- Intentionally empty to avoid duplicate-column errors during tests.

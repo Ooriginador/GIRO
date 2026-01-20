@@ -52,6 +52,8 @@ export const Spotlight: FC<SpotlightProps> = ({
 }) => {
   const [rect, setRect] = useState<ElementRect | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const outsideRef = useRef<HTMLDivElement | null>(null);
+  const previousActiveElementRef = useRef<Element | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const mutationObserverRef = useRef<MutationObserver | null>(null);
 
@@ -153,6 +155,22 @@ export const Spotlight: FC<SpotlightProps> = ({
     }
   }, [isActive, onClickOutside]);
 
+  // Manage focus: when spotlight opens, save previous focus and focus the overlay
+  useEffect(() => {
+    if (isActive) {
+      previousActiveElementRef.current = document.activeElement;
+      // focus overlay if available
+      setTimeout(() => {
+        outsideRef.current?.focus();
+      }, 0);
+    } else {
+      // restore focus
+      const prev = previousActiveElementRef.current as HTMLElement | null;
+      prev?.focus?.();
+      previousActiveElementRef.current = null;
+    }
+  }, [isActive]);
+
   if (!isVisible) return null;
 
   // Cores para alto contraste
@@ -239,11 +257,18 @@ export const Spotlight: FC<SpotlightProps> = ({
 
       {/* Área clicável fora do spotlight */}
       <div
+        ref={outsideRef}
         className="fixed inset-0 z-[9998] cursor-pointer"
         onClick={onClickOutside}
-        onKeyDown={(e) => e.key === 'Escape' && onClickOutside?.()}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') return onClickOutside?.();
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            return onClickOutside?.();
+          }
+        }}
         role="button"
-        tabIndex={-1}
+        tabIndex={0}
         aria-label="Clique para fechar o tutorial"
         style={{
           clipPath: `polygon(
@@ -266,7 +291,12 @@ export const Spotlight: FC<SpotlightProps> = ({
         <div
           className="fixed z-[10000] cursor-pointer"
           onClick={onClickTarget}
-          onKeyDown={(e) => e.key === 'Enter' && onClickTarget?.()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onClickTarget?.();
+            }
+          }}
           role="button"
           tabIndex={0}
           aria-label="Clique para interagir com o elemento destacado"

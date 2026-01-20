@@ -368,41 +368,65 @@ impl Scale {
 // ════════════════════════════════════════════════════════════════════════════
 
 /// Tenta detectar balança automaticamente
-pub fn auto_detect_scale() -> Option<ScaleConfig> {
+use tokio::time::{timeout, Duration as TokioDuration};
+
+/// Resultado da detecção automática de balança
+pub struct AutoDetectResult {
+    pub config: Option<ScaleConfig>,
+    pub failures: Vec<String>,
+}
+
+/// Versão assíncrona e tolerante a timeouts da detecção de balança
+pub async fn auto_detect_scale_async() -> AutoDetectResult {
     let ports = super::list_serial_ports();
+    let mut failures: Vec<String> = Vec::new();
 
     for port in ports {
-        // Pula portas que não parecem ser balanças
         if port.contains("Bluetooth") || port.contains("ttyS") {
+            failures.push(format!("Skipped port {}: unsupported name", port));
             continue;
         }
 
-        // Tenta cada protocolo
-        for protocol in [
-            ScaleProtocol::Toledo,
-            ScaleProtocol::Filizola,
-            ScaleProtocol::Elgin,
-        ] {
-            let config = ScaleConfig {
-                enabled: true,
-                protocol: protocol.clone(),
-                port: port.clone(),
-                baud_rate: 9600,
-                ..Default::default()
-            };
+        // For each port, try detection in a blocking task with timeout
+        let port_clone = port.clone();
+        let try_result = timeout(TokioDuration::from_secs(3), tokio::task::spawn_blocking(move || {
+            // Try known protocols
+            for protocol in [
+                ScaleProtocol::Toledo,
+                ScaleProtocol::Filizola,
+                ScaleProtocol::Elgin,
+                ScaleProtocol::Urano,
+            ] {
+                let config = ScaleConfig {
+                    enabled: true,
+                    protocol: protocol.clone(),
+                    port: port_clone.clone(),
+                    baud_rate: 9600,
+                    ..Default::default()
+                };
 
-            if let Ok(scale) = Scale::new(config.clone()) {
-                if let Ok(reading) = scale.read_weight() {
-                    if reading.weight_grams < 50000 {
-                        // Menos de 50kg, provavelmente válido
-                        return Some(config);
+                if let Ok(scale) = Scale::new(config.clone()) {
+                    if let Ok(reading) = scale.read_weight() {
+                        if reading.weight_grams < 50000 {
+                            return Ok::<_, String>(Some(config));
+                        }
                     }
                 }
             }
+
+            Ok::<_, String>(None)
+        }))
+        .await;
+
+        match try_result {
+            Ok(Ok(Some(config))) => return AutoDetectResult { config: Some(config), failures } ,
+            Ok(Ok(None)) => failures.push(format!("No protocol matched on port {}", port)),
+            Ok(Err(e)) => failures.push(format!("Error testing port {}: {}", port, e)),
+            Err(_) => failures.push(format!("Timeout testing port {}", port)),
         }
     }
 
-    None
+    AutoDetectResult { config: None, failures }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -495,5 +519,26 @@ mod tests {
         assert_eq!(parsed.product_code, "51234");
         assert!(!parsed.is_weight);
         assert_eq!(parsed.price_cents, Some(12340));
+    }
+}
+
+// Implementação da trait HardwareDevice para Scale
+impl crate::hardware::HardwareDevice for Scale {
+    fn health_check(&self) -> Result<crate::hardware::HardwareStatus, String> {
+        let name = format!("scale:{:?}", self.config.protocol);
+
+        if !self.config.enabled {
+            return Ok(crate::hardware::HardwareStatus {
+                name,
+                ok: false,
+                message: Some("disabled".to_string()),
+            });
+        }
+
+        match self.test_connection() {
+            Ok(true) => Ok(crate::hardware::HardwareStatus { name, ok: true, message: Some("ok".to_string()) }),
+            Ok(false) => Ok(crate::hardware::HardwareStatus { name, ok: false, message: Some("timeout or no response".to_string()) }),
+            Err(e) => Ok(crate::hardware::HardwareStatus { name, ok: false, message: Some(format!("error: {}", e)) }),
+        }
     }
 }

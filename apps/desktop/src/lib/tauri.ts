@@ -250,20 +250,57 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
 };
 
 const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
-  let result: T;
-  if (isTauriRuntime()) {
-    console.log(`[Tauri] Invoking ${command}`, args);
-    result = await tauriCoreInvoke<T>(command, args);
-  } else {
+  try {
+    if (isTauriRuntime()) {
+      console.log(`[Tauri] Invoking ${command}`, args);
+      const raw = await tauriCoreInvoke<unknown>(command, args);
+      console.log(`[Tauri Raw Result] ${command}:`, raw);
+
+      // If backend returns TauriResponse wrapper, unwrap it
+      if (raw && typeof raw === 'object' && 'success' in (raw as any)) {
+        const wrapped = raw as TauriResponse<unknown>;
+        if (!wrapped.success) {
+          const errMsg = wrapped.error ?? `Erro no comando ${command}`;
+          console.error(`[Tauri Error] ${command}:`, errMsg);
+          throw new Error(errMsg);
+        }
+        return wrapped.data as T;
+      }
+
+      return raw as T;
+    }
+
     console.warn(`[WebMock] Invoking ${command} (MOCK MODE ACTIVE)`, args);
-    result = await webMockInvoke<T>(command, args);
+    const mock = await webMockInvoke<T>(command, args);
+    console.log(`[WebMock Result] ${command}:`, mock);
+    return mock;
+  } catch (err) {
+    console.error(`[Invoke Failure] ${command}:`, err);
+    // Normalize error message
+    if (err instanceof Error) throw err;
+    throw new Error(String(err));
   }
-  console.log(`[Invoke Result] ${command}:`, result);
-  return result;
 };
 
 // Re-export invoke for backwards compatibility
 export const invoke = tauriInvoke;
+
+/**
+ * invokeSafe: retorna um `TauriResponse<T>` sempre, não lança exceções.
+ * Útil para chamadas UI que desejam exibir erros sem try/catch repetido.
+ */
+export async function invokeSafe<T>(
+  command: string,
+  args?: Record<string, unknown>
+): Promise<TauriResponse<T>> {
+  try {
+    const data = await tauriInvoke<T>(command, args);
+    return { success: true, data } as TauriResponse<T>;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { success: false, error: message };
+  }
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // PRODUCTS

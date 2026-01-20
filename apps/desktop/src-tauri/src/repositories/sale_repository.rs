@@ -6,6 +6,7 @@ use crate::models::{
     SaleItem, SaleWithDetails,
 };
 use crate::repositories::new_id;
+use crate::repositories::SettingsRepository;
 use sqlx::Row;
 use sqlx::SqlitePool;
 
@@ -104,6 +105,34 @@ impl<'a> SaleRepository<'a> {
         let now = chrono::Utc::now().to_rfc3339();
         let daily_number = self.get_next_daily_number_tx(&mut tx).await?;
 
+        // Read PDV setting: allow selling when stock is insufficient
+        let settings_repo = SettingsRepository::new(self.pool);
+        let allow_sale_zero = settings_repo.get_bool("pdv.allow_sale_zero_stock").await?;
+
+        // Business validation: ensure sufficient stock for all items before mutating
+        use std::collections::HashMap;
+        let mut requested_per_product: HashMap<String, f64> = HashMap::new();
+        for item in &data.items {
+            let entry = requested_per_product.entry(item.product_id.clone()).or_insert(0.0);
+            *entry += item.quantity;
+        }
+
+        if !allow_sale_zero {
+            for (product_id, requested) in requested_per_product.iter() {
+                let available: Option<(f64,)> = sqlx::query_as("SELECT current_stock FROM products WHERE id = ?")
+                    .bind(product_id)
+                    .fetch_optional(&mut *tx)
+                    .await?;
+                let available_val = available.map(|t| t.0).unwrap_or(0.0);
+                if available_val < *requested {
+                    return Err(crate::error::AppError::InsufficientStock {
+                        available: available_val,
+                        requested: *requested,
+                    });
+                }
+            }
+        }
+
         // Calculate totals
         let subtotal: f64 = data.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let discount = data.discount_value.unwrap_or(0.0);
@@ -136,7 +165,7 @@ impl<'a> SaleRepository<'a> {
 
         // Insert items and update stock
         for item in &data.items {
-            self.create_item_tx(&mut tx, &id, item, &data.employee_id).await?;
+            self.create_item_tx(&mut tx, &id, item, &data.employee_id, allow_sale_zero).await?;
         }
 
         tx.commit().await?;
@@ -160,11 +189,12 @@ impl<'a> SaleRepository<'a> {
     }
 
     async fn create_item_tx(
-        &self, 
-        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>, 
-        sale_id: &str, 
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        sale_id: &str,
         item: &CreateSaleItem,
-        employee_id: &str
+        employee_id: &str,
+        allow_sale_zero: bool,
     ) -> AppResult<()> {
         let item_id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
@@ -184,8 +214,15 @@ impl<'a> SaleRepository<'a> {
                 id: item.product_id.clone(),
             })?;
 
-        // Deduct stock from product
-        let new_stock = current_stock - item.quantity;
+        // Determine how much we can consume from product stock depending on setting
+        let consume_from_stock = if allow_sale_zero {
+            current_stock.min(item.quantity)
+        } else {
+            item.quantity
+        };
+
+        // Deduct stock from product (only what we can consume)
+        let new_stock = current_stock - consume_from_stock;
         sqlx::query("UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?")
             .bind(new_stock)
             .bind(&now)
@@ -193,8 +230,8 @@ impl<'a> SaleRepository<'a> {
             .execute(&mut **tx)
             .await?;
 
-        // Consume from lots (FIFO)
-        let mut remaining_to_consume = item.quantity;
+        // Consume from lots (FIFO) up to the consumed amount
+        let mut remaining_to_consume = consume_from_stock;
         let lots: Vec<(String, f64)> = sqlx::query_as(
             "SELECT id, current_quantity FROM product_lots WHERE product_id = ? AND current_quantity > 0 AND status = 'AVAILABLE' ORDER BY expiration_date ASC, purchase_date ASC"
         )
@@ -221,14 +258,14 @@ impl<'a> SaleRepository<'a> {
             }
         }
 
-        // Record stock movement (SALE)
+        // Record stock movement (SALE) for the actual consumed quantity
         let movement_id = new_id();
         sqlx::query(
             "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, employee_id, created_at) VALUES (?, ?, 'SALE', ?, ?, ?, 'Venda', ?, 'SALE', ?, ?)"
         )
         .bind(&movement_id)
         .bind(&item.product_id)
-        .bind(-item.quantity)
+        .bind(-consume_from_stock)
         .bind(current_stock)
         .bind(new_stock)
         .bind(sale_id)
@@ -495,6 +532,40 @@ mod tests {
         assert_eq!(sale.subtotal, 20.0); // 2 * 10.0
         assert_eq!(sale.total, 20.0);
         assert_eq!(sale.change, 5.0); // 25.0 - 20.0
+    }
+
+    #[tokio::test]
+    async fn test_create_sale_insufficient_stock() {
+        let pool = setup_test_db().await;
+        let repo = SaleRepository::new(&pool);
+
+        let input = CreateSale {
+            employee_id: "emp-001".to_string(),
+            cash_session_id: "cs-001".to_string(),
+            items: vec![CreateSaleItem {
+                product_id: "prod-001".to_string(),
+                quantity: 200.0, // more than available (100)
+                unit_price: 10.0,
+                discount: Some(0.0),
+            }],
+            payment_method: PaymentMethod::Cash,
+            amount_paid: 2000.0,
+            discount_type: None,
+            discount_value: None,
+            discount_reason: None,
+        };
+
+        let result = repo.create(input).await;
+        assert!(result.is_err());
+        if let Err(e) = result {
+            match e {
+                crate::error::AppError::InsufficientStock { available, requested } => {
+                    assert_eq!(available, 100.0);
+                    assert_eq!(requested, 200.0);
+                }
+                other => panic!("Expected InsufficientStock, got {:?}", other),
+            }
+        }
     }
 
     #[tokio::test]

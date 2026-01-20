@@ -15,6 +15,7 @@ use crate::hardware::{
     scanner::{MobileDevice, MobileScannerConfig, ScannerServerState},
     HardwareError,
 };
+use crate::hardware::device::HardwareDevice;
 use crate::services::mobile_server::MobileServer;
 use qrcode::render::svg;
 use qrcode::QrCode;
@@ -33,6 +34,11 @@ pub struct HardwareState {
     pub scale_config: RwLock<ScaleConfig>,
     pub drawer_config: RwLock<DrawerConfig>,
     pub scanner_server: RwLock<Option<Arc<ScannerServerState>>>,
+    // Handle do task do servidor de scanner (para permitir parada limpa)
+    pub scanner_task: RwLock<Option<tokio::task::JoinHandle<()>>>,
+    // ID da task do scanner (UUID) para monitoramento
+    pub scanner_task_id: RwLock<Option<String>>,
+    pub scanner_task_started_at: RwLock<Option<i64>>,
     pub mobile_server: RwLock<Option<Arc<MobileServer>>>,
 }
 
@@ -43,6 +49,9 @@ impl Default for HardwareState {
             scale_config: RwLock::new(ScaleConfig::default()),
             drawer_config: RwLock::new(DrawerConfig::default()),
             scanner_server: RwLock::new(None),
+            scanner_task: RwLock::new(None),
+            scanner_task_id: RwLock::new(None),
+            scanner_task_started_at: RwLock::new(None),
             mobile_server: RwLock::new(None),
         }
     }
@@ -331,8 +340,20 @@ pub async fn read_weight(state: State<'_, HardwareState>) -> AppResult<ScaleRead
 
 /// Detecta automaticamente a balança
 #[tauri::command]
-pub async fn auto_detect_scale() -> AppResult<Option<ScaleConfig>> {
-    Ok(hardware::scale::auto_detect_scale())
+pub async fn auto_detect_scale() -> AppResult<ScaleAutoDetectInfo> {
+    // Calls the async detector and returns detected config plus failures
+    let result = hardware::scale::auto_detect_scale_async().await;
+
+    Ok(ScaleAutoDetectInfo {
+        config: result.config,
+        failures: result.failures,
+    })
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ScaleAutoDetectInfo {
+    pub config: Option<ScaleConfig>,
+    pub failures: Vec<String>,
 }
 
 /// Retorna configuração atual da balança
@@ -379,6 +400,65 @@ pub async fn get_drawer_config(state: State<'_, HardwareState>) -> AppResult<Dra
     Ok(config.clone())
 }
 
+/// Health check agregado de hardware (impressora, balança, scanner)
+#[tauri::command]
+pub async fn hardware_health_check(
+    state: State<'_, HardwareState>,
+) -> AppResult<Vec<crate::hardware::HardwareStatus>> {
+    let mut results: Vec<crate::hardware::HardwareStatus> = Vec::new();
+
+    // Printer
+    let printer_cfg = { (*state.printer_config.read().await).clone() };
+    let printer_status = tokio::task::spawn_blocking(move || {
+        let printer = crate::hardware::printer::ThermalPrinter::new(printer_cfg);
+        printer.health_check()
+    })
+    .await
+    .map_err(|e| HardwareError::CommunicationError(format!("task join error: {}", e)))?;
+
+    match printer_status {
+        Ok(s) => results.push(s),
+        Err(msg) => results.push(crate::hardware::HardwareStatus { name: "printer".into(), ok: false, message: Some(msg) }),
+    }
+
+    // Scale
+    let scale_cfg = { (*state.scale_config.read().await).clone() };
+    let scale_status = tokio::task::spawn_blocking(move || {
+        match crate::hardware::scale::Scale::new(scale_cfg.clone()) {
+            Ok(scale) => scale.health_check(),
+            Err(e) => Err(format!("init error: {}", e)),
+        }
+    })
+    .await
+    .map_err(|e| HardwareError::CommunicationError(format!("task join error: {}", e)))?;
+
+    match scale_status {
+        Ok(s) => results.push(s),
+        Err(msg) => results.push(crate::hardware::HardwareStatus { name: "scale".into(), ok: false, message: Some(msg) }),
+    }
+
+    // Scanner
+    let scanner_server_opt = state.scanner_server.read().await.clone();
+    let task_id_opt = state.scanner_task_id.read().await.clone();
+
+    if let Some(scanner) = scanner_server_opt {
+        let devices = scanner.list_devices().await;
+        results.push(crate::hardware::HardwareStatus {
+            name: format!("scanner:ws"),
+            ok: true,
+            message: Some(format!("running devices={} task_id={:?}", devices.len(), task_id_opt)),
+        });
+    } else {
+        results.push(crate::hardware::HardwareStatus {
+            name: "scanner:ws".into(),
+            ok: false,
+            message: Some("not running".into()),
+        });
+    }
+
+    Ok(results)
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // COMANDOS DE SCANNER
 // ════════════════════════════════════════════════════════════════════════════
@@ -406,25 +486,67 @@ pub async fn start_scanner_server(
     let scanner_state_clone = scanner_state.clone();
 
     // Inicia servidor em background
-    tokio::spawn(async move {
+
+    // Spawn server task and keep handle + id to allow clean shutdown and monitoring
+    let task_id = uuid::Uuid::new_v4().to_string();
+    let task_id_move = task_id.clone();
+    let handle = tokio::spawn(async move {
+        tracing::info!("Scanner server task {} started", task_id_move);
         if let Err(e) = hardware::scanner::start_scanner_server(scanner_state_clone).await {
             tracing::error!("Erro no servidor de scanner: {}", e);
         }
+        tracing::info!("Scanner server task {} ended", task_id_move);
     });
 
     *server = Some(scanner_state);
+
+    // Store the JoinHandle and id so we can abort it on stop
+    {
+        let mut task_slot = state.scanner_task.write().await;
+        *task_slot = Some(handle);
+    }
+    {
+        let mut id_slot = state.scanner_task_id.write().await;
+        *id_slot = Some(task_id.clone());
+    }
+    {
+        let mut started_slot = state.scanner_task_started_at.write().await;
+        *started_slot = Some(chrono::Utc::now().timestamp_millis());
+    }
 
     Ok(ScannerServerInfo {
         running: true,
         ip: local_ip.clone(),
         port: config.port,
         url: format!("ws://{}:{}", local_ip, config.port),
+        started_at: chrono::Utc::now().timestamp_millis(),
+        task_id: Some(task_id),
     })
 }
 
 /// Para servidor de scanner
 #[tauri::command]
 pub async fn stop_scanner_server(state: State<'_, HardwareState>) -> AppResult<()> {
+    // Abort task if running
+    {
+        let mut task_slot = state.scanner_task.write().await;
+        if let Some(handle) = task_slot.take() {
+            // Abort and detach
+            handle.abort();
+        }
+    }
+
+    // Clear task id and started_at
+    {
+        let mut id_slot = state.scanner_task_id.write().await;
+        *id_slot = None;
+    }
+    {
+        let mut started_slot = state.scanner_task_started_at.write().await;
+        *started_slot = None;
+    }
+
+    // Clear server state
     let mut server = state.scanner_server.write().await;
     *server = None;
     Ok(())
@@ -456,11 +578,16 @@ pub async fn get_scanner_server_info(
             let local_ip =
                 hardware::scanner::get_local_ip().unwrap_or_else(|| "localhost".to_string());
 
+            let task_id = state.scanner_task_id.read().await.clone();
+            let started_at = state.scanner_task_started_at.read().await.clone().unwrap_or(0);
+
             Ok(Some(ScannerServerInfo {
                 running: true,
                 ip: local_ip.clone(),
                 port: scanner_state.config.port,
                 url: format!("ws://{}:{}", local_ip, scanner_state.config.port),
+                started_at,
+                task_id,
             }))
         }
         None => Ok(None),
@@ -542,6 +669,8 @@ pub struct ScannerServerInfo {
     pub ip: String,
     pub port: u16,
     pub url: String,
+    pub started_at: i64,
+    pub task_id: Option<String>,
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -567,6 +696,7 @@ macro_rules! hardware_commands {
             // Balança
             $crate::commands::hardware::configure_scale,
             $crate::commands::hardware::read_weight,
+            $crate::commands::hardware::hardware_health_check,
             $crate::commands::hardware::auto_detect_scale,
             $crate::commands::hardware::get_scale_config,
             // Gaveta

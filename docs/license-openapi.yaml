@@ -1,0 +1,148 @@
+openapi: 3.0.3
+info:
+  title: GIRO License Server
+  version: 1.0.0
+  description: Minimal OpenAPI specification for the GIRO License Server used by the desktop app.
+servers:
+  - url: https://license.example.com
+
+paths:
+  /activate:
+    post:
+      summary: Activate a license for a hardware fingerprint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivateRequest"
+      responses:
+        "200":
+          description: Activation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivateResponse"
+
+  /validate:
+    post:
+      summary: Validate a license key against a hardware id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateRequest"
+      responses:
+        "200":
+          description: License info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseInfo"
+
+  /transfer:
+    post:
+      summary: Transfer a license to a new hardware id (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferRequest"
+      responses:
+        "200":
+          description: Transfer result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /metrics:
+    post:
+      summary: Submit aggregated metrics from desktop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MetricsPayload"
+      responses:
+        "204":
+          description: Accepted
+
+components:
+  schemas:
+    ActivateRequest:
+      type: object
+      required: [licenseKey, hardwareId]
+      properties:
+        licenseKey:
+          type: string
+        hardwareId:
+          type: string
+
+    ActivateResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, invalid, expired, suspended]
+        activatedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+
+    ValidateRequest:
+      type: object
+      required: [licenseKey, hardwareId]
+      properties:
+        licenseKey:
+          type: string
+        hardwareId:
+          type: string
+
+    LicenseInfo:
+      type: object
+      properties:
+        licenseKey:
+          type: string
+        status:
+          type: string
+        activatedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    TransferRequest:
+      type: object
+      required: [licenseKey, targetHardwareId]
+      properties:
+        licenseKey:
+          type: string
+        targetHardwareId:
+          type: string
+
+    MetricsPayload:
+      type: object
+      properties:
+        salesToday:
+          type: integer
+        topProducts:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              count:
+                type: integer

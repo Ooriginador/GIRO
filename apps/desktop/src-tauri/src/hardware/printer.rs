@@ -70,6 +70,92 @@ pub mod escpos {
     pub const QRCODE_PRINT: [u8; 8] = [GS, b'(', b'k', 3, 0, 49, 81, 48];
 }
 
+// Implementação da trait HardwareDevice para ThermalPrinter
+impl crate::hardware::HardwareDevice for ThermalPrinter {
+    fn health_check(&self) -> Result<crate::hardware::HardwareStatus, String> {
+        let name = format!("printer:{:?}", self.config.model);
+
+        if !self.config.enabled {
+            return Ok(crate::hardware::HardwareStatus {
+                name,
+                ok: false,
+                message: Some("disabled".to_string()),
+            });
+        }
+
+        match self.config.connection {
+            PrinterConnection::Usb => {
+                // Check if any candidate device exists
+                let candidates: Vec<String> = if !self.config.port.trim().is_empty() {
+                    vec![self.config.port.clone()]
+                } else {
+                    let mut c = vec!["/dev/lp0".to_string(), "/dev/lp1".to_string()];
+                    for i in 0..10 {
+                        c.push(format!("/dev/usb/lp{}", i));
+                    }
+                    c
+                };
+
+                let found = candidates.into_iter().any(|p| std::path::Path::new(&p).exists());
+                if found {
+                    Ok(crate::hardware::HardwareStatus {
+                        name,
+                        ok: true,
+                        message: Some("usb device present".to_string()),
+                    })
+                } else {
+                    Ok(crate::hardware::HardwareStatus {
+                        name,
+                        ok: false,
+                        message: Some("usb device not found".to_string()),
+                    })
+                }
+            }
+            PrinterConnection::Serial => {
+                // Try open serial port with configured params
+                let mut builder = serialport::new(&self.config.port, self.config.baud_rate);
+                builder = match self.config.data_bits {
+                    7 => builder.data_bits(serialport::DataBits::Seven),
+                    8 | _ => builder.data_bits(serialport::DataBits::Eight),
+                };
+                builder = match self.config.parity.as_str() {
+                    "odd" => builder.parity(serialport::Parity::Odd),
+                    "even" => builder.parity(serialport::Parity::Even),
+                    _ => builder.parity(serialport::Parity::None),
+                };
+                builder = builder.stop_bits(serialport::StopBits::One);
+
+                match builder.timeout(Duration::from_millis(self.config.timeout_ms)).open() {
+                    Ok(mut p) => {
+                        // quick flush
+                        let _ = p.flush();
+                        Ok(crate::hardware::HardwareStatus {
+                            name,
+                            ok: true,
+                            message: Some("serial open".to_string()),
+                        })
+                    }
+                    Err(e) => Ok(crate::hardware::HardwareStatus {
+                        name,
+                        ok: false,
+                        message: Some(format!("serial error: {}", e)),
+                    }),
+                }
+            }
+            PrinterConnection::Network => {
+                // Try connect TCP
+                match std::net::TcpStream::connect_timeout(&self.config.port.parse().unwrap_or_else(|_| {
+                    // fallback to socket addr parse fail
+                    "0.0.0.0:0".parse().unwrap()
+                }), Duration::from_millis(self.config.timeout_ms)) {
+                    Ok(_) => Ok(crate::hardware::HardwareStatus { name, ok: true, message: Some("network reachable".to_string()) }),
+                    Err(e) => Ok(crate::hardware::HardwareStatus { name, ok: false, message: Some(format!("network error: {}", e)) }),
+                }
+            }
+        }
+    }
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // TIPOS
 // ════════════════════════════════════════════════════════════════════════════
@@ -105,6 +191,11 @@ pub struct PrinterConfig {
     pub paper_width: u8, // 48 (58mm) ou 42 (80mm) caracteres
     pub auto_cut: bool,
     pub open_drawer_on_sale: bool,
+    // Serial params (used when connection == Serial)
+    pub baud_rate: u32,
+    pub data_bits: u8,
+    pub parity: String, // "none", "odd", "even"
+    pub timeout_ms: u64,
 }
 
 impl Default for PrinterConfig {
@@ -117,6 +208,10 @@ impl Default for PrinterConfig {
             paper_width: 48,
             auto_cut: true,
             open_drawer_on_sale: true,
+            baud_rate: 9600,
+            data_bits: 8,
+            parity: "none".to_string(),
+            timeout_ms: 3000,
         }
     }
 }
@@ -299,12 +394,24 @@ impl ThermalPrinter {
         if !self.config.enabled {
             return Ok(());
         }
-
-        let mut port = serialport::new(&self.config.port, 9600)
-            .timeout(Duration::from_millis(3000))
+        let mut builder = serialport::new(&self.config.port, self.config.baud_rate);
+        // data bits
+        builder = match self.config.data_bits {
+            7 => builder.data_bits(serialport::DataBits::Seven),
+            8 | _ => builder.data_bits(serialport::DataBits::Eight),
+        };
+        // parity
+        builder = match self.config.parity.as_str() {
+            "odd" => builder.parity(serialport::Parity::Odd),
+            "even" => builder.parity(serialport::Parity::Even),
+            _ => builder.parity(serialport::Parity::None),
+        };
+        // stop bits - default 1
+        builder = builder.stop_bits(serialport::StopBits::One);
+        let mut port = builder
+            .timeout(Duration::from_millis(self.config.timeout_ms))
             .open()
             .map_err(|e| HardwareError::CommunicationError(e.to_string()))?;
-
         port.write_all(&self.buffer)
             .map_err(HardwareError::IoError)?;
 

@@ -211,256 +211,264 @@ export const PDVPage: FC = () => {
   }
 
   return (
-    <div className="flex h-full gap-4">
-      {/* Área de Itens (60%) */}
-      <div className="flex flex-[3] flex-col gap-4">
-        {/* Barra de Busca */}
-        <Card className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Buscar produto por nome ou código (F2)"
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="h-12 pl-10 text-lg"
-              autoFocus
-            />
-            <span className="kbd absolute right-3 top-1/2 -translate-y-1/2">F2</span>
-          </div>
-
-          {/* Resultados da busca de produtos */}
-          {showSearch && searchQuery && (
-            <ProductSearchResults
-              query={searchQuery}
-              onSelect={handleProductSelected}
-              onClose={() => setShowSearch(false)}
-            />
-          )}
-        </Card>
-
-        {/* Seleção de Cliente */}
-        <Card className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <Label className="mb-2 block text-sm font-medium">Cliente (Opcional)</Label>
-              <CustomerSearch
-                selectedCustomer={selectedCustomer}
-                onSelect={handleCustomerSelect}
-                placeholder="Vincular cliente à venda..."
+    <>
+      <main id="pdv" role="main" aria-label="Ponto de Venda" className="flex h-full gap-4">
+        {/* Área de Itens (60%) */}
+        <section role="region" aria-label="Área de itens" className="flex flex-[3] flex-col gap-4">
+          {/* Barra de Busca */}
+          <Card className="p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Buscar produto por nome ou código (F2)"
+                aria-label="Buscar produto"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="h-12 pl-10 text-lg"
+                autoFocus
               />
+              <span className="kbd absolute right-3 top-1/2 -translate-y-1/2">F2</span>
             </div>
-          </div>
-        </Card>
 
-        {/* Lista de Itens */}
-        <Card className="flex-1 overflow-hidden">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Itens da Venda
-                {itemCount > 0 && (
-                  <Badge variant="secondary">
-                    {itemCount} {itemCount === 1 ? 'item' : 'itens'}
-                  </Badge>
+            {/* Resultados da busca de produtos */}
+            {showSearch && searchQuery && (
+              <ProductSearchResults
+                query={searchQuery}
+                onSelect={handleProductSelected}
+                onClose={() => setShowSearch(false)}
+              />
+            )}
+          </Card>
+
+          {/* Seleção de Cliente */}
+          <Card className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Label className="mb-2 block text-sm font-medium">Cliente (Opcional)</Label>
+                <CustomerSearch
+                  selectedCustomer={selectedCustomer}
+                  onSelect={handleCustomerSelect}
+                  placeholder="Vincular cliente à venda..."
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* Lista de Itens */}
+          <Card className="flex-1 overflow-hidden">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  Itens da Venda
+                  {itemCount > 0 && (
+                    <Badge variant="secondary">
+                      {itemCount} {itemCount === 1 ? 'item' : 'itens'}
+                    </Badge>
+                  )}
+                </CardTitle>
+                {items.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={clearCart}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Limpar
+                  </Button>
                 )}
-              </CardTitle>
-              {items.length > 0 && (
+              </div>
+            </CardHeader>
+            <CardContent className="h-[calc(100%-60px)] p-0">
+              {items.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                  <ShoppingCart className="h-12 w-12 opacity-50" />
+                  <p>Nenhum produto adicionado</p>
+                  <p className="text-sm">Use a busca ou leia um código de barras</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-full px-4 pb-4">
+                  <div className="space-y-2">
+                    {items.map((item, index) => (
+                      <CartItemRow key={item.id} item={item} index={index + 1} />
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Painel de Totais (40%) */}
+        <aside
+          role="region"
+          aria-label="Painel de totais e pagamento"
+          className="flex w-80 flex-col gap-4"
+        >
+          {/* Resumo */}
+          <Card className="p-4">
+            <div className="space-y-4">
+              {/* Subtotal */}
+              <div className="flex justify-between text-lg">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="text-money font-medium">{formatCurrency(subtotal)}</span>
+              </div>
+
+              {/* Desconto */}
+              {discount > 0 && (
+                <div className="flex justify-between text-lg text-destructive">
+                  <span className="flex items-center gap-1">
+                    <Percent className="h-4 w-4" />
+                    Desconto
+                  </span>
+                  <span className="text-money">-{formatCurrency(discount)}</span>
+                </div>
+              )}
+
+              <Separator />
+
+              {/* Total */}
+              <div className="flex justify-between">
+                <span className="text-2xl font-bold">Total</span>
+                <span className="text-money text-3xl font-bold text-primary">
+                  {formatCurrency(total)}
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Ações de Pagamento */}
+          <Card className="flex-1 p-4">
+            <div className="flex h-full flex-col gap-3">
+              <h3 className="mb-2 text-lg font-semibold">Finalizar Venda</h3>
+
+              <Button
+                size="lg"
+                className="h-14 text-lg"
+                disabled={items.length === 0}
+                onClick={() => setShowPaymentModal(true)}
+              >
+                <Banknote className="mr-2 h-5 w-5" />
+                Dinheiro
+                <span className="kbd ml-auto">F10</span>
+              </Button>
+
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 text-lg"
+                disabled={items.length === 0}
+                onClick={() => setShowPaymentModal(true)}
+              >
+                <QrCode className="mr-2 h-5 w-5" />
+                PIX
+              </Button>
+
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 text-lg"
+                disabled={items.length === 0}
+                onClick={() => setShowPaymentModal(true)}
+              >
+                <CreditCard className="mr-2 h-5 w-5" />
+                Cartão
+              </Button>
+
+              <div className="mt-auto">
                 <Button
                   variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
+                  className="w-full text-destructive hover:text-destructive"
+                  disabled={items.length === 0}
                   onClick={clearCart}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Limpar
+                  <X className="mr-2 h-4 w-4" />
+                  Cancelar Venda (Esc)
                 </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="h-[calc(100%-60px)] p-0">
-            {items.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                <ShoppingCart className="h-12 w-12 opacity-50" />
-                <p>Nenhum produto adicionado</p>
-                <p className="text-sm">Use a busca ou leia um código de barras</p>
               </div>
-            ) : (
-              <ScrollArea className="h-full px-4 pb-4">
-                <div className="space-y-2">
-                  {items.map((item, index) => (
-                    <CartItemRow key={item.id} item={item} index={index + 1} />
-                  ))}
-                </div>
-              </ScrollArea>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Painel de Totais (40%) */}
-      <div className="flex w-80 flex-col gap-4">
-        {/* Resumo */}
-        <Card className="p-4">
-          <div className="space-y-4">
-            {/* Subtotal */}
-            <div className="flex justify-between text-lg">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span className="text-money font-medium">{formatCurrency(subtotal)}</span>
             </div>
+          </Card>
 
-            {/* Desconto */}
-            {discount > 0 && (
-              <div className="flex justify-between text-lg text-destructive">
-                <span className="flex items-center gap-1">
-                  <Percent className="h-4 w-4" />
-                  Desconto
-                </span>
-                <span className="text-money">-{formatCurrency(discount)}</span>
+          {/* Atalhos de Teclado */}
+          <Card className="p-3">
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <span className="kbd">F2</span>
+                <span>Buscar</span>
               </div>
-            )}
-
-            <Separator />
-
-            {/* Total */}
-            <div className="flex justify-between">
-              <span className="text-2xl font-bold">Total</span>
-              <span className="text-money text-3xl font-bold text-primary">
-                {formatCurrency(total)}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="kbd">F4</span>
+                <span>Quantidade</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="kbd">F6</span>
+                <span>Desconto</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="kbd">F10</span>
+                <span>Finalizar</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="kbd">F12</span>
+                <span>Remover</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="kbd">Esc</span>
+                <span>Cancelar</span>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </aside>
 
-        {/* Ações de Pagamento */}
-        <Card className="flex-1 p-4">
-          <div className="flex h-full flex-col gap-3">
-            <h3 className="mb-2 text-lg font-semibold">Finalizar Venda</h3>
+        {/* Modal de Pagamento */}
+        {showPaymentModal && (
+          <PaymentModal
+            open={showPaymentModal}
+            onClose={() => setShowPaymentModal(false)}
+            total={total}
+          />
+        )}
 
-            <Button
-              size="lg"
-              className="h-14 text-lg"
-              disabled={items.length === 0}
-              onClick={() => setShowPaymentModal(true)}
-            >
-              <Banknote className="mr-2 h-5 w-5" />
-              Dinheiro
-              <span className="kbd ml-auto">F10</span>
-            </Button>
-
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 text-lg"
-              disabled={items.length === 0}
-              onClick={() => setShowPaymentModal(true)}
-            >
-              <QrCode className="mr-2 h-5 w-5" />
-              PIX
-            </Button>
-
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 text-lg"
-              disabled={items.length === 0}
-              onClick={() => setShowPaymentModal(true)}
-            >
-              <CreditCard className="mr-2 h-5 w-5" />
-              Cartão
-            </Button>
-
-            <div className="mt-auto">
-              <Button
-                variant="ghost"
-                className="w-full text-destructive hover:text-destructive"
-                disabled={items.length === 0}
-                onClick={clearCart}
-              >
-                <X className="mr-2 h-4 w-4" />
-                Cancelar Venda (Esc)
+        {/* Modal de Quantidade (F4) */}
+        <Dialog open={showQuantityModal} onOpenChange={setShowQuantityModal}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Alterar Quantidade</DialogTitle>
+              <DialogDescription>
+                Digite a nova quantidade para o item selecionado.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="quantity">Nova quantidade</Label>
+              <Input
+                ref={quantityInputRef}
+                id="quantity"
+                type="text"
+                inputMode="decimal"
+                value={quantityInput}
+                onChange={(e) => setQuantityInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleQuantityConfirm();
+                  }
+                }}
+                className="mt-2 h-12 text-xl text-center"
+                placeholder="0"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowQuantityModal(false)}>
+                Cancelar
               </Button>
-            </div>
-          </div>
-        </Card>
-
-        {/* Atalhos de Teclado */}
-        <Card className="p-3">
-          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <span className="kbd">F2</span>
-              <span>Buscar</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="kbd">F4</span>
-              <span>Quantidade</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="kbd">F6</span>
-              <span>Desconto</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="kbd">F10</span>
-              <span>Finalizar</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="kbd">F12</span>
-              <span>Remover</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="kbd">Esc</span>
-              <span>Cancelar</span>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Modal de Pagamento */}
-      {showPaymentModal && (
-        <PaymentModal
-          open={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          total={total}
-        />
-      )}
-
-      {/* Modal de Quantidade (F4) */}
-      <Dialog open={showQuantityModal} onOpenChange={setShowQuantityModal}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Alterar Quantidade</DialogTitle>
-            <DialogDescription>Digite a nova quantidade para o item selecionado.</DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="quantity">Nova quantidade</Label>
-            <Input
-              ref={quantityInputRef}
-              id="quantity"
-              type="text"
-              inputMode="decimal"
-              value={quantityInput}
-              onChange={(e) => setQuantityInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleQuantityConfirm();
-                }
-              }}
-              className="mt-2 h-12 text-xl text-center"
-              placeholder="0"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowQuantityModal(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleQuantityConfirm}>Confirmar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Desconto (F6) */}
+              <Button onClick={handleQuantityConfirm}>Confirmar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </main>
+      // Modal de Desconto (F6)
       <Dialog open={showDiscountModal} onOpenChange={setShowDiscountModal}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -503,6 +511,6 @@ export const PDVPage: FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };

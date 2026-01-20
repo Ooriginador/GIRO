@@ -214,6 +214,7 @@ async fn main() {
             commands::print_test_documents,
             commands::get_printer_config,
             commands::configure_scale,
+            commands::hardware_health_check,
             commands::read_weight,
             commands::auto_detect_scale,
             commands::get_scale_config,
