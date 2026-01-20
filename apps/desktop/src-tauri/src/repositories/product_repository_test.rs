@@ -273,6 +273,7 @@ mod tests {
             description: None,
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
+            max_stock: None,
         };
         let product = repo.create(input).await.unwrap();
 
@@ -316,6 +317,7 @@ mod tests {
             description: None,
             unit: None,
             is_weighted: None,
+            max_stock: None,
         };
         repo.create(p1).await.unwrap();
 
@@ -332,6 +334,7 @@ mod tests {
             description: None,
             unit: None,
             is_weighted: None,
+            max_stock: None,
         };
         repo.create(p2).await.unwrap();
 

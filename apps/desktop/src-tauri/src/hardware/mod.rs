@@ -6,11 +6,13 @@
 //! - Scanner de código de barras (USB HID + Mobile WebSocket)
 //! - Gaveta de dinheiro
 
+pub mod device;
 pub mod drawer;
 pub mod printer;
 pub mod scale;
 pub mod scanner;
 
+pub use device::*;
 pub use drawer::*;
 pub use printer::*;
 pub use scale::*;

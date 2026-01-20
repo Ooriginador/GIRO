@@ -25,7 +25,7 @@ impl<'a> ProductLotRepository<'a> {
                 p.barcode,
                 pl.lot_number,
                 pl.expiration_date,
-                pl.manufacturing_date,
+                NULL AS manufacturing_date,
                 pl.current_quantity as quantity,
                 pl.cost_price
             FROM product_lots pl
@@ -55,7 +55,7 @@ impl<'a> ProductLotRepository<'a> {
                 p.barcode,
                 pl.lot_number,
                 pl.expiration_date,
-                pl.manufacturing_date,
+                NULL AS manufacturing_date,
                 pl.current_quantity as quantity,
                 pl.cost_price
             FROM product_lots pl
@@ -92,7 +92,7 @@ impl<'a> ProductLotRepository<'a> {
                 p.barcode,
                 pl.lot_number,
                 pl.expiration_date,
-                pl.manufacturing_date,
+                NULL AS manufacturing_date,
                 pl.current_quantity as quantity,
                 pl.cost_price
             FROM product_lots pl

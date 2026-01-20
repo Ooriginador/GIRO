@@ -348,6 +348,10 @@ mod tests {
             reference_id: None,
             reference_type: Some("PURCHASE".to_string()),
             employee_id: Some("emp-001".to_string()),
+            cost_price: None,
+            lot_number: None,
+            expiration_date: None,
+            manufacturing_date: None,
         };
 
         let result = repo.create_movement(input).await;
@@ -373,6 +377,10 @@ mod tests {
             reference_id: Some("sale-001".to_string()),
             reference_type: Some("SALE".to_string()),
             employee_id: Some("emp-001".to_string()),
+            cost_price: None,
+            lot_number: None,
+            expiration_date: None,
+            manufacturing_date: None,
         };
 
         let result = repo.create_movement(input).await;
@@ -397,6 +405,10 @@ mod tests {
             reference_id: None,
             reference_type: None,
             employee_id: Some("emp-001".to_string()),
+            cost_price: None,
+            lot_number: None,
+            expiration_date: None,
+            manufacturing_date: None,
         };
 
         let created = repo.create_movement(input).await.unwrap();
@@ -421,6 +433,10 @@ mod tests {
                 reference_id: None,
                 reference_type: None,
                 employee_id: None,
+                cost_price: None,
+                lot_number: None,
+                expiration_date: None,
+                manufacturing_date: None,
             };
             repo.create_movement(input).await.unwrap();
         }
@@ -447,6 +463,10 @@ mod tests {
                 reference_id: None,
                 reference_type: None,
                 employee_id: None,
+                cost_price: None,
+                lot_number: None,
+                expiration_date: None,
+                manufacturing_date: None,
             };
             repo.create_movement(input).await.unwrap();
         }

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { clickableByKeyboard } from '@/lib/a11y';
 import { Edit, Package, Plus, Scale, Trash2 } from 'lucide-react';
 
 interface Product {
@@ -123,12 +124,15 @@ export function ProductCard({
   // Detailed variant
   return (
     <div
+      {...(onSelect ? clickableByKeyboard(onSelect) : {})}
+      aria-disabled={isOutOfStock}
       className={cn(
         'flex items-center gap-4 p-4 bg-card border rounded-lg',
         'hover:border-primary/30 transition-colors',
-        isOutOfStock && 'opacity-60',
+        isOutOfStock && 'opacity-60 pointer-events-none',
         className
       )}
+      role={onSelect ? 'button' : undefined}
     >
       {/* Icon/Image */}
       <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 bg-primary/10 rounded-lg">

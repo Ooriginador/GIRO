@@ -26,6 +26,11 @@ interface PrinterConfig {
   autoPrint: boolean;
   autoCut: boolean;
   openDrawer: boolean;
+  // Serial params
+  baudRate?: number;
+  dataBits?: number;
+  parity?: 'none' | 'odd' | 'even';
+  timeoutMs?: number;
 }
 
 interface ScaleConfig {
@@ -128,6 +133,10 @@ const defaultPrinter: PrinterConfig = {
   autoPrint: true,
   autoCut: true,
   openDrawer: true,
+  baudRate: 9600,
+  dataBits: 8,
+  parity: 'none',
+  timeoutMs: 3000,
 };
 
 const defaultScale: ScaleConfig = {

@@ -61,6 +61,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { ServiceOrderStatusBadge } from './ServiceOrderList';
+import { ServiceOrderItemDialog } from './ServiceOrderItemDialog';
 
 interface ServiceOrderDetailsProps {
   orderId: string;
@@ -79,6 +80,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     open: boolean;
     type: 'start' | 'complete' | 'deliver' | 'cancel' | null;
   }>({ open: false, type: null });
+  const [showAddItemDialog, setShowAddItemDialog] = useState(false);
 
   if (isLoading) {
     return (
@@ -321,10 +323,23 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
         {/* Veículo */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Car className="h-4 w-4" />
-              Veículo
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Car className="h-4 w-4" />
+                Veículo
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                title="Histórico do Veículo"
+                onClick={() => {
+                  toast({ description: 'Histórico rápido em desenvolvimento' });
+                }}
+              >
+                <Clock className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
@@ -419,7 +434,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
               Itens
             </CardTitle>
             {canEdit && (
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" onClick={() => setShowAddItemDialog(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Adicionar Item
               </Button>
@@ -625,6 +640,12 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ServiceOrderItemDialog
+        open={showAddItemDialog}
+        onOpenChange={setShowAddItemDialog}
+        orderId={orderId}
+      />
     </div>
   );
 }

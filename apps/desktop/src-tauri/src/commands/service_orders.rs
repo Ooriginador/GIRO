@@ -250,6 +250,8 @@ pub async fn get_service_order_items(
 pub async fn add_service_order_item(
     state: State<'_, AppState>,
     order_id: String,
+    product_id: Option<String>,
+    item_type: String,
     description: String,
     employee_id: Option<String>,
     quantity: f64,
@@ -261,6 +263,8 @@ pub async fn add_service_order_item(
 
     let input = AddServiceOrderItem {
         order_id,
+        product_id,
+        item_type,
         description,
         employee_id,
         quantity,

@@ -20,6 +20,8 @@ interface ScannerServerInfo {
   ip: string;
   port: number;
   url: string;
+  started_at?: number;
+  task_id?: string | null;
 }
 
 /**

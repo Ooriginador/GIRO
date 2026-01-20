@@ -26,6 +26,8 @@
     "db:studio": "prisma studio",
     "db:format": "prisma format",
     "db:validate": "prisma validate",
+    "db:init": "tsx scripts/init_db.ts",
+    "db:constraints": "tsx scripts/apply_constraints.ts",
     "build": "tsc",
     "clean": "rimraf dist"
   },

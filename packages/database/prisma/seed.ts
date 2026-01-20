@@ -6,7 +6,9 @@
 
 import { EmployeeRole, PrismaClient, ProductUnit, SettingType } from '@prisma/client';
 import argon2 from 'argon2';
-import { createHmac } from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -27,6 +29,33 @@ function hashPin(pin: string): string {
 function hashPassword(password: string): Promise<string> {
   // Use Argon2 for password hashing (unique salt, secure)
   return argon2.hash(password, { type: argon2.argon2id });
+}
+
+async function getSeedPassword(envName: string, label: string): Promise<string> {
+  const raw = process.env[envName];
+  if (raw && raw.length > 0) {
+    return await hashPassword(raw);
+  }
+
+  // Generate a strong random password when none provided.
+  const plain = randomBytes(12).toString('hex');
+  const hashed = await hashPassword(plain);
+
+  // Optionally persist generated credentials to a local file (opt-in).
+  try {
+    if (process.env.SEED_OUTPUT_CREDENTIALS === '1') {
+      const file = path.join(process.cwd(), '.seed_credentials');
+      const content = `${label}_PASSWORD=${plain}\n`;
+      fs.writeFileSync(file, content, { mode: 0o600 });
+    }
+  } catch (e) {
+    // Don't fail the seed for inability to write credentials file.
+    console.warn('Could not write .seed_credentials (optional):', e?.message || e);
+  }
+
+  // For safety do not print the generated password to stdout in normal runs.
+  console.log(`   ℹ️  ${label} password auto-generated (override with ${envName}).`);
+  return hashed;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -63,6 +92,7 @@ async function seedCategories() {
 async function seedEmployee() {
   console.log('👤 Criando funcionários...');
 
+  const adminPasswordHash = await getSeedPassword('ADMIN_PASSWORD', 'ADMIN');
   const admin = await prisma.employee.upsert({
     where: { cpf: '00000000000' },
     update: {},
@@ -70,7 +100,7 @@ async function seedEmployee() {
       name: 'Administrador',
       cpf: '00000000000',
       pin: hashPin('8899'),
-      password: await hashPassword('admin123'),
+      password: adminPasswordHash,
       role: EmployeeRole.ADMIN,
       email: 'admin@mercearias.local',
     },
@@ -89,6 +119,7 @@ async function seedEmployee() {
     },
   });
 
+  const managerPasswordHash = await getSeedPassword('MANAGER_PASSWORD', 'MANAGER');
   const manager = await prisma.employee.upsert({
     where: { cpf: '22222222222' },
     update: {},
@@ -96,7 +127,7 @@ async function seedEmployee() {
       name: 'Gerente',
       cpf: '22222222222',
       pin: hashPin('9999'),
-      password: await hashPassword('gerente123'),
+      password: managerPasswordHash,
       role: EmployeeRole.MANAGER,
       email: 'gerente@mercearias.local',
     },

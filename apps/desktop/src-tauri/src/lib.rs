@@ -14,6 +14,7 @@ pub mod commands;
 pub mod database;
 pub mod error;
 pub mod hardware;
+pub mod ipc_contract;
 pub mod license;
 pub mod middleware;
 pub mod models;

@@ -67,6 +67,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+  "axe-core": "^4.8.0",
   "esbuild": "^0.25.0",
     "@playwright/test": "^1.57.0",
     "@testing-library/dom": "^10.4.1",

@@ -98,15 +98,15 @@ export function useAddStockEntry() {
   const { success, error } = useToast();
 
   return useMutation({
-    mutationFn: (input: StockEntryInput) => {
-      // Call with exactly five arguments (manufacturingDate is optional)
-      const p = input.productId;
-      const q = input.quantity;
-      const c = input.costPrice;
-      const l = typeof input.lotNumber !== 'undefined' ? input.lotNumber : undefined;
-      const e = typeof input.expirationDate !== 'undefined' ? input.expirationDate : undefined;
-      return (addStockEntry as any).call(null, p, q, c, l, e);
-    },
+    mutationFn: (input: StockEntryInput) =>
+      addStockEntry(
+        input.productId,
+        input.quantity,
+        input.costPrice,
+        input.lotNumber,
+        input.expirationDate,
+        input.manufacturingDate
+      ),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: stockKeys.movements(variables.productId) });
       queryClient.invalidateQueries({ queryKey: stockKeys.lowStock() });
