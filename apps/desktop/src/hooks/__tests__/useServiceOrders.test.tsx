@@ -92,10 +92,21 @@ describe('useServiceOrders', () => {
   it('should deliver service order', async () => {
     vi.mocked(invoke).mockResolvedValue({ ...mockOrder, status: 'DELIVERED' });
     const { result } = renderHook(() => useServiceOrders(), { wrapper: queryWrapper });
-    await result.current.deliverOrder.mutateAsync({ id: 'os-1', paymentMethod: 'CASH' });
-    expect(invoke).toHaveBeenCalledWith('deliver_service_order', {
+
+    await result.current.deliverOrder.mutateAsync({
       id: 'os-1',
       paymentMethod: 'CASH',
+      amountPaid: 150.0,
+      employeeId: 'emp-1',
+      sessionId: 'sess-1',
+    });
+
+    expect(invoke).toHaveBeenCalledWith('finish_service_order', {
+      id: 'os-1',
+      paymentMethod: 'CASH',
+      amountPaid: 150.0,
+      employeeId: 'emp-1',
+      cashSessionId: 'sess-1',
     });
   });
 });
