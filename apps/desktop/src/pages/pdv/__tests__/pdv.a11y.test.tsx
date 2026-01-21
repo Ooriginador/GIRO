@@ -12,7 +12,7 @@ test('PDV page has no obvious accessibility violations (basic axe run)', async (
   // Run axe-core programmatically (basic run)
   // axe.run uses a callback style, wrap in Promise
   await new Promise<void>((resolve, reject) => {
-    // @ts-ignore - axe types in this environment
+    // @ts-expect-error - axe types in this environment
     axe.run(document.body, (err: any, results: any) => {
       if (err) return reject(err);
       if (results.violations && results.violations.length > 0) {

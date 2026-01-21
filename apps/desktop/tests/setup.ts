@@ -267,6 +267,5 @@ beforeEach(() => {
 // Add a global handler for unhandled rejections so the test runner does
 // not terminate the process; we still log the error for visibility.
 process.on('unhandledRejection', (reason) => {
-  // eslint-disable-next-line no-console
   console.warn('[Test] UnhandledRejection:', reason);
 });

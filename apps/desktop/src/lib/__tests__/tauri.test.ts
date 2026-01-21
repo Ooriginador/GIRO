@@ -102,15 +102,15 @@ describe('tauri.ts', () => {
 
     it('should authenticate employee correctly', async () => {
       // Debug: ensure web mock DB is seeded
-      // eslint-disable-next-line no-console
       console.log('WEB_DB_RAW:', window.localStorage.getItem('__giro_web_mock_db__'));
       try {
-        // eslint-disable-next-line no-console
         console.log(
           'PARSED:',
           JSON.parse(window.localStorage.getItem('__giro_web_mock_db__') || '{}')
         );
-      } catch {}
+      } catch {
+        /* ignore */
+      }
 
       const employee = await tauriLib.authenticateEmployee(fixtures.TEST_PIN);
       expect(employee).not.toBeNull();
