@@ -261,6 +261,24 @@ beforeEach(() => {
   }
   vi.resetAllMocks();
   vi.restoreAllMocks();
+
+  // Silenciar logs de erro esperados durante os testes
+  const originalError = console.error;
+  vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+    const message = typeof args[0] === 'string' ? args[0] : '';
+    if (
+      message.includes('Erro ao buscar clientes') ||
+      message.includes('Erro ao buscar cliente') ||
+      message.includes('Error: Open Fail') ||
+      message.includes('Error: API Fail') ||
+      message.includes('License initialization timed out') ||
+      message.includes('License validation failed') ||
+      message.includes('Falha ao inicializar verificação de licença')
+    ) {
+      return;
+    }
+    originalError.apply(console, args);
+  });
 });
 
 // During tests, some mocks intentionally reject to exercise error paths.
