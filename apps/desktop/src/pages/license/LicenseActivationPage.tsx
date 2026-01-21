@@ -4,32 +4,26 @@
  * Tela bloqueante que exige a ativação da licença antes de qualquer acesso ao sistema.
  * O usuário deve inserir a license key que comprou para ativar o software.
  */
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import {
   activateLicense,
   getHardwareId,
   restoreLicense,
   setSetting,
   validateLicense,
-} from "@/lib/tauri";
-import { useLicenseStore } from "@/stores/license-store";
-import { AlertCircle, Key, Loader2, Monitor, ShieldCheck } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+} from '@/lib/tauri';
+import { useLicenseStore } from '@/stores/license-store';
+import { AlertCircle, Key, Loader2, Monitor, ShieldCheck } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export function LicenseActivationPage() {
-  const [licenseKey, setLicenseKey] = useState("");
-  const [hardwareId, setHardwareId] = useState("");
+  const [licenseKey, setLicenseKey] = useState('');
+  const [hardwareId, setHardwareId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
 
@@ -57,66 +51,55 @@ export function LicenseActivationPage() {
 
         // Also save to settings table for LicenseSettings page compatibility
         try {
-          await setSetting("system.license_key", key, "string");
+          await setSetting('system.license_key', key, 'string');
         } catch (err) {
-          console.error("Falha ao salvar license key nas configurações:", err);
+          console.error('Falha ao salvar license key nas configurações:', err);
         }
 
         // Sincronizar dados do proprietário se existirem na licença
         if (info.company_name) {
           try {
-            await setSetting("company.name", info.company_name);
+            await setSetting('company.name', info.company_name);
           } catch (err) {
-            console.error("Falha ao salvar nome da empresa da licença:", err);
+            console.error('Falha ao salvar nome da empresa da licença:', err);
           }
         }
 
         toast({
-          title: "Licença Ativada!",
+          title: 'Licença Ativada!',
           description: info.company_name
             ? `Bem-vindo, ${info.company_name}. Software ativado.`
-            : "Seu software foi ativado com sucesso.",
+            : 'Seu software foi ativado com sucesso.',
         });
 
-        console.log(
-          "[LicenseActivationPage] Activation success, redirecting in 1.5s...",
-        );
+        console.log('[LicenseActivationPage] Activation success, redirecting in 1.5s...');
 
         // If server says no admin exists, we MUST go to setup
         // If server says admin exists, we go to root (which checks local admin)
-        const targetRoute = info.has_admin === false ? "/setup" : "/";
+        const targetRoute = info.has_admin === false ? '/setup' : '/';
 
         setTimeout(() => {
-          console.log(
-            `[LicenseActivationPage] Executing navigate to ${targetRoute}`,
-          );
+          console.log(`[LicenseActivationPage] Executing navigate to ${targetRoute}`);
           navigate(targetRoute, { replace: true });
         }, 1500);
       } catch (error) {
         const errorMessage =
-          typeof error === "string"
+          typeof error === 'string'
             ? error
-            : "Falha ao ativar licença. Verifique a chave e tente novamente.";
+            : 'Falha ao ativar licença. Verifique a chave e tente novamente.';
 
         toast({
-          title: "Erro na Ativação",
+          title: 'Erro na Ativação',
           description: errorMessage,
-          variant: "destructive",
+          variant: 'destructive',
         });
-        setState("unlicensed");
+        setState('unlicensed');
         setIsValidating(false);
       } finally {
         setIsLoading(false);
       }
     },
-    [
-      navigate,
-      setLicenseInfo,
-      setState,
-      storeLicenseKey,
-      toast,
-      updateLastValidation,
-    ],
+    [navigate, setLicenseInfo, setState, storeLicenseKey, toast, updateLastValidation]
   );
 
   const validateStoredLicense = useCallback(
@@ -126,19 +109,19 @@ export function LicenseActivationPage() {
         setLicenseInfo(info);
         updateLastValidation();
 
-        if (info.status === "active") {
+        if (info.status === 'active') {
           // License is valid, redirect to root for proper routing
-          navigate("/", { replace: true });
+          navigate('/', { replace: true });
         } else {
           setIsValidating(false);
         }
       } catch (error) {
-        console.error("License validation failed:", error);
-        setState("error");
+        console.error('License validation failed:', error);
+        setState('error');
         setIsValidating(false);
       }
     },
-    [navigate, setLicenseInfo, setState, updateLastValidation],
+    [navigate, setLicenseInfo, setState, updateLastValidation]
   );
 
   // Check for stored license on mount
@@ -147,62 +130,56 @@ export function LicenseActivationPage() {
       // Timeout de segurança para não ficar preso no loader se o backend não responder
       const timeoutId = setTimeout(() => {
         if (isValidating) {
-          console.warn("License initialization timed out, showing form.");
+          console.warn('License initialization timed out, showing form.');
           setIsValidating(false);
           const currentState = useLicenseStore.getState().state;
-          if (currentState === "loading") {
-            setState("unlicensed");
+          if (currentState === 'loading') {
+            setState('unlicensed');
           }
         }
       }, 5000);
 
       try {
-        console.log("[LicenseActivationPage] Initializing...");
+        console.log('[LicenseActivationPage] Initializing...');
         // Get hardware ID
         const hwId = await getHardwareId();
-        console.log("[LicenseActivationPage] Hardware ID:", hwId);
+        console.log('[LicenseActivationPage] Hardware ID:', hwId);
         setHardwareId(hwId);
 
         // Initialize from disk/local state
-        console.log("[LicenseActivationPage] Hydrating from disk...");
+        console.log('[LicenseActivationPage] Hydrating from disk...');
         await hydrateFromDisk();
 
         const store = useLicenseStore.getState();
         const currentKey = store.licenseKey;
         console.log(
-          `[LicenseActivationPage] Post-hydration: key=${currentKey}, state=${store.state}`,
+          `[LicenseActivationPage] Post-hydration: key=${currentKey}, state=${store.state}`
         );
 
         if (currentKey) {
           setLicenseKey(currentKey);
 
           // Check if we are within grace period (7 days) OR if already valid
-          if (store.isWithinGracePeriod() || store.state === "valid") {
+          if (store.isWithinGracePeriod() || store.state === 'valid') {
             console.log(
-              "[LicenseActivationPage] Valid license or within grace period, proceeding to root",
+              '[LicenseActivationPage] Valid license or within grace period, proceeding to root'
             );
             clearTimeout(timeoutId);
-            navigate("/", { replace: true });
+            navigate('/', { replace: true });
             return;
           }
 
           // Not in grace period and not valid, MUST validate online
-          console.log(
-            "[LicenseActivationPage] Triggering online validation...",
-          );
+          console.log('[LicenseActivationPage] Triggering online validation...');
           await validateStoredLicense(currentKey);
         } else {
           try {
             const restoredKey = await restoreLicense();
             if (restoredKey) {
-              console.log(
-                "[LicenseActivationPage] License restored!",
-                restoredKey,
-              );
+              console.log('[LicenseActivationPage] License restored!', restoredKey);
               toast({
-                title: "Licença Restaurada",
-                description:
-                  "Sua licença foi encontrada e recuperada automaticamente!",
+                title: 'Licença Restaurada',
+                description: 'Sua licença foi encontrada e recuperada automaticamente!',
                 duration: 5000,
               });
               setLicenseKey(restoredKey);
@@ -211,22 +188,19 @@ export function LicenseActivationPage() {
               // Trigger activation automatically using the new function
               await performActivation(restoredKey);
             } else {
-              console.log("[LicenseActivationPage] No license to restore.");
-              setState("unlicensed");
+              console.log('[LicenseActivationPage] No license to restore.');
+              setState('unlicensed');
               setIsValidating(false);
             }
           } catch (restoreErr) {
-            console.warn("[LicenseActivationPage] Restore failed:", restoreErr);
-            setState("unlicensed");
+            console.warn('[LicenseActivationPage] Restore failed:', restoreErr);
+            setState('unlicensed');
             setIsValidating(false);
           }
         }
       } catch (error) {
-        console.error(
-          "[LicenseActivationPage] Failed to initialize license check:",
-          error,
-        );
-        setState("error");
+        console.error('[LicenseActivationPage] Failed to initialize license check:', error);
+        setState('error');
         setIsValidating(false);
       } finally {
         clearTimeout(timeoutId);
@@ -234,22 +208,14 @@ export function LicenseActivationPage() {
     };
 
     initialize();
-  }, [
-    hydrateFromDisk,
-    isValidating,
-    navigate,
-    setState,
-    validateStoredLicense,
-    performActivation,
-    toast,
-  ]);
+  }, [hydrateFromDisk, navigate, setState, validateStoredLicense, performActivation, toast]);
 
   const handleActivate = async () => {
     if (!licenseKey.trim()) {
       toast({
-        title: "Chave de Licença Obrigatória",
-        description: "Por favor, insira sua chave de licença.",
-        variant: "destructive",
+        title: 'Chave de Licença Obrigatória',
+        description: 'Por favor, insira sua chave de licença.',
+        variant: 'destructive',
       });
       return;
     }
@@ -260,11 +226,11 @@ export function LicenseActivationPage() {
   // Format license key as user types (XXXX-XXXX-XXXX-XXXX)
   const formatLicenseKey = (value: string) => {
     // Remove non-alphanumeric characters
-    const cleaned = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    const cleaned = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
     // Add dashes every 4 characters
     const parts = cleaned.match(/.{1,4}/g) || [];
-    return parts.join("-");
+    return parts.join('-');
   };
 
   const handleKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -274,9 +240,7 @@ export function LicenseActivationPage() {
 
   // Loading state while validating stored license
   if (isValidating) {
-    console.log(
-      `[LicenseActivationPage] Showing loading screen (isValidating=${isValidating})`,
-    );
+    console.log(`[LicenseActivationPage] Showing loading screen (isValidating=${isValidating})`);
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10">
         <Card className="w-full max-w-md">
@@ -327,7 +291,7 @@ export function LicenseActivationPage() {
               <span>Identificador do Hardware:</span>
             </div>
             <code className="block text-xs bg-background rounded p-2 break-all">
-              {hardwareId || "Carregando..."}
+              {hardwareId || 'Carregando...'}
             </code>
             <p className="text-xs text-muted-foreground">
               Sua licença será vinculada a este computador.
@@ -340,8 +304,8 @@ export function LicenseActivationPage() {
             <div className="text-sm text-blue-900 dark:text-blue-100">
               <p className="font-medium mb-1">Sobre a vinculação de hardware</p>
               <p className="text-blue-700 dark:text-blue-200">
-                Cada licença pode ser usada em apenas um computador por vez. Se
-                precisar trocar de máquina, entre em contato com o suporte.
+                Cada licença pode ser usada em apenas um computador por vez. Se precisar trocar de
+                máquina, entre em contato com o suporte.
               </p>
             </div>
           </div>

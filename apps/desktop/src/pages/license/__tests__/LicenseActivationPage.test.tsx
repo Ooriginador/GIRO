@@ -47,9 +47,15 @@ describe('LicenseActivationPage', () => {
     vi.clearAllMocks();
     useLicenseStore.setState({
       licenseKey: null,
+      licenseInfo: null,
       state: 'unlicensed',
       isHydrated: true,
       isWithinGracePeriod: () => false,
+      hydrateFromDisk: vi.fn().mockResolvedValue(undefined),
+      setLicenseKey: vi.fn(),
+      setLicenseInfo: vi.fn(),
+      setState: vi.fn(),
+      updateLastValidation: vi.fn(),
     } as any);
   });
 
@@ -78,13 +84,14 @@ describe('LicenseActivationPage', () => {
 
   it('should format license key during typing', async () => {
     vi.mocked(tauri.getHardwareId).mockResolvedValue('MOCK-HWID-123');
-    await act(async () => {
-      render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
-      const input = await screen.findByPlaceholderText('GIRO-XXXX-XXXX-XXXX');
-      fireEvent.change(input, { target: { value: 'abcd1234efgh5678' } });
+    render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
+    const input = await screen.findByPlaceholderText('GIRO-XXXX-XXXX-XXXX');
 
-      expect(input).toHaveValue('ABCD-1234-EFGH-5678');
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'abcd1234efgh5678' } });
     });
+
+    expect(input).toHaveValue('ABCD-1234-EFGH-5678');
   });
 
   it('should handle successful activation', async () => {
@@ -95,11 +102,12 @@ describe('LicenseActivationPage', () => {
       license_key: 'AAAA-BBBB-CCCC-DDDD',
     } as any);
 
+    render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
+    const input = await screen.findByPlaceholderText('GIRO-XXXX-XXXX-XXXX');
+
     await act(async () => {
-      render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
-      const input = await screen.findByPlaceholderText('GIRO-XXXX-XXXX-XXXX');
       fireEvent.change(input, { target: { value: 'AAAABBBBCCCCDDDD' } });
-      fireEvent.click(screen.getByRole('button', { name: /ativar licença/i }));
+      fireEvent.click(screen.getByRole('button', { name: /ativar licenç/i }));
     });
 
     await waitFor(() => {
@@ -126,11 +134,12 @@ describe('LicenseActivationPage', () => {
       has_admin: false,
     } as any);
 
+    render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
+    const input = await screen.findByPlaceholderText('GIRO-XXXX-XXXX-XXXX');
+
     await act(async () => {
-      render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
-      const input = await screen.findByPlaceholderText('GIRO-XXXX-XXXX-XXXX');
       fireEvent.change(input, { target: { value: 'AAAABBBBCCCCDDDD' } });
-      fireEvent.click(screen.getByRole('button', { name: /ativar licença/i }));
+      fireEvent.click(screen.getByRole('button', { name: /ativar licenç/i }));
     });
 
     await waitFor(
@@ -150,11 +159,12 @@ describe('LicenseActivationPage', () => {
       has_admin: true,
     } as any);
 
+    render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
+    const input = await screen.findByPlaceholderText('GIRO-XXXX-XXXX-XXXX');
+
     await act(async () => {
-      render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
-      const input = await screen.findByPlaceholderText('GIRO-XXXX-XXXX-XXXX');
       fireEvent.change(input, { target: { value: 'AAAABBBBCCCCDDDD' } });
-      fireEvent.click(screen.getByRole('button', { name: /ativar licença/i }));
+      fireEvent.click(screen.getByRole('button', { name: /ativar licenç/i }));
     });
 
     await waitFor(
@@ -169,11 +179,12 @@ describe('LicenseActivationPage', () => {
     vi.mocked(tauri.getHardwareId).mockResolvedValue('MOCK-HWID-123');
     vi.mocked(tauri.activateLicense).mockRejectedValue('Chave inválida');
 
+    render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
+    const input = await screen.findByPlaceholderText('GIRO-XXXX-XXXX-XXXX');
+
     await act(async () => {
-      render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
-      const input = await screen.findByPlaceholderText('GIRO-XXXX-XXXX-XXXX');
       fireEvent.change(input, { target: { value: 'WRONGKEY1234' } });
-      fireEvent.click(screen.getByRole('button', { name: /ativar licença/i }));
+      fireEvent.click(screen.getByRole('button', { name: /ativar licenç/i }));
     });
 
     await waitFor(() => {
