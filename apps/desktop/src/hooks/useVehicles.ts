@@ -135,8 +135,8 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
 
     try {
       const result = await invoke<VehicleBrand[]>('get_vehicle_brands');
-      setBrands(result);
-      setCachedBrands(result);
+      setBrands(result || []);
+      setCachedBrands(result || []);
       markFullSyncComplete();
     } catch (err) {
       console.error('Erro ao carregar marcas:', err);
@@ -292,7 +292,7 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
     if (autoLoadBrands && brands.length === 0) {
       void loadBrands();
     }
-  }, [autoLoadBrands, loadBrands, brands.length]);
+  }, [autoLoadBrands, loadBrands, brands?.length]);
 
   return {
     // Dados

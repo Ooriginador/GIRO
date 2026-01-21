@@ -108,7 +108,7 @@ export const CashControlPage: FC = () => {
       await openSession.mutateAsync({
         openingBalance: value,
       });
-      console.log('DEBUG: mutateAsync completed');
+
       toast({ title: 'Caixa aberto com sucesso!' });
       setIsOpenDialogOpen(false);
       setOpeningBalance('');
