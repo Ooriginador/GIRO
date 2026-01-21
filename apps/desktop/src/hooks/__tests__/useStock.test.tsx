@@ -23,6 +23,7 @@ vi.mock('@/lib/tauri', () => ({
   getStockReport: vi.fn(),
   addStockEntry: vi.fn(),
   adjustStock: vi.fn(),
+  getExpiringLots: vi.fn(),
 }));
 
 // Mock do toast

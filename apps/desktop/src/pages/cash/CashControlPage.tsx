@@ -93,7 +93,6 @@ export const CashControlPage: FC = () => {
   };
 
   const handleOpenSession = async () => {
-    console.log('DEBUG: handleOpenSession called', openingBalance);
     const value = parseFloat(openingBalance.replace(',', '.'));
     if (isNaN(value) || value < 0) {
       toast({ title: 'Valor inválido', variant: 'destructive' });
