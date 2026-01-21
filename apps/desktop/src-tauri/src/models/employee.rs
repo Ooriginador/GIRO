@@ -5,21 +5,16 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 /// Papel do funcionário
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[sqlx(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EmployeeRole {
     Admin,
     Manager,
+    #[default]
     Cashier,
     Stocker, // Estoquista - novo role para mobile
     Viewer,
-}
-
-impl Default for EmployeeRole {
-    fn default() -> Self {
-        Self::Cashier
-    }
 }
 
 impl std::fmt::Display for EmployeeRole {

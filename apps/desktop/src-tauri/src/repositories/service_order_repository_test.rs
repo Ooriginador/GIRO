@@ -109,7 +109,7 @@ async fn test_create_service_order_increments_number() {
     assert_eq!(os1.parts_cost, 0.0);
     assert_eq!(os1.discount, 0.0);
     assert_eq!(os1.warranty_days, 30);
-    assert_eq!(os1.is_paid, false);
+    assert!(!os1.is_paid);
     assert_eq!(os1.symptoms.as_deref(), Some("Engine noise"));
 }
 

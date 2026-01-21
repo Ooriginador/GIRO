@@ -4,22 +4,17 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 /// Forma de pagamento
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[sqlx(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PaymentMethod {
+    #[default]
     Cash,
     Pix,
     Credit,
     Debit,
     Voucher,
     Other,
-}
-
-impl Default for PaymentMethod {
-    fn default() -> Self {
-        Self::Cash
-    }
 }
 
 impl std::fmt::Display for PaymentMethod {
@@ -45,18 +40,13 @@ pub enum DiscountType {
 }
 
 /// Status da venda
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[sqlx(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SaleStatus {
+    #[default]
     Completed,
     Canceled,
-}
-
-impl Default for SaleStatus {
-    fn default() -> Self {
-        Self::Completed
-    }
 }
 
 /// Venda completa

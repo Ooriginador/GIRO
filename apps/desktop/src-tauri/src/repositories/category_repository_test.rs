@@ -43,7 +43,7 @@ mod tests {
         let category = result.unwrap();
         assert_eq!(category.name, "Bebidas");
         assert_eq!(category.color, Some("#FF5733".to_string()));
-        assert_eq!(category.active, true);
+        assert!(category.active);
     }
 
     #[tokio::test]
@@ -145,7 +145,7 @@ mod tests {
         // Verify it's deactivated
         let found = repo.find_by_id(&category.id).await.unwrap();
         assert!(found.is_some());
-        assert_eq!(found.unwrap().active, false);
+        assert!(!found.unwrap().active);
     }
 
     #[tokio::test]

@@ -658,7 +658,7 @@ mod tests {
         repo.create(input).await.unwrap();
 
         let today_sales = repo.find_today().await.unwrap();
-        assert!(today_sales.len() >= 1);
+        assert!(!today_sales.is_empty());
     }
 
     #[tokio::test]

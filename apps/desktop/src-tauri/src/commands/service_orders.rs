@@ -10,10 +10,10 @@ use crate::models::{
     ServiceOrderFilters, ServiceOrderItem, ServiceOrderSummary, ServiceOrderWithDetails,
     UpdateService, UpdateServiceOrder, UpdateServiceOrderItem,
 };
-use crate::repositories::{PaginatedResult, Pagination, ServiceOrderRepository, ProductRepository};
+use crate::repositories::{PaginatedResult, Pagination, ServiceOrderRepository};
 use crate::AppState;
 
-use sqlx::Row;
+// use sqlx::Row;
 
 
 // ═══════════════════════════════════════════════════════════════════════════

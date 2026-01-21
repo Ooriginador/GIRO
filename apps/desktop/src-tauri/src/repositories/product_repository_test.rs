@@ -257,7 +257,7 @@ mod tests {
         // Verify it's deactivated
         let found = repo.find_by_id(&product.id).await.unwrap();
         assert!(found.is_some());
-        assert_eq!(found.unwrap().is_active, false);
+        assert!(!found.unwrap().is_active);
     }
 
     #[tokio::test]

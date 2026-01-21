@@ -344,7 +344,7 @@ pub async fn emit_nfce(
         emitter_ie: request.emitter_ie,
         emitter_address: request.emitter_address,
         emitter_city: request.emitter_city,
-        emitter_uf: emitter_uf,
+        emitter_uf,
         emitter_phone: request.emitter_phone,
         number: numero,
         series: serie,

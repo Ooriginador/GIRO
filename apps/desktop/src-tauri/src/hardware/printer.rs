@@ -116,7 +116,7 @@ impl crate::hardware::HardwareDevice for ThermalPrinter {
                 let mut builder = serialport::new(&self.config.port, self.config.baud_rate);
                 builder = match self.config.data_bits {
                     7 => builder.data_bits(serialport::DataBits::Seven),
-                    8 | _ => builder.data_bits(serialport::DataBits::Eight),
+                    _ => builder.data_bits(serialport::DataBits::Eight),
                 };
                 builder = match self.config.parity.as_str() {
                     "odd" => builder.parity(serialport::Parity::Odd),
@@ -317,9 +317,7 @@ impl ThermalPrinter {
 
     /// Linha separadora
     pub fn separator(&mut self, char: char) -> &mut Self {
-        let sep: String = std::iter::repeat(char)
-            .take(self.config.paper_width as usize)
-            .collect();
+        let sep = char.to_string().repeat(self.config.paper_width as usize);
         self.line(&sep)
     }
 
@@ -398,7 +396,7 @@ impl ThermalPrinter {
         // data bits
         builder = match self.config.data_bits {
             7 => builder.data_bits(serialport::DataBits::Seven),
-            8 | _ => builder.data_bits(serialport::DataBits::Eight),
+            _ => builder.data_bits(serialport::DataBits::Eight),
         };
         // parity
         builder = match self.config.parity.as_str() {
@@ -869,7 +867,7 @@ impl ThermalPrinter {
         self.align(TextAlign::Center);
         // Signature line matching paper width (roughly)
         let line_len = if width > 30 { 30 } else { width - 2 };
-        let underscores: String = std::iter::repeat('_').take(line_len).collect();
+        let underscores = "_".repeat(line_len);
         self.line(&underscores);
         self.line("Assinatura do Cliente");
         

@@ -444,7 +444,7 @@ pub async fn hardware_health_check(
     if let Some(scanner) = scanner_server_opt {
         let devices = scanner.list_devices().await;
         results.push(crate::hardware::HardwareStatus {
-            name: format!("scanner:ws"),
+            name: "scanner:ws".to_string(),
             ok: true,
             message: Some(format!("running devices={} task_id={:?}", devices.len(), task_id_opt)),
         });
@@ -579,7 +579,7 @@ pub async fn get_scanner_server_info(
                 hardware::scanner::get_local_ip().unwrap_or_else(|| "localhost".to_string());
 
             let task_id = state.scanner_task_id.read().await.clone();
-            let started_at = state.scanner_task_started_at.read().await.clone().unwrap_or(0);
+            let started_at = (*state.scanner_task_started_at.read().await).unwrap_or(0);
 
             Ok(Some(ScannerServerInfo {
                 running: true,

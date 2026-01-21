@@ -152,16 +152,13 @@ impl NetworkClient {
         loop {
             tokio::select! {
                 event = receiver.recv_async() => {
-                     match event {
-                         Ok(ServiceEvent::ServiceResolved(info)) => {
-                             if let Some(ip) = info.get_addresses().iter().next() {
-                                  let ip_str = ip.to_string();
-                                  let port = info.get_port();
-                                  self.broadcast(ClientEvent::MasterFound(ip_str.clone(), port));
-                                  return Some((ip_str, port));
-                             }
-                         },
-                         _ => {}
+                     if let Ok(ServiceEvent::ServiceResolved(info)) = event {
+                         if let Some(ip) = info.get_addresses().iter().next() {
+                              let ip_str = ip.to_string();
+                              let port = info.get_port();
+                              self.broadcast(ClientEvent::MasterFound(ip_str.clone(), port));
+                              return Some((ip_str, port));
+                         }
                      }
                 }
                 _ = &mut timeout => {

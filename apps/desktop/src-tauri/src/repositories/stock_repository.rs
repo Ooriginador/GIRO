@@ -515,6 +515,6 @@ mod tests {
         .unwrap();
 
         let expiring = repo.find_expiring_lots(7).await.unwrap();
-        assert!(expiring.len() >= 1);
+        assert!(!expiring.is_empty());
     }
 }

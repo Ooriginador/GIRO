@@ -487,6 +487,27 @@ impl WeightedBarcode {
 // TESTES
 // ════════════════════════════════════════════════════════════════════════════
 
+// Implementação da trait HardwareDevice para Scale
+impl crate::hardware::HardwareDevice for Scale {
+    fn health_check(&self) -> Result<crate::hardware::HardwareStatus, String> {
+        let name = format!("scale:{:?}", self.config.protocol);
+
+        if !self.config.enabled {
+            return Ok(crate::hardware::HardwareStatus {
+                name,
+                ok: false,
+                message: Some("disabled".to_string()),
+            });
+        }
+
+        match self.test_connection() {
+            Ok(true) => Ok(crate::hardware::HardwareStatus { name, ok: true, message: Some("ok".to_string()) }),
+            Ok(false) => Ok(crate::hardware::HardwareStatus { name, ok: false, message: Some("timeout or no response".to_string()) }),
+            Err(e) => Ok(crate::hardware::HardwareStatus { name, ok: false, message: Some(format!("error: {}", e)) }),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -525,23 +546,3 @@ mod tests {
     }
 }
 
-// Implementação da trait HardwareDevice para Scale
-impl crate::hardware::HardwareDevice for Scale {
-    fn health_check(&self) -> Result<crate::hardware::HardwareStatus, String> {
-        let name = format!("scale:{:?}", self.config.protocol);
-
-        if !self.config.enabled {
-            return Ok(crate::hardware::HardwareStatus {
-                name,
-                ok: false,
-                message: Some("disabled".to_string()),
-            });
-        }
-
-        match self.test_connection() {
-            Ok(true) => Ok(crate::hardware::HardwareStatus { name, ok: true, message: Some("ok".to_string()) }),
-            Ok(false) => Ok(crate::hardware::HardwareStatus { name, ok: false, message: Some("timeout or no response".to_string()) }),
-            Err(e) => Ok(crate::hardware::HardwareStatus { name, ok: false, message: Some(format!("error: {}", e)) }),
-        }
-    }
-}
