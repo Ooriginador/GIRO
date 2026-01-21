@@ -24,7 +24,9 @@ describe('cn', () => {
   });
 
   it('should handle conditional classes', () => {
-    const result = cn('base', false && 'hidden', true && 'visible');
+    const isHidden = false;
+    const isVisible = true;
+    const result = cn('base', isHidden && 'hidden', isVisible && 'visible');
     expect(result).toContain('base');
     expect(result).toContain('visible');
     expect(result).not.toContain('hidden');

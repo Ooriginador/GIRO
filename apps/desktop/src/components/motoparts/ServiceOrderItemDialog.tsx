@@ -80,7 +80,7 @@ export function ServiceOrderItemDialog({
 
   const { addItem, updateItem } = useServiceOrderItems(orderId);
   const { services, isLoading: isLoadingServices, createService } = useServices();
-  const { data: employees, isLoading: _isLoadingEmployees } = useEmployees();
+  const { data: employees = [] } = useEmployees();
 
   // Busca de produtos
   const { data: products, isLoading: isLoadingProducts } = useProducts({
