@@ -38,7 +38,17 @@ export const FiscalSettings = () => {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const settings = await invoke<any>('get_fiscal_settings');
+        const settings = await invoke<{
+          enabled: boolean;
+          uf: string;
+          environment: number;
+          serie: number;
+          nextNumber: number;
+          cscId?: string;
+          csc?: string;
+          certPath?: string;
+          certPassword?: string;
+        }>('get_fiscal_settings');
         setEnabled(settings.enabled);
         setUf(settings.uf);
         setEnvironment(settings.environment.toString());

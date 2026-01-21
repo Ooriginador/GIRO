@@ -245,11 +245,11 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
       return summary as T;
     }
     case 'create_employee': {
-      const input = (args?.input as any) ?? {};
+      const input = (args?.input as Record<string, unknown>) ?? {};
       const newEmp: Employee = {
         id: randomId('emp'),
         name: (input.name as string) ?? 'Employee',
-        role: (input.role as any) ?? 'OPERATOR',
+        role: (input.role as EmployeeRole) ?? 'OPERATOR',
         pin: (input.pin as string) ?? '0000',
         isActive: true,
       } as unknown as Employee;
@@ -259,7 +259,7 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
     }
     case 'create_supplier': {
       // Suppliers are not persisted in the simple WebMock DB yet; return a minimal stub
-      const input = (args?.input as any) ?? {};
+      const input = (args?.input as Record<string, unknown>) ?? {};
       const supplier: Supplier = {
         id: randomId('supplier'),
         name: (input.name as string) ?? 'Supplier',
@@ -320,7 +320,7 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
       console.log('[Tauri.result] %s %o', command, raw);
 
       // If backend returns TauriResponse wrapper, unwrap it
-      if (raw && typeof raw === 'object' && 'success' in (raw as any)) {
+      if (raw && typeof raw === 'object' && 'success' in (raw as Record<string, unknown>)) {
         const wrapped = raw as TauriResponse<unknown>;
         if (!wrapped.success) {
           const errMsg = wrapped.error ?? `Erro no comando ${command}`;
@@ -1170,8 +1170,8 @@ export async function validateLicense(licenseKey: string): Promise<LicenseInfo> 
   return tauriInvoke<LicenseInfo>('validate_license', { licenseKey });
 }
 
-export async function getStoredLicense(): Promise<any> {
-  return tauriInvoke<any>('get_stored_license');
+export async function getStoredLicense(): Promise<unknown> {
+  return tauriInvoke<unknown>('get_stored_license');
 }
 
 export async function restoreLicense(): Promise<string | null> {

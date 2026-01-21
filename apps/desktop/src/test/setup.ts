@@ -50,7 +50,7 @@ if (!window.PointerEvent) {
       super(type, params);
     }
   }
-  window.PointerEvent = PointerEvent as any;
+  window.PointerEvent = PointerEvent as unknown as typeof window.PointerEvent;
 }
 
 // Mock Pointer Capture methods (Radix UI)

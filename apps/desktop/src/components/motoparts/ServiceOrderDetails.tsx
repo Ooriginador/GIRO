@@ -89,7 +89,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
   }>({ open: false, type: null });
   const [itemDialogState, setItemDialogState] = useState<{
     open: boolean;
-    item?: any | null;
+    item?: ServiceOrderItem | null;
   }>({ open: false, item: null });
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 

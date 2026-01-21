@@ -105,6 +105,7 @@ export const LicenseGuard: FC<LicenseGuardProps> = ({ children }) => {
     }, 10000);
 
     return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     e2eBypass,
     hydrateFromDisk,
