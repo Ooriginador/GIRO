@@ -213,13 +213,12 @@ vi.mock('@/components/guards', () => ({
 }));
 
 // Provide a robust default mock for '@/lib/tauri' so tests that
-// partially mock it via `importOriginal` will have the expected exports.
-vi.mock('@/lib/tauri', async (importOriginal) => {
-  const original = await importOriginal();
-
+// use it will have all expected exports stubbed.
+// NOTE: Removed `importOriginal()` which was causing deadlock/hang in CI.
+vi.mock('@/lib/tauri', () => {
   // List of common functions used across the app tests. We stub
   // them with `vi.fn()` or simple async defaults to keep tests stable.
-  const stub = {
+  return {
     invoke: vi.fn(),
     invokeSafe: vi.fn(),
     getProducts: vi.fn(async () => []),
@@ -231,8 +230,11 @@ vi.mock('@/lib/tauri', async (importOriginal) => {
     closeCashSession: vi.fn(async () => null),
     addCashMovement: vi.fn(async () => undefined),
     getCashSessionSummary: vi.fn(async () => null),
+    getCashSessionHistory: vi.fn(async () => []),
     getEmployees: vi.fn(async () => []),
     authenticateEmployee: vi.fn(async () => null),
+    hasAdmin: vi.fn(async () => false),
+    hasAnyEmployee: vi.fn(async () => false),
     getMonthlySummary: vi.fn(async () => ({ yearMonth: '', totalSales: 0, totalAmount: 0 })),
     getHardwareId: vi.fn(async () => 'MOCK-HWID-123'),
     activateLicense: vi.fn(async () => ({})),
@@ -245,11 +247,24 @@ vi.mock('@/lib/tauri', async (importOriginal) => {
     getSetting: vi.fn(async () => null),
     setSetting: vi.fn(async () => undefined),
     seedDatabase: vi.fn(async () => ''),
-    // keep original exports as fallback
-    ...original,
+    createEmployee: vi.fn(async () => ({})),
+    updateEmployee: vi.fn(async () => ({})),
+    deactivateEmployee: vi.fn(async () => undefined),
+    createProduct: vi.fn(async () => ({})),
+    updateProduct: vi.fn(async () => ({})),
+    deleteProduct: vi.fn(async () => undefined),
+    getSales: vi.fn(async () => ({ items: [], total: 0, page: 1, pageSize: 10 })),
+    createSale: vi.fn(async () => ({})),
+    cancelSale: vi.fn(async () => ({})),
+    getTodaySales: vi.fn(async () => []),
+    getDailySalesTotal: vi.fn(async () => 0),
+    getSuppliers: vi.fn(async () => []),
+    createSupplier: vi.fn(async () => ({})),
+    getAlerts: vi.fn(async () => []),
+    getUnreadAlertsCount: vi.fn(async () => 0),
+    getLowStockProducts: vi.fn(async () => []),
+    getExpiringLots: vi.fn(async () => []),
   };
-
-  return stub;
 });
 
 // Clean state between tests to avoid leaking the web mock DB and mocks.
