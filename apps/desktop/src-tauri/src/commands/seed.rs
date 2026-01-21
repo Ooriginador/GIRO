@@ -133,6 +133,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
             pin: "8899".to_string(), // Alterado de 1234 para segurança
             password: Some("admin123".to_string()),
             role: Some(EmployeeRole::Admin),
+            commission_rate: None,
         }).await?;
         admin.id
     };

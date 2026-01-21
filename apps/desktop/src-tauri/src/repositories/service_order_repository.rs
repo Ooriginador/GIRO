@@ -1284,4 +1284,161 @@ impl ServiceOrderRepository {
                 id: id.to_string(),
             })
     }
+
+    /// Finaliza uma OS, gerando venda e movimento financeiro
+    pub async fn finish_order_transaction(
+        &self,
+        order_id: &str,
+        payment_method: &str,
+        amount_paid: f64,
+        employee_id: &str,
+        cash_session_id: &str,
+    ) -> AppResult<String> {
+        let mut tx = self.pool.begin().await?;
+
+        // 1. Validar OS
+        let order = sqlx::query_as::<_, ServiceOrder>("SELECT * FROM service_orders WHERE id = ?")
+            .bind(order_id)
+            .fetch_optional(&mut *tx)
+            .await?
+            .ok_or_else(|| AppError::NotFound {
+                entity: "ServiceOrder".into(),
+                id: order_id.into(),
+            })?;
+
+        if order.status != "OPEN" && order.status != "IN_PROGRESS" {
+            return Err(AppError::Validation(format!(
+                "Ordem de serviço não pode ser finalizada com status {}",
+                order.status
+            )));
+        }
+
+        let total = order.total;
+        let discount = order.discount;
+        let subtotal = order.labor_cost + order.parts_cost;
+        let change_val = amount_paid - total;
+        let sale_id = new_id();
+        let now = chrono::Utc::now().to_rfc3339();
+
+        // 2. Gerar número diário (simples)
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let daily_count: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM sales WHERE date(created_at) = ?"
+        )
+        .bind(&today)
+        .fetch_one(&mut *tx)
+        .await?;
+        let daily_number = daily_count.0 + 1;
+
+        // 3. Criar Venda (Sale)
+    // Nota: Colunas renomeadas na migration 003 (discount->discount_value, change_amount->change, session_id->cash_session_id)
+    sqlx::query(
+        "INSERT INTO sales (id, daily_number, subtotal, discount_value, total, payment_method, amount_paid, change, status, employee_id, cash_session_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?)"
+    )
+    .bind(&sale_id)
+    .bind(daily_number)
+    .bind(subtotal)
+    .bind(discount)
+    .bind(total)
+    .bind(payment_method)
+    .bind(amount_paid)
+    .bind(change_val)
+    .bind(employee_id)
+    .bind(cash_session_id)
+    .bind(&now)
+    .execute(&mut *tx)
+    .await?;
+
+        // 4. Criar Itens da Venda (Apenas PEÇAS)
+        // 4. Criar Itens da Venda (Apenas PEÇAS)
+        let parts_rows = sqlx::query(
+            r#"
+            SELECT 
+                op.product_id, op.quantity, op.unit_price, op.discount_value, op.total,
+                p.name as product_name, p.barcode as product_barcode, p.unit as product_unit
+            FROM order_products op
+            JOIN products p ON p.id = op.product_id
+            WHERE op.order_id = ?
+            "#
+        )
+        .bind(order_id)
+        .fetch_all(&mut *tx)
+        .await?;
+
+        use sqlx::Row;
+        for row in parts_rows {
+             let product_id: String = row.get("product_id");
+             let quantity: f64 = row.get("quantity");
+             let unit_price: f64 = row.get("unit_price");
+             let discount_value: f64 = row.get("discount_value");
+             let total: f64 = row.get("total");
+             let product_name: String = row.get("product_name");
+             // Wait, `p.barcode` logic. `row.get` might fail if null unless `Option<String>`.
+             let product_barcode: Option<String> = row.try_get("product_barcode").ok();
+             let product_unit: String = row.get("product_unit");
+
+            let item_id = new_id();
+            sqlx::query(
+                "INSERT INTO sale_items (id, sale_id, product_id, quantity, unit_price, discount, total, product_name, product_barcode, product_unit, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            )
+            .bind(item_id)
+            .bind(&sale_id)
+            .bind(product_id)
+            .bind(quantity)
+            .bind(unit_price)
+            .bind(discount_value)
+            .bind(total)
+            .bind(product_name)
+            .bind(product_barcode)
+            .bind(product_unit)
+            .bind(&now)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        // 5. Atualizar OS
+    sqlx::query(
+        "UPDATE service_orders SET status = 'DELIVERED', is_paid = 1, sale_id = ?, updated_at = ? WHERE id = ?"
+    )
+    .bind(&sale_id)
+    .bind(&now)
+    .bind(order_id)
+    .execute(&mut *tx)
+    .await?;
+
+        // 6. Calcular e Registrar Comissão (para o mecânico da OS, se houver taxa configurada)
+        // Usando query runtime para evitar erros de verificação offline com tabela nova
+        let mechanic_row = sqlx::query("SELECT commission_rate FROM employees WHERE id = ?")
+            .bind(&order.employee_id)
+            .fetch_optional(&mut *tx)
+            .await?;
+
+        if let Some(row) = mechanic_row {
+            // commission_rate pode ser NULL no banco
+            let rate_opt: Option<f64> = row.try_get("commission_rate").ok();
+            
+            if let Some(rate) = rate_opt {
+                if rate > 0.0 {
+                    let commission_amount = total * (rate / 100.0);
+                    let commission_id = new_id();
+                    
+                    sqlx::query(
+                        "INSERT INTO commissions (id, sale_id, employee_id, amount, rate_snapshot, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+                    )
+                    .bind(commission_id)
+                    .bind(&sale_id)
+                    .bind(&order.employee_id)
+                    .bind(commission_amount)
+                    .bind(rate)
+                    .bind(&now)
+                    .execute(&mut *tx)
+                    .await?;
+                }
+            }
+        }
+
+        tx.commit().await?;
+
+        Ok(sale_id)
+    }
 }

@@ -44,7 +44,14 @@ export const Sidebar: FC = () => {
   const navItems: NavItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', tutorialId: 'nav-dashboard' },
     ...(isFeatureEnabled('serviceOrders')
-      ? [{ icon: Wrench, label: 'Ordens de Serviço', href: '/service-orders' }]
+      ? [
+          {
+            icon: BarChart3,
+            label: 'Dashboard (Oficina)',
+            href: '/motoparts/dashboard',
+          },
+          { icon: Wrench, label: 'Ordens de Serviço', href: '/service-orders' },
+        ]
       : []),
     ...(isFeatureEnabled('warranties')
       ? [{ icon: ShieldCheck, label: 'Garantias', href: '/warranties' }]

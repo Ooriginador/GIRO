@@ -95,6 +95,7 @@ pub async fn create_first_admin(
         pin: input.pin,
         password: None,
         role: Some(EmployeeRole::Admin),
+        commission_rate: None,
     };
 
     let emp = repo.create(create).await?;

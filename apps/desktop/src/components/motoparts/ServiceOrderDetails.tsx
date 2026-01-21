@@ -41,6 +41,7 @@ import {
 import { invoke } from '@/lib/tauri';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils';
 import { useCompany } from '@/stores/settings-store';
+import { useAuthStore } from '@/stores/auth-store';
 import {
   AlertTriangle,
   Calendar,
@@ -77,6 +78,7 @@ interface ServiceOrderDetailsProps {
 export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDetailsProps) {
   const { toast } = useToast();
   const { company } = useCompany();
+  const { employee, currentSession } = useAuthStore();
   const { orderDetails, isLoading, refetch } = useServiceOrderDetails(orderId);
   const { items, removeItem } = useServiceOrderItems(orderId);
   const { startOrder, completeOrder, deliverOrder, cancelOrder, updateOrder } = useServiceOrders();
@@ -154,10 +156,22 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
   };
 
   const handleDeliverOrder = async (data: { paymentMethod: PaymentMethod; amountPaid: number }) => {
+    if (!employee || !currentSession) {
+      toast({
+        title: 'Erro de sessão',
+        description: 'Usuário não autenticado ou caixa fechado',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       await deliverOrder.mutateAsync({
         id: orderId,
         paymentMethod: data.paymentMethod,
+        amountPaid: data.amountPaid,
+        employeeId: employee.id,
+        sessionId: currentSession.id,
       });
       toast({
         title: 'Ordem entregue',
@@ -492,7 +506,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{item.description}</p>
-                          {item.item_type === 'PART' && item.current_stock !== null && (
+                          {item.item_type === 'PART' && typeof item.current_stock === 'number' && (
                             <>
                               {item.current_stock < item.quantity ? (
                                 <TooltipProvider>
@@ -506,7 +520,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
                                   </Tooltip>
                                 </TooltipProvider>
                               ) : (
-                                item.min_stock !== null &&
+                                typeof item.min_stock === 'number' &&
                                 item.current_stock <= item.min_stock && (
                                   <TooltipProvider>
                                     <Tooltip>

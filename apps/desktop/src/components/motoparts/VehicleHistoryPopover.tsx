@@ -1,9 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
 import { useVehicleHistory } from '@/hooks/useServiceOrders';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Clock, History, Loader2, AlertCircle } from 'lucide-react';
+import { Clock, History, Loader2 } from 'lucide-react';
 import { FC } from 'react';
 import { ServiceOrderStatusBadge } from './ServiceOrderList';
 

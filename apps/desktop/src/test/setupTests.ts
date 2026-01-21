@@ -31,7 +31,7 @@ export function initWebMockDB(overrides: Record<string, unknown> = {}) {
   try {
     Object.defineProperty(window, 'localStorage', {
       value: {
-        getItem: (k: string) => JSON.stringify(db),
+        getItem: (_k: string) => JSON.stringify(db),
         setItem: (_k: string, _v: string) => undefined,
         removeItem: (_k: string) => undefined,
         clear: () => undefined,

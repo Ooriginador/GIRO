@@ -27,7 +27,7 @@ import { CustomersPage } from '@/pages/customers';
 import { DashboardPage } from '@/pages/dashboard';
 import { EmployeesPage } from '@/pages/employees';
 import { LicenseActivationPage } from '@/pages/license';
-import { ServiceOrdersPage, WarrantiesPage } from '@/pages/motoparts';
+import { MotopartsDashboardPage, ServiceOrdersPage, WarrantiesPage } from '@/pages/motoparts';
 import { PDVPage } from '@/pages/pdv';
 import { CategoriesPage, ProductFormPage, ProductsPage } from '@/pages/products';
 import { ReportsPage, SalesReportPage } from '@/pages/reports';
@@ -202,6 +202,7 @@ const App: FC = () => {
             <Route path="dashboard" element={<DashboardPage />} />
 
             {/* Motopeças */}
+            <Route path="motoparts/dashboard" element={<MotopartsDashboardPage />} />
             <Route path="service-orders" element={<ServiceOrdersPage />} />
             <Route path="warranties" element={<WarrantiesPage />} />
 

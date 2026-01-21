@@ -41,6 +41,7 @@ mod tests {
             pin: "2345".to_string(),
             password: Some(TEST_PASSWORD.to_string()),
             role: Some(EmployeeRole::Cashier),
+            commission_rate: None,
         };
 
         let result = repo.create(input).await;
@@ -67,6 +68,7 @@ mod tests {
             pin: "5678".to_string(),
             password: None,
             role: None,
+            commission_rate: None,
         };
         repo.create(input1).await.unwrap();
 
@@ -79,6 +81,7 @@ mod tests {
             pin: "5678".to_string(),
             password: None,
             role: None,
+            commission_rate: None,
         };
 
         let result = repo.create(input2).await;
@@ -98,6 +101,7 @@ mod tests {
             pin: "9999".to_string(),
             password: None,
             role: Some(EmployeeRole::Admin),
+            commission_rate: None,
         };
         repo.create(input).await.unwrap();
 
@@ -128,6 +132,7 @@ mod tests {
             pin: "1111".to_string(),
             password: None,
             role: None,
+            commission_rate: None,
         };
         repo.create(input).await.unwrap();
 
@@ -154,6 +159,7 @@ mod tests {
                 pin: format!("{:04}", i),
                 password: None,
                 role: None,
+                commission_rate: None,
             };
             let emp = repo.create(input).await.unwrap();
 
@@ -191,6 +197,7 @@ mod tests {
             pin: "2222".to_string(),
             password: None,
             role: Some(EmployeeRole::Cashier),
+            commission_rate: None,
         };
         let employee = repo.create(input).await.unwrap();
 
@@ -221,6 +228,7 @@ mod tests {
             pin: "3333".to_string(),
             password: None,
             role: None,
+            commission_rate: None,
         };
         let employee = repo.create(input).await.unwrap();
 
@@ -254,6 +262,7 @@ mod tests {
                 pin: format!("40{:02}", i),
                 password: None,
                 role: Some(*role),
+                commission_rate: None,
             };
             let employee = repo.create(input).await.unwrap();
 

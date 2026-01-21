@@ -5,7 +5,7 @@ import {
   useServiceOrders,
 } from '@/hooks/useServiceOrders';
 import { createQueryWrapper } from '@/test/queryWrapper';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dos hooks
@@ -120,8 +120,10 @@ describe('ServiceOrderDetails', () => {
     } as any);
   });
 
-  it('should render full order details', () => {
-    render(<ServiceOrderDetails orderId="os-1" onClose={vi.fn()} />, { wrapper: queryWrapper });
+  it('should render full order details', async () => {
+    await act(async () => {
+      render(<ServiceOrderDetails orderId="os-1" onClose={vi.fn()} />, { wrapper: queryWrapper });
+    });
 
     expect(screen.getByText(/OS #101/)).toBeInTheDocument();
     expect(screen.getByText(/João Silva/)).toBeInTheDocument();
@@ -139,32 +141,48 @@ describe('ServiceOrderDetails', () => {
   });
 
   it('should handle start action', async () => {
-    render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+    await act(async () => {
+      render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+    });
 
-    fireEvent.click(screen.getByRole('button', { name: /Iniciar Serviço/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Confirmar/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Iniciar Serviço/i }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Confirmar/i }));
+    });
 
     expect(mockStart).toHaveBeenCalledWith('os-1');
   });
 
   it('should handle cancel action', async () => {
-    render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+    await act(async () => {
+      render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+    });
 
-    fireEvent.click(screen.getByRole('button', { name: /Cancelar Ordem/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Confirmar/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Cancelar Ordem/i }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Confirmar/i }));
+    });
 
     expect(mockCancel).toHaveBeenCalledWith({ id: 'os-1' });
   });
 
   it('should handle item removal', async () => {
-    render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+    await act(async () => {
+      render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+    });
 
     // Encontrar o botão de remover do primeiro item (Óleo)
     const removeButtons = screen
       .getAllByRole('button')
       .filter((b) => b.querySelector('svg.lucide-trash2'));
     if (removeButtons.length > 0) {
-      fireEvent.click(removeButtons[0]);
+      await act(async () => {
+        fireEvent.click(removeButtons[0]);
+      });
     }
 
     expect(mockRemove).toHaveBeenCalledWith('i-1');
@@ -172,9 +190,13 @@ describe('ServiceOrderDetails', () => {
 
   it('should handle print action', async () => {
     const { invoke } = await import('@/lib/tauri');
-    render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+    await act(async () => {
+      render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+    });
 
-    fireEvent.click(screen.getByRole('button', { name: /Imprimir/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Imprimir/i }));
+    });
     expect(invoke).toHaveBeenCalledWith('print_service_order', expect.any(Object));
   });
 
@@ -187,11 +209,16 @@ describe('ServiceOrderDetails', () => {
       isLoading: false,
       refetch: mockRefetch,
     } as any);
+    await act(async () => {
+      render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+    });
 
-    render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
-
-    fireEvent.click(screen.getByRole('button', { name: /Marcar como Concluída/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Confirmar/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Marcar como Concluída/i }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Confirmar/i }));
+    });
 
     expect(mockComplete).toHaveBeenCalledWith({ id: 'os-1', diagnosis: 'Teste' });
   });
@@ -205,11 +232,16 @@ describe('ServiceOrderDetails', () => {
       isLoading: false,
       refetch: mockRefetch,
     } as any);
+    await act(async () => {
+      render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+    });
 
-    render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
-
-    fireEvent.click(screen.getByRole('button', { name: /Entregar ao Cliente/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Confirmar/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Entregar ao Cliente/i }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Confirmar/i }));
+    });
 
     expect(mockDeliver).toHaveBeenCalledWith({ id: 'os-1', paymentMethod: 'DINHEIRO' });
   });
@@ -223,22 +255,29 @@ describe('ServiceOrderDetails', () => {
       isLoading: false,
       refetch: mockRefetch,
     } as any);
+    await act(async () => {
+      render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
+    });
 
-    render(<ServiceOrderDetails orderId="os-1" />, { wrapper: queryWrapper });
-
-    fireEvent.click(screen.getByRole('button', { name: /Aprovar Orçamento/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Confirmar/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Aprovar Orçamento/i }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Confirmar/i }));
+    });
 
     expect(vi.mocked(useServiceOrders)().startOrder.mutateAsync).toHaveBeenCalledWith('os-1');
   });
 
-  it('should show "Not Found" message if order data is missing', () => {
+  it('should show "Not Found" message if order data is missing', async () => {
     vi.mocked(useServiceOrderDetails).mockReturnValue({
       orderDetails: null,
       isLoading: false,
     } as any);
 
-    render(<ServiceOrderDetails orderId="os-notFound" />, { wrapper: queryWrapper });
+    await act(async () => {
+      render(<ServiceOrderDetails orderId="os-notFound" />, { wrapper: queryWrapper });
+    });
     expect(screen.getByText(/Ordem não encontrada/i)).toBeInTheDocument();
   });
 });

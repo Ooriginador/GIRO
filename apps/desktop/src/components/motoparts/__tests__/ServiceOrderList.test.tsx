@@ -5,7 +5,7 @@ import {
 } from '@/components/motoparts/ServiceOrderList';
 import { useServiceOrders } from '@/hooks/useServiceOrders';
 import { createQueryWrapper } from '@/test/queryWrapper';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock do hook e utils
@@ -56,32 +56,38 @@ describe('ServiceOrderList', () => {
     });
   };
 
-  it('should render the list and filter by search term', () => {
+  it('should render the list and filter by search term', async () => {
     vi.mocked(useServiceOrders).mockReturnValue({
       openOrders: mockOrders,
       isLoadingOpen: false,
     } as any);
 
-    renderComponent();
+    await act(async () => {
+      renderComponent();
+    });
 
     expect(screen.getByText(/João Silva/)).toBeInTheDocument();
     expect(screen.getByText(/Maria Souze/)).toBeInTheDocument();
 
     // Buscar por placa
     const searchInput = screen.getByPlaceholderText(/Buscar por número/i);
-    fireEvent.change(searchInput, { target: { value: 'ABC' } });
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'ABC' } });
+    });
 
     expect(screen.getByText(/João Silva/)).toBeInTheDocument();
     expect(screen.queryByText(/Maria Souze/)).not.toBeInTheDocument();
   });
 
-  it('should filter by status', () => {
+  it('should filter by status', async () => {
     vi.mocked(useServiceOrders).mockReturnValue({
       openOrders: mockOrders,
       isLoadingOpen: false,
     } as any);
 
-    renderComponent();
+    await act(async () => {
+      renderComponent();
+    });
 
     // No JSDOM, testar o Radix Select é complexo se for o componente real.
     // Mas o ServiceOrderList usa o state statusFilter.
@@ -90,23 +96,25 @@ describe('ServiceOrderList', () => {
     expect(screen.getByText(/Maria Souze/)).toBeInTheDocument();
   });
 
-  it('should show empty state message', () => {
+  it('should show empty state message', async () => {
     vi.mocked(useServiceOrders).mockReturnValue({
       openOrders: [],
       isLoadingOpen: false,
     } as any);
-
-    renderComponent();
+    await act(async () => {
+      renderComponent();
+    });
     expect(screen.getByText(/Nenhuma ordem encontrada/i)).toBeInTheDocument();
   });
 
-  it('should show loading state', () => {
+  it('should show loading state', async () => {
     vi.mocked(useServiceOrders).mockReturnValue({
       openOrders: [],
       isLoadingOpen: true,
     } as any);
-
-    renderComponent();
+    await act(async () => {
+      renderComponent();
+    });
     expect(screen.getByText(/Carregando ordens/i)).toBeInTheDocument();
   });
 });

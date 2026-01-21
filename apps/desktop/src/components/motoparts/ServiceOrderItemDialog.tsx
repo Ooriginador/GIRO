@@ -31,7 +31,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { Product } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Loader2, Package, Plus, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { toast } from 'sonner';
@@ -80,7 +80,7 @@ export function ServiceOrderItemDialog({
 
   const { addItem, updateItem } = useServiceOrderItems(orderId);
   const { services, isLoading: isLoadingServices, createService } = useServices();
-  const { employees, isLoading: isLoadingEmployees } = useEmployees();
+  const { data: employees, isLoading: _isLoadingEmployees } = useEmployees();
 
   // Busca de produtos
   const { data: products, isLoading: isLoadingProducts } = useProducts({
@@ -539,7 +539,7 @@ export function ServiceOrderItemDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {employees?.map((employee) => (
+                      {employees?.map((employee: any) => (
                         <SelectItem key={employee.id} value={employee.id}>
                           {employee.name}
                         </SelectItem>
