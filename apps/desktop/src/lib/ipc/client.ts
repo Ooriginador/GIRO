@@ -10,7 +10,7 @@ async function safeInvoke<T>(cmd: string, payload?: unknown): Promise<T> {
 }
 
 export async function safeActivateLicense(licenseKey: string) {
-  return safeInvoke<any>('license.activate', { licenseKey });
+  return safeInvoke<unknown>('license.activate', { licenseKey });
 }
 
 export async function safeGetHardwareId() {
@@ -18,7 +18,7 @@ export async function safeGetHardwareId() {
 }
 
 export async function safeGetStoredLicense() {
-  return safeInvoke<Record<string, any> | null>('license.get_stored');
+  return safeInvoke<Record<string, unknown> | null>('license.get_stored');
 }
 
 export async function safeGetServerTime() {
@@ -30,15 +30,15 @@ export async function safeRestoreLicense() {
 }
 
 export async function safeCreateSale(input: CreateSale) {
-  return safeInvoke<any>('create_sale', { ...input });
+  return safeInvoke<unknown>('create_sale', { ...input });
 }
 
 export async function safeOpenCashSession(input: CreateCashSession) {
-  return safeInvoke<any>('open_cash_session', { ...input });
+  return safeInvoke<unknown>('open_cash_session', { ...input });
 }
 
 export async function safePrintReceipt(receipt: Receipt) {
-  return safeInvoke<any>('print_receipt', { ...receipt });
+  return safeInvoke<unknown>('print_receipt', { ...receipt });
 }
 
 // Legacy direct commands (kept for compatibility)
@@ -49,17 +49,17 @@ export async function activateLicense(licenseKey: string) {
 
 export async function openCashSession(input: CreateCashSession) {
   const res = await invoke('open_cash_session', { input });
-  return res as any;
+  return res as unknown;
 }
 
 export async function createSale(input: CreateSale) {
   const res = await invoke('create_sale', { input });
-  return res as any;
+  return res as unknown;
 }
 
 export async function printReceipt(receipt: Receipt) {
   const res = await invoke('print_receipt', { receipt });
-  return res as any;
+  return res as unknown;
 }
 
 export default {

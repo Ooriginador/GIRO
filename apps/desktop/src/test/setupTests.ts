@@ -3,12 +3,16 @@ import fixtures from './fixtures';
 
 // Shared mock for Tauri invoke used in many tests
 export const mockInvokeResolved = (value: unknown) => {
-  const mod = vi.mocked(importMockedInvoke(), true) as any;
+  const mod = vi.mocked(importMockedInvoke(), true) as unknown as {
+    mockResolvedValue: (v: unknown) => void;
+  };
   mod.mockResolvedValue(value);
 };
 
 export const mockInvokeRejected = (err: unknown) => {
-  const mod = vi.mocked(importMockedInvoke(), true) as any;
+  const mod = vi.mocked(importMockedInvoke(), true) as unknown as {
+    mockRejectedValue: (v: unknown) => void;
+  };
   mod.mockRejectedValue(err);
 };
 

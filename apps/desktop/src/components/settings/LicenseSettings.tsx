@@ -14,6 +14,19 @@ export function LicenseSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  const validate = useCallback(async (key: string) => {
+    setIsLoading(true);
+    try {
+      const result = await validateLicense(key);
+      setInfo(result);
+    } catch (error) {
+      console.error('Validation failed:', error);
+      // Don't clear key, just show error state
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const loadLicense = useCallback(async () => {
     try {
       const storedKey = await getSetting('system.license_key');
@@ -27,20 +40,7 @@ export function LicenseSettings() {
       console.error('Failed to load license:', error);
       setIsLoading(false);
     }
-  }, []);
-
-  const validate = useCallback(async (key: string) => {
-    setIsLoading(true);
-    try {
-      const result = await validateLicense(key);
-      setInfo(result);
-    } catch (error) {
-      console.error('Validation failed:', error);
-      // Don't clear key, just show error state
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  }, [validate]);
 
   useEffect(() => {
     loadLicense();

@@ -32,6 +32,17 @@ import { CustomerSearch } from './CustomerSearch';
 import { VehicleHistoryPopover } from './VehicleHistoryPopover';
 import { History } from 'lucide-react';
 
+interface Vehicle {
+  id: string;
+  plate?: string;
+  displayName?: string;
+  make?: string;
+  model?: string;
+  color?: string;
+  currentKm?: number;
+  vehicleYearId: string;
+}
+
 // Schema
 const formSchema = z.object({
   customer_id: z.string().min(1, 'Cliente obrigatório'),
@@ -75,7 +86,7 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
         return;
       }
 
-      const selectedVehicle = vehicles.find((v: any) => v.id === values.customer_vehicle_id);
+      const selectedVehicle = vehicles.find((v: Vehicle) => v.id === values.customer_vehicle_id);
       if (!selectedVehicle) {
         toast({
           title: 'Veículo inválido',
@@ -200,7 +211,7 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
                     disabled={!selectedCustomerId || isLoadingVehicles}
                     onValueChange={(value) => {
                       field.onChange(value);
-                      const v = vehicles.find((vv: any) => vv.id === value);
+                      const v = vehicles.find((vv: Vehicle) => vv.id === value);
                       if (v?.currentKm != null) {
                         form.setValue('vehicle_km', v.currentKm);
                       }
@@ -221,7 +232,7 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {vehicles?.map((v: any) => (
+                      {vehicles?.map((v: Vehicle) => (
                         <SelectItem key={v.id} value={v.id}>
                           {v.plate ? `${v.plate} - ` : ''}
                           {v.displayName || `${v.make} ${v.model}`}
@@ -246,7 +257,7 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
                 name="vehicle_km"
                 render={({ field }) => {
                   const selectedVehicleId = form.watch('customer_vehicle_id');
-                  const selectedVehicle = vehicles.find((v: any) => v.id === selectedVehicleId);
+                  const selectedVehicle = vehicles.find((v: Vehicle) => v.id === selectedVehicleId);
                   const currentKm = selectedVehicle?.currentKm || 0;
                   const isKmLower = field.value < currentKm;
 

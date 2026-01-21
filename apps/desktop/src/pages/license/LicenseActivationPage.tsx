@@ -208,6 +208,7 @@ export function LicenseActivationPage() {
     };
 
     initialize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrateFromDisk, navigate, setState, validateStoredLicense, performActivation, toast]);
 
   const handleActivate = async () => {

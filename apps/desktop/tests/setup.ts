@@ -75,7 +75,7 @@ if (typeof window !== 'undefined' && !window.PointerEvent) {
       super(type, params);
     }
   }
-  window.PointerEvent = PointerEvent as any;
+  window.PointerEvent = PointerEvent as unknown as typeof window.PointerEvent;
 }
 
 // Mock Pointer Capture methods (Radix UI)
@@ -162,20 +162,20 @@ const _iconNames = [
   'CheckCircle2',
 ];
 
-const _makeIcon = (name: string) => (props: any) =>
+const _makeIcon = (name: string) => (props: React.SVGProps<SVGSVGElement>) =>
   React.createElement('svg', { 'data-testid': `icon-${name}`, ...props });
 
 // Create a Proxy that provides icon components for any requested name.
 // Implement `has`, `getOwnPropertyDescriptor` and `ownKeys` so module
 // shape checks (used by Vitest) succeed even for dynamic names.
-const _exportsTarget: Record<string, any> = {};
+const _exportsTarget: Record<string, unknown> = {};
 _iconNames.forEach((n) => (_exportsTarget[n] = _makeIcon(n)));
 _exportsTarget.default = {};
 
 const lucideHandler: ProxyHandler<typeof _exportsTarget> = {
   get(target, prop) {
     if (prop === 'default') return target.default;
-    if (typeof prop === 'symbol') return (target as any)[prop];
+    if (typeof prop === 'symbol') return (target as Record<string | symbol, unknown>)[prop];
     const name = String(prop);
     if (!(name in target)) target[name] = _makeIcon(name);
     return target[name];
@@ -184,7 +184,7 @@ const lucideHandler: ProxyHandler<typeof _exportsTarget> = {
     return true;
   },
   getOwnPropertyDescriptor(target, prop) {
-    if (typeof prop === 'symbol') return Object.getOwnPropertyDescriptor(target, prop as any);
+    if (typeof prop === 'symbol') return Object.getOwnPropertyDescriptor(target, prop);
     const name = String(prop);
     if (!(name in target)) target[name] = _makeIcon(name);
     return {
@@ -199,16 +199,16 @@ const lucideHandler: ProxyHandler<typeof _exportsTarget> = {
   },
 };
 
-const exportsObj = new Proxy(_exportsTarget, lucideHandler) as any;
+const exportsObj = new Proxy(_exportsTarget, lucideHandler);
 
-vi.mock('lucide-react', () => exportsObj as any);
+vi.mock('lucide-react', () => exportsObj);
 
 // Ensure guards exports exist in tests to avoid partial-mock issues
 // Simple deterministic guards mock to avoid partial-mock pitfalls
 vi.mock('@/components/guards', () => ({
-  SessionGuard: ({ children }: { children?: any }) =>
+  SessionGuard: ({ children }: { children?: React.ReactNode }) =>
     React.createElement('div', { 'data-testid': 'session-guard' }, children),
-  LicenseGuard: ({ children }: { children?: any }) =>
+  LicenseGuard: ({ children }: { children?: React.ReactNode }) =>
     React.createElement('div', { 'data-testid': 'license-guard' }, children),
 }));
 
@@ -256,7 +256,7 @@ vi.mock('@/lib/tauri', async (importOriginal) => {
 beforeEach(() => {
   try {
     window.localStorage.removeItem('__giro_web_mock_db__');
-  } catch (e) {
+  } catch {
     /* ignore */
   }
   vi.resetAllMocks();

@@ -8,8 +8,8 @@ export function LicenseActivateExample() {
     try {
       const res = await ipc.safeActivateLicense('GIRO-XXXX-XXXX-XXXX');
       setStatus(`Result: ${JSON.stringify(res)}`);
-    } catch (e: any) {
-      setStatus(`Error: ${e.message}`);
+    } catch (e: unknown) {
+      setStatus(`Error: ${(e as Error).message}`);
     }
   }
 
@@ -17,8 +17,8 @@ export function LicenseActivateExample() {
     try {
       const id = await ipc.safeGetHardwareId();
       setStatus(`Hardware ID: ${id}`);
-    } catch (e: any) {
-      setStatus(`Error: ${e.message}`);
+    } catch (e: unknown) {
+      setStatus(`Error: ${(e as Error).message}`);
     }
   }
 
@@ -26,8 +26,8 @@ export function LicenseActivateExample() {
     try {
       const store = await ipc.safeGetStoredLicense();
       setStatus(`Stored: ${JSON.stringify(store)}`);
-    } catch (e: any) {
-      setStatus(`Error: ${e.message}`);
+    } catch (e: unknown) {
+      setStatus(`Error: ${(e as Error).message}`);
     }
   }
 
@@ -46,8 +46,8 @@ export function LicenseActivateExample() {
                 notes: 'Test',
               });
               setStatus(`Opened session: ${JSON.stringify(session)}`);
-            } catch (e: any) {
-              setStatus(`Error: ${e.message}`);
+            } catch (e: unknown) {
+              setStatus(`Error: ${(e as Error).message}`);
             }
           }}
         >
@@ -62,10 +62,11 @@ export function LicenseActivateExample() {
                 amountPaid: 10,
                 employeeId: 'admin-1',
                 cashSessionId: 'YOUR_SESSION_ID',
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } as any);
               setStatus(`Created sale: ${JSON.stringify(sale)}`);
-            } catch (e: any) {
-              setStatus(`Error: ${e.message}`);
+            } catch (e: unknown) {
+              setStatus(`Error: ${(e as Error).message}`);
             }
           }}
         >

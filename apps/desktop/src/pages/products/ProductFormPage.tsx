@@ -97,7 +97,7 @@ export const ProductFormPage: FC = () => {
         await updateProduct.mutateAsync({
           id,
           ...data,
-          unit: data.unit as any,
+          unit: data.unit as string,
         });
         toast({
           title: 'Produto atualizado',
@@ -107,7 +107,7 @@ export const ProductFormPage: FC = () => {
         await createProduct.mutateAsync({
           ...data,
           costPrice: data.costPrice ?? 0,
-          unit: data.unit as any,
+          unit: data.unit as string,
         });
         toast({
           title: 'Produto criado',

@@ -137,11 +137,11 @@ export const SettingsPage: FC = () => {
     fetchPorts();
 
     // Listen for scan events (Serial Scanner)
-    let unlisten: any;
+    let unlisten: (() => void) | undefined;
     const setupListener = async () => {
       try {
         const { listen } = await import('@tauri-apps/api/event');
-        unlisten = await listen('scan_event', (event: any) => {
+        unlisten = await listen('scan_event', (event: { payload: { code: string } }) => {
           const { code } = event.payload;
           setLastScan(code);
         });
@@ -794,7 +794,10 @@ export const SettingsPage: FC = () => {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label>Modo de Funcionamento</Label>
-                  <Select value={scannerMode} onValueChange={(v: any) => setScannerMode(v)}>
+                  <Select
+                    value={scannerMode}
+                    onValueChange={(v: 'hid' | 'serial') => setScannerMode(v)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -837,10 +840,11 @@ export const SettingsPage: FC = () => {
                         title: 'Scanner iniciado',
                         description: 'O leitor serial está ativo.',
                       });
-                    } catch (e: any) {
+                    } catch (e: unknown) {
+                      const message = e instanceof Error ? e.message : String(e);
                       toast({
                         title: 'Erro ao iniciar scanner',
-                        description: e.message || 'Falha desconhecida',
+                        description: message || 'Falha desconhecida',
                         variant: 'destructive',
                       });
                     }

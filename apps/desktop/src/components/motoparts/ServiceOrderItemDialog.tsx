@@ -124,6 +124,18 @@ export function ServiceOrderItemDialog({
   });
 
   // Preencher formulário ao editar
+  const resetForm = useCallback(() => {
+    form.reset({
+      itemType: 'PART',
+      quantity: 1,
+      unitPrice: 0,
+    });
+    setSearchQuery('');
+    setSelectedProduct(null);
+    setActiveTab('PART');
+  }, [form]);
+
+  // Preencher formulário ao editar
   useEffect(() => {
     if (open && itemToEdit) {
       form.reset({
@@ -145,67 +157,7 @@ export function ServiceOrderItemDialog({
     } else if (open && !itemToEdit) {
       resetForm();
     }
-  }, [open, itemToEdit, form]);
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Validar estoque para peças
-    if (values.itemType === 'PART' && selectedProduct) {
-      if (values.quantity > selectedProduct.currentStock) {
-        if (orderStatus !== 'QUOTE') {
-          toast.error(`Estoque insuficiente. Disponível: ${selectedProduct.currentStock}`);
-          return;
-        } else {
-          // Apenas avisa para orçamentos
-          toast.warning(
-            `Estoque insuficiente (${selectedProduct.currentStock}). Este item ficará marcado com aviso.`
-          );
-        }
-      }
-    }
-
-    try {
-      if (itemToEdit) {
-        await updateItem.mutateAsync({
-          itemId: itemToEdit.id,
-          quantity: values.quantity,
-          unitPrice: values.unitPrice,
-          discount: values.discount,
-          notes: undefined, // Notes not in form yet
-          employeeId: values.employeeId,
-        });
-        toast.success('Item atualizado com sucesso!');
-      } else {
-        await addItem.mutateAsync({
-          order_id: orderId,
-          product_id: values.productId,
-          item_type: values.itemType,
-          description: values.description,
-          quantity: values.quantity,
-          unit_price: values.unitPrice,
-          discount: values.discount,
-          employee_id: values.employeeId,
-        });
-        toast.success('Item adicionado com sucesso!');
-      }
-
-      onOpenChange(false);
-      resetForm();
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro ao salvar item.');
-    }
-  };
-
-  const resetForm = () => {
-    form.reset({
-      itemType: 'PART',
-      quantity: 1,
-      unitPrice: 0,
-    });
-    setSearchQuery('');
-    setSelectedProduct(null);
-    setActiveTab('PART');
-  };
+  }, [open, itemToEdit, form, resetForm]);
 
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
@@ -241,7 +193,7 @@ export function ServiceOrderItemDialog({
       setQuickServiceName('');
       setQuickServicePrice('');
       toast.success('Serviço cadastrado!');
-    } catch (error) {
+    } catch {
       toast.error('Erro ao cadastrar serviço');
     }
   };
@@ -539,7 +491,7 @@ export function ServiceOrderItemDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {employees?.map((employee: any) => (
+                      {employees?.map((employee: { id: string; name: string }) => (
                         <SelectItem key={employee.id} value={employee.id}>
                           {employee.name}
                         </SelectItem>
