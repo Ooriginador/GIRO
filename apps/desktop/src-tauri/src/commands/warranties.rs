@@ -27,6 +27,7 @@ pub async fn get_active_warranties(
 
 /// Lista garantias com paginação e filtros
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn get_warranties_paginated(
     state: State<'_, AppState>,
     page: Option<i32>,
@@ -76,6 +77,7 @@ pub async fn get_warranty_details(
 
 /// Cria nova garantia
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn create_warranty_claim(
     state: State<'_, AppState>,
     customer_id: String,
@@ -103,6 +105,7 @@ pub async fn create_warranty_claim(
 
 /// Atualiza garantia
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn update_warranty_claim(
     state: State<'_, AppState>,
     id: String,
@@ -160,6 +163,7 @@ pub async fn deny_warranty(
 
 /// Resolve garantia (fecha com solução)
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn resolve_warranty(
     state: State<'_, AppState>,
     id: String,

@@ -36,7 +36,7 @@ impl XmlSigner {
         self.insert_signature(xml, &signature_element)
     }
 
-    fn extract_inf_nfe<'a>(&self, doc: &'a Document) -> Result<(String, String), String> {
+    fn extract_inf_nfe(&self, doc: &Document) -> Result<(String, String), String> {
         for node in doc.descendants() {
             if node.tag_name().name() == "infNFe" {
                 let id = node

@@ -168,8 +168,8 @@ mod tests {
                 repo.deactivate(&emp.id).await.unwrap();
                 // Verify deactivation
                 let deactivated = repo.find_by_id(&emp.id).await.unwrap().unwrap();
-                assert_eq!(
-                    deactivated.is_active, false,
+                assert!(
+                    !deactivated.is_active,
                     "Employee 4 should be deactivated"
                 );
             }
@@ -238,7 +238,7 @@ mod tests {
         // Verify it's deactivated
         let found = repo.find_by_id(&employee.id).await.unwrap();
         assert!(found.is_some());
-        assert_eq!(found.unwrap().is_active, false);
+        assert!(!found.unwrap().is_active);
     }
 
     #[tokio::test]
@@ -246,7 +246,7 @@ mod tests {
         let pool = setup_test_db().await;
         let repo = EmployeeRepository::new(&pool);
 
-        let roles = vec![
+        let roles = [
             EmployeeRole::Admin,
             EmployeeRole::Manager,
             EmployeeRole::Cashier,

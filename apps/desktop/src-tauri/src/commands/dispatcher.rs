@@ -22,8 +22,8 @@ pub async fn giro_invoke(
 
         "license.get_stored" => {
             match crate::commands::license::get_stored_license(app_state).await {
-                Ok(opt) => Ok(InvokeResult::ok(opt.map(|v| v))),
-                Err(e) => Ok(InvokeResult::err(None, format!("{}", e))),
+                Ok(opt) => Ok(InvokeResult::ok(opt)),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
         }
 
@@ -45,13 +45,13 @@ pub async fn giro_invoke(
                     let value = serde_json::to_value(&info).ok();
                     Ok(InvokeResult::ok(value))
                 }
-                Err(e) => Ok(InvokeResult::err(None, format!("{}", e))),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
         }
 
         "license.get_server_time" => match crate::commands::license::get_server_time(app_state).await {
             Ok(t) => Ok(InvokeResult::ok(Some(serde_json::json!(t)))),
-            Err(e) => Ok(InvokeResult::err(None, format!("{}", e))),
+            Err(e) => Ok(InvokeResult::err(None, e.to_string())),
         },
 
         "create_sale" => {
@@ -63,7 +63,7 @@ pub async fn giro_invoke(
             match input {
                 Ok(sale_input) => match crate::commands::sales::create_sale(sale_input, app_state).await {
                     Ok(sale) => Ok(InvokeResult::ok(serde_json::to_value(sale).ok())),
-                    Err(e) => Ok(InvokeResult::err(None, format!("{}", e))),
+                    Err(e) => Ok(InvokeResult::err(None, e.to_string())),
                 },
                 Err(e) => Ok(InvokeResult::err(Some("invalid_payload".to_string()), format!("Invalid payload: {}", e))),
             }
@@ -78,7 +78,7 @@ pub async fn giro_invoke(
             match input {
                 Ok(session_input) => match crate::commands::cash::open_cash_session(session_input, app_state).await {
                     Ok(sess) => Ok(InvokeResult::ok(serde_json::to_value(sess).ok())),
-                    Err(e) => Ok(InvokeResult::err(None, format!("{}", e))),
+                    Err(e) => Ok(InvokeResult::err(None, e.to_string())),
                 },
                 Err(e) => Ok(InvokeResult::err(Some("invalid_payload".to_string()), format!("Invalid payload: {}", e))),
             }
@@ -93,7 +93,7 @@ pub async fn giro_invoke(
             match input {
                 Ok(receipt) => match crate::commands::hardware::print_receipt(receipt, hw_state).await {
                     Ok(()) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
-                    Err(e) => Ok(InvokeResult::err(None, format!("{}", e))),
+                    Err(e) => Ok(InvokeResult::err(None, e.to_string())),
                 },
                 Err(e) => Ok(InvokeResult::err(Some("invalid_payload".to_string()), format!("Invalid payload: {}", e))),
             }

@@ -46,7 +46,7 @@ mod tests {
         let supplier = result.unwrap();
         assert_eq!(supplier.name, "Fornecedor ABC");
         assert_eq!(supplier.cnpj, Some("12345678000199".to_string()));
-        assert_eq!(supplier.is_active, true);
+        assert!(supplier.is_active);
     }
 
     #[tokio::test]
@@ -185,7 +185,7 @@ mod tests {
         // Verify it's deactivated
         let found = repo.find_by_id(&supplier.id).await.unwrap();
         assert!(found.is_some());
-        assert_eq!(found.unwrap().is_active, false);
+        assert!(!found.unwrap().is_active);
     }
 
     #[tokio::test]

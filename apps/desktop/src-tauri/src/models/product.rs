@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 /// Unidade de medida do produto
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[sqlx(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ProductUnit {
+    #[default]
     Unit,
     Kilogram,
     Gram,
@@ -18,12 +19,6 @@ pub enum ProductUnit {
     Box,
     Pack,
     Dozen,
-}
-
-impl Default for ProductUnit {
-    fn default() -> Self {
-        Self::Unit
-    }
 }
 
 impl std::fmt::Display for ProductUnit {

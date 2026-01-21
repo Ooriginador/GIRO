@@ -407,7 +407,7 @@ impl DanfePrinter {
                 }
                 if x + 1 < width && y + 1 < height {
                     let p = gray.get_pixel(x + 1, y + 1).0[0] as i16;
-                    let v = (p + (err * 1) / 16).clamp(0, 255) as u8;
+                    let v = (p + err / 16).clamp(0, 255) as u8;
                     gray.put_pixel(x + 1, y + 1, image::Luma([v]));
                 }
             }
@@ -422,7 +422,7 @@ impl DanfePrinter {
             }
         }
 
-        let bytes_per_row = ((width + 7) / 8) as usize;
+        let bytes_per_row = width.div_ceil(8) as usize;
         let mut cmds: Vec<u8> = Vec::new();
 
         // For each row stripe of 8 pixels tall
@@ -437,7 +437,7 @@ impl DanfePrinter {
             cmds.push(x_h);
 
             // yL yH (height of this stripe)
-            let stripe_h = std::cmp::min(8, (height - y0) as u32) as u16;
+            let stripe_h = std::cmp::min(8, height - y0) as u16;
             let y_l = (stripe_h & 0xFF) as u8;
             let y_h = ((stripe_h >> 8) & 0xFF) as u8;
             cmds.push(y_l);

@@ -5,18 +5,13 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 /// Status do inventário
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum InventoryStatus {
+    #[default]
     InProgress,
     Finished,
     Cancelled,
-}
-
-impl Default for InventoryStatus {
-    fn default() -> Self {
-        Self::InProgress
-    }
 }
 
 impl std::fmt::Display for InventoryStatus {
