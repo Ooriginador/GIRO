@@ -43,9 +43,10 @@ pub struct Employee {
     pub cpf: Option<String>,
     pub phone: Option<String>,
     pub email: Option<String>,
-    pub pin: String,              // Hash do PIN
-    pub password: Option<String>, // Hash da senha
-    pub role: String,             // Armazenado como String
+    pub pin: String,                  // Hash do PIN
+    pub password: Option<String>,     // Hash da senha
+    pub role: String,                 // Armazenado como String
+    pub commission_rate: Option<f64>, // Taxa de comissão (0.0 a 1.0 ou percentual)
     pub is_active: bool,
     pub created_at: String,
     pub updated_at: String,
@@ -61,6 +62,7 @@ pub struct SafeEmployee {
     pub phone: Option<String>,
     pub email: Option<String>,
     pub role: String,
+    pub commission_rate: Option<f64>,
     pub is_active: bool,
     pub created_at: String,
     pub updated_at: String,
@@ -75,6 +77,7 @@ impl From<Employee> for SafeEmployee {
             phone: e.phone,
             email: e.email,
             role: e.role,
+            commission_rate: e.commission_rate,
             is_active: e.is_active,
             created_at: e.created_at,
             updated_at: e.updated_at,
@@ -93,6 +96,7 @@ pub struct CreateEmployee {
     pub pin: String,              // PIN em texto plano, será hasheado
     pub password: Option<String>, // Senha em texto plano
     pub role: Option<EmployeeRole>,
+    pub commission_rate: Option<f64>,
 }
 
 /// Para atualizar funcionário
@@ -106,6 +110,7 @@ pub struct UpdateEmployee {
     pub pin: Option<String>,
     pub password: Option<String>,
     pub role: Option<EmployeeRole>,
+    pub commission_rate: Option<f64>,
     pub is_active: Option<bool>,
 }
 

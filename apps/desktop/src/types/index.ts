@@ -493,3 +493,36 @@ export interface UpdateLicenseAdminRequest {
   phone: string;
   pin: string;
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// DASHBOARD & REPORTS (MOTOPEÇAS)
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface DailyRevenue {
+  date: string;
+  amount: number;
+}
+
+export interface DashboardStats {
+  total_sales_today: number;
+  count_sales_today: number;
+  open_service_orders: number;
+  active_warranties: number;
+  low_stock_products: number;
+  revenue_weekly: DailyRevenue[];
+}
+
+export interface ServiceOrderStats {
+  total_orders: number;
+  by_status: { status: string; count: number }[];
+  revenue_labor: number;
+  revenue_parts: number;
+  average_ticket: number;
+}
+
+export interface TopItem {
+  id: string;
+  name: string;
+  quantity: number;
+  total_value: number;
+}

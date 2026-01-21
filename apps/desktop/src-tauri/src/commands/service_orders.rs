@@ -10,8 +10,11 @@ use crate::models::{
     ServiceOrderFilters, ServiceOrderItem, ServiceOrderSummary, ServiceOrderWithDetails,
     UpdateService, UpdateServiceOrder, UpdateServiceOrderItem,
 };
-use crate::repositories::{PaginatedResult, Pagination, ServiceOrderRepository};
+use crate::repositories::{PaginatedResult, Pagination, ServiceOrderRepository, ProductRepository};
 use crate::AppState;
+
+use sqlx::Row;
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ORDENS DE SERVIÇO
@@ -230,6 +233,20 @@ pub async fn cancel_service_order(
     };
 
     repo.update(&id, input).await
+}
+
+/// Finaliza ordem de serviço (Gera venda e financeiro)
+#[tauri::command]
+pub async fn finish_service_order(
+    state: State<'_, AppState>,
+    id: String,
+    payment_method: String,
+    amount_paid: f64,
+    employee_id: String,
+    cash_session_id: String,
+) -> AppResult<String> {
+    let repo = ServiceOrderRepository::new(state.pool().clone());
+    repo.finish_order_transaction(&id, &payment_method, amount_paid, &employee_id, &cash_session_id).await
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

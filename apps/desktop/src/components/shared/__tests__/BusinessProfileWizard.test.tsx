@@ -1,6 +1,6 @@
 import { BusinessProfileWizard } from '@/components/shared/BusinessProfileWizard';
 import { useBusinessProfile } from '@/stores/useBusinessProfile';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
@@ -71,34 +71,46 @@ describe('BusinessProfileWizard', () => {
     // Internal state updates, but we can't check hook call yet strictly until confirm.
   });
 
-  it('should call callbacks and navigate on confirm', () => {
-    renderWizard();
+  it('should call callbacks and navigate on confirm', async () => {
+    await act(async () => {
+      renderWizard();
+    });
 
     const confirmBtn = screen.getByRole('button', { name: /Continuar com/i });
     expect(confirmBtn).toBeEnabled();
 
-    fireEvent.click(confirmBtn);
+    await act(async () => {
+      fireEvent.click(confirmBtn);
+    });
 
     expect(mockSetBusinessType).toHaveBeenCalled();
     expect(mockMarkAsConfigured).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith('/');
   });
 
-  it('should respect onComplete prop', () => {
+  it('should respect onComplete prop', async () => {
     const onComplete = vi.fn();
-    renderWizard({ onComplete });
+    await act(async () => {
+      renderWizard({ onComplete });
+    });
 
     const confirmBtn = screen.getByRole('button', { name: /Continuar/i });
-    fireEvent.click(confirmBtn);
+    await act(async () => {
+      fireEvent.click(confirmBtn);
+    });
 
     expect(onComplete).toHaveBeenCalled();
   });
 
-  it('should not navigate if redirectAfterComplete is false', () => {
-    renderWizard({ redirectAfterComplete: false });
+  it('should not navigate if redirectAfterComplete is false', async () => {
+    await act(async () => {
+      renderWizard({ redirectAfterComplete: false });
+    });
 
     const confirmBtn = screen.getByRole('button', { name: /Continuar/i });
-    fireEvent.click(confirmBtn);
+    await act(async () => {
+      fireEvent.click(confirmBtn);
+    });
 
     expect(mockNavigate).not.toHaveBeenCalled();
   });

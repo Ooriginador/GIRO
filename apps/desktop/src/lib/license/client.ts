@@ -3,14 +3,14 @@
    - Does NOT include API key; intended for public dashboard or server-to-server use with proper auth.
 */
 
-import type {
-  ActivateRequest,
-  ActivateResponse,
-  ValidateRequest,
-  LicenseInfo,
-  TransferRequest,
-  MetricsPayload,
-} from './types.generated';
+import type { components } from './types.generated';
+
+type ActivateRequest = components['schemas']['ActivateRequest'];
+type ActivateResponse = components['schemas']['ActivateResponse'];
+type ValidateRequest = components['schemas']['ValidateRequest'];
+type LicenseInfo = components['schemas']['LicenseInfo'];
+type TransferRequest = components['schemas']['TransferRequest'];
+type MetricsPayload = components['schemas']['MetricsPayload'];
 
 const BASE = (import.meta.env.VITE_LICENSE_SERVER_URL as string) || 'https://license.example.com';
 

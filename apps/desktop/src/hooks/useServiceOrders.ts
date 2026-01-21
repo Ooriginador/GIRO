@@ -93,6 +93,9 @@ export interface ServiceOrderItem {
   discount: number;
   total: number;
   warranty_days?: number;
+  employee_id?: string;
+  current_stock?: number;
+  min_stock?: number;
   created_at: string;
 }
 
@@ -274,12 +277,27 @@ export function useServiceOrders() {
     },
   });
 
-  // Entregar ordem
+  // Entregar ordem (Finalizar pagamento)
   const deliverOrder = useMutation({
-    mutationFn: async ({ id, paymentMethod }: { id: string; paymentMethod: string }) => {
-      const result = await invoke<ServiceOrder>('deliver_service_order', {
+    mutationFn: async ({
+      id,
+      paymentMethod,
+      amountPaid,
+      employeeId,
+      sessionId,
+    }: {
+      id: string;
+      paymentMethod: string;
+      amountPaid: number;
+      employeeId: string;
+      sessionId: string;
+    }) => {
+      const result = await invoke<string>('finish_service_order', {
         id,
         paymentMethod,
+        amountPaid,
+        employeeId,
+        cashSessionId: sessionId,
       });
       return result;
     },

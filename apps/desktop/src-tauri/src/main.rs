@@ -286,6 +286,7 @@ async fn main() {
             commands::complete_service_order,
             commands::deliver_service_order,
             commands::cancel_service_order,
+            commands::finish_service_order,
             commands::get_service_order_items,
             commands::add_service_order_item,
             commands::remove_service_order_item,

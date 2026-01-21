@@ -729,6 +729,7 @@ impl ThermalPrinter {
     /// Imprime Ordem de Serviço completa
     pub fn print_service_order(&mut self, os: &ServiceOrderReceipt) -> &mut Self {
         self.init();
+        let width = self.config.paper_width as usize;
 
         // Cabeçalho
         self.align(TextAlign::Center);
@@ -752,15 +753,19 @@ impl ThermalPrinter {
         self.separator('-');
         self.style(TextStyle {
             bold: true,
+            double_height: true,
             ..Default::default()
         });
-        self.line("ORDEM DE SERVIÇO");
+        self.line("ORDEM DE SERVICO");
         self.style(TextStyle::default());
         self.separator('-');
 
         // Info da OS
         self.align(TextAlign::Left);
+        self.style(TextStyle { bold: true, ..Default::default() });
         self.line(&format!("OS: #{:06}", os.order_number));
+        self.style(TextStyle::default());
+        
         self.line(&format!("Status: {}", os.status));
         self.line(&format!("Data: {}", os.date_time));
         self.line(&format!("Mecânico: {}", os.mechanic_name));
@@ -778,11 +783,23 @@ impl ThermalPrinter {
         if let Some(km) = os.vehicle_km {
             self.line(&format!("KM: {}", km));
         }
+        
+        // Garantia (Em destaque)
+        if os.warranty_days > 0 {
+             self.separator('-');
+             self.align(TextAlign::Center);
+             self.style(TextStyle { bold: true, ..Default::default() });
+             self.line(&format!("GARANTIA: {} DIAS", os.warranty_days));
+             self.style(TextStyle::default());
+             self.align(TextAlign::Left);
+        }
+
         if let Some(ref symptoms) = os.symptoms {
             self.feed(1);
             self.line("Sintomas relatados:");
             self.line(symptoms);
         }
+        
         self.separator('-');
 
         // Itens
@@ -790,7 +807,7 @@ impl ThermalPrinter {
             bold: true,
             ..Default::default()
         });
-        self.line("SERVIÇOS E PEÇAS");
+        self.line("SERVICOS E PECAS");
         self.style(TextStyle::default());
 
         for item in &os.items {
@@ -801,7 +818,12 @@ impl ThermalPrinter {
             };
 
             let price_str = format!("R$ {:.2}", item.total);
-            let spaces = self.config.paper_width as usize - name.len() - price_str.len();
+            let spaces = if width > (name.len() + price_str.len()) {
+                width - name.len() - price_str.len()
+            } else {
+                1
+            };
+            
             self.line(&format!(
                 "{}{:>width$}",
                 name,
@@ -837,18 +859,20 @@ impl ThermalPrinter {
 
         // Rodapé
         self.feed(1);
-        if os.warranty_days > 0 {
-            self.line(&format!("Garantia: {} dias", os.warranty_days));
-        }
         if let Some(ref notes) = os.notes {
+            self.align(TextAlign::Left);
             self.line("Observações:");
             self.line(notes);
         }
 
         self.feed(2);
         self.align(TextAlign::Center);
-        self.line("___________________________");
+        // Signature line matching paper width (roughly)
+        let line_len = if width > 30 { 30 } else { width - 2 };
+        let underscores: String = std::iter::repeat('_').take(line_len).collect();
+        self.line(&underscores);
         self.line("Assinatura do Cliente");
+        
         self.feed(1);
         self.line("Obrigado pela preferência!");
 

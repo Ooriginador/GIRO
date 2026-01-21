@@ -1,5 +1,5 @@
 import { ServiceOrderManager } from '@/components/motoparts/ServiceOrderManager';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock sub-components (Caminhos relativos ao local do arquivo de teste: __tests__/)
@@ -33,32 +33,46 @@ vi.mock('../ServiceOrderDetails', () => ({
 }));
 
 describe('ServiceOrderManager', () => {
-  it('should switch between views', () => {
-    render(<ServiceOrderManager />);
+  it('should switch between views', async () => {
+    await act(async () => {
+      render(<ServiceOrderManager />);
+    });
 
     // Initial view: List
     expect(screen.getByTestId('list-view')).toBeInTheDocument();
 
     // Switch to Create
-    fireEvent.click(screen.getByText('Create New'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create New'));
+    });
     expect(screen.getByTestId('form-view')).toBeInTheDocument();
 
     // Cancel back to List
-    fireEvent.click(screen.getByText('Cancel'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Cancel'));
+    });
     expect(screen.getByTestId('list-view')).toBeInTheDocument();
 
     // Select OS -> Details
-    fireEvent.click(screen.getByText('Select OS'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Select OS'));
+    });
     expect(screen.getByTestId('details-view')).toBeInTheDocument();
     expect(screen.getByText(/os-1/)).toBeInTheDocument();
 
     // Back to List
-    fireEvent.click(screen.getByText('Back'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Back'));
+    });
     expect(screen.getByTestId('list-view')).toBeInTheDocument();
 
     // Create -> Success -> Details
-    fireEvent.click(screen.getByText('Create New'));
-    fireEvent.click(screen.getByText('Success'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create New'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Success'));
+    });
     expect(screen.getByTestId('details-view')).toBeInTheDocument();
     expect(screen.getByText(/os-new/)).toBeInTheDocument();
   });

@@ -65,14 +65,13 @@ describe('MotopartsDashboard', () => {
     vi.clearAllMocks();
   });
 
-  it('should show loading state', () => {
+  it('should show loading state', async () => {
     vi.mocked(useMotopartsReports).mockReturnValue({
       isLoadingDashboard: true,
       dashboardStats: undefined,
       serviceOrderStats: undefined,
       topProducts: [],
     });
-
     await act(async () => {
       render(<MotopartsDashboard />);
     });
@@ -86,7 +85,6 @@ describe('MotopartsDashboard', () => {
       serviceOrderStats: mockSOStats as any,
       topProducts: mockTopProducts as any,
     });
-
     await act(async () => {
       render(<MotopartsDashboard />);
     });
@@ -118,7 +116,6 @@ describe('MotopartsDashboard', () => {
       serviceOrderStats: mockSOStats as any,
       topProducts: [],
     });
-
     await act(async () => {
       render(<MotopartsDashboard />);
     });

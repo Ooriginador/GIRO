@@ -21,7 +21,7 @@ impl<'a> EmployeeRepository<'a> {
     }
 
     const COLS: &'static str =
-        "id, name, cpf, phone, email, pin, password, role, is_active, created_at, updated_at";
+        "id, name, cpf, phone, email, pin, password, role, commission_rate, is_active, created_at, updated_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Employee>> {
         let query = format!("SELECT {} FROM employees WHERE id = ?", Self::COLS);
@@ -100,7 +100,7 @@ impl<'a> EmployeeRepository<'a> {
 
         tracing::info!("Criando funcionário: {} (role: {})", data.name, role);
         let result = sqlx::query(
-            "INSERT INTO employees (id, name, cpf, phone, email, pin, password, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
+            "INSERT INTO employees (id, name, cpf, phone, email, pin, password, role, commission_rate, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
         )
         .bind(&id)
         .bind(&data.name)
@@ -110,6 +110,7 @@ impl<'a> EmployeeRepository<'a> {
         .bind(&pin_hash)
         .bind(&password_hash)
         .bind(&role)
+        .bind(data.commission_rate)
         .bind(&now)
         .bind(&now)
         .execute(self.pool)
@@ -152,9 +153,10 @@ impl<'a> EmployeeRepository<'a> {
             .map(|r| format!("{:?}", r).to_uppercase())
             .unwrap_or(existing.role);
         let is_active = data.is_active.unwrap_or(existing.is_active);
+        let commission_rate = data.commission_rate.or(existing.commission_rate);
 
         let result = sqlx::query(
-            "UPDATE employees SET name = ?, cpf = ?, phone = ?, email = ?, pin = ?, password = ?, role = ?, is_active = ?, updated_at = ? WHERE id = ?"
+            "UPDATE employees SET name = ?, cpf = ?, phone = ?, email = ?, pin = ?, password = ?, role = ?, commission_rate = ?, is_active = ?, updated_at = ? WHERE id = ?"
         )
         .bind(&name)
         .bind(&cpf)
@@ -163,6 +165,7 @@ impl<'a> EmployeeRepository<'a> {
         .bind(&pin)
         .bind(&password)
         .bind(&role)
+        .bind(commission_rate)
         .bind(is_active)
         .bind(&now)
         .bind(id)

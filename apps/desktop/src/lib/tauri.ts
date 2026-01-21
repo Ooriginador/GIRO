@@ -273,7 +273,7 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
       return [] as unknown as T;
     }
     case 'get_product_by_id': {
-      const id = (args?.id as string | undefined) ?? '';
+      // const id = (args?.id as string | undefined) ?? '';
       return null as unknown as T;
     }
     case 'get_product_by_barcode': {
@@ -375,6 +375,10 @@ export async function invokeSafe<T>(
 
 export async function getProducts(filter?: ProductFilter): Promise<Product[]> {
   return tauriInvoke<Product[]>('get_products', { filter });
+}
+
+export async function getProductStockHistory(_id: string): Promise<Product | null> {
+  return tauriInvoke<Product | null>('get_product_by_id', { id: _id });
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
@@ -860,6 +864,18 @@ export async function getStockReport(): Promise<{
   excessStockCount: number;
 }> {
   return invoke('get_stock_report');
+}
+
+export async function getMotopartsDashboardStats(): Promise<import('@/types').DashboardStats> {
+  return invoke('get_motoparts_dashboard_stats');
+}
+
+export async function getServiceOrderStats(): Promise<import('@/types').ServiceOrderStats> {
+  return invoke('get_service_order_stats');
+}
+
+export async function getTopProductsMotoparts(limit: number): Promise<import('@/types').TopItem[]> {
+  return invoke('get_top_products_motoparts', { limit });
 }
 
 // ────────────────────────────────────────────────────────────────────────────

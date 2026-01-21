@@ -257,3 +257,94 @@ async fn test_quote_to_open_consumes_stock() {
         .fetch_one(&pool).await.unwrap();
     assert_eq!(lot_after, 7.0);
 }
+
+#[tokio::test]
+async fn test_finish_order_generates_commission() {
+    let pool = setup_test_db().await;
+    let repo = ServiceOrderRepository::new(pool.clone());
+    
+    // 1. Create Employee with Commission Rate (10%)
+    let emp_id = "emp-comm-01".to_string();
+    sqlx::query(
+        "INSERT INTO employees (id, name, pin, role, is_active, commission_rate, created_at, updated_at) \
+         VALUES (?, 'Comm Employee', '9999', 'MECHANIC', 1, 10.0, datetime('now'), datetime('now'))",
+    )
+    .bind(&emp_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    // 2. Create Cash Session for the cashier
+    let cashier_id = "emp-001"; // From setup
+    let session_id = "sess-001";
+    sqlx::query(
+        "INSERT INTO cash_sessions (id, employee_id, opening_balance, status, opened_at) \
+         VALUES (?, ?, 100.0, 'OPEN', datetime('now'))"
+    )
+    .bind(session_id)
+    .bind(cashier_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    // 3. Create Service Order for the Mechanic
+    let order_input = crate::models::CreateServiceOrder {
+        customer_id: "cus-001".to_string(),
+        customer_vehicle_id: "cv-001".to_string(),
+        vehicle_year_id: "vy-001".to_string(),
+        employee_id: emp_id.clone(), // Mechanic gets the commission
+        vehicle_km: Some(1000),
+        symptoms: None,
+        scheduled_date: None,
+        notes: None,
+        internal_notes: None,
+        status: Some("OPEN".to_string()),
+    };
+    let order = repo.create(order_input).await.unwrap();
+
+    // 4. Add item ($100 service, $200 total)
+    // Actually simplicity: Item 1 = 200.0
+    repo.add_item(crate::models::AddServiceOrderItem {
+        order_id: order.id.clone(),
+        product_id: None,
+        item_type: "SERVICE".to_string(),
+        description: "Labor".to_string(),
+        quantity: 1.0,
+        unit_price: 200.0,
+        discount: None,
+        notes: None,
+        employee_id: Some(emp_id.clone()),
+    }).await.unwrap();
+
+    // 5. Finish Order
+    // cashier finishes it
+    let result = repo.finish_order_transaction(
+        &order.id,
+        "CASH",
+        200.0,
+        cashier_id,
+        session_id
+    ).await;
+    
+    assert!(result.is_ok(), "Finish order failed: {:?}", result.err());
+    let sale_id = result.unwrap();
+
+    // 6. Verify Commission
+    // Expect 10% of 200 = 20.0
+    // Use runtime query
+    let row = sqlx::query("SELECT amount, employee_id FROM commissions WHERE sale_id = ?")
+        .bind(&sale_id)
+        .fetch_optional(&pool)
+        .await
+        .unwrap();
+
+    assert!(row.is_some(), "Commission record not found");
+    
+    use sqlx::Row;
+    let r = row.unwrap();
+    let comm_amount: f64 = r.get("amount");
+    let comm_emp: String = r.get("employee_id");
+    
+    assert_eq!(comm_emp, emp_id);
+    assert!((comm_amount - 20.0).abs() < 0.001, "Commission amount should be 20.0, got {}", comm_amount);
+}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
 
 // Mocks
@@ -56,7 +56,9 @@ describe('UpdateChecker', () => {
 
     (mockCheck as unknown as vi.Mock).mockResolvedValue(fakeUpdate);
 
-    render(<UpdateChecker />);
+    await act(async () => {
+      render(<UpdateChecker />);
+    });
 
     // Wait for the toast to be called and dialog to appear
     await waitFor(() => expect(mockCheck).toHaveBeenCalled());
@@ -66,7 +68,9 @@ describe('UpdateChecker', () => {
 
     // Click update action
     const updateBtn = screen.getByText('Atualizar Agora');
-    fireEvent.click(updateBtn);
+    await act(async () => {
+      fireEvent.click(updateBtn);
+    });
 
     // allow enough time for download flow + 2s delay before relaunch
     await waitFor(() => expect(mockRelaunch).toHaveBeenCalled(), { timeout: 15000 });
@@ -76,11 +80,15 @@ describe('UpdateChecker', () => {
     const fakeUpdate = { version: '9.9.9', body: null, downloadAndInstall: vi.fn() } as any;
     (mockCheck as unknown as vi.Mock).mockResolvedValue(fakeUpdate);
 
-    render(<UpdateChecker />);
+    await act(async () => {
+      render(<UpdateChecker />);
+    });
 
     await waitFor(() => expect(mockCheck).toHaveBeenCalled());
     const cancelBtn = screen.getByText('Agora Não');
-    fireEvent.click(cancelBtn);
+    await act(async () => {
+      fireEvent.click(cancelBtn);
+    });
 
     // Dialog should be closed (title should not be visible)
     await waitFor(() => expect(screen.queryByText('🎉 Nova versão disponível!')).toBeNull(), {

@@ -106,6 +106,7 @@ mod tests {
             cpf: None,
             phone: None,
             email: None,
+            commission_rate: None,
             is_active: true,
 
             created_at: chrono::Utc::now().to_rfc3339(),
