@@ -118,6 +118,7 @@ describe('CashControlPage', () => {
   });
 
   it('should handle session opening failure', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockUseOpenCashSession.mutateAsync.mockRejectedValue(new Error('Open Fail'));
     render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
 
@@ -140,6 +141,8 @@ describe('CashControlPage', () => {
     await waitFor(() => {
       expect(mockUseOpenCashSession.mutateAsync).toHaveBeenCalled();
     });
+
+    consoleSpy.mockRestore();
   });
 
   it('should render dashboard when session is open', async () => {
@@ -284,6 +287,7 @@ describe('CashControlPage', () => {
   });
 
   it('should handle movement registration failure', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockUseCurrentCashSession.data = {
       id: 'sess-1',
       status: 'OPEN',
@@ -308,6 +312,8 @@ describe('CashControlPage', () => {
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalled();
     });
+
+    consoleSpy.mockRestore();
   });
 
   it('should handle closing a cash session', async () => {
