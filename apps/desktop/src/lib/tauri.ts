@@ -742,6 +742,7 @@ export async function createSupplier(
   if (!employeeId) throw new Error('Operação requer um funcionário autenticado');
 
   // Backend CreateSupplier struct doesn't have isActive
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isActive, ...backendInput } = input;
 
   return tauriInvoke<Supplier>('create_supplier', {

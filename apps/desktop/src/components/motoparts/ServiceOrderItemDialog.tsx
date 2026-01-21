@@ -67,7 +67,6 @@ interface ServiceOrderItemDialogProps {
 export function ServiceOrderItemDialog({
   open,
   onOpenChange,
-  onOpenChange,
   orderId,
   itemToEdit,
 }: ServiceOrderItemDialogProps) {
@@ -217,9 +216,6 @@ export function ServiceOrderItemDialog({
               if (itemToEdit) {
                 await updateItem.mutateAsync({
                   itemId: itemToEdit.id,
-                  itemType: data.itemType,
-                  productId: data.productId,
-                  description: data.description,
                   quantity: data.quantity,
                   unitPrice: data.unitPrice,
                   discount: data.discount,
@@ -227,13 +223,14 @@ export function ServiceOrderItemDialog({
                 });
               } else {
                 await addItem.mutateAsync({
-                  itemType: data.itemType,
-                  productId: data.productId,
+                  order_id: orderId,
+                  item_type: data.itemType,
+                  product_id: data.productId,
                   description: data.description,
                   quantity: data.quantity,
-                  unitPrice: data.unitPrice,
+                  unit_price: data.unitPrice,
                   discount: data.discount,
-                  employeeId: data.employeeId,
+                  employee_id: data.employeeId,
                 });
               }
               onOpenChange(false);
