@@ -5,23 +5,18 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 /// Tipo de movimentação de estoque
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum StockMovementType {
-    Entry,      // Entrada de mercadoria
-    Exit,       // Saída genérica
-    Sale,       // Venda
-    Return,     // Devolução
+    Entry,  // Entrada de mercadoria
+    Exit,   // Saída genérica
+    Sale,   // Venda
+    Return, // Devolução
+    #[default]
     Adjustment, // Ajuste de inventário
-    Transfer,   // Transferência
-    Shrinkage,  // Quebra/perda
+    Transfer, // Transferência
+    Shrinkage, // Quebra/perda
     Expiration, // Baixa por vencimento
-}
-
-impl Default for StockMovementType {
-    fn default() -> Self {
-        Self::Adjustment
-    }
 }
 
 impl std::fmt::Display for StockMovementType {

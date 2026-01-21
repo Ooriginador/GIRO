@@ -31,17 +31,12 @@ pub struct SetSetting {
 }
 
 /// Tipos de configuração
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SettingType {
+    #[default]
     String,
     Number,
     Boolean,
     Json,
-}
-
-impl Default for SettingType {
-    fn default() -> Self {
-        Self::String
-    }
 }

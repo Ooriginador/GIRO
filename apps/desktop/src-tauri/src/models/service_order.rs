@@ -10,22 +10,17 @@ use sqlx::FromRow;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Status da ordem de serviço
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ServiceOrderStatus {
-    Open,         // Aberta (aguardando)
+    #[default]
+    Open, // Aberta (aguardando)
     InProgress,   // Em andamento
     WaitingParts, // Aguardando peças
     Completed,    // Serviço concluído
     Delivered,    // Entregue ao cliente
     Canceled,     // Cancelada
     Quote,        // Orçamento (não consome estoque)
-}
-
-impl Default for ServiceOrderStatus {
-    fn default() -> Self {
-        Self::Open
-    }
 }
 
 impl std::fmt::Display for ServiceOrderStatus {
@@ -58,17 +53,12 @@ impl From<String> for ServiceOrderStatus {
 }
 
 /// Tipo de item da OS
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ServiceItemType {
-    Part,    // Peça
+    Part, // Peça
+    #[default]
     Service, // Serviço/Mão de obra
-}
-
-impl Default for ServiceItemType {
-    fn default() -> Self {
-        Self::Service
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

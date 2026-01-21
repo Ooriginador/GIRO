@@ -10,10 +10,11 @@ use sqlx::FromRow;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Categoria do veículo
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
 #[sqlx(type_name = "TEXT")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum VehicleCategory {
+    #[default]
     Street,
     Sport,
     Trail,
@@ -26,12 +27,6 @@ pub enum VehicleCategory {
     Classic,
     Electric,
     Other,
-}
-
-impl Default for VehicleCategory {
-    fn default() -> Self {
-        Self::Street
-    }
 }
 
 impl std::fmt::Display for VehicleCategory {
@@ -54,20 +49,15 @@ impl std::fmt::Display for VehicleCategory {
 }
 
 /// Tipo de combustível
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
 #[sqlx(type_name = "TEXT")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FuelType {
+    #[default]
     Gasoline,
     Flex,
     Electric,
     Diesel,
-}
-
-impl Default for FuelType {
-    fn default() -> Self {
-        Self::Gasoline
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
