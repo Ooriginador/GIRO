@@ -59,8 +59,9 @@ window.HTMLElement.prototype.setPointerCapture = vi.fn();
 window.HTMLElement.prototype.releasePointerCapture = vi.fn();
 
 // Silenciar logs de erro esperados durante os testes para reduzir ruído
+// Silenciar logs de erro esperados durante os testes para reduzir ruído
 const originalError = console.error;
-console.error = (...args: unknown[]) => {
+vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
   const message = typeof args[0] === 'string' ? args[0] : '';
   if (
     message.includes('Erro ao buscar clientes') ||
@@ -74,7 +75,7 @@ console.error = (...args: unknown[]) => {
     return;
   }
   originalError.apply(console, args);
-};
+});
 
 // Mock ResizeObserver (usado pelo Radix UI)
 globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
