@@ -296,19 +296,23 @@ export const CashControlPage: FC = () => {
                     (movementsData || []).map((m: CashMovement) => (
                       <tr key={m.id} className="align-top border-b border-muted/20">
                         <td className="py-2">
-                          {m.type === 'DEPOSIT' || m.type === 'SUPPLY' ? (
+                          {m.type === 'DEPOSIT' ? (
                             <span className="flex items-center text-green-600 gap-1">
                               <ArrowUpRight className="h-3 w-3" /> Suprimento
                             </span>
-                          ) : (
+                          ) : m.type === 'WITHDRAWAL' ? (
                             <span className="flex items-center text-red-600 gap-1">
                               <ArrowDownRight className="h-3 w-3" /> Sangria
+                            </span>
+                          ) : (
+                            <span className="flex items-center text-muted-foreground gap-1">
+                              {m.type}
                             </span>
                           )}
                         </td>
                         <td className="py-2 font-medium">{formatCurrency(m.amount)}</td>
                         <td className="py-2 text-muted-foreground">{m.description || '-'}</td>
-                        <td className="py-2">{m.employeeName || m.employee?.name || 'Operador'}</td>
+                        <td className="py-2">{m.employee?.name || 'Operador'}</td>
                         <td className="py-2 text-xs">
                           {format(new Date(m.createdAt), 'dd/MM/yy HH:mm')}
                         </td>

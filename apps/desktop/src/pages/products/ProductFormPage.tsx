@@ -18,10 +18,11 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useCreateProduct, useProduct, useUpdateProduct } from '@/hooks/use-products';
 import { useToast } from '@/hooks/use-toast';
-import { useCategories } from '@/hooks/useCategories';
-import { calculateMargin, formatCurrency } from '@/lib/utils';
+import { ProductUnit } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, BarChart3, DollarSign, Package, Save } from 'lucide-react';
+import { useCategories } from '@/hooks/useCategories';
+import { calculateMargin, formatCurrency } from '@/lib/utils';
 import { type FC, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -97,7 +98,7 @@ export const ProductFormPage: FC = () => {
         await updateProduct.mutateAsync({
           id,
           ...data,
-          unit: data.unit as string,
+          unit: data.unit as unknown as ProductUnit,
         });
         toast({
           title: 'Produto atualizado',
@@ -107,7 +108,7 @@ export const ProductFormPage: FC = () => {
         await createProduct.mutateAsync({
           ...data,
           costPrice: data.costPrice ?? 0,
-          unit: data.unit as string,
+          unit: data.unit as unknown as ProductUnit,
         });
         toast({
           title: 'Produto criado',

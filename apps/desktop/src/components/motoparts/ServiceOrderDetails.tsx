@@ -37,6 +37,7 @@ import {
   useServiceOrderItems,
   useServiceOrders,
   type ServiceOrderStatus,
+  type ServiceOrderItem,
 } from '@/hooks/useServiceOrders';
 import { invoke } from '@/lib/tauri';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils';

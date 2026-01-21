@@ -31,7 +31,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { Product } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Loader2, Package, Plus, Search } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { toast } from 'sonner';
@@ -67,8 +67,8 @@ interface ServiceOrderItemDialogProps {
 export function ServiceOrderItemDialog({
   open,
   onOpenChange,
+  onOpenChange,
   orderId,
-  orderStatus,
   itemToEdit,
 }: ServiceOrderItemDialogProps) {
   const [activeTab, setActiveTab] = useState<'PART' | 'SERVICE'>('PART');
@@ -212,7 +212,34 @@ export function ServiceOrderItemDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(async (data) => {
+              if (itemToEdit) {
+                await updateItem.mutateAsync({
+                  itemId: itemToEdit.id,
+                  itemType: data.itemType,
+                  productId: data.productId,
+                  description: data.description,
+                  quantity: data.quantity,
+                  unitPrice: data.unitPrice,
+                  discount: data.discount,
+                  employeeId: data.employeeId,
+                });
+              } else {
+                await addItem.mutateAsync({
+                  itemType: data.itemType,
+                  productId: data.productId,
+                  description: data.description,
+                  quantity: data.quantity,
+                  unitPrice: data.unitPrice,
+                  discount: data.discount,
+                  employeeId: data.employeeId,
+                });
+              }
+              onOpenChange(false);
+            })}
+            className="space-y-4"
+          >
             <Tabs
               value={activeTab}
               onValueChange={(val) => {

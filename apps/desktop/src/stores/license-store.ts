@@ -132,7 +132,12 @@ export const useLicenseStore = create<LicenseStore>()(
       hydrateFromDisk: async () => {
         console.log('[LicenseStore] Hydrating from disk...');
         try {
-          const data = await getStoredLicense();
+          const data = (await getStoredLicense()) as {
+            key?: string;
+            info?: LicenseInfo;
+            last_validated_at?: string;
+            activated_at?: string;
+          } | null;
           console.log('[LicenseStore] Data from disk:', data);
 
           if (data && data.key) {

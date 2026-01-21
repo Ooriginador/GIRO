@@ -34,6 +34,7 @@ import type {
   TauriResponse,
   UpdateProductInput,
   UpdateLicenseAdminRequest,
+  EmployeeRole,
 } from '@/types';
 import { invoke as tauriCoreInvoke } from '@tauri-apps/api/core';
 
@@ -593,6 +594,7 @@ export async function createEmployee(
   if (!employeeId) throw new Error('Operação requer um funcionário autenticado');
 
   // Backend CreateEmployee struct doesn't have isActive/permissions
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isActive, permissions, ...backendInput } = input;
 
   return tauriInvoke<Employee>('create_employee', {
