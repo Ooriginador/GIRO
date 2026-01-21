@@ -58,6 +58,24 @@ window.HTMLElement.prototype.hasPointerCapture = vi.fn();
 window.HTMLElement.prototype.setPointerCapture = vi.fn();
 window.HTMLElement.prototype.releasePointerCapture = vi.fn();
 
+// Silenciar logs de erro esperados durante os testes para reduzir ruído
+const originalError = console.error;
+console.error = (...args: unknown[]) => {
+  const message = typeof args[0] === 'string' ? args[0] : '';
+  if (
+    message.includes('Erro ao buscar clientes') ||
+    message.includes('Erro ao buscar cliente') ||
+    message.includes('Error: Open Fail') ||
+    message.includes('Error: API Fail') ||
+    message.includes('License initialization timed out') ||
+    message.includes('License validation failed') ||
+    message.includes('Falha ao inicializar verificação de licença')
+  ) {
+    return;
+  }
+  originalError.apply(console, args);
+};
+
 // Mock ResizeObserver (usado pelo Radix UI)
 globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
