@@ -4,7 +4,7 @@
 
 import { MotopartsDashboard } from '@/components/motoparts/MotopartsDashboard';
 import { useMotopartsReports } from '@/hooks/useMotopartsReports';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock recharts to avoid issues and test data mapping
@@ -73,7 +73,9 @@ describe('MotopartsDashboard', () => {
       topProducts: [],
     });
 
-    render(<MotopartsDashboard />);
+    await act(async () => {
+      render(<MotopartsDashboard />);
+    });
     expect(document.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
@@ -85,7 +87,9 @@ describe('MotopartsDashboard', () => {
       topProducts: mockTopProducts as any,
     });
 
-    render(<MotopartsDashboard />);
+    await act(async () => {
+      render(<MotopartsDashboard />);
+    });
 
     // Cards
     expect(screen.getByText('Vendas Hoje')).toBeInTheDocument();
@@ -115,7 +119,9 @@ describe('MotopartsDashboard', () => {
       topProducts: [],
     });
 
-    render(<MotopartsDashboard />);
+    await act(async () => {
+      render(<MotopartsDashboard />);
+    });
     expect(screen.getByText(/nenhuma venda registrada/i)).toBeInTheDocument();
   });
 });

@@ -45,6 +45,11 @@ interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
   total: number;
+  onFinalize?: (data: {
+    paymentMethod: PaymentMethod;
+    amountPaid: number;
+    splitPayments?: SplitPayment[];
+  }) => Promise<void>;
 }
 
 const PAYMENT_METHODS: { method: PaymentMethod; label: string; icon: string }[] = [
@@ -55,7 +60,7 @@ const PAYMENT_METHODS: { method: PaymentMethod; label: string; icon: string }[] 
   { method: 'VOUCHER', label: 'Vale', icon: 'ticket' },
 ];
 
-export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total }) => {
+export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFinalize }) => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [amountPaid, setAmountPaid] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -66,7 +71,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total }) =>
   const inputRef = useRef<HTMLInputElement>(null);
   const splitInputRef = useRef<HTMLInputElement>(null);
 
-  const { items, discount } = usePDVStore();
+  const pdvStore = usePDVStore();
   const { employee, currentSession } = useAuthStore();
   const { fiscal, company } = useSettingsStore();
   const createSale = useCreateSale();
@@ -133,11 +138,33 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total }) =>
     setIsProcessing(true);
 
     try {
+      if (onFinalize) {
+        // Modo Externo (ex: Ordem de Serviço)
+        if (isSplitMode) {
+          if (!canFinalizeSplit) return;
+          const primaryMethod = splitPayments[0]?.method || 'CASH';
+          await onFinalize({
+            paymentMethod: primaryMethod,
+            amountPaid: splitTotal,
+            splitPayments,
+          });
+        } else {
+          if (!canFinalize || !paymentMethod) return;
+          await onFinalize({
+            paymentMethod,
+            amountPaid: amountPaidNum || total,
+          });
+        }
+        onClose();
+        return;
+      }
+
+      // Modo PDV Padrão
       let saleResult;
+      const { items, discount } = pdvStore;
 
       if (isSplitMode) {
         if (!canFinalizeSplit) return;
-        // Para split, usamos o primeiro método como principal
         const primaryMethod = splitPayments[0]?.method || 'CASH';
         saleResult = await createSale.mutateAsync({
           items: items.map((item) => ({
@@ -163,7 +190,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total }) =>
           })),
           paymentMethod,
           discount,
-          amountPaid: amountPaidNum || total, // Fallback safe
+          amountPaid: amountPaidNum || total,
           employeeId: employee.id,
           cashSessionId: currentSession.id,
         });
@@ -171,7 +198,6 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total }) =>
 
       // NFC-e Integration
       if (fiscal.enabled && saleResult) {
-        // ... (Logica NFC-e minimalista para nao poluir o arquivo agora)
         try {
           const nfceItems: NfceItem[] = items.map((item) => ({
             code: item.productId.substring(0, 10),
@@ -198,7 +224,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total }) =>
             paymentValue: saleResult.amountPaid,
             emitterCnpj: company.cnpj || '',
             emitterName: company.name,
-            emitterIe: 'ISENTO', // Default
+            emitterIe: 'ISENTO',
             emitterAddress: company.address || '',
             emitterCity: company.city || '',
             emitterCityCode: fiscal.cityCode,
@@ -216,11 +242,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total }) =>
 
           const emission = await emitNfce(request);
           if (emission.success) {
-            console.log('NFC-e Autorizada', emission.accessKey);
-            // Auto-increment number locally
             useSettingsStore.getState().setFiscalConfig({ nextNumber: fiscal.nextNumber + 1 });
-          } else {
-            console.error('Erro NFC-e', emission.message);
           }
         } catch (e) {
           console.error('Falha NFC-e', e);
@@ -229,7 +251,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total }) =>
 
       onClose();
     } catch (error) {
-      console.error('Erro ao finalizar venda:', error);
+      console.error('Erro ao finalizar:', error);
     } finally {
       setIsProcessing(false);
     }

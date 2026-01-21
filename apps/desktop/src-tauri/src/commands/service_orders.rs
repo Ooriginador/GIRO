@@ -397,3 +397,13 @@ pub async fn update_service(
 
     repo.update_service(&id, input).await
 }
+
+/// Busca o histórico de serviços de um veículo
+#[tauri::command]
+pub async fn get_vehicle_services_history(
+    state: State<'_, AppState>,
+    vehicle_id: String,
+) -> AppResult<Vec<ServiceOrderSummary>> {
+    let repo = ServiceOrderRepository::new(state.pool().clone());
+    repo.find_by_vehicle(&vehicle_id).await
+}

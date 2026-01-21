@@ -295,6 +295,7 @@ async fn main() {
             commands::get_service_by_code,
             commands::create_service,
             commands::update_service,
+            commands::get_vehicle_services_history,
             // Garantias (Motopeças)
             commands::get_active_warranties,
             commands::get_warranties_paginated,

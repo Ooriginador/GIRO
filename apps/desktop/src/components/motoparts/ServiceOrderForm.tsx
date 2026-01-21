@@ -29,6 +29,8 @@ import { useCustomerVehicles } from '@/hooks/useCustomers';
 import { useServiceOrders } from '@/hooks/useServiceOrders';
 import { useAuthStore } from '@/stores/auth-store';
 import { CustomerSearch } from './CustomerSearch';
+import { VehicleHistoryPopover } from './VehicleHistoryPopover';
+import { History } from 'lucide-react';
 
 // Schema
 const formSchema = z.object({
@@ -175,7 +177,25 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
               name="customer_vehicle_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Veículo</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Veículo</FormLabel>
+                    {field.value && (
+                      <VehicleHistoryPopover
+                        vehicleId={field.value}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 gap-1 px-2 text-primary"
+                            type="button"
+                          >
+                            <History className="h-3 w-3" />
+                            Histórico
+                          </Button>
+                        }
+                      />
+                    )}
+                  </div>
                   <Select
                     disabled={!selectedCustomerId || isLoadingVehicles}
                     onValueChange={(value) => {
@@ -237,9 +257,12 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
                         <Input type="number" {...field} />
                       </FormControl>
                       {isKmLower && (
-                        <p className="text-sm font-medium text-warning flex items-center gap-1 mt-1">
-                          <AlertTriangle className="h-3 w-3" />
-                          Menor que último registro ({currentKm} km)
+                        <p className="text-sm font-medium text-amber-600 flex items-center gap-1 mt-1 bg-amber-50 p-1.5 rounded-md border border-amber-200">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span>
+                            Atenção: KM menor que o último registro ({currentKm} km). Verifique se
+                            há erro de digitação.
+                          </span>
                         </p>
                       )}
                       <FormMessage />

@@ -299,10 +299,13 @@ describe('useCustomerVehicles', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    const vehicle = await result.current.addVehicle({
-      customerId: 'cust-1',
-      vehicleYearId: 'year-1',
-      plate: 'ABC1234',
+    let vehicle: any;
+    await act(async () => {
+      vehicle = await result.current.addVehicle({
+        customerId: 'cust-1',
+        vehicleYearId: 'year-1',
+        plate: 'ABC1234',
+      });
     });
 
     expect(vehicle).toEqual(mockVehicle);

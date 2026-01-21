@@ -1,8 +1,8 @@
-import { useAuthStore } from "@/stores/auth-store";
-import { createQueryWrapper } from "@/test/queryWrapper";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CashControlPage } from "../CashControlPage";
+import { useAuthStore } from '@/stores/auth-store';
+import { createQueryWrapper } from '@/test/queryWrapper';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CashControlPage } from '../CashControlPage';
 
 // Define hoisted mocks
 const {
@@ -22,7 +22,7 @@ const {
 }));
 
 // Mock Lucide icons
-vi.mock("lucide-react", () => ({
+vi.mock('lucide-react', () => ({
   Plus: () => <div data-testid="icon-plus" />,
   Minus: () => <div data-testid="icon-minus" />,
   History: () => <div data-testid="icon-history" />,
@@ -47,8 +47,8 @@ vi.mock("lucide-react", () => ({
 }));
 
 // Mock Hooks
-vi.mock("@/hooks/usePDV", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/hooks/usePDV")>();
+vi.mock('@/hooks/usePDV', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/hooks/usePDV')>();
   return {
     ...actual,
     useCurrentCashSession: () => mockUseCurrentCashSession,
@@ -60,25 +60,23 @@ vi.mock("@/hooks/usePDV", async (importOriginal) => {
 });
 
 // Mock Tauri invoke
-vi.mock("@/lib/tauri", () => ({
+vi.mock('@/lib/tauri', () => ({
   invoke: mockInvoke,
-  addCashMovement: vi.fn((args) =>
-    mockInvoke("add_cash_movement", { input: args }),
-  ),
+  addCashMovement: vi.fn((args) => mockInvoke('add_cash_movement', { input: args })),
 }));
 
 // Mock Auth Store
-vi.mock("@/stores/auth-store", () => ({
+vi.mock('@/stores/auth-store', () => ({
   useAuthStore: vi.fn(),
 }));
 
-describe("CashControlPage", () => {
+describe('CashControlPage', () => {
   const queryWrapper = createQueryWrapper();
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useAuthStore).mockReturnValue({
-      employee: { id: "emp-1", name: "Test User" },
+      employee: { id: 'emp-1', name: 'Test User' },
       hasPermission: () => true,
     } as any);
     mockUseCurrentCashSession.data = null;
@@ -89,25 +87,25 @@ describe("CashControlPage", () => {
   it('should render "Cash Closed" state when no session exists', () => {
     render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
 
-    expect(screen.getByText("Caixa Fechado")).toBeInTheDocument();
-    expect(screen.getByText("Abrir Caixa")).toBeInTheDocument();
+    expect(screen.getByText('Caixa Fechado')).toBeInTheDocument();
+    expect(screen.getByText('Abrir Caixa')).toBeInTheDocument();
   });
 
-  it("should handle opening a cash session", async () => {
-    mockUseOpenCashSession.mutateAsync.mockResolvedValue({ id: "sess-1" });
+  it('should handle opening a cash session', async () => {
+    mockUseOpenCashSession.mutateAsync.mockResolvedValue({ id: 'sess-1' });
 
     render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
 
-    fireEvent.click(screen.getByText("Abrir Caixa"));
+    fireEvent.click(screen.getByText('Abrir Caixa'));
 
     expect(screen.getByText(/valor inicial/i)).toBeInTheDocument();
 
     const input = screen.getByLabelText(/valor de abertura/i);
-    fireEvent.change(input, { target: { value: "100" } });
+    fireEvent.change(input, { target: { value: '100' } });
 
     // The button inside dialog also says "Abrir Caixa"
-    const confirmButtons = screen.getAllByRole("button", {
-      name: "Abrir Caixa",
+    const confirmButtons = screen.getAllByRole('button', {
+      name: 'Abrir Caixa',
     });
     const lastButton = confirmButtons[confirmButtons.length - 1];
     if (lastButton) fireEvent.click(lastButton);
@@ -119,59 +117,63 @@ describe("CashControlPage", () => {
     });
   });
 
-  it("should handle session opening failure", async () => {
-    mockUseOpenCashSession.mutateAsync.mockRejectedValue(
-      new Error("Open Fail"),
-    );
+  it('should handle session opening failure', async () => {
+    mockUseOpenCashSession.mutateAsync.mockRejectedValue(new Error('Open Fail'));
     render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
 
-    fireEvent.click(screen.getByTestId("open-cash"));
-    fireEvent.change(screen.getByTestId("opening-balance-input"), {
-      target: { value: "100" },
+    // open dialog and wait for input to appear
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('open-cash'));
     });
-    const confirmButtons = screen.getAllByRole("button", {
-      name: /Abrir Caixa/i,
+
+    const openingInput = await screen.findByTestId('opening-balance-input');
+
+    await act(async () => {
+      fireEvent.change(openingInput, { target: { value: '100' } });
+      const confirmButtons = screen.getAllByRole('button', {
+        name: /Abrir Caixa/i,
+      });
+      const lastButton = confirmButtons[confirmButtons.length - 1];
+      if (lastButton) fireEvent.click(lastButton);
     });
-    const lastButton = confirmButtons[confirmButtons.length - 1];
-    if (lastButton) fireEvent.click(lastButton);
 
     await waitFor(() => {
       expect(mockUseOpenCashSession.mutateAsync).toHaveBeenCalled();
     });
   });
 
-  it("should render dashboard when session is open", async () => {
+  it('should render dashboard when session is open', async () => {
     (mockUseCurrentCashSession as any).data = {
-      id: "sess-1",
-      status: "OPEN",
+      id: 'sess-1',
+      status: 'OPEN',
       openingBalance: 100,
       current_balance: 130,
-      openedAt: "2025-01-01T10:00:00.000Z",
+      openedAt: '2025-01-01T10:00:00.000Z',
     };
     (mockUseCashMovements as any).data = [
       {
-        id: "mov-1",
-        type: "DEPOSIT",
+        id: 'mov-1',
+        type: 'DEPOSIT',
         amount: 50,
-        description: "Suprimento",
+        description: 'Suprimento',
         createdAt: new Date().toISOString(),
-        employeeName: "Admin",
+        employeeName: 'Admin',
       },
       {
-        id: "mov-2",
-        type: "SUPPLY",
+        id: 'mov-2',
+        type: 'SUPPLY',
         amount: 20,
-        description: "Troco",
+        description: 'Troco',
         createdAt: new Date().toISOString(),
-        employeeName: "Admin",
+        employeeName: 'Admin',
       },
       {
-        id: "mov-3",
-        type: "WITHDRAWAL",
+        id: 'mov-3',
+        type: 'WITHDRAWAL',
         amount: 30,
-        description: "Sangria",
+        description: 'Sangria',
         createdAt: new Date().toISOString(),
-        employeeName: "Admin",
+        employeeName: 'Admin',
       },
     ];
     (mockUseCashSessionSummary as any).data = {
@@ -185,8 +187,8 @@ describe("CashControlPage", () => {
       sales: 1000,
       cancellations: 50,
       salesByMethod: [
-        { method: "CASH", amount: 130, count: 1 },
-        { method: "CREDIT", amount: 300, count: 1 },
+        { method: 'CASH', amount: 130, count: 1 },
+        { method: 'CREDIT', amount: 300, count: 1 },
       ],
       movements: [],
     };
@@ -194,19 +196,19 @@ describe("CashControlPage", () => {
     render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
 
     await waitFor(() => {
-      expect(screen.getByTestId("opening-balance")).toHaveTextContent(/100,00/);
+      expect(screen.getByTestId('opening-balance')).toHaveTextContent(/100,00/);
     });
-    expect(screen.getByTestId("cash-balance")).toHaveTextContent(/130,00/);
+    expect(screen.getByTestId('cash-balance')).toHaveTextContent(/130,00/);
     const suprimentoElements = screen.getAllByText(/Suprimento/i);
     expect(suprimentoElements.length).toBeGreaterThan(0);
     const sangriaElements = screen.getAllByText(/Sangria/i);
     expect(sangriaElements.length).toBeGreaterThan(0);
   });
-  it("should handle adding a cash movement (Suprimento)", async () => {
+  it('should handle adding a cash movement (Suprimento)', async () => {
     mockUseCurrentCashSession.data = {
-      id: "sess-1",
-      status: "OPEN",
-      openedAt: "2025-01-01T10:00:00Z",
+      id: 'sess-1',
+      status: 'OPEN',
+      openedAt: '2025-01-01T10:00:00Z',
     } as any;
     mockUseCashSessionSummary.data = {
       totalSales: 0,
@@ -222,92 +224,98 @@ describe("CashControlPage", () => {
 
     render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
 
-    fireEvent.click(screen.getByTestId("cash-supply"));
+    fireEvent.click(screen.getByTestId('cash-supply'));
 
-    const amountInput = await screen.findByTestId("supply-amount-input");
-    fireEvent.change(amountInput, { target: { value: "30" } });
+    const amountInput = await screen.findByTestId('supply-amount-input');
+    fireEvent.change(amountInput, { target: { value: '30' } });
 
-    const motiveInput = screen.getByTestId("movement-reason-input");
-    fireEvent.change(motiveInput, { target: { value: "Troco extra" } });
+    const motiveInput = screen.getByTestId('movement-reason-input');
+    fireEvent.change(motiveInput, { target: { value: 'Troco extra' } });
 
-    fireEvent.click(screen.getByTestId("confirm-supply"));
+    fireEvent.click(screen.getByTestId('confirm-supply'));
 
     await waitFor(
       () => {
-        expect(mockInvoke).toHaveBeenCalledWith("add_cash_movement", {
+        expect(mockInvoke).toHaveBeenCalledWith('add_cash_movement', {
           input: expect.objectContaining({
-            movementType: "SUPPLY",
+            movementType: 'SUPPLY',
             amount: 30,
-            description: "Troco extra",
-            sessionId: "sess-1",
+            description: 'Troco extra',
+            sessionId: 'sess-1',
           }),
         });
       },
-      { timeout: 3000 },
+      { timeout: 3000 }
     );
   });
 
-  it("should handle adding a cash movement (Sangria)", async () => {
+  it('should handle adding a cash movement (Sangria)', async () => {
     mockUseCurrentCashSession.data = {
-      id: "sess-1",
-      status: "OPEN",
-      openedAt: "2025-01-01T10:00:00Z",
+      id: 'sess-1',
+      status: 'OPEN',
+      openedAt: '2025-01-01T10:00:00Z',
     } as any;
     mockInvoke.mockResolvedValue({ success: true });
 
     render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
 
-    fireEvent.click(screen.getByTestId("cash-withdrawal"));
+    fireEvent.click(screen.getByTestId('cash-withdrawal'));
 
-    const amountInput = await screen.findByTestId("withdrawal-amount-input");
-    fireEvent.change(amountInput, { target: { value: "50" } });
+    const amountInput = await screen.findByTestId('withdrawal-amount-input');
+    fireEvent.change(amountInput, { target: { value: '50' } });
 
-    const motiveInput = screen.getByTestId("withdrawal-reason-input");
+    const motiveInput = screen.getByTestId('withdrawal-reason-input');
     fireEvent.change(motiveInput, {
-      target: { value: "Pagamento fornecedor" },
+      target: { value: 'Pagamento fornecedor' },
     });
 
-    fireEvent.click(screen.getByTestId("confirm-withdrawal"));
+    fireEvent.click(screen.getByTestId('confirm-withdrawal'));
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith("add_cash_movement", {
+      expect(mockInvoke).toHaveBeenCalledWith('add_cash_movement', {
         input: expect.objectContaining({
-          movementType: "BLEED",
+          movementType: 'BLEED',
           amount: 50,
-          description: "Pagamento fornecedor",
-          sessionId: "sess-1",
+          description: 'Pagamento fornecedor',
+          sessionId: 'sess-1',
         }),
       });
     });
   });
 
-  it("should handle movement registration failure", async () => {
+  it('should handle movement registration failure', async () => {
     mockUseCurrentCashSession.data = {
-      id: "sess-1",
-      status: "OPEN",
+      id: 'sess-1',
+      status: 'OPEN',
       openedAt: new Date().toISOString(),
     } as any;
-    mockInvoke.mockRejectedValue(new Error("API Fail"));
+    mockInvoke.mockRejectedValue(new Error('API Fail'));
 
     render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
 
-    fireEvent.click(screen.getByTestId("cash-supply"));
-    fireEvent.change(await screen.findByTestId("supply-amount-input"), {
-      target: { value: "10" },
+    // open supply dialog and wait for input
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('cash-supply'));
     });
-    fireEvent.click(screen.getByTestId("confirm-supply"));
+
+    const supplyInput = await screen.findByTestId('supply-amount-input');
+
+    await act(async () => {
+      fireEvent.change(supplyInput, { target: { value: '10' } });
+      fireEvent.click(screen.getByTestId('confirm-supply'));
+    });
 
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalled();
     });
   });
 
-  it("should handle closing a cash session", async () => {
+  it('should handle closing a cash session', async () => {
     (mockUseCurrentCashSession as any).data = {
-      id: "sess-1",
-      status: "OPEN",
+      id: 'sess-1',
+      status: 'OPEN',
       current_balance: 130,
-      openedAt: "2025-01-01T10:00:00.000Z",
+      openedAt: '2025-01-01T10:00:00.000Z',
     };
     (mockUseCashSessionSummary as any).data = {
       totalSales: 130,
@@ -323,12 +331,12 @@ describe("CashControlPage", () => {
 
     render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
 
-    fireEvent.click(screen.getByTestId("close-cash"));
+    fireEvent.click(screen.getByTestId('close-cash'));
 
     const input = await screen.findByLabelText(/valor contado/i);
-    fireEvent.change(input, { target: { value: "130" } });
+    fireEvent.change(input, { target: { value: '130' } });
 
-    fireEvent.click(screen.getByTestId("confirm-close-cash"));
+    fireEvent.click(screen.getByTestId('confirm-close-cash'));
 
     await waitFor(() => {
       expect(mockUseCloseCashSession.mutateAsync).toHaveBeenCalledWith({
@@ -339,49 +347,47 @@ describe("CashControlPage", () => {
 
   it('should show "Caixa conferido" when balance matches', async () => {
     (mockUseCurrentCashSession as any).data = {
-      id: "sess-1",
-      status: "OPEN",
-      openedAt: "2025-01-01T10:00:00.000Z",
+      id: 'sess-1',
+      status: 'OPEN',
+      openedAt: '2025-01-01T10:00:00.000Z',
     };
     (mockUseCashSessionSummary as any).data = {
       cashInDrawer: 100,
-      salesByMethod: [{ method: "CASH", amount: 100 }],
+      salesByMethod: [{ method: 'CASH', amount: 100 }],
     } as any;
 
     render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
 
-    fireEvent.click(screen.getByTestId("close-cash"));
+    fireEvent.click(screen.getByTestId('close-cash'));
 
     const input = await screen.findByLabelText(/valor contado/i);
-    fireEvent.change(input, { target: { value: "100" } });
+    fireEvent.change(input, { target: { value: '100' } });
 
-    expect(
-      screen.getByText(/Caixa conferido corretamente/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Caixa conferido corretamente/i)).toBeInTheDocument();
   });
 
-  it("should disable close button if no permission", () => {
+  it('should disable close button if no permission', () => {
     vi.mocked(useAuthStore).mockReturnValue({
-      employee: { id: "emp-1", name: "No Perm User" },
-      hasPermission: (p: string) => p !== "cash.close",
+      employee: { id: 'emp-1', name: 'No Perm User' },
+      hasPermission: (p: string) => p !== 'cash.close',
     } as any);
 
     (mockUseCurrentCashSession as any).data = {
-      id: "sess-1",
-      status: "OPEN",
+      id: 'sess-1',
+      status: 'OPEN',
       openedAt: new Date().toISOString(),
     };
 
     render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
 
-    expect(screen.getByTestId("close-cash").closest("button")).toBeDisabled();
+    expect(screen.getByTestId('close-cash').closest('button')).toBeDisabled();
   });
 
-  it("should render summary cards with correct data", () => {
+  it('should render summary cards with correct data', () => {
     (mockUseCurrentCashSession as any).data = {
-      id: "sess-1",
-      status: "OPEN",
-      openedAt: "2025-01-01T10:00:00.000Z",
+      id: 'sess-1',
+      status: 'OPEN',
+      openedAt: '2025-01-01T10:00:00.000Z',
     };
     (mockUseCashSessionSummary as any).data = {
       totalSales: 1000,
@@ -391,8 +397,8 @@ describe("CashControlPage", () => {
       pix: 200,
       expectedBalance: 500,
       salesByMethod: [
-        { method: "CASH", total: 500, count: 5, amount: 500 },
-        { method: "PIX", total: 500, count: 5, amount: 500 },
+        { method: 'CASH', total: 500, count: 5, amount: 500 },
+        { method: 'PIX', total: 500, count: 5, amount: 500 },
       ],
       movements: [],
     };

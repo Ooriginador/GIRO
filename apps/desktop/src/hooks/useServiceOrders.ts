@@ -513,6 +513,29 @@ export function useServiceOrderDetails(orderId?: string) {
 }
 
 /**
+ * Hook para buscar o histórico de serviços de um veículo específico
+ */
+export function useVehicleHistory(vehicleId?: string) {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['vehicle-history', vehicleId],
+    queryFn: async () => {
+      if (!vehicleId) return [];
+      const result = await invoke<ServiceOrderSummary[]>('get_vehicle_services_history', {
+        vehicleId,
+      });
+      return result;
+    },
+    enabled: !!vehicleId,
+  });
+
+  return {
+    history: data || [],
+    isLoading,
+    refetch,
+  };
+}
+
+/**
  * Utilitários de formatação e validação
  */
 export const ServiceOrderUtils = {

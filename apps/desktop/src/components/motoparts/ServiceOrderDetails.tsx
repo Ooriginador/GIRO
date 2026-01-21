@@ -42,6 +42,7 @@ import { invoke } from '@/lib/tauri';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils';
 import { useCompany } from '@/stores/settings-store';
 import {
+  AlertTriangle,
   Calendar,
   Car,
   CheckCircle,
@@ -59,9 +60,13 @@ import {
   User,
   XCircle,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState } from 'react';
 import { ServiceOrderStatusBadge } from './ServiceOrderList';
 import { ServiceOrderItemDialog } from './ServiceOrderItemDialog';
+import { PaymentModal } from '../pdv/PaymentModal';
+import { VehicleHistoryPopover } from './VehicleHistoryPopover';
+import { PaymentMethod } from '@/stores/pdv-store';
 
 interface ServiceOrderDetailsProps {
   orderId: string;
@@ -82,8 +87,9 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
   }>({ open: false, type: null });
   const [itemDialogState, setItemDialogState] = useState<{
     open: boolean;
-    item?: any | null; // Using any temporarily if ServiceOrderItem type isn't fully available here, but better use correct type
+    item?: any | null;
   }>({ open: false, item: null });
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -147,15 +153,15 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     }
   };
 
-  const handleDeliverOrder = async () => {
+  const handleDeliverOrder = async (data: { paymentMethod: PaymentMethod; amountPaid: number }) => {
     try {
       await deliverOrder.mutateAsync({
         id: orderId,
-        paymentMethod: order.payment_method || 'DINHEIRO',
+        paymentMethod: data.paymentMethod,
       });
       toast({
         title: 'Ordem entregue',
-        description: 'Status alterado para "Entregue"',
+        description: 'Status alterado para "Entregue" e pagamento registrado',
       });
       refetch();
     } catch (error) {
@@ -348,17 +354,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
                 <Car className="h-4 w-4" />
                 Veículo
               </CardTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                title="Histórico do Veículo"
-                onClick={() => {
-                  toast({ description: 'Histórico rápido em desenvolvimento' });
-                }}
-              >
-                <Clock className="h-4 w-4" />
-              </Button>
+              <VehicleHistoryPopover vehicleId={order.customer_vehicle_id} />
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -494,7 +490,39 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{item.description}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{item.description}</p>
+                          {item.item_type === 'PART' && item.current_stock !== null && (
+                            <>
+                              {item.current_stock < item.quantity ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      Estoque insuficiente: {item.current_stock} disponível
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                item.min_stock !== null &&
+                                item.current_stock <= item.min_stock && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Estoque baixo: {item.current_stock} (Mín: {item.min_stock})
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )
+                              )}
+                            </>
+                          )}
+                        </div>
                         {item.warranty_days && (
                           <p className="text-xs text-muted-foreground">
                             Garantia: {item.warranty_days} dias
@@ -669,7 +697,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
               onClick={() => {
                 if (actionDialog.type === 'start') handleStartOrder();
                 if (actionDialog.type === 'complete') handleCompleteOrder();
-                if (actionDialog.type === 'deliver') handleDeliverOrder();
+                if (actionDialog.type === 'deliver') setPaymentModalOpen(true);
                 if (actionDialog.type === 'cancel') handleCancelOrder();
                 if (actionDialog.type === 'approve') handleApproveOrder();
                 setActionDialog({ open: false, type: null });
@@ -685,7 +713,15 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
         open={itemDialogState.open}
         onOpenChange={(open) => setItemDialogState({ open, item: itemDialogState.item })}
         orderId={orderId}
+        orderStatus={order.status}
         itemToEdit={itemDialogState.item}
+      />
+
+      <PaymentModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        total={order.total}
+        onFinalize={handleDeliverOrder}
       />
     </div>
   );

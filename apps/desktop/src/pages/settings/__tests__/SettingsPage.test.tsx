@@ -4,7 +4,7 @@
 
 import { SettingsPage } from '@/pages/settings/SettingsPage';
 import { useSettingsStore } from '@/stores';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -83,13 +83,17 @@ describe('SettingsPage', () => {
   });
 
   it('should render company settings by default', async () => {
-    render(<SettingsPage />);
+    await act(async () => {
+      render(<SettingsPage />);
+    });
     expect(await screen.findByLabelText(/razão social/i)).toHaveValue('Test Co');
   });
 
   it('should switch between all tabs', async () => {
-    render(<SettingsPage />);
-    await screen.findByLabelText(/razão social/i);
+    await act(async () => {
+      render(<SettingsPage />);
+      await screen.findByLabelText(/razão social/i);
+    });
 
     // License
     await user.click(screen.getByRole('tab', { name: /licença/i }));
@@ -113,8 +117,10 @@ describe('SettingsPage', () => {
   });
 
   it('should handle theme changes', async () => {
-    render(<SettingsPage />);
-    await user.click(screen.getByRole('tab', { name: /aparência/i }));
+    await act(async () => {
+      render(<SettingsPage />);
+      await user.click(screen.getByRole('tab', { name: /aparência/i }));
+    });
 
     await user.click(screen.getByRole('button', { name: /escuro/i }));
     expect(mockSettings.setTheme).toHaveBeenCalledWith('dark');
@@ -127,8 +133,10 @@ describe('SettingsPage', () => {
   });
 
   it('should handle scanner and ports', async () => {
-    render(<SettingsPage />);
-    await user.click(screen.getByRole('tab', { name: /hardware/i }));
+    await act(async () => {
+      render(<SettingsPage />);
+      await user.click(screen.getByRole('tab', { name: /hardware/i }));
+    });
 
     const scannerSwitch = screen.getAllByRole('switch')[2] as HTMLElement;
     await user.click(scannerSwitch);
@@ -149,8 +157,10 @@ describe('SettingsPage', () => {
     };
     vi.mocked(useSettingsStore).mockReturnValue(localSettings as any);
 
-    render(<SettingsPage />);
-    await user.click(screen.getByRole('tab', { name: /hardware/i }));
+    await act(async () => {
+      render(<SettingsPage />);
+      await user.click(screen.getByRole('tab', { name: /hardware/i }));
+    });
 
     await user.click(screen.getByText(/testar impressora/i));
     await user.click(screen.getByText(/imprimir documentos de teste/i));
@@ -164,8 +174,10 @@ describe('SettingsPage', () => {
   });
 
   it('should handle save action', async () => {
-    render(<SettingsPage />);
-    await user.click(screen.getByRole('button', { name: /salvar alterações/i }));
+    await act(async () => {
+      render(<SettingsPage />);
+      await user.click(screen.getByRole('button', { name: /salvar alterações/i }));
+    });
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith('configure_printer', expect.any(Object));
     });

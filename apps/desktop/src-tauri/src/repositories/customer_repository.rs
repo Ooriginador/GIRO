@@ -2,7 +2,7 @@
 //!
 //! Acesso a dados para clientes e seus veículos
 
-use sqlx::SqlitePool;
+use sqlx::{QueryBuilder, Sqlite, SqlitePool};
 
 use crate::error::{AppError, AppResult};
 use crate::models::{
@@ -56,55 +56,46 @@ impl<'a> CustomerRepository<'a> {
         pagination: &Pagination,
         filters: &CustomerFilters,
     ) -> AppResult<PaginatedResult<CustomerWithStats>> {
-        // Construir condições WHERE
-        let mut conditions = vec!["1=1".to_string()];
-
+        let mut count_builder: QueryBuilder<Sqlite> = QueryBuilder::new("SELECT COUNT(*) FROM customers c WHERE 1=1 ");
+        
         if let Some(active) = filters.is_active {
-            conditions.push(format!("c.is_active = {}", if active { 1 } else { 0 }));
+            count_builder.push(" AND c.is_active = ");
+            count_builder.push_bind(if active { 1 } else { 0 });
         }
 
         if let Some(ref city) = filters.city {
-            conditions.push(format!("c.city = '{}'", city));
+            count_builder.push(" AND c.city = ");
+            count_builder.push_bind(city);
         }
 
         if let Some(ref state) = filters.state {
-            conditions.push(format!("c.state = '{}'", state));
+            count_builder.push(" AND c.state = ");
+            count_builder.push_bind(state);
         }
 
-        if filters.search.is_some() {
-            conditions.push(
-                "(LOWER(c.name) LIKE '%' || LOWER(?) || '%' OR c.cpf LIKE '%' || ? || '%' OR c.phone LIKE '%' || ? || '%')".to_string()
-            );
+        if let Some(ref search) = filters.search {
+            count_builder.push(" AND (LOWER(c.name) LIKE ");
+            count_builder.push_bind(format!("%{}%", search.to_lowercase()));
+            count_builder.push(" OR c.cpf LIKE ");
+            count_builder.push_bind(format!("%{}%", search));
+            count_builder.push(" OR c.phone LIKE ");
+            count_builder.push_bind(format!("%{}%", search));
+            count_builder.push(")");
         }
 
-        let where_clause = conditions.join(" AND ");
-
-        // Contar total
-        let search = filters.search.clone().unwrap_or_default();
-        let count_query = format!(
-            "SELECT COUNT(*) as count FROM customers c WHERE {}",
-            where_clause
-        );
-
-        let total: i64 = if filters.search.is_some() {
-            sqlx::query_scalar(&count_query)
-                .bind(&search)
-                .bind(&search)
-                .bind(&search)
-                .fetch_one(self.pool)
-                .await?
-        } else {
-            sqlx::query_scalar(&count_query)
-                .fetch_one(self.pool)
-                .await?
-        };
+        let total: i64 = count_builder.build_query_as::<(i64,)>()
+            .fetch_one(self.pool)
+            .await?
+            .0;
 
         // Buscar dados
         let offset = pagination.offset();
-        let query = format!(
+        let mut data_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
             r#"
             SELECT
-                c.*,
+                c.id, c.name, c.cpf, c.phone, c.phone2, c.email,
+                c.zip_code, c.street, c.number, c.complement, c.neighborhood,
+                c.city, c.state, c.is_active, c.notes, c.created_at, c.updated_at,
                 COALESCE(cv.vehicle_count, 0) as vehicle_count,
                 COALESCE(so.order_count, 0) as order_count,
                 COALESCE(so.total_spent, 0.0) as total_spent,
@@ -125,34 +116,74 @@ impl<'a> CustomerRepository<'a> {
                 FROM service_orders
                 GROUP BY customer_id
             ) so ON so.customer_id = c.id
-            WHERE {}
-            ORDER BY c.name ASC
-            LIMIT {} OFFSET {}
-            "#,
-            where_clause, pagination.per_page, offset
+            WHERE 1=1
+            "#
         );
 
-        // Executar query manualmente devido à complexidade
-        let rows: Vec<Customer> = if filters.search.is_some() {
-            sqlx::query_as(&query)
-                .bind(&search)
-                .bind(&search)
-                .bind(&search)
-                .fetch_all(self.pool)
-                .await?
-        } else {
-            sqlx::query_as(&query).fetch_all(self.pool).await?
-        };
+        if let Some(active) = filters.is_active {
+            data_builder.push(" AND c.is_active = ");
+            data_builder.push_bind(if active { 1 } else { 0 });
+        }
 
-        // Mapear para CustomerWithStats (simplificado por agora)
+        if let Some(ref city) = filters.city {
+            data_builder.push(" AND c.city = ");
+            data_builder.push_bind(city);
+        }
+
+        if let Some(ref state) = filters.state {
+            data_builder.push(" AND c.state = ");
+            data_builder.push_bind(state);
+        }
+
+        if let Some(ref search) = filters.search {
+            data_builder.push(" AND (LOWER(c.name) LIKE ");
+            data_builder.push_bind(format!("%{}%", search.to_lowercase()));
+            data_builder.push(" OR c.cpf LIKE ");
+            data_builder.push_bind(format!("%{}%", search));
+            data_builder.push(" OR c.phone LIKE ");
+            data_builder.push_bind(format!("%{}%", search));
+            data_builder.push(")");
+        }
+
+        data_builder.push(" ORDER BY c.name ASC ");
+        data_builder.push(" LIMIT ");
+        data_builder.push_bind(pagination.per_page as i64);
+        data_builder.push(" OFFSET ");
+        data_builder.push_bind(offset as i64);
+
+        let rows = data_builder.build().fetch_all(self.pool).await?;
+        
         let data: Vec<CustomerWithStats> = rows
             .into_iter()
-            .map(|c| CustomerWithStats {
-                customer: c,
-                vehicle_count: 0,
-                order_count: 0,
-                total_spent: 0.0,
-                last_visit: None,
+            .map(|row| {
+                use sqlx::Row;
+                let customer = Customer {
+                    id: row.get("id"),
+                    name: row.get("name"),
+                    cpf: row.get("cpf"),
+                    phone: row.get("phone"),
+                    phone2: row.get("phone2"),
+                    email: row.get("email"),
+                    zip_code: row.get("zip_code"),
+                    street: row.get("street"),
+                    number: row.get("number"),
+                    complement: row.get("complement"),
+                    neighborhood: row.get("neighborhood"),
+                    city: row.get("city"),
+                    state: row.get("state"),
+                    is_active: row.get::<i64, _>("is_active") != 0,
+                    notes: row.get("notes"),
+                    created_at: row.get("created_at"),
+                    updated_at: row.get("updated_at"),
+                };
+
+                CustomerWithStats {
+                    customer,
+                    vehicle_count: row.get::<i64, _>("vehicle_count"),
+                    order_count: row.get::<i64, _>("order_count"),
+                    total_spent: row.get::<f64, _>("total_spent"),
+                    last_visit: row.get("last_visit"),
+                }
             })
             .collect();
 

@@ -60,6 +60,7 @@ interface ServiceOrderItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orderId: string;
+  orderStatus?: string;
   itemToEdit?: ServiceOrderItem | null;
 }
 
@@ -67,6 +68,7 @@ export function ServiceOrderItemDialog({
   open,
   onOpenChange,
   orderId,
+  orderStatus,
   itemToEdit,
 }: ServiceOrderItemDialogProps) {
   const [activeTab, setActiveTab] = useState<'PART' | 'SERVICE'>('PART');
@@ -149,8 +151,15 @@ export function ServiceOrderItemDialog({
     // Validar estoque para peças
     if (values.itemType === 'PART' && selectedProduct) {
       if (values.quantity > selectedProduct.currentStock) {
-        toast.error(`Estoque insuficiente. Disponível: ${selectedProduct.currentStock}`);
-        return;
+        if (orderStatus !== 'QUOTE') {
+          toast.error(`Estoque insuficiente. Disponível: ${selectedProduct.currentStock}`);
+          return;
+        } else {
+          // Apenas avisa para orçamentos
+          toast.warning(
+            `Estoque insuficiente (${selectedProduct.currentStock}). Este item ficará marcado com aviso.`
+          );
+        }
       }
     }
 
@@ -362,6 +371,13 @@ export function ServiceOrderItemDialog({
                         Sem estoque
                       </div>
                     )}
+                    {selectedProduct.currentStock > 0 &&
+                      form.watch('quantity') > selectedProduct.currentStock && (
+                        <div className="flex items-center gap-1 text-amber-600 text-xs mt-1 bg-amber-50 p-1 rounded border border-amber-100">
+                          <AlertTriangle className="h-3 w-3" />
+                          Quantidade solicitada maior que o estoque disponível.
+                        </div>
+                      )}
                   </div>
                 )}
               </TabsContent>

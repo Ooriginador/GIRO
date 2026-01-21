@@ -25,20 +25,7 @@ Object.defineProperty(document, 'documentElement', {
   writable: true,
 });
 
-// Mock do matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: query.includes('dark'),
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+// matchMedia is controlled by the global test setup; individual tests override when needed
 
 describe('Settings Store', () => {
   beforeEach(() => {
@@ -67,11 +54,30 @@ describe('Settings Store', () => {
     });
 
     it('should apply system theme based on preference', () => {
-      useSettingsStore.getState().setTheme('system');
+      const originalMatchMedia = (window as any).matchMedia;
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: vi.fn().mockImplementation((query: string) => ({
+          matches: true,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        })),
+      });
 
-      expect(useSettingsStore.getState().theme).toBe('system');
-      // Mock retorna dark para matchMedia
-      expect(mockClassList.add).toHaveBeenCalledWith('dark');
+      try {
+        useSettingsStore.getState().setTheme('system');
+
+        expect(useSettingsStore.getState().theme).toBe('system');
+        // Mock retorna dark para matchMedia
+        expect(mockClassList.add).toHaveBeenCalledWith('dark');
+      } finally {
+        Object.defineProperty(window, 'matchMedia', { writable: true, value: originalMatchMedia });
+      }
     });
   });
 

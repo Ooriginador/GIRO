@@ -3,7 +3,7 @@
  */
 
 import { ProductSearchResults } from '@/components/pdv/ProductSearchResults';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // Mock useProducts hook
@@ -70,63 +70,85 @@ describe('ProductSearchResults', () => {
   };
 
   describe('Rendering', () => {
-    it('should render loading state', () => {
+    it('should render loading state', async () => {
       mockIsLoading = true;
-      renderComponent();
+      await act(async () => {
+        renderComponent();
+      });
       expect(screen.getByText('Buscando...')).toBeInTheDocument();
     });
 
-    it('should render empty state when no products found', () => {
+    it('should render empty state when no products found', async () => {
       mockReturnProducts = [];
-      renderComponent();
+      await act(async () => {
+        renderComponent();
+      });
       expect(screen.getByText('Nenhum produto encontrado')).toBeInTheDocument();
     });
 
-    it('should render product list', () => {
-      renderComponent();
+    it('should render product list', async () => {
+      await act(async () => {
+        renderComponent();
+      });
       expect(screen.getByText('Óleo Motor 10W40')).toBeInTheDocument();
       expect(screen.getByText('Filtro de Ar')).toBeInTheDocument();
       expect(screen.getByText('Pastilha de Freio')).toBeInTheDocument();
     });
 
-    it('should display product internal code', () => {
-      renderComponent();
+    it('should display product internal code', async () => {
+      await act(async () => {
+        renderComponent();
+      });
       expect(screen.getByText('OL001')).toBeInTheDocument();
       expect(screen.getByText('FA002')).toBeInTheDocument();
     });
 
-    it('should display product barcode when available', () => {
-      renderComponent();
+    it('should display product barcode when available', async () => {
+      await act(async () => {
+        renderComponent();
+      });
       expect(screen.getByText('7891234567890')).toBeInTheDocument();
     });
 
-    it('should show "Pesável" badge for weighted products', () => {
-      renderComponent();
+    it('should show "Pesável" badge for weighted products', async () => {
+      await act(async () => {
+        renderComponent();
+      });
       expect(screen.getByText('Pesável')).toBeInTheDocument();
     });
 
-    it('should show "Sem estoque" for products with 0 stock', () => {
-      renderComponent();
+    it('should show "Sem estoque" for products with 0 stock', async () => {
+      await act(async () => {
+        renderComponent();
+      });
       expect(screen.getByText('Sem estoque')).toBeInTheDocument();
     });
 
-    it('should show stock count for products with stock', () => {
-      renderComponent();
+    it('should show stock count for products with stock', async () => {
+      await act(async () => {
+        renderComponent();
+      });
       expect(screen.getByText('10 em estoque')).toBeInTheDocument();
     });
   });
 
   describe('Interactions', () => {
-    it('should call onSelect when clicking a product', () => {
-      renderComponent();
+    it('should call onSelect when clicking a product', async () => {
+      await act(async () => {
+        renderComponent();
+      });
 
-      fireEvent.click(screen.getByText('Óleo Motor 10W40'));
+      await act(async () => {
+        fireEvent.click(screen.getByText('Óleo Motor 10W40'));
+      });
 
       expect(mockOnSelect).toHaveBeenCalledWith(mockProducts[0]);
     });
 
-    it('should highlight first product by default', () => {
-      renderComponent();
+    it('should highlight first product by default', async () => {
+      await act(async () => {
+        renderComponent();
+      });
 
       const firstProductButton = screen.getByText('Óleo Motor 10W40').closest('button');
       expect(firstProductButton).toHaveClass('bg-accent');
@@ -134,59 +156,86 @@ describe('ProductSearchResults', () => {
   });
 
   describe('Keyboard Navigation', () => {
-    it('should navigate down with ArrowDown', () => {
-      renderComponent();
+    it('should navigate down with ArrowDown', async () => {
+      await act(async () => {
+        renderComponent();
+      });
 
-      fireEvent.keyDown(window, { key: 'ArrowDown' });
+      await act(async () => {
+        fireEvent.keyDown(window, { key: 'ArrowDown' });
+      });
 
       const secondProductButton = screen.getByText('Filtro de Ar').closest('button');
       expect(secondProductButton).toHaveClass('bg-accent');
     });
 
-    it('should navigate up with ArrowUp', () => {
-      renderComponent();
+    it('should navigate up with ArrowUp', async () => {
+      await act(async () => {
+        renderComponent();
+      });
 
-      // First go down
-      fireEvent.keyDown(window, { key: 'ArrowDown' });
-      // Then go back up
-      fireEvent.keyDown(window, { key: 'ArrowUp' });
+      await act(async () => {
+        // First go down
+        fireEvent.keyDown(window, { key: 'ArrowDown' });
+      });
+
+      await act(async () => {
+        // Then go back up
+        fireEvent.keyDown(window, { key: 'ArrowUp' });
+      });
 
       const firstProductButton = screen.getByText('Óleo Motor 10W40').closest('button');
       expect(firstProductButton).toHaveClass('bg-accent');
     });
 
-    it('should select product with Enter', () => {
-      renderComponent();
+    it('should select product with Enter', async () => {
+      await act(async () => {
+        renderComponent();
+      });
 
-      fireEvent.keyDown(window, { key: 'Enter' });
+      await act(async () => {
+        fireEvent.keyDown(window, { key: 'Enter' });
+      });
 
       expect(mockOnSelect).toHaveBeenCalledWith(mockProducts[0]);
     });
 
-    it('should close with Escape', () => {
-      renderComponent();
+    it('should close with Escape', async () => {
+      await act(async () => {
+        renderComponent();
+      });
 
-      fireEvent.keyDown(window, { key: 'Escape' });
+      await act(async () => {
+        fireEvent.keyDown(window, { key: 'Escape' });
+      });
 
       expect(mockOnClose).toHaveBeenCalled();
     });
 
-    it('should not go below last item', () => {
-      renderComponent();
+    it('should not go below last item', async () => {
+      await act(async () => {
+        renderComponent();
+      });
 
-      // Try to go down 10 times (only 3 products)
-      for (let i = 0; i < 10; i++) {
-        fireEvent.keyDown(window, { key: 'ArrowDown' });
-      }
+      await act(async () => {
+        // Try to go down 10 times (only 3 products)
+        for (let i = 0; i < 10; i++) {
+          fireEvent.keyDown(window, { key: 'ArrowDown' });
+        }
+      });
 
       const lastProductButton = screen.getByText('Pastilha de Freio').closest('button');
       expect(lastProductButton).toHaveClass('bg-accent');
     });
 
-    it('should not go above first item', () => {
-      renderComponent();
+    it('should not go above first item', async () => {
+      await act(async () => {
+        renderComponent();
+      });
 
-      fireEvent.keyDown(window, { key: 'ArrowUp' });
+      await act(async () => {
+        fireEvent.keyDown(window, { key: 'ArrowUp' });
+      });
 
       const firstProductButton = screen.getByText('Óleo Motor 10W40').closest('button');
       expect(firstProductButton).toHaveClass('bg-accent');

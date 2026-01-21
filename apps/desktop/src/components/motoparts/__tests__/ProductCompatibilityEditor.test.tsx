@@ -73,55 +73,71 @@ describe('ProductCompatibilityEditor', () => {
     } as any);
   };
 
-  it('should render the editor in full mode', () => {
+  it('should render the editor in full mode', async () => {
     mockHookValue();
-    render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
-      wrapper: queryWrapper,
+    await act(async () => {
+      render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
+        wrapper: queryWrapper,
+      });
     });
 
     expect(screen.getByText(/Honda CG 160/i)).toBeInTheDocument();
   });
 
-  it('should render the editor in compact mode', () => {
+  it('should render the editor in compact mode', async () => {
     mockHookValue();
-    render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" compact />, {
-      wrapper: queryWrapper,
+    await act(async () => {
+      render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" compact />, {
+        wrapper: queryWrapper,
+      });
     });
 
     expect(screen.getByText(/Veículos Compatíveis/i)).toBeInTheDocument();
     expect(screen.getByTestId('vehicle-search')).toBeInTheDocument();
   });
 
-  it('should handle quick add in compact mode', () => {
+  it('should handle quick add in compact mode', async () => {
     const addCompatibility = vi.fn();
     mockHookValue({ addCompatibility });
 
-    render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" compact />, {
-      wrapper: queryWrapper,
+    await act(async () => {
+      render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" compact />, {
+        wrapper: queryWrapper,
+      });
     });
 
-    fireEvent.click(screen.getByTestId('vehicle-search'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('vehicle-search'));
+    });
+
     expect(addCompatibility).toHaveBeenCalledWith(
       expect.objectContaining({ displayName: 'New Vehicle' })
     );
   });
 
-  it('should show error state', () => {
+  it('should show error state', async () => {
     mockHookValue({ error: 'Erro de conexão' });
-    render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
-      wrapper: queryWrapper,
+    await act(async () => {
+      render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
+        wrapper: queryWrapper,
+      });
     });
 
     expect(screen.getByText('Erro de conexão')).toBeInTheDocument();
   });
 
-  it('should handle "Add via Selector" toggle', () => {
+  it('should handle "Add via Selector" toggle', async () => {
     mockHookValue();
-    render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
-      wrapper: queryWrapper,
+    await act(async () => {
+      render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
+        wrapper: queryWrapper,
+      });
     });
 
-    fireEvent.click(screen.getByText(/Adicionar via Seletor/i));
+    await act(async () => {
+      fireEvent.click(screen.getByText(/Adicionar via Seletor/i));
+    });
+
     expect(screen.getByTestId('vehicle-selector')).toBeInTheDocument();
   });
 
@@ -129,8 +145,10 @@ describe('ProductCompatibilityEditor', () => {
     const removeCompatibility = vi.fn();
     mockHookValue({ removeCompatibility });
 
-    render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
-      wrapper: queryWrapper,
+    await act(async () => {
+      render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
+        wrapper: queryWrapper,
+      });
     });
 
     // O botão de lixeira não tem texto, então vamos buscar pelo ícone ou pela classe
@@ -148,8 +166,10 @@ describe('ProductCompatibilityEditor', () => {
     const saveChanges = vi.fn().mockResolvedValue([{ vehicleYearId: 'v1' }]);
     mockHookValue({ hasChanges: true, pendingChanges: 1, saveChanges });
 
-    render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
-      wrapper: queryWrapper,
+    await act(async () => {
+      render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
+        wrapper: queryWrapper,
+      });
     });
 
     await user.click(screen.getByRole('button', { name: /Salvar Alterações/i }));
@@ -161,22 +181,30 @@ describe('ProductCompatibilityEditor', () => {
     expect(saveChanges).toHaveBeenCalled();
   });
 
-  it('should handle full selector flow: select and confirm', () => {
+  it('should handle full selector flow: select and confirm', async () => {
     const addCompatibility = vi.fn();
     mockHookValue({ addCompatibility });
 
-    render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
-      wrapper: queryWrapper,
+    await act(async () => {
+      render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
+        wrapper: queryWrapper,
+      });
     });
 
     // Open selector
-    fireEvent.click(screen.getByText(/Adicionar via Seletor/i));
+    await act(async () => {
+      fireEvent.click(screen.getByText(/Adicionar via Seletor/i));
+    });
 
     // Select vehicle in mock selector
-    fireEvent.click(screen.getByTestId('vehicle-selector'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('vehicle-selector'));
+    });
 
     // Confirm addition
-    fireEvent.click(screen.getByText(/Adicionar Selected/i));
+    await act(async () => {
+      fireEvent.click(screen.getByText(/Adicionar Selected/i));
+    });
 
     expect(addCompatibility).toHaveBeenCalledWith(
       expect.objectContaining({ displayName: 'Selected' })
@@ -184,14 +212,15 @@ describe('ProductCompatibilityEditor', () => {
     expect(screen.queryByTestId('vehicle-selector')).not.toBeInTheDocument();
   });
 
-  it('should show loading state', () => {
+  it('should show loading state', async () => {
     mockHookValue({ isLoading: true });
-    const { container } = render(
-      <ProductCompatibilityEditor productId="p1" productName="Peça Teste" />,
-      {
+    let container: HTMLElement;
+    await act(async () => {
+      const res = render(<ProductCompatibilityEditor productId="p1" productName="Peça Teste" />, {
         wrapper: queryWrapper,
-      }
-    );
+      });
+      container = res.container;
+    });
 
     // The loader is a Loader2 icon with animate-spin
     expect(container.querySelector('.animate-spin')).toBeInTheDocument();

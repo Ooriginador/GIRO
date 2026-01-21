@@ -126,7 +126,7 @@ pub struct ServiceOrderWithDetails {
 }
 
 /// Resumo da OS para listagens
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct ServiceOrderSummary {
     pub id: String,
@@ -161,6 +161,9 @@ pub struct ServiceOrderItem {
     pub subtotal: f64,
     pub total: f64,
     pub notes: Option<String>,
+    // Adicionado para suporte a alertas de estoque no frontend
+    pub current_stock: Option<f64>,
+    pub min_stock: Option<f64>,
     pub created_at: String,
     pub updated_at: String,
 }

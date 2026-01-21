@@ -2,7 +2,7 @@
 //!
 //! Acesso a dados para ordens de serviço, itens e serviços pré-cadastrados
 
-use sqlx::{Pool, Sqlite};
+use sqlx::{Pool, QueryBuilder, Sqlite};
 
 use crate::error::{AppError, AppResult};
 use crate::models::{
@@ -47,52 +47,45 @@ impl ServiceOrderRepository {
         pagination: &Pagination,
         filters: &ServiceOrderFilters,
     ) -> AppResult<PaginatedResult<ServiceOrderSummary>> {
-        // Construir condições WHERE
-        let mut conditions = vec!["1=1".to_string()];
-
+        // 1. Contar total (usando QueryBuilder para segurança)
+        let mut count_builder: QueryBuilder<Sqlite> = QueryBuilder::new("SELECT COUNT(*) FROM service_orders so WHERE 1=1 ");
+        
         if let Some(ref status) = filters.status {
-            conditions.push(format!("so.status = '{}'", status));
+            count_builder.push(" AND so.status = ");
+            count_builder.push_bind(status);
         }
-
         if let Some(ref customer_id) = filters.customer_id {
-            conditions.push(format!("so.customer_id = '{}'", customer_id));
+            count_builder.push(" AND so.customer_id = ");
+            count_builder.push_bind(customer_id);
         }
-
         if let Some(ref vehicle_id) = filters.vehicle_id {
-            conditions.push(format!("so.customer_vehicle_id = '{}'", vehicle_id));
+            count_builder.push(" AND so.customer_vehicle_id = ");
+            count_builder.push_bind(vehicle_id);
         }
-
         if let Some(ref employee_id) = filters.employee_id {
-            conditions.push(format!("so.employee_id = '{}'", employee_id));
+            count_builder.push(" AND so.employee_id = ");
+            count_builder.push_bind(employee_id);
         }
-
         if let Some(is_paid) = filters.is_paid {
-            conditions.push(format!("so.is_paid = {}", if is_paid { 1 } else { 0 }));
+            count_builder.push(" AND so.is_paid = ");
+            count_builder.push_bind(is_paid);
         }
-
         if let Some(ref date_from) = filters.date_from {
-            conditions.push(format!("so.created_at >= '{}'", date_from));
+            count_builder.push(" AND so.created_at >= ");
+            count_builder.push_bind(date_from);
         }
-
         if let Some(ref date_to) = filters.date_to {
-            conditions.push(format!("so.created_at <= '{}'", date_to));
+            count_builder.push(" AND so.created_at <= ");
+            count_builder.push_bind(date_to);
         }
 
-        let where_clause = conditions.join(" AND ");
-
-        // Contar total
-        let count_query = format!(
-            "SELECT COUNT(*) as count FROM service_orders so WHERE {}",
-            where_clause
-        );
-
-        let total: i64 = sqlx::query_scalar(&count_query)
+        let total: i64 = count_builder.build_query_as::<(i64,)>()
             .fetch_one(&self.pool)
-            .await?;
+            .await?
+            .0;
 
-        // Buscar dados
-        let offset = pagination.offset();
-        let query = format!(
+        // 2. Buscar dados (usando QueryBuilder para segurança)
+        let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
             r#"
             SELECT
                 so.id,
@@ -110,15 +103,46 @@ impl ServiceOrderRepository {
             INNER JOIN vehicle_years vy ON vy.id = so.vehicle_year_id
             INNER JOIN vehicle_models vm ON vm.id = vy.model_id
             INNER JOIN vehicle_brands vb ON vb.id = vm.brand_id
-            WHERE {}
-            ORDER BY so.created_at DESC
-            LIMIT {} OFFSET {}
-            "#,
-            where_clause, pagination.per_page, offset
+            WHERE 1=1 
+            "#
         );
 
-        let rows = sqlx::query_as::<
-            _,
+        if let Some(ref status) = filters.status {
+            query_builder.push(" AND so.status = ");
+            query_builder.push_bind(status);
+        }
+        if let Some(ref customer_id) = filters.customer_id {
+            query_builder.push(" AND so.customer_id = ");
+            query_builder.push_bind(customer_id);
+        }
+        if let Some(ref vehicle_id) = filters.vehicle_id {
+            query_builder.push(" AND so.customer_vehicle_id = ");
+            query_builder.push_bind(vehicle_id);
+        }
+        if let Some(ref employee_id) = filters.employee_id {
+            query_builder.push(" AND so.employee_id = ");
+            query_builder.push_bind(employee_id);
+        }
+        if let Some(is_paid) = filters.is_paid {
+            query_builder.push(" AND so.is_paid = ");
+            query_builder.push_bind(is_paid);
+        }
+        if let Some(ref date_from) = filters.date_from {
+            query_builder.push(" AND so.created_at >= ");
+            query_builder.push_bind(date_from);
+        }
+        if let Some(ref date_to) = filters.date_to {
+            query_builder.push(" AND so.created_at <= ");
+            query_builder.push_bind(date_to);
+        }
+
+        query_builder.push(" ORDER BY so.created_at DESC ");
+        query_builder.push(" LIMIT ");
+        query_builder.push_bind(pagination.per_page as i64);
+        query_builder.push(" OFFSET ");
+        query_builder.push_bind(pagination.offset() as i64);
+
+        let rows = query_builder.build_query_as::<
             (
                 String,
                 i32,
@@ -130,7 +154,7 @@ impl ServiceOrderRepository {
                 bool,
                 String,
             ),
-        >(&query)
+        >()
         .fetch_all(&self.pool)
         .await?;
 
@@ -546,6 +570,38 @@ impl ServiceOrderRepository {
             .collect())
     }
 
+    /// Busca as últimas 3 ordens de serviço de um veículo
+    pub async fn find_by_vehicle(&self, vehicle_id: &str) -> AppResult<Vec<ServiceOrderSummary>> {
+        let sql = r#"
+            SELECT
+                so.id,
+                so.order_number,
+                so.status,
+                c.name as customer_name,
+                vb.name || ' ' || vm.name || ' ' || vy.year_label as vehicle_display_name,
+                cv.plate as vehicle_plate,
+                so.total,
+                so.is_paid,
+                so.created_at
+            FROM service_orders so
+            INNER JOIN customers c ON c.id = so.customer_id
+            INNER JOIN customer_vehicles cv ON cv.id = so.customer_vehicle_id
+            INNER JOIN vehicle_years vy ON vy.id = so.vehicle_year_id
+            INNER JOIN vehicle_models vm ON vm.id = vy.model_id
+            INNER JOIN vehicle_brands vb ON vb.id = vm.brand_id
+            WHERE so.customer_vehicle_id = ?
+            ORDER BY so.created_at DESC
+            LIMIT 3
+        "#;
+
+        let orders = sqlx::query_as::<_, ServiceOrderSummary>(sql)
+            .bind(vehicle_id)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(orders)
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // ITENS DA ORDEM
     // ═══════════════════════════════════════════════════════════════════════
@@ -555,26 +611,30 @@ impl ServiceOrderRepository {
         let items = sqlx::query_as::<_, ServiceOrderItem>(
             r#"
             SELECT 
-                id as "id!", 
-                order_id as "order_id!", 
-                product_id as "product_id?",
-                item_type as "item_type!", 
-                description as "description!",
-                employee_id as "employee_id?",
-                quantity as "quantity!", 
-                unit_price as "unit_price!",
-                discount_percent as "discount_percent!", 
-                discount_value as "discount_value!", 
-                subtotal as "subtotal!", 
-                total as "total!",
-                notes as "notes?",
-                created_at as "created_at!", 
-                updated_at as "updated_at!"
+                id, 
+                order_id, 
+                product_id,
+                item_type, 
+                description,
+                employee_id,
+                quantity, 
+                unit_price,
+                discount_percent, 
+                discount_value, 
+                subtotal, 
+                total,
+                notes,
+                current_stock,
+                min_stock,
+                created_at, 
+                updated_at
             FROM (
                 SELECT 
                     id, order_id, CAST(NULL AS TEXT) as product_id, 'SERVICE' as item_type, description, 
                     employee_id, quantity, unit_price, discount_percent, discount_value, 
-                    subtotal, total, notes, created_at, updated_at
+                    subtotal, total, notes, 
+                    CAST(NULL AS REAL) as current_stock, CAST(NULL AS REAL) as min_stock,
+                    created_at, updated_at
                 FROM order_services 
                 WHERE order_id = ?
                 
@@ -583,7 +643,9 @@ impl ServiceOrderRepository {
                 SELECT 
                     op.id, op.order_id, op.product_id, 'PART' as item_type, p.name as description, 
                     op.employee_id, op.quantity, op.unit_price, op.discount_percent, op.discount_value, 
-                    op.subtotal, op.total, CAST(NULL AS TEXT) as notes, op.created_at, op.updated_at
+                    op.subtotal, op.total, CAST(NULL AS TEXT) as notes,
+                    p.current_stock, p.min_stock,
+                    op.created_at, op.updated_at
                 FROM order_products op
                 LEFT JOIN products p ON p.id = op.product_id
                 WHERE op.order_id = ?
@@ -632,8 +694,8 @@ impl ServiceOrderRepository {
             .await?
             .ok_or_else(|| AppError::NotFound { entity: "Product".into(), id: product_id.clone() })?;
 
-            // Validar estoque disponível
-            if product.current_stock < input.quantity {
+            // Validar estoque disponível (apenas se NÃO for orçamento)
+            if !is_quote && product.current_stock < input.quantity {
                 return Err(AppError::Validation(format!(
                     "Estoque insuficiente. Disponível: {:.2}, Solicitado: {:.2}",
                     product.current_stock, input.quantity
@@ -745,23 +807,14 @@ impl ServiceOrderRepository {
         // Recalcular totais da ordem
         self.recalculate_totals(&input.order_id).await?;
 
-        Ok(ServiceOrderItem {
-            id,
-            order_id: input.order_id,
-            product_id: input.product_id,
-            item_type: input.item_type,
-            description: input.description,
-            employee_id: input.employee_id,
-            quantity: input.quantity,
-            unit_price: input.unit_price,
-            discount_percent: 0.0,
-            discount_value,
-            subtotal,
-            total,
-            notes: input.notes,
-            created_at: now.clone(),
-            updated_at: now,
-        })
+        // Retornar item adicionado (buscando do banco para ter todos os campos populados, incluindo estoque)
+        let items = self.find_order_items(&input.order_id).await?;
+        items.into_iter()
+            .find(|i| i.id == id)
+            .ok_or_else(|| AppError::NotFound {
+                entity: "ServiceOrderItem".to_string(),
+                id,
+            })
     }
 
     /// Remove item da ordem

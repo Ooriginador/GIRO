@@ -1,10 +1,8 @@
-//! Repositório de Produtos
-
 use crate::error::AppResult;
 use crate::models::{CreateProduct, Product, ProductFilters, StockSummary, UpdateProduct};
 use crate::repositories::new_id;
 use crate::repositories::PriceHistoryRepository;
-use sqlx::SqlitePool;
+use sqlx::{QueryBuilder, Sqlite, SqlitePool};
 use crate::database::decimal_config;
 
 pub struct ProductRepository<'a> {
@@ -115,48 +113,49 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_with_filters(&self, filters: &ProductFilters) -> AppResult<Vec<Product>> {
-        let mut query = format!("SELECT {} FROM products WHERE 1=1", self.product_columns_string());
-        let mut binds = Vec::new();
+        let mut builder: QueryBuilder<Sqlite> = QueryBuilder::new(
+            format!("SELECT {} FROM products WHERE 1=1", self.product_columns_string())
+        );
 
         if let Some(ref search) = filters.search {
-            query.push_str(" AND (name LIKE ? OR barcode LIKE ? OR internal_code LIKE ?)");
-            let pattern = format!("%{}%", search);
-            binds.push(pattern.clone());
-            binds.push(pattern.clone());
-            binds.push(pattern);
+            builder.push(" AND (name LIKE ");
+            builder.push_bind(format!("%{}%", search));
+            builder.push(" OR barcode LIKE ");
+            builder.push_bind(format!("%{}%", search));
+            builder.push(" OR internal_code LIKE ");
+            builder.push_bind(format!("%{}%", search));
+            builder.push(")");
         }
 
         if let Some(ref cat_id) = filters.category_id {
-            query.push_str(" AND category_id = ?");
-            binds.push(cat_id.clone());
+            builder.push(" AND category_id = ");
+            builder.push_bind(cat_id);
         }
 
         if filters.is_active.unwrap_or(true) {
-            query.push_str(" AND is_active = 1");
+            builder.push(" AND is_active = 1");
         }
 
         if filters.low_stock.unwrap_or(false) {
-            query.push_str(" AND current_stock <= min_stock AND current_stock > 0");
+            builder.push(" AND current_stock <= min_stock AND current_stock > 0");
         }
 
         if filters.out_of_stock.unwrap_or(false) {
-            query.push_str(" AND current_stock <= 0");
+            builder.push(" AND current_stock <= 0");
         }
 
-        query.push_str(" ORDER BY name");
+        builder.push(" ORDER BY name");
 
         if let Some(limit) = filters.limit {
-            query.push_str(&format!(" LIMIT {}", limit));
+            builder.push(" LIMIT ");
+            builder.push_bind(limit as i64);
         }
         if let Some(offset) = filters.offset {
-            query.push_str(&format!(" OFFSET {}", offset));
+            builder.push(" OFFSET ");
+            builder.push_bind(offset as i64);
         }
 
-        let mut q = sqlx::query_as::<_, Product>(&query);
-        for bind in &binds {
-            q = q.bind(bind);
-        }
-        let result = q.fetch_all(self.pool).await?;
+        let result = builder.build_query_as::<Product>().fetch_all(self.pool).await?;
         Ok(result)
     }
 

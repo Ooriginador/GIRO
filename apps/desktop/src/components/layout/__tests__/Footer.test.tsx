@@ -3,7 +3,7 @@
  */
 
 import { Footer } from '@/components/layout/Footer';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock do Tauri
@@ -25,14 +25,18 @@ describe('Footer', () => {
   });
 
   it('should render footer element', async () => {
-    render(<Footer />);
+    await act(async () => {
+      render(<Footer />);
+    });
     await screen.findByText(/v1.0.0/); // Wait for initial render and version
     const footer = document.querySelector('footer');
     expect(footer).toBeInTheDocument();
   });
 
   it('should display hardware status indicators', async () => {
-    render(<Footer />);
+    await act(async () => {
+      render(<Footer />);
+    });
     expect(await screen.findByText('Impressora')).toBeInTheDocument();
     expect(screen.getByText('Balança')).toBeInTheDocument();
     expect(screen.getByText('Scanner')).toBeInTheDocument();
@@ -40,7 +44,9 @@ describe('Footer', () => {
   });
 
   it('should display keyboard shortcuts', async () => {
-    render(<Footer />);
+    await act(async () => {
+      render(<Footer />);
+    });
     expect(await screen.findByText('F2')).toBeInTheDocument();
     expect(screen.getByText('Buscar')).toBeInTheDocument();
     expect(screen.getByText('F10')).toBeInTheDocument();
@@ -50,12 +56,16 @@ describe('Footer', () => {
   });
 
   it('should display version number', async () => {
-    render(<Footer />);
+    await act(async () => {
+      render(<Footer />);
+    });
     expect(await screen.findByText('v1.0.0')).toBeInTheDocument();
   });
 
   it('should display shortcuts hint label', async () => {
-    render(<Footer />);
+    await act(async () => {
+      render(<Footer />);
+    });
     expect(await screen.findByText('Atalhos:')).toBeInTheDocument();
   });
 });
