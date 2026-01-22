@@ -13,6 +13,8 @@ pub async fn giro_invoke(
     payload: Option<Value>,
     app_state: State<'_, AppState>,
     hw_state: State<'_, HardwareState>,
+    network_state: State<'_, tokio::sync::RwLock<crate::commands::network::NetworkState>>,
+    mobile_state: State<'_, tokio::sync::RwLock<crate::commands::mobile::MobileServerState>>,
 ) -> Result<InvokeResult<Value>, String> {
     match cmd.as_str() {
         "license.get_hardware_id" => {
@@ -139,14 +141,38 @@ pub async fn giro_invoke(
 
         // Mobile server aliases
         "start_mobile_server" => {
-            match crate::commands::mobile::start_mobile_server(app_state).await {
-                Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
-                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            if payload.is_none() {
+                return Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    "missing payload".to_string(),
+                ));
+            }
+            let val = payload.unwrap();
+            let input: Result<crate::commands::mobile::StartServerConfig, _> =
+                serde_json::from_value(val);
+
+            match input {
+                Ok(config) => {
+                    match crate::commands::mobile::start_mobile_server(
+                        config,
+                        app_state,
+                        mobile_state,
+                    )
+                    .await
+                    {
+                        Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
+                        Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+                    }
+                }
+                Err(e) => Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    format!("Invalid payload: {}", e),
+                )),
             }
         }
 
         "stop_mobile_server" => {
-            match crate::commands::mobile::stop_mobile_server(app_state).await {
+            match crate::commands::mobile::stop_mobile_server(mobile_state).await {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -173,7 +199,7 @@ pub async fn giro_invoke(
                     ))
                 }
             };
-            match crate::commands::mobile::disconnect_mobile_device(device_id, app_state).await {
+            match crate::commands::mobile::disconnect_mobile_device(device_id, mobile_state).await {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -193,16 +219,24 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .unwrap_or_default();
-            match crate::commands::network::start_network_client(terminal_name).await {
+            match crate::commands::network::start_network_client(
+                terminal_name,
+                app_state,
+                network_state,
+            )
+            .await
+            {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
         }
 
-        "stop_network_client" => match crate::commands::network::stop_network_client().await {
-            Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
-            Err(e) => Ok(InvokeResult::err(None, e.to_string())),
-        },
+        "stop_network_client" => {
+            match crate::commands::network::stop_network_client(network_state).await {
+                Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
 
         // Hardware aliases
         "configure_printer" => {
@@ -220,10 +254,14 @@ pub async fn giro_invoke(
             let input: Result<crate::hardware::printer::PrinterConfig, _> =
                 serde_json::from_value(config);
             match input {
-                Ok(cfg) => match crate::commands::hardware::configure_printer(cfg).await {
-                    Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
-                    Err(e) => Ok(InvokeResult::err(None, e.to_string())),
-                },
+                Ok(cfg) => {
+                    match crate::commands::hardware::configure_printer(cfg, app_state, hw_state)
+                        .await
+                    {
+                        Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
+                        Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+                    }
+                }
                 Err(e) => Ok(InvokeResult::err(
                     Some("invalid_payload".to_string()),
                     format!("Invalid payload: {}", e),
@@ -231,12 +269,12 @@ pub async fn giro_invoke(
             }
         }
 
-        "test_printer" => match crate::commands::hardware::test_printer(app_state.clone()).await {
+        "test_printer" => match crate::commands::hardware::test_printer(hw_state).await {
             Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
             Err(e) => Ok(InvokeResult::err(None, e.to_string())),
         },
 
-        "read_weight" => match crate::commands::hardware::read_weight(app_state.clone()).await {
+        "read_weight" => match crate::commands::hardware::read_weight(hw_state).await {
             Ok(reading) => Ok(InvokeResult::ok(serde_json::to_value(reading).ok())),
             Err(e) => Ok(InvokeResult::err(None, e.to_string())),
         },
@@ -256,10 +294,13 @@ pub async fn giro_invoke(
             let input: Result<crate::hardware::scale::ScaleConfig, _> =
                 serde_json::from_value(config);
             match input {
-                Ok(cfg) => match crate::commands::hardware::configure_scale(cfg).await {
-                    Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
-                    Err(e) => Ok(InvokeResult::err(None, e.to_string())),
-                },
+                Ok(cfg) => {
+                    match crate::commands::hardware::configure_scale(cfg, app_state, hw_state).await
+                    {
+                        Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
+                        Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+                    }
+                }
                 Err(e) => Ok(InvokeResult::err(
                     Some("invalid_payload".to_string()),
                     format!("Invalid payload: {}", e),
@@ -268,7 +309,7 @@ pub async fn giro_invoke(
         }
 
         "print_test_documents" => {
-            match crate::commands::hardware::print_test_documents(app_state.clone()).await {
+            match crate::commands::hardware::print_test_documents(hw_state).await {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -292,7 +333,9 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_u64())
                 .map(|n| n as u32)
                 .unwrap_or(9600);
-            match crate::commands::hardware::start_serial_scanner(port, baud).await {
+            match crate::commands::hardware::start_serial_scanner(port, baud, hw_state, app_state)
+                .await
+            {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
