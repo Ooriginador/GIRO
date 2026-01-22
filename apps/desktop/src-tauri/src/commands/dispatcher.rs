@@ -381,7 +381,13 @@ pub async fn giro_invoke(
                 ));
             }
             let val = payload.unwrap();
-            let input: Result<crate::models::CreateSale, _> = serde_json::from_value(val);
+
+            // Try wrapping 'input' or direct root
+            let input: Result<crate::models::CreateSale, _> = val
+                .get("input")
+                .map(|v| serde_json::from_value(v.clone()))
+                .unwrap_or_else(|| serde_json::from_value(val.clone()));
+
             match input {
                 Ok(sale_input) => {
                     match crate::commands::sales::create_sale(sale_input, app_state).await {
@@ -404,11 +410,45 @@ pub async fn giro_invoke(
                 ));
             }
             let val = payload.unwrap();
-            let input: Result<crate::models::CreateCashSession, _> = serde_json::from_value(val);
+
+            // Try wrapping 'input' or direct root
+            let input: Result<crate::models::CreateCashSession, _> = val
+                .get("input")
+                .map(|v| serde_json::from_value(v.clone()))
+                .unwrap_or_else(|| serde_json::from_value(val.clone()));
+
             match input {
                 Ok(session_input) => {
                     match crate::commands::cash::open_cash_session(session_input, app_state).await {
                         Ok(sess) => Ok(InvokeResult::ok(serde_json::to_value(sess).ok())),
+                        Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+                    }
+                }
+                Err(e) => Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    format!("Invalid payload: {}", e),
+                )),
+            }
+        }
+
+        "add_cash_movement" => {
+            if payload.is_none() {
+                return Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    "missing payload".to_string(),
+                ));
+            }
+            let val = payload.unwrap();
+            let input: Result<crate::models::CreateCashMovement, _> = val
+                .get("input")
+                .map(|v| serde_json::from_value(v.clone()))
+                .unwrap_or_else(|| serde_json::from_value(val.clone()));
+
+            match input {
+                Ok(movement_input) => {
+                    match crate::commands::cash::add_cash_movement(movement_input, app_state).await
+                    {
+                        Ok(mv) => Ok(InvokeResult::ok(serde_json::to_value(mv).ok())),
                         Err(e) => Ok(InvokeResult::err(None, e.to_string())),
                     }
                 }

@@ -6,16 +6,23 @@
         {
           "name": "giro-license",
           "value": "{\"licenseKey\":\"TEST-LOCAL-KEY\",\"licenseInfo\":{\"status\":\"active\",\"expires_at\":\"2099-01-01T00:00:00.000Z\",\"metadata\":{}},\"lastValidation\":\"2026-01-14T15:15:13.349Z\"}"
+        },
+        {
+          "name": "__giro_web_mock_db__",
+          "value": "{\"employees\":[{\"id\":\"seed-admin\",\"name\":\"Administrador Semente\",\"role\":\"ADMIN\",\"pin\":\"8899\",\"isActive\":true}],\"currentCashSession\":null,\"cashSessionHistory\":[]}"
         }
       ]
-    }
-    ,
+    },
     {
       "origin": "http://localhost:1420",
       "localStorage": [
         {
           "name": "giro-license",
           "value": "{\"licenseKey\":\"TEST-LOCAL-KEY\",\"licenseInfo\":{\"status\":\"active\",\"expires_at\":\"2099-01-01T00:00:00.000Z\",\"metadata\":{}},\"lastValidation\":\"2026-01-14T15:15:13.349Z\"}"
+        },
+        {
+          "name": "__giro_web_mock_db__",
+          "value": "{\"employees\":[{\"id\":\"seed-admin\",\"name\":\"Administrador Semente\",\"role\":\"ADMIN\",\"pin\":\"8899\",\"isActive\":true}],\"currentCashSession\":null,\"cashSessionHistory\":[]}"
         }
       ]
     }

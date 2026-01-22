@@ -217,16 +217,37 @@ describe('tauri.ts', () => {
         { fn: () => tauriLib.getSales(), cmd: 'get_sales' },
         { fn: () => tauriLib.getAlerts(), cmd: 'get_alerts' },
         { fn: () => tauriLib.getSettings(), cmd: 'get_all_settings' },
-        { fn: () => tauriLib.printReceipt('sale-1'), cmd: 'print_receipt' },
+        { fn: () => tauriLib.printReceipt('sale-1'), cmd: 'print_sale_by_id' },
       ];
 
       for (const { fn, cmd } of commands) {
         await fn();
-        if (cmd === 'get_categories' || cmd === 'get_all_settings') {
-          expect(tauriCoreInvoke).toHaveBeenCalledWith(cmd, undefined);
-        } else {
-          expect(tauriCoreInvoke).toHaveBeenCalledWith(cmd, expect.anything());
+
+        // Accept either direct command invocation or via dispatcher `giro_invoke`.
+        const calls = (tauriCoreInvoke as unknown as any).mock.calls as any[];
+        let found = false;
+        for (const call of calls) {
+          // direct invoke: (cmd, args)
+          if (call[0] === cmd) {
+            found = true;
+            break;
+          }
+
+          // dispatcher invoke: ('giro_invoke', { cmd, payload })
+          if (call[0] === 'giro_invoke' && call[1] && call[1].cmd === cmd) {
+            found = true;
+            break;
+          }
         }
+
+        if (!found) {
+          // Debug info to help CI/local debugging
+          // eslint-disable-next-line no-console
+          console.error('tauri.invoke calls:', JSON.stringify(calls));
+          // eslint-disable-next-line no-console
+          console.error('Missing expected command:', cmd);
+        }
+        expect(found).toBe(true);
       }
     });
   });

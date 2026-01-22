@@ -136,10 +136,10 @@ impl<'a> CashRepository<'a> {
         let sales_row = sqlx::query(
             r#"
             SELECT 
-                COALESCE(SUM(total), 0.0) as total_sales,
+                COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN total ELSE 0 END), 0.0) as total_sales,
                 COALESCE(SUM(CASE WHEN status = 'CANCELED' THEN total ELSE 0 END), 0.0) as total_canceled
             FROM sales 
-            WHERE cash_session_id = ? AND status = 'COMPLETED'
+            WHERE cash_session_id = ?
             "#
         )
         .bind(session_id)
