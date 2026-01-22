@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/api/tauri', () => ({
+vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }));
 
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import { safeCreateSale, safeActivateLicense, safeGetHardwareId } from '../client';
 
 describe('IPC client contract', () => {
@@ -13,7 +13,7 @@ describe('IPC client contract', () => {
   });
 
   it('safeCreateSale resolves when envelope ok', async () => {
-    (invoke as unknown as jest.Mock) = invoke as any;
+    // (invoke as unknown as jest.Mock) = invoke as any; // Invalid assignment removed
     (invoke as any).mockResolvedValueOnce({ ok: true, data: { id: 'sale-1' } });
 
     const sale = await safeCreateSale({

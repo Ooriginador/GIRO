@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest';
 
-vi.mock('@tauri-apps/api/tauri', () => ({
+vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }));
 
@@ -8,7 +8,7 @@ let invokeMock: ReturnType<typeof vi.fn>;
 let client: typeof import('../client');
 
 beforeAll(async () => {
-  const tauri = await import('@tauri-apps/api/tauri');
+  const tauri = await import('@tauri-apps/api/core');
   invokeMock = tauri.invoke as unknown as ReturnType<typeof vi.fn>;
   client = await import('../client');
 });
