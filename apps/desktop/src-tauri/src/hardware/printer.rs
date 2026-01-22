@@ -310,9 +310,14 @@ impl ThermalPrinter {
         self
     }
 
-    /// Escreve texto
+    /// Escreve texto convertendo para encoding compatível com impressoras térmicas
     pub fn text(&mut self, text: &str) -> &mut Self {
-        self.buffer.extend_from_slice(text.as_bytes());
+        // `encoding_rs` fornece `WINDOWS_1252` para a maior compatibilidade
+        // com caracteres latinos. CP850 nem sempre está disponível.
+        use encoding_rs::WINDOWS_1252;
+
+        let (bytes, _, _) = WINDOWS_1252.encode(text);
+        self.buffer.extend_from_slice(&bytes);
         self
     }
 

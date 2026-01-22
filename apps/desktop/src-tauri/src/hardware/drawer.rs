@@ -101,7 +101,7 @@ impl CashDrawer {
         self.config.enabled && !self.config.printer_port.is_empty()
     }
 
-    /// Abre a gaveta via porta serial
+    /// Abre a gaveta usando a conexão configurada
     pub fn open(&self) -> HardwareResult<()> {
         if !self.is_enabled() {
             return Ok(());
@@ -109,13 +109,43 @@ impl CashDrawer {
 
         let cmd = escpos::open_drawer_cmd(self.config.pin, self.config.pulse_duration);
 
+        // Se a porta parece um dispositivo USB Linux ou está vazia (auto-detect)
+        if self.config.printer_port.starts_with("/dev/usb/lp")
+            || self.config.printer_port.starts_with("/dev/lp")
+            || self.config.printer_port.is_empty()
+        {
+            let candidates: Vec<String> = if !self.config.printer_port.trim().is_empty() {
+                vec![self.config.printer_port.clone()]
+            } else {
+                let mut c = vec!["/dev/lp0".to_string(), "/dev/lp1".to_string()];
+                for i in 0..10 {
+                    c.push(format!("/dev/usb/lp{}", i));
+                }
+                c
+            };
+
+            if let Some(device_path) = candidates
+                .into_iter()
+                .find(|p| std::path::Path::new(p).exists())
+            {
+                let mut dev = std::fs::OpenOptions::new()
+                    .write(true)
+                    .open(&device_path)
+                    .map_err(HardwareError::IoError)?;
+
+                dev.write_all(&cmd).map_err(HardwareError::IoError)?;
+                dev.flush().map_err(HardwareError::IoError)?;
+                return Ok(());
+            }
+        }
+
+        // Caso contrário, tenta como porta serial (COM/tty)
         let mut port = serialport::new(&self.config.printer_port, 9600)
             .timeout(Duration::from_millis(1000))
             .open()
             .map_err(|e| HardwareError::CommunicationError(e.to_string()))?;
 
         port.write_all(&cmd).map_err(HardwareError::IoError)?;
-
         port.flush().map_err(HardwareError::IoError)?;
 
         Ok(())

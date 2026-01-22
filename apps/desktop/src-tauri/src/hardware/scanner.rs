@@ -276,19 +276,20 @@ pub async fn start_scanner_server(state: Arc<ScannerServerState>) -> HardwareRes
 }
 
 /// Verifica se IP é de rede local
+/// Verifica se IP é de rede local (RFC 1918 + loopback + link-local)
 fn is_local_network(ip: &str) -> bool {
-    ip.starts_with("192.168.")
-        || ip.starts_with("10.")
-        || ip.starts_with("172.16.")
-        || ip.starts_with("172.17.")
-        || ip.starts_with("172.18.")
-        || ip.starts_with("172.19.")
-        || ip.starts_with("172.2")
-        || ip.starts_with("172.30.")
-        || ip.starts_with("172.31.")
-        || ip == "127.0.0.1"
-        || ip == "::1"
-        || ip == "localhost"
+    use std::net::IpAddr;
+
+    let Ok(addr) = ip.parse::<IpAddr>() else {
+        return false;
+    };
+
+    match addr {
+        IpAddr::V4(v4) => v4.is_loopback() || v4.is_private() || v4.is_link_local(),
+        IpAddr::V6(v6) => {
+            v6.is_loopback() || (v6.segments()[0] & 0xff00) == 0xfe00 // Link-local
+        }
+    }
 }
 
 /// Handler de conexão individual

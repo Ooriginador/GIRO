@@ -287,11 +287,26 @@ impl Scale {
             ));
         }
 
-        // Abre porta serial
-        let mut port = serialport::new(&self.config.port, self.config.baud_rate)
-            .data_bits(serialport::DataBits::Eight)
-            .parity(serialport::Parity::None)
-            .stop_bits(serialport::StopBits::One)
+        // Abre porta serial com as configurações especificadas
+        let mut builder = serialport::new(&self.config.port, self.config.baud_rate);
+
+        builder = match self.config.data_bits {
+            7 => builder.data_bits(serialport::DataBits::Seven),
+            _ => builder.data_bits(serialport::DataBits::Eight),
+        };
+
+        builder = match self.config.parity.to_lowercase().as_str() {
+            "odd" => builder.parity(serialport::Parity::Odd),
+            "even" => builder.parity(serialport::Parity::Even),
+            _ => builder.parity(serialport::Parity::None),
+        };
+
+        builder = match self.config.stop_bits {
+            2 => builder.stop_bits(serialport::StopBits::Two),
+            _ => builder.stop_bits(serialport::StopBits::One),
+        };
+
+        let mut port = builder
             .timeout(Duration::from_millis(500))
             .open()
             .map_err(|e| HardwareError::CommunicationError(e.to_string()))?;
@@ -389,47 +404,60 @@ pub async fn auto_detect_scale_async() -> AutoDetectResult {
 
         // For each port, try detection in a blocking task with timeout
         let port_clone = port.clone();
-        let timeout_res = timeout(TokioDuration::from_secs(3), tokio::task::spawn_blocking(move || {
-            // Try known protocols
-            for protocol in [
-                ScaleProtocol::Toledo,
-                ScaleProtocol::Filizola,
-                ScaleProtocol::Elgin,
-                ScaleProtocol::Urano,
-            ] {
-                let config = ScaleConfig {
-                    enabled: true,
-                    protocol: protocol.clone(),
-                    port: port_clone.clone(),
-                    baud_rate: 9600,
-                    ..Default::default()
-                };
+        let timeout_res = timeout(
+            TokioDuration::from_secs(3),
+            tokio::task::spawn_blocking(move || {
+                // Try known protocols
+                for protocol in [
+                    ScaleProtocol::Toledo,
+                    ScaleProtocol::Filizola,
+                    ScaleProtocol::Elgin,
+                    ScaleProtocol::Urano,
+                ] {
+                    let config = ScaleConfig {
+                        enabled: true,
+                        protocol: protocol.clone(),
+                        port: port_clone.clone(),
+                        baud_rate: 9600,
+                        ..Default::default()
+                    };
 
-                if let Ok(scale) = Scale::new(config.clone()) {
-                    if let Ok(reading) = scale.read_weight() {
-                        if reading.weight_grams < 50000 {
-                            return Ok::<_, String>(Some(config));
+                    if let Ok(scale) = Scale::new(config.clone()) {
+                        if let Ok(reading) = scale.read_weight() {
+                            if reading.weight_grams < 50000 {
+                                return Ok::<_, String>(Some(config));
+                            }
                         }
                     }
                 }
-            }
 
-            Ok::<_, String>(None)
-        }))
+                Ok::<_, String>(None)
+            }),
+        )
         .await;
 
         match timeout_res {
             Ok(join_result) => match join_result {
-                Ok(Ok(Some(config))) => return AutoDetectResult { config: Some(config), failures },
+                Ok(Ok(Some(config))) => {
+                    return AutoDetectResult {
+                        config: Some(config),
+                        failures,
+                    }
+                }
                 Ok(Ok(None)) => failures.push(format!("No protocol matched on port {}", port)),
                 Ok(Err(e)) => failures.push(format!("Error testing port {}: {}", port, e)),
-                Err(join_err) => failures.push(format!("Join error testing port {}: {}", port, join_err)),
+                Err(join_err) => {
+                    failures.push(format!("Join error testing port {}: {}", port, join_err))
+                }
             },
             Err(_) => failures.push(format!("Timeout testing port {}", port)),
         }
     }
 
-    AutoDetectResult { config: None, failures }
+    AutoDetectResult {
+        config: None,
+        failures,
+    }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -501,9 +529,21 @@ impl crate::hardware::HardwareDevice for Scale {
         }
 
         match self.test_connection() {
-            Ok(true) => Ok(crate::hardware::HardwareStatus { name, ok: true, message: Some("ok".to_string()) }),
-            Ok(false) => Ok(crate::hardware::HardwareStatus { name, ok: false, message: Some("timeout or no response".to_string()) }),
-            Err(e) => Ok(crate::hardware::HardwareStatus { name, ok: false, message: Some(format!("error: {}", e)) }),
+            Ok(true) => Ok(crate::hardware::HardwareStatus {
+                name,
+                ok: true,
+                message: Some("ok".to_string()),
+            }),
+            Ok(false) => Ok(crate::hardware::HardwareStatus {
+                name,
+                ok: false,
+                message: Some("timeout or no response".to_string()),
+            }),
+            Err(e) => Ok(crate::hardware::HardwareStatus {
+                name,
+                ok: false,
+                message: Some(format!("error: {}", e)),
+            }),
         }
     }
 }
@@ -545,4 +585,3 @@ mod tests {
         assert_eq!(parsed.price_cents, Some(12340));
     }
 }
-
