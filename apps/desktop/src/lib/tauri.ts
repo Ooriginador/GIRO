@@ -390,14 +390,16 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
     console.log('[WebMock.result] %s %o', command, mock);
     return mock;
   } catch (err) {
+    // Log the error and normalize to an Error instance before throwing.
     console.error(
       '[Invoke Failure] %s %o',
       command,
       err instanceof Error ? err.message : String(err)
     );
-    // Normalize error message
-    if (err instanceof Error) throw err;
-    throw new Error(String(err));
+    // Always throw a new Error to avoid rethrowing the original caught object
+    // which would trigger `no-useless-catch` in some ESLint configs.
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(message);
   }
 };
 
