@@ -1203,5 +1203,5 @@ export async function recoverLicenseFromLogin(payload: {
   email: string;
   password: string;
 }): Promise<LicenseInfo> {
-  return tauriInvoke<LicenseInfo>('recover_license_from_login', { payload });
+  return tauriInvoke<LicenseInfo>('recover_license_from_login', { ...payload });
 }
