@@ -10,7 +10,7 @@ use crate::models::{
     ServiceOrderFilters, ServiceOrderItem, ServiceOrderSummary, ServiceOrderWithDetails,
     UpdateService, UpdateServiceOrder, UpdateServiceOrderItem,
 };
-use crate::repositories::{new_id, PaginatedResult, Pagination};
+use crate::repositories::{new_id, PaginatedResult, Pagination, SaleRepository};
 
 pub struct ServiceOrderRepository {
     pool: Pool<Sqlite>,
@@ -29,18 +29,18 @@ impl ServiceOrderRepository {
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     ) -> AppResult<i32> {
-        let result = sqlx::query!(
+        let next_number: i32 = sqlx::query_scalar(
             r#"
             UPDATE _service_order_sequence
             SET next_number = next_number + 1
             WHERE id = 1
             RETURNING next_number
-            "#
+            "#,
         )
         .fetch_one(&mut **tx)
         .await?;
 
-        Ok((result.next_number - 1) as i32)
+        Ok(next_number - 1)
     }
 
     /// Lista ordens de serviço com paginação e filtros
@@ -422,7 +422,7 @@ impl ServiceOrderRepository {
             }
         }
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE service_orders SET
                 vehicle_km = COALESCE(?, vehicle_km),
@@ -443,24 +443,24 @@ impl ServiceOrderRepository {
                 updated_at = ?
             WHERE id = ?
             "#,
-            input.vehicle_km,
-            input.symptoms,
-            input.diagnosis,
-            input.status,
-            input.labor_cost,
-            input.discount,
-            input.warranty_days,
-            warranty_until,
-            input.scheduled_date,
-            started_at,
-            completed_at,
-            input.payment_method,
-            input.is_paid,
-            input.notes,
-            input.internal_notes,
-            now,
-            id
         )
+        .bind(input.vehicle_km)
+        .bind(&input.symptoms)
+        .bind(&input.diagnosis)
+        .bind(&input.status)
+        .bind(input.labor_cost)
+        .bind(input.discount)
+        .bind(input.warranty_days)
+        .bind(&warranty_until)
+        .bind(&input.scheduled_date)
+        .bind(&started_at)
+        .bind(&completed_at)
+        .bind(&input.payment_method)
+        .bind(input.is_paid)
+        .bind(&input.notes)
+        .bind(&input.internal_notes)
+        .bind(&now)
+        .bind(id)
         .execute(&mut *tx)
         .await?;
 
@@ -507,22 +507,22 @@ impl ServiceOrderRepository {
             })?;
 
         // Calcular custo de peças (order_products)
-        let parts_total = sqlx::query!(
+        let parts_total: f64 = sqlx::query_scalar(
             r#"
-            SELECT COALESCE(SUM(total), 0) as total
+            SELECT COALESCE(SUM(total), 0.0)
             FROM order_products
             WHERE order_id = ?
             "#,
-            order_id
         )
+        .bind(order_id)
         .fetch_one(&mut **tx)
         .await?;
 
         let labor_cost = totals.service_total as f64;
-        let parts_cost = parts_total.total as f64;
+        let parts_cost = parts_total;
         let total = labor_cost + parts_cost - order.discount;
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE service_orders SET
                 labor_cost = ?,
@@ -531,12 +531,12 @@ impl ServiceOrderRepository {
                 updated_at = ?
             WHERE id = ?
             "#,
-            labor_cost,
-            parts_cost,
-            total,
-            now,
-            order_id
         )
+        .bind(labor_cost)
+        .bind(parts_cost)
+        .bind(total)
+        .bind(now)
+        .bind(order_id)
         .execute(&mut **tx)
         .await?;
 
@@ -946,6 +946,14 @@ impl ServiceOrderRepository {
     // ═══════════════════════════════════════════════════════════════════════
     // FUNÇÕES AUXILIARES DE ESTOQUE
     // ═══════════════════════════════════════════════════════════════════════
+
+    /// Consome estoque de todos os produtos de uma ordem
+    pub async fn consume_stock_for_order(&self, order_id: &str) -> AppResult<()> {
+        let mut tx = self.pool.begin().await?;
+        self.consume_stock_for_order_tx(&mut tx, order_id).await?;
+        tx.commit().await?;
+        Ok(())
+    }
 
     async fn consume_stock_for_order_tx(
         &self,
@@ -1404,7 +1412,7 @@ impl ServiceOrderRepository {
         // 3. Criar Venda (Sale)
         // Nota: Colunas renomeadas na migration 003 (discount->discount_value, change_amount->change, session_id->cash_session_id)
         sqlx::query(
-        "INSERT INTO sales (id, daily_number, subtotal, discount_value, total, payment_method, amount_paid, change, status, employee_id, cash_session_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?)"
+        "INSERT INTO sales (id, daily_number, subtotal, discount_value, total, payment_method, amount_paid, change, status, employee_id, cash_session_id, created_at, customer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?)"
     )
     .bind(&sale_id)
     .bind(daily_number)
@@ -1417,15 +1425,50 @@ impl ServiceOrderRepository {
     .bind(employee_id)
     .bind(cash_session_id)
     .bind(&now)
+    .bind(&order.customer_id)
     .execute(&mut *tx)
     .await?;
 
-        // 4. Criar Itens da Venda (Apenas PEÇAS)
-        // 4. Criar Itens da Venda (Apenas PEÇAS)
+        // 4. Criar Itens da Venda (SERVIÇOS + PRODUTOS)
+        // 4.1 Serviços (Mão de obra)
+        let services_rows = sqlx::query(
+            "SELECT description, unit_price, quantity, discount_value, total, product_id FROM order_services WHERE order_id = ?"
+        )
+        .bind(order_id)
+        .fetch_all(&mut *tx)
+        .await?;
+
+        use sqlx::Row;
+        for row in services_rows {
+            let desc: String = row.get("description");
+            let price: f64 = row.get("unit_price");
+            let qty: f64 = row.get("quantity");
+            let disc: f64 = row.get("discount_value");
+            let item_total: f64 = row.get("total");
+            let service_pid: Option<String> = row.get("product_id");
+
+            let item_id = new_id();
+            sqlx::query(
+                "INSERT INTO sale_items (id, sale_id, product_id, quantity, unit_price, discount, total, product_name, product_unit, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SERV', ?)"
+            )
+            .bind(item_id)
+            .bind(&sale_id)
+            .bind(service_pid.unwrap_or_else(|| "SERVICE".to_string()))
+            .bind(qty)
+            .bind(price)
+            .bind(disc)
+            .bind(item_total)
+            .bind(desc)
+            .bind(&now)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        // 4.2 Produtos (Peças)
         let parts_rows = sqlx::query(
             r#"
             SELECT 
-                op.product_id, op.quantity, op.unit_price, op.discount_value, op.total,
+                op.product_id, op.lot_id, op.quantity, op.unit_price, op.discount_value, op.total,
                 p.name as product_name, p.barcode as product_barcode, p.unit as product_unit
             FROM order_products op
             JOIN products p ON p.id = op.product_id
@@ -1436,25 +1479,25 @@ impl ServiceOrderRepository {
         .fetch_all(&mut *tx)
         .await?;
 
-        use sqlx::Row;
         for row in parts_rows {
             let product_id: String = row.get("product_id");
+            let lot_id: Option<String> = row.get("lot_id");
             let quantity: f64 = row.get("quantity");
             let unit_price: f64 = row.get("unit_price");
             let discount_value: f64 = row.get("discount_value");
             let total: f64 = row.get("total");
             let product_name: String = row.get("product_name");
-            // Wait, `p.barcode` logic. `row.get` might fail if null unless `Option<String>`.
             let product_barcode: Option<String> = row.try_get("product_barcode").ok();
             let product_unit: String = row.get("product_unit");
 
             let item_id = new_id();
             sqlx::query(
-                "INSERT INTO sale_items (id, sale_id, product_id, quantity, unit_price, discount, total, product_name, product_barcode, product_unit, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO sale_items (id, sale_id, product_id, lot_id, quantity, unit_price, discount, total, product_name, product_barcode, product_unit, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
             .bind(item_id)
             .bind(&sale_id)
             .bind(product_id)
+            .bind(lot_id)
             .bind(quantity)
             .bind(unit_price)
             .bind(discount_value)
@@ -1478,38 +1521,118 @@ impl ServiceOrderRepository {
     .await?;
 
         // 6. Calcular e Registrar Comissão (para o mecânico da OS, se houver taxa configurada)
-        // Usando query runtime para evitar erros de verificação offline com tabela nova
-        let mechanic_row = sqlx::query("SELECT commission_rate FROM employees WHERE id = ?")
-            .bind(&order.employee_id)
-            .fetch_optional(&mut *tx)
+        let sale_repo = SaleRepository::new(&self.pool);
+        sale_repo
+            .record_commission_tx(&mut tx, &sale_id, &order.employee_id, total, &now)
             .await?;
-
-        if let Some(row) = mechanic_row {
-            // commission_rate pode ser NULL no banco
-            let rate_opt: Option<f64> = row.try_get("commission_rate").ok();
-
-            if let Some(rate) = rate_opt {
-                if rate > 0.0 {
-                    let commission_amount = total * (rate / 100.0);
-                    let commission_id = new_id();
-
-                    sqlx::query(
-                        "INSERT INTO commissions (id, sale_id, employee_id, amount, rate_snapshot, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-                    )
-                    .bind(commission_id)
-                    .bind(&sale_id)
-                    .bind(&order.employee_id)
-                    .bind(commission_amount)
-                    .bind(rate)
-                    .bind(&now)
-                    .execute(&mut *tx)
-                    .await?;
-                }
-            }
-        }
 
         tx.commit().await?;
 
         Ok(sale_id)
+    }
+    /// Cancela ordem e restaura estoque se necessário
+    pub async fn cancel_with_stock_restoration(
+        &self,
+        id: &str,
+        notes: Option<String>,
+    ) -> AppResult<ServiceOrder> {
+        let mut tx = self.pool.begin().await?;
+        let now = chrono::Utc::now().to_rfc3339();
+
+        // 1. Buscar ordem atual
+        let order = self
+            .find_by_id_tx(&mut tx, id)
+            .await?
+            .ok_or_else(|| AppError::NotFound {
+                entity: "ServiceOrder".to_string(),
+                id: id.to_string(),
+            })?;
+
+        if order.status == "CANCELED" || order.status == "DELIVERED" {
+            return Err(AppError::Validation(format!(
+                "Não é possível cancelar ordem com status {}",
+                order.status
+            )));
+        }
+
+        // Se a ordem já consumiu estoque (não é orçamento), restaurar
+        // Orçamento (QUOTE) não consome estoque, então não precisa devolver
+        if order.status != "QUOTE" {
+            // Buscar itens que são produtos
+            // Buscar itens que são produtos
+            let products = sqlx::query_as::<_, (String, String, f64, Option<String>)>(
+                r#"SELECT id, product_id, quantity, lot_id FROM order_products WHERE order_id = ?"#,
+            )
+            .bind(id)
+            .fetch_all(&mut *tx)
+            .await?;
+
+            for prod in products {
+                let product_id = prod.1;
+                let quantity = prod.2;
+                let lot_id = prod.3;
+
+                // Restore Product Stock
+                let current_prod: (f64,) =
+                    sqlx::query_as("SELECT current_stock FROM products WHERE id = ?")
+                        .bind(&product_id)
+                        .fetch_one(&mut *tx)
+                        .await?;
+
+                let new_stock = current_prod.0 + quantity;
+
+                sqlx::query("UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?")
+                    .bind(new_stock)
+                    .bind(&now)
+                    .bind(&product_id)
+                    .execute(&mut *tx)
+                    .await?;
+
+                // Restore Lot Stock (if linked)
+                if let Some(lot_id_val) = lot_id {
+                    sqlx::query("UPDATE product_lots SET current_quantity = current_quantity + ?, updated_at = ? WHERE id = ?")
+                        .bind(quantity)
+                        .bind(&now)
+                        .bind(lot_id_val)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+
+                // Record Movement (RETURN)
+                let movement_id = new_id();
+                sqlx::query(
+                    "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, created_at) VALUES (?, ?, 'RETURN', ?, ?, ?, 'Cancelamento de OS', ?, 'SERVICE_ORDER', ?)"
+                )
+                .bind(movement_id)
+                .bind(product_id)
+                .bind(quantity)
+                .bind(current_prod.0)
+                .bind(new_stock)
+                .bind(id)
+                .bind(&now)
+                .execute(&mut *tx)
+                .await?;
+            }
+        }
+
+        // Atualizar status da ordem
+        // Atualizar status da ordem
+        sqlx::query(
+            "UPDATE service_orders SET status = 'CANCELED', notes = COALESCE(?, notes), updated_at = ? WHERE id = ?"
+        )
+        .bind(notes)
+        .bind(&now)
+        .bind(id)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| AppError::NotFound {
+                entity: "ServiceOrder".to_string(),
+                id: id.to_string(),
+            })
     }
 }

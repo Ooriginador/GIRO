@@ -33,6 +33,11 @@ pub async fn authenticate_by_pin(
 ) -> AppResult<Option<SafeEmployee>> {
     let repo = EmployeeRepository::new(state.pool());
     let emp = repo.authenticate_pin(&pin).await?;
+
+    if let Some(ref e) = emp {
+        state.session.set_employee(e);
+    }
+
     Ok(emp.map(SafeEmployee::from))
 }
 
@@ -193,6 +198,24 @@ pub async fn reactivate_employee(
     let repo = EmployeeRepository::new(state.pool());
     let emp = repo.reactivate(&id).await?;
     Ok(SafeEmployee::from(emp))
+}
+
+#[tauri::command]
+pub async fn logout(state: State<'_, AppState>) -> AppResult<()> {
+    state.session.clear();
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_current_user(state: State<'_, AppState>) -> AppResult<Option<SafeEmployee>> {
+    let session = state.session.get_employee();
+    if let Some(info) = session {
+        let repo = EmployeeRepository::new(state.pool());
+        let emp = repo.find_by_id(&info.employee_id).await?;
+        Ok(emp.map(SafeEmployee::from))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Lista apenas funcionários inativos

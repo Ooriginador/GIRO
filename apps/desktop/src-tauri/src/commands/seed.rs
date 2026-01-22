@@ -1,4 +1,5 @@
 use crate::error::AppResult;
+use crate::middleware::Permission;
 use crate::models::{
     CreateEmployee, CreateProduct, CreateSaleItem, CreateSupplier, EmployeeRole, PaymentMethod,
     ProductUnit,
@@ -106,7 +107,8 @@ const HONDA_MODELS: &[&str] = &["CG 160 Titan", "CB 300F Twister", "XRE 300", "B
 const YAMAHA_MODELS: &[&str] = &["Fazer FZ25", "Lander 250", "MT-03", "Factor 150"];
 
 #[tauri::command]
-pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
+pub async fn seed_database(employee_id: String, state: State<'_, AppState>) -> AppResult<String> {
+    crate::require_permission!(state.pool(), &employee_id, Permission::UpdateSettings);
     let pool = state.pool();
     let product_repo = ProductRepository::new(pool);
     let category_repo = CategoryRepository::new(pool);
@@ -141,7 +143,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
     // 2. Seed Categories
     let mut category_ids = std::collections::HashMap::new();
     for (name, description) in CATEGORIES {
-        let existing = sqlx::query_scalar::<_, String>("SELECT id FROM Category WHERE name = ?")
+        let existing = sqlx::query_scalar::<_, String>("SELECT id FROM categories WHERE name = ?")
             .bind(name)
             .fetch_optional(pool)
             .await?;
@@ -167,7 +169,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
     // 3. Seed Suppliers
     let mut supplier_ids = Vec::new();
     for name in SUPPLIERS {
-        let existing = sqlx::query_scalar::<_, String>("SELECT id FROM Supplier WHERE name = ?")
+        let existing = sqlx::query_scalar::<_, String>("SELECT id FROM suppliers WHERE name = ?")
             .bind(name)
             .fetch_optional(pool)
             .await?;
@@ -201,7 +203,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
             .expect("Category not found in map")
             .clone();
 
-        let existing = sqlx::query_scalar::<_, String>("SELECT id FROM Product WHERE name = ?")
+        let existing = sqlx::query_scalar::<_, String>("SELECT id FROM products WHERE name = ?")
             .bind(name)
             .fetch_optional(pool)
             .await?;
@@ -260,7 +262,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
 
     let service_repo = crate::repositories::ServiceOrderRepository::new(pool.clone());
     for (code, name, desc, price, time, warranty) in services {
-        let existing = sqlx::query_scalar::<_, String>("SELECT id FROM Service WHERE code = ?")
+        let existing = sqlx::query_scalar::<_, String>("SELECT id FROM services WHERE code = ?")
             .bind(code)
             .fetch_optional(pool)
             .await?;
@@ -283,7 +285,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
     let vehicle_repo = crate::repositories::VehicleRepository::new(pool);
     for brand_name in VEHICLE_BRANDS {
         let existing_brand =
-            sqlx::query_scalar::<_, String>("SELECT id FROM VehicleBrand WHERE name = ?")
+            sqlx::query_scalar::<_, String>("SELECT id FROM vehicle_brands WHERE name = ?")
                 .bind(brand_name)
                 .fetch_optional(pool)
                 .await?;
@@ -309,7 +311,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
         };
         for model_name in models {
             let existing_model = sqlx::query_scalar::<_, String>(
-                "SELECT id FROM VehicleModel WHERE name = ? AND brand_id = ?",
+                "SELECT id FROM vehicle_models WHERE name = ? AND brand_id = ?",
             )
             .bind(model_name)
             .bind(&brand_id)
@@ -333,7 +335,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
             // Seed some years
             for year in [2021, 2022, 2023, 2024] {
                 let existing_year = sqlx::query_scalar::<_, String>(
-                    "SELECT id FROM VehicleYear WHERE model_id = ? AND year = ?",
+                    "SELECT id FROM vehicle_years WHERE model_id = ? AND year = ?",
                 )
                 .bind(&model_id)
                 .bind(year)
@@ -377,7 +379,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
         // We need to manually insert historical sessions.
         let session_id = new_id();
         sqlx::query(
-            "INSERT INTO CashSession (id, employee_id, opened_at, opening_balance, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'CLOSED', ?, ?)"
+            "INSERT INTO cash_sessions (id, employee_id, opened_at, opening_balance, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'CLOSED', ?, ?)"
         )
         .bind(&session_id)
         .bind(&admin_id)
@@ -443,7 +445,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
             let sale_total = subtotal;
 
             sqlx::query(
-                "INSERT INTO Sale (id, daily_number, employee_id, cash_session_id, subtotal, discount, total, payment_method, amount_paid, change, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO sales (id, daily_number, employee_id, cash_session_id, subtotal, discount, total, payment_method, amount_paid, change, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
             .bind(&sale_id)
             .bind(sales_count + 1)
@@ -464,7 +466,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
             for item in items_data {
                 let item_id = new_id();
                 sqlx::query(
-                    "INSERT INTO SaleItem (id, sale_id, product_id, quantity, unit_price, discount, total, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                    "INSERT INTO sale_items (id, sale_id, product_id, quantity, unit_price, discount, total, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
                 )
                 .bind(&item_id)
                 .bind(&sale_id)
@@ -502,7 +504,7 @@ pub async fn seed_database(state: State<'_, AppState>) -> AppResult<String> {
         let expected_balance = opening_balance + cash_sales_row; // Assuming no movements/bleeds for simplicity in bulk seed
 
         sqlx::query(
-            "UPDATE CashSession SET closed_at = ?, expected_balance = ?, actual_balance = ?, difference = 0, status = 'CLOSED', updated_at = ? WHERE id = ?"
+            "UPDATE cash_sessions SET closed_at = ?, expected_balance = ?, actual_balance = ?, difference = 0, status = 'CLOSED', updated_at = ? WHERE id = ?"
         )
         .bind(close_time.to_rfc3339())
         .bind(expected_balance)

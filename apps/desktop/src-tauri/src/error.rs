@@ -27,6 +27,9 @@ pub enum AppError {
     #[error("Validação falhou: {0}")]
     Validation(String),
 
+    #[error("Requisição inválida: {0}")]
+    BadRequest(String),
+
     #[error("Campo obrigatório: {0}")]
     RequiredField(String),
 
@@ -115,6 +118,7 @@ impl Serialize for AppError {
             Self::Duplicate(_) => "DUPLICATE",
             Self::Constraint(_) => "CONSTRAINT_VIOLATION",
             Self::Validation(_) => "VALIDATION_ERROR",
+            Self::BadRequest(_) => "BAD_REQUEST",
             Self::RequiredField(_) => "REQUIRED_FIELD",
             Self::InvalidValue { .. } => "INVALID_VALUE",
             Self::InsufficientStock { .. } => "INSUFFICIENT_STOCK",

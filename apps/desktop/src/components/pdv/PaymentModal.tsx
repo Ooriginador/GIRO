@@ -161,7 +161,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
 
       // Modo PDV Padrão
       let saleResult;
-      const { items, discount } = pdvStore;
+      const { items, discount, customerId } = pdvStore;
 
       if (isSplitMode) {
         if (!canFinalizeSplit) return;
@@ -178,6 +178,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
           amountPaid: splitTotal,
           employeeId: employee.id,
           cashSessionId: currentSession.id,
+          customerId: customerId || undefined,
         });
       } else {
         if (!canFinalize || !paymentMethod) return;
@@ -193,6 +194,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
           amountPaid: amountPaidNum || total,
           employeeId: employee.id,
           cashSessionId: currentSession.id,
+          customerId: customerId || undefined,
         });
       }
 

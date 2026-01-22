@@ -110,6 +110,7 @@ impl<'a> CashRepository<'a> {
         // Create opening movement
         self.add_movement(CreateCashMovement {
             session_id: id.clone(),
+            employee_id: data.employee_id.clone(),
             movement_type: "OPENING".to_string(),
             amount: data.opening_balance,
             description: Some("Abertura de caixa".to_string()),
@@ -136,8 +137,8 @@ impl<'a> CashRepository<'a> {
         let sales_row = sqlx::query(
             r#"
             SELECT 
-                COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN total ELSE 0 END), 0.0) as total_sales,
-                COALESCE(SUM(CASE WHEN status = 'CANCELED' THEN total ELSE 0 END), 0.0) as total_canceled
+                COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN total ELSE 0.0 END), 0.0) as total_sales,
+                COALESCE(SUM(CASE WHEN status = 'CANCELED' THEN total ELSE 0.0 END), 0.0) as total_canceled
             FROM sales 
             WHERE cash_session_id = ?
             "#
@@ -258,10 +259,11 @@ impl<'a> CashRepository<'a> {
         let now = chrono::Utc::now().to_rfc3339();
 
         sqlx::query(
-            "INSERT INTO cash_movements (id, session_id, type, amount, description, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+            "INSERT INTO cash_movements (id, session_id, employee_id, type, amount, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
         )
         .bind(&id)
         .bind(&data.session_id)
+        .bind(&data.employee_id)
         .bind(&data.movement_type)
         .bind(data.amount)
         .bind(&data.description)

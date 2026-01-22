@@ -50,8 +50,23 @@ pub async fn get_sales_by_session(
 
 #[tauri::command]
 pub async fn create_sale(input: CreateSale, state: State<'_, AppState>) -> AppResult<Sale> {
+    let employee = require_permission!(state.pool(), &input.employee_id, Permission::CreateSales);
     let repo = SaleRepository::new(state.pool());
-    repo.create(input).await
+    let result = repo.create(input.clone()).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::SaleCreated,
+        &employee.id,
+        &employee.name,
+        "Sale",
+        &result.id,
+        format!("Valor: {}, Itens: {}", result.total, input.items.len())
+    );
+
+    Ok(result)
 }
 
 use crate::audit_log;

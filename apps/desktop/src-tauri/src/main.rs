@@ -166,6 +166,8 @@ async fn main() {
             commands::deactivate_employee,
             commands::reactivate_employee,
             commands::get_inactive_employees,
+            commands::employees::logout,
+            commands::employees::get_current_user,
             // Vendas
             commands::get_sales,
             commands::get_sales_today,

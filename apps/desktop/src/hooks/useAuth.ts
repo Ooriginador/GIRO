@@ -91,6 +91,7 @@ export function useAuth() {
     // Loading states
     isLoggingIn: loginWithPin.isPending || loginWithPassword.isPending,
     isLoggingOut: logoutMutation.isPending,
+    isRestoring: store.isRestoring,
 
     // Errors
     loginError: loginWithPin.error || loginWithPassword.error,
@@ -99,6 +100,7 @@ export function useAuth() {
     loginWithPin: loginWithPin.mutateAsync,
     loginWithPassword: loginWithPassword.mutateAsync,
     logout: logoutMutation.mutate,
+    restoreSession: store.restoreSession,
 
     // Permissions
     hasPermission: store.hasPermission,

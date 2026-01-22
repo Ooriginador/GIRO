@@ -28,6 +28,7 @@ pub use database::DatabaseManager;
 pub use error::{AppError, AppResult};
 pub use license::{LicenseClient, LicenseClientConfig};
 
+use crate::middleware::session::SessionState;
 use sqlx::SqlitePool;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -41,6 +42,7 @@ pub struct AppState {
     pub backup_dir: PathBuf,
     pub license_client: LicenseClient,
     pub hardware_id: String,
+    pub session: Arc<SessionState>,
 }
 
 impl AppState {
@@ -64,6 +66,7 @@ impl AppState {
             backup_dir,
             license_client: LicenseClient::new(config),
             hardware_id,
+            session: Arc::new(SessionState::default()),
         }
     }
 

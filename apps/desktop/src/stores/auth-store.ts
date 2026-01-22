@@ -14,9 +14,6 @@ export interface Employee {
   username?: string; // Legacy field if needed
 }
 
-// Legacy alias for compatibility
-export type CurrentUser = Employee;
-
 export const PERMISSIONS = {
   // PDV
   'pdv.sell': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER'],
@@ -30,7 +27,28 @@ export const PERMISSIONS = {
   'cash.open': ['ADMIN', 'MANAGER', 'CASHIER'],
   'cash.close': ['ADMIN', 'MANAGER', 'CASHIER'],
 
-  // Settings
+  // Clientes
+  'customers.manage': ['ADMIN', 'MANAGER', 'CASHIER'],
+
+  // Ordens de Serviço
+  'os.view': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER'],
+  'os.create': ['ADMIN', 'MANAGER', 'CASHIER'],
+  'os.update': ['ADMIN', 'MANAGER', 'CASHIER'],
+  'os.cancel': ['ADMIN', 'MANAGER'],
+  'os.finish': ['ADMIN', 'MANAGER', 'CASHIER'],
+
+  // Serviços
+  'services.view': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER'],
+  'services.manage': ['ADMIN', 'MANAGER'],
+
+  // Garantias
+  'warranties.view': ['ADMIN', 'MANAGER', 'CASHIER'],
+  'warranties.manage': ['ADMIN', 'MANAGER'],
+
+  // Relatórios
+  'reports.view': ['ADMIN', 'MANAGER'],
+
+  // Configurações
   'settings.view': ['ADMIN', 'MANAGER'],
   'settings.edit': ['ADMIN'],
   'settings.backup': ['ADMIN'],
@@ -56,11 +74,13 @@ interface AuthState {
   currentUser: Employee | null; // deprecated alias
   currentSession: CashSession | null;
   isAuthenticated: boolean;
+  isRestoring: boolean;
   lastActivity: number;
 
   // Ações de autenticação
   login: (user: Employee) => void;
   logout: () => void;
+  restoreSession: () => Promise<void>;
   updateActivity: () => void;
 
   // Ações de sessão de caixa
@@ -97,6 +117,7 @@ export const useAuthStore = create<AuthState>()(
       currentUser: null,
       currentSession: null,
       isAuthenticated: false,
+      isRestoring: true,
       lastActivity: 0,
 
       login: (user) => {
@@ -117,6 +138,38 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           lastActivity: 0,
         });
+      },
+
+      restoreSession: async () => {
+        set({ isRestoring: true });
+        try {
+          // Import dynamic to avoid circular dependency if lib/tauri was to import useAuthStore (it already does)
+          const { getCurrentUser } = await import('@/lib/tauri');
+          const user = await getCurrentUser();
+
+          if (user) {
+            set({
+              employee: user,
+              currentEmployee: user,
+              currentUser: user,
+              isAuthenticated: true,
+              lastActivity: Date.now(),
+            });
+          } else {
+            // Backend session is invalid/expired
+            set({
+              employee: null,
+              currentEmployee: null,
+              currentUser: null,
+              isAuthenticated: false,
+              lastActivity: 0,
+            });
+          }
+        } catch (error) {
+          console.error('[AuthStore] Failed to restore session:', error);
+        } finally {
+          set({ isRestoring: false });
+        }
       },
 
       updateActivity: () => {

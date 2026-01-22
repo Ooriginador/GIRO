@@ -2,12 +2,16 @@
 //!
 //! Expõe funcionalidades de clientes e seus veículos para o frontend
 
+use crate::audit_log;
 use crate::error::AppResult;
+use crate::middleware::audit::{AuditAction, AuditService};
+use crate::middleware::Permission;
 use crate::models::{
     CreateCustomer, CreateCustomerVehicle, Customer, CustomerFilters, CustomerVehicle,
     CustomerVehicleWithDetails, CustomerWithStats, UpdateCustomer, UpdateCustomerVehicle,
 };
 use crate::repositories::{CustomerRepository, PaginatedResult, Pagination};
+use crate::require_permission;
 use crate::AppState;
 use tauri::State;
 
@@ -74,10 +78,26 @@ pub async fn search_customers(
 #[tauri::command]
 pub async fn create_customer(
     input: CreateCustomer,
+    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Customer> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
-    repo.create(input).await
+    let result = repo.create(input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::CustomerCreated,
+        &employee.id,
+        &employee.name,
+        "Customer",
+        &result.id,
+        format!("Nome: {}", result.name)
+    );
+
+    Ok(result)
 }
 
 /// Atualiza cliente
@@ -85,22 +105,48 @@ pub async fn create_customer(
 pub async fn update_customer(
     id: String,
     input: UpdateCustomer,
+    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Customer> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
-    repo.update(&id, input).await
+    let result = repo.update(&id, input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::CustomerUpdated,
+        &employee.id,
+        &employee.name,
+        "Customer",
+        &id,
+        format!("Nome: {}", result.name)
+    );
+
+    Ok(result)
 }
 
 /// Desativa cliente (soft delete)
 #[tauri::command]
-pub async fn deactivate_customer(id: String, state: State<'_, AppState>) -> AppResult<()> {
+pub async fn deactivate_customer(
+    id: String,
+    employee_id: String,
+    state: State<'_, AppState>,
+) -> AppResult<()> {
+    require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.deactivate(&id).await
 }
 
 /// Reativa cliente
 #[tauri::command]
-pub async fn reactivate_customer(id: String, state: State<'_, AppState>) -> AppResult<Customer> {
+pub async fn reactivate_customer(
+    id: String,
+    employee_id: String,
+    state: State<'_, AppState>,
+) -> AppResult<Customer> {
+    require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.reactivate(&id).await
 }
@@ -133,8 +179,10 @@ pub async fn get_customer_vehicle_by_id(
 #[tauri::command]
 pub async fn create_customer_vehicle(
     input: CreateCustomerVehicle,
+    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<CustomerVehicle> {
+    let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.create_customer_vehicle(input).await
 }
@@ -144,22 +192,35 @@ pub async fn create_customer_vehicle(
 pub async fn update_customer_vehicle(
     id: String,
     input: UpdateCustomerVehicle,
+    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<CustomerVehicle> {
+    let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.update_customer_vehicle(&id, input).await
 }
 
 /// Desativa veículo do cliente
 #[tauri::command]
-pub async fn deactivate_customer_vehicle(id: String, state: State<'_, AppState>) -> AppResult<()> {
+pub async fn deactivate_customer_vehicle(
+    id: String,
+    employee_id: String,
+    state: State<'_, AppState>,
+) -> AppResult<()> {
+    let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.deactivate_customer_vehicle(&id).await
 }
 
 /// Atualiza quilometragem do veículo
 #[tauri::command]
-pub async fn update_vehicle_km(id: String, km: i32, state: State<'_, AppState>) -> AppResult<()> {
+pub async fn update_vehicle_km(
+    id: String,
+    km: i32,
+    employee_id: String,
+    state: State<'_, AppState>,
+) -> AppResult<()> {
+    let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.update_vehicle_km(&id, km).await
 }

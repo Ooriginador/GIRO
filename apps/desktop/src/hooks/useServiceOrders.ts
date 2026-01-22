@@ -117,7 +117,7 @@ export interface CreateServiceOrderInput {
   customer_id: string;
   customer_vehicle_id: string;
   vehicle_year_id: string;
-  employee_id: string;
+  employee_id?: string;
   vehicle_km?: number;
   symptoms?: string;
   scheduled_date?: string;
@@ -283,21 +283,15 @@ export function useServiceOrders() {
       id,
       paymentMethod,
       amountPaid,
-      employeeId,
-      sessionId,
     }: {
       id: string;
       paymentMethod: string;
       amountPaid: number;
-      employeeId: string;
-      sessionId: string;
     }) => {
       const result = await invoke<string>('finish_service_order', {
         id,
         paymentMethod,
         amountPaid,
-        employeeId,
-        cashSessionId: sessionId,
       });
       return result;
     },
@@ -391,7 +385,6 @@ export function useServiceOrderItems(orderId?: string) {
       unitPrice?: number;
       discount?: number;
       notes?: string;
-      employeeId?: string;
     }) => {
       const result = await invoke<ServiceOrderItem>('update_service_order_item', {
         itemId: vars.itemId,
@@ -399,7 +392,6 @@ export function useServiceOrderItems(orderId?: string) {
         unitPrice: vars.unitPrice,
         discount: vars.discount,
         notes: vars.notes,
-        employeeId: vars.employeeId,
       });
       return result;
     },

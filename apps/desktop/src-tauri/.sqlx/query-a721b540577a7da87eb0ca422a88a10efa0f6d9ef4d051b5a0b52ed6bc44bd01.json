@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE service_orders SET status = 'CANCELED', notes = COALESCE(?, notes), updated_at = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "a721b540577a7da87eb0ca422a88a10efa0f6d9ef4d051b5a0b52ed6bc44bd01"
+}

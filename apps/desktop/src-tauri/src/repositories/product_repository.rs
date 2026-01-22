@@ -1,8 +1,8 @@
+use crate::database::decimal_config;
 use crate::error::AppResult;
 use crate::models::{CreateProduct, Product, ProductFilters, StockSummary, UpdateProduct};
 use crate::repositories::new_id;
 use sqlx::{QueryBuilder, Sqlite, SqlitePool};
-use crate::database::decimal_config;
 
 pub struct ProductRepository<'a> {
     pool: &'a SqlitePool,
@@ -51,7 +51,11 @@ impl<'a> ProductRepository<'a> {
         Ok(result)
     }
 
-    pub async fn find_by_id_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>, id: &str) -> AppResult<Option<Product>> {
+    pub async fn find_by_id_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        id: &str,
+    ) -> AppResult<Option<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE id = ?",
             self.product_columns_string()
@@ -124,9 +128,10 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_with_filters(&self, filters: &ProductFilters) -> AppResult<Vec<Product>> {
-        let mut builder: QueryBuilder<Sqlite> = QueryBuilder::new(
-            format!("SELECT {} FROM products WHERE 1=1", self.product_columns_string())
-        );
+        let mut builder: QueryBuilder<Sqlite> = QueryBuilder::new(format!(
+            "SELECT {} FROM products WHERE 1=1",
+            self.product_columns_string()
+        ));
 
         if let Some(ref search) = filters.search {
             builder.push(" AND (name LIKE ");
@@ -166,7 +171,10 @@ impl<'a> ProductRepository<'a> {
             builder.push_bind(offset as i64);
         }
 
-        let result = builder.build_query_as::<Product>().fetch_all(self.pool).await?;
+        let result = builder
+            .build_query_as::<Product>()
+            .fetch_all(self.pool)
+            .await?;
         Ok(result)
     }
 
@@ -207,7 +215,10 @@ impl<'a> ProductRepository<'a> {
         Ok(format!("MRC-{:05}", result.0 + 1))
     }
 
-    pub async fn get_next_internal_code_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>) -> AppResult<String> {
+    pub async fn get_next_internal_code_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    ) -> AppResult<String> {
         let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM products")
             .fetch_one(&mut **tx)
             .await?;
@@ -224,7 +235,7 @@ impl<'a> ProductRepository<'a> {
         };
         let unit = data
             .unit
-            .map(|u| u.to_string())
+            .map(|u| u.as_db_str().to_string())
             .unwrap_or_else(|| "UNIT".to_string());
         let is_weighted = data.is_weighted.unwrap_or(false);
         let cost_price = data.cost_price.unwrap_or(0.0);
@@ -278,18 +289,22 @@ impl<'a> ProductRepository<'a> {
 
     pub async fn update(&self, id: &str, data: UpdateProduct) -> AppResult<Product> {
         let mut tx = self.pool.begin().await?;
-        
-        let existing = self.find_by_id_tx(&mut tx, id).await?
-            .ok_or_else(|| crate::error::AppError::NotFound {
+
+        let existing = self.find_by_id_tx(&mut tx, id).await?.ok_or_else(|| {
+            crate::error::AppError::NotFound {
                 entity: "Product".into(),
                 id: id.into(),
-            })?;
+            }
+        })?;
         let now = chrono::Utc::now().to_rfc3339();
 
         let name = data.name.unwrap_or(existing.name);
         let barcode = data.barcode.or(existing.barcode);
         let description = data.description.or(existing.description);
-        let unit = data.unit.map(|u| u.to_string()).unwrap_or(existing.unit);
+        let unit = data
+            .unit
+            .map(|u| u.as_db_str().to_string())
+            .unwrap_or(existing.unit);
         let is_weighted = data.is_weighted.unwrap_or(existing.is_weighted);
         let sale_price = data.sale_price.unwrap_or(existing.sale_price);
         let cost_price = data.cost_price.unwrap_or(existing.cost_price);
@@ -311,6 +326,28 @@ impl<'a> ProductRepository<'a> {
             .bind(sale_price)
             .bind(data.reason.as_deref().unwrap_or("Atualização de preço via edição de produto"))
             .bind(&data.employee_id)
+            .bind(&now)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        // Check if stock is changing
+        if (current_stock - existing.current_stock).abs() > 0.001 {
+            let diff = current_stock - existing.current_stock;
+            let move_id = new_id();
+            let move_type = "ADJUSTMENT";
+
+            sqlx::query(
+                "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, employee_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            )
+            .bind(&move_id)
+            .bind(id)
+            .bind(move_type)
+            .bind(diff)
+            .bind(existing.current_stock)
+            .bind(current_stock)
+            .bind(data.reason.as_deref().unwrap_or("Edição manual do produto"))
+            .bind(data.employee_id.as_deref())
             .bind(&now)
             .execute(&mut *tx)
             .await?;
@@ -358,17 +395,47 @@ impl<'a> ProductRepository<'a> {
             })
     }
 
-    pub async fn update_stock(&self, id: &str, delta: f64) -> AppResult<Product> {
+    pub async fn update_stock(
+        &self,
+        id: &str,
+        delta: f64,
+        reason: &str,
+        movement_type: &str,
+        reference_id: Option<String>,
+        reference_type: Option<String>,
+        employee_id: Option<String>,
+    ) -> AppResult<Product> {
         let mut tx = self.pool.begin().await?;
-        
-        let existing = self.find_by_id_tx(&mut tx, id).await?
-                .ok_or_else(|| crate::error::AppError::NotFound {
-                    entity: "Product".into(),
-                    id: id.into(),
-                })?;
+
+        let existing = self.find_by_id_tx(&mut tx, id).await?.ok_or_else(|| {
+            crate::error::AppError::NotFound {
+                entity: "Product".into(),
+                id: id.into(),
+            }
+        })?;
         let new_stock = existing.current_stock + delta;
         let now = chrono::Utc::now().to_rfc3339();
+        let movement_id = new_id();
 
+        // 1. Create Stock Movement Record
+        sqlx::query(
+            "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, employee_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        )
+        .bind(&movement_id)
+        .bind(id)
+        .bind(movement_type)
+        .bind(delta)
+        .bind(existing.current_stock)
+        .bind(new_stock)
+        .bind(reason)
+        .bind(reference_id)
+        .bind(reference_type)
+        .bind(employee_id)
+        .bind(&now)
+        .execute(&mut *tx)
+        .await?;
+
+        // 2. Update Product Stock
         sqlx::query("UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?")
             .bind(new_stock)
             .bind(&now)
@@ -557,9 +624,9 @@ impl<'a> ProductRepository<'a> {
         .bind(&product.updated_at)
         .execute(self.pool)
         .await?;
-    // If decimal migration is enabled, mirror values into decimal columns for sync/upsert parity
-    if decimal_config::use_decimal_columns() {
-        sqlx::query("UPDATE products SET sale_price_decimal = ROUND(?,2), cost_price_decimal = ROUND(?,2), current_stock_decimal = ROUND(?,3), min_stock_decimal = ROUND(?,3), max_stock_decimal = ROUND(COALESCE(?,0),3) WHERE id = ?")
+        // If decimal migration is enabled, mirror values into decimal columns for sync/upsert parity
+        if decimal_config::use_decimal_columns() {
+            sqlx::query("UPDATE products SET sale_price_decimal = ROUND(?,2), cost_price_decimal = ROUND(?,2), current_stock_decimal = ROUND(?,3), min_stock_decimal = ROUND(?,3), max_stock_decimal = ROUND(COALESCE(?,0),3) WHERE id = ?")
             .bind(product.sale_price)
             .bind(product.cost_price)
             .bind(product.current_stock)
@@ -568,7 +635,7 @@ impl<'a> ProductRepository<'a> {
             .bind(&product.id)
             .execute(self.pool)
             .await?;
-    }
+        }
         Ok(())
     }
 }

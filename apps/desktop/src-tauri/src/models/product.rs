@@ -38,6 +38,39 @@ impl std::fmt::Display for ProductUnit {
     }
 }
 
+impl ProductUnit {
+    pub fn as_db_str(&self) -> &'static str {
+        match self {
+            Self::Unit => "UNIT",
+            Self::Kilogram => "KILOGRAM",
+            Self::Gram => "GRAM",
+            Self::Liter => "LITER",
+            Self::Milliliter => "MILLILITER",
+            Self::Meter => "METER",
+            Self::Centimeter => "CENTIMETER",
+            Self::Box => "BOX",
+            Self::Pack => "PACK",
+            Self::Dozen => "DOZEN",
+        }
+    }
+
+    pub fn from_db_str(s: &str) -> Option<Self> {
+        match s {
+            "UNIT" => Some(Self::Unit),
+            "KILOGRAM" => Some(Self::Kilogram),
+            "GRAM" => Some(Self::Gram),
+            "LITER" => Some(Self::Liter),
+            "MILLILITER" => Some(Self::Milliliter),
+            "METER" => Some(Self::Meter),
+            "CENTIMETER" => Some(Self::Centimeter),
+            "BOX" => Some(Self::Box),
+            "PACK" => Some(Self::Pack),
+            "DOZEN" => Some(Self::Dozen),
+            _ => None,
+        }
+    }
+}
+
 /// Produto do catálogo
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "camelCase")]

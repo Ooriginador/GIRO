@@ -431,6 +431,584 @@ pub async fn giro_invoke(
             }
         }
 
+        "create_product" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let input: crate::models::CreateProduct =
+                serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
+                    .map_err(|e| format!("Invalid input: {}", e))?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::create_product(input, emp_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "update_product" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let id = val
+                .get("id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing id".to_string())?;
+            let input: crate::models::UpdateProduct =
+                serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
+                    .map_err(|e| format!("Invalid input: {}", e))?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::update_product(id, input, emp_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "create_category" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let input: crate::models::CreateCategory =
+                serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
+                    .map_err(|e| format!("Invalid input: {}", e))?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::create_category(input, emp_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "update_category" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let id = val
+                .get("id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing id".to_string())?;
+            let input: crate::models::UpdateCategory =
+                serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
+                    .map_err(|e| format!("Invalid input: {}", e))?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::update_category(id, input, emp_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "create_employee" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let input: crate::models::CreateEmployee =
+                serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
+                    .map_err(|e| format!("Invalid input: {}", e))?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::create_employee(input, emp_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "update_employee" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let id = val
+                .get("id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing id".to_string())?;
+            let input: crate::models::UpdateEmployee =
+                serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
+                    .map_err(|e| format!("Invalid input: {}", e))?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::update_employee(id, input, emp_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "deactivate_employee" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let id = val
+                .get("id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing id".to_string())?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::deactivate_employee(id, emp_id, app_state).await {
+                Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "close_cash_session" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let id = val
+                .get("id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing id".to_string())?;
+            let actual_balance = val
+                .get("actualBalance")
+                .or_else(|| val.get("actual_balance"))
+                .and_then(|v| v.as_f64())
+                .ok_or_else(|| "missing actualBalance".to_string())?;
+            let notes = val
+                .get("notes")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::cash::close_cash_session(
+                id,
+                actual_balance,
+                notes,
+                emp_id,
+                app_state,
+            )
+            .await
+            {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "create_stock_movement" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let input: crate::models::CreateStockMovement =
+                serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
+                    .map_err(|e| format!("Invalid input: {}", e))?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::create_stock_movement(input, emp_id, app_state).await {
+                Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "update_service_order" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let id = val
+                .get("id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing id".to_string())?;
+
+            // Extract fields manually as the signature is flat
+            let vehicle_km = val
+                .get("vehicle_km")
+                .and_then(|v| v.as_i64())
+                .map(|n| n as i32);
+            let symptoms = val
+                .get("symptoms")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let diagnosis = val
+                .get("diagnosis")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let status = val
+                .get("status")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let labor_cost = val.get("labor_cost").and_then(|v| v.as_f64());
+            let discount = val.get("discount").and_then(|v| v.as_f64());
+            let warranty_days = val
+                .get("warranty_days")
+                .and_then(|v| v.as_i64())
+                .map(|n| n as i32);
+            let scheduled_date = val
+                .get("scheduled_date")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let payment_method = val
+                .get("payment_method")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let is_paid = val.get("is_paid").and_then(|v| v.as_bool());
+            let notes = val
+                .get("notes")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let internal_notes = val
+                .get("internal_notes")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::service_orders::update_service_order(
+                app_state,
+                id,
+                vehicle_km,
+                symptoms,
+                diagnosis,
+                status,
+                labor_cost,
+                discount,
+                warranty_days,
+                scheduled_date,
+                payment_method,
+                is_paid,
+                notes,
+                internal_notes,
+                emp_id,
+            )
+            .await
+            {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "finish_service_order" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let id = val
+                .get("id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing id".to_string())?;
+            let payment_method = val
+                .get("payment_method")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing payment_method".to_string())?;
+            let amount_paid = val
+                .get("amount_paid")
+                .and_then(|v| v.as_f64())
+                .ok_or_else(|| "missing amount_paid".to_string())?;
+            let cash_session_id = val
+                .get("cash_session_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing cash_session_id".to_string())?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::service_orders::finish_service_order(
+                app_state,
+                id,
+                payment_method,
+                amount_paid,
+                emp_id,
+                cash_session_id,
+            )
+            .await
+            {
+                Ok(sale_id) => Ok(InvokeResult::ok(Some(serde_json::json!(sale_id)))),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "add_service_order_item" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let order_id = val
+                .get("order_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing order_id".to_string())?;
+            let product_id = val
+                .get("product_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let item_type = val
+                .get("item_type")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing item_type".to_string())?;
+            let description = val
+                .get("description")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing description".to_string())?;
+            let quantity = val
+                .get("quantity")
+                .and_then(|v| v.as_f64())
+                .ok_or_else(|| "missing quantity".to_string())?;
+            let unit_price = val
+                .get("unit_price")
+                .and_then(|v| v.as_f64())
+                .ok_or_else(|| "missing unit_price".to_string())?;
+            let discount = val.get("discount").and_then(|v| v.as_f64());
+            let notes = val
+                .get("notes")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            match crate::commands::service_orders::add_service_order_item(
+                app_state,
+                order_id,
+                product_id,
+                item_type,
+                description,
+                emp_id,
+                quantity,
+                unit_price,
+                discount,
+                notes,
+            )
+            .await
+            {
+                Ok(item) => Ok(InvokeResult::ok(serde_json::to_value(item).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "create_customer" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let input: crate::models::CreateCustomer =
+                serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
+                    .map_err(|e| format!("Invalid input: {}", e))?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::create_customer(input, emp_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "update_customer" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let id = val
+                .get("id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing id".to_string())?;
+            let input: crate::models::UpdateCustomer =
+                serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
+                    .map_err(|e| format!("Invalid input: {}", e))?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::update_customer(id, input, emp_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "create_customer_vehicle" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let input: crate::models::CreateCustomerVehicle =
+                serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
+                    .map_err(|e| format!("Invalid input: {}", e))?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::create_customer_vehicle(input, emp_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "get_sales_report" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let start_date = val
+                .get("startDate")
+                .or_else(|| val.get("start_date"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing startDate".to_string())?;
+            let end_date = val
+                .get("endDate")
+                .or_else(|| val.get("end_date"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing endDate".to_string())?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::reports::get_sales_report(
+                start_date, end_date, emp_id, app_state,
+            )
+            .await
+            {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "get_top_products" => {
+            let val = payload
+                .as_ref()
+                .ok_or_else(|| "missing payload".to_string())?;
+            let limit = val
+                .get("limit")
+                .and_then(|v| v.as_i64())
+                .map(|n| n as i32)
+                .unwrap_or(20);
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::reports::get_top_products(limit, emp_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "get_stock_report" => {
+            let val = payload
+                .as_ref()
+                .ok_or_else(|| "missing payload".to_string())?;
+            let emp_id = val
+                .get("employee_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employee_id".to_string())?;
+
+            match crate::commands::reports::get_stock_report(emp_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "update_service_order_item" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let item_id = val
+                .get("itemId")
+                .or_else(|| val.get("item_id"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing itemId".to_string())?;
+            let quantity = val.get("quantity").and_then(|v| v.as_f64());
+            let unit_price = val
+                .get("unitPrice")
+                .or_else(|| val.get("unit_price"))
+                .and_then(|v| v.as_f64());
+            let discount = val.get("discount").and_then(|v| v.as_f64());
+            let notes = val
+                .get("notes")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let emp_id = val
+                .get("employeeId")
+                .or_else(|| val.get("employee_id"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            match crate::commands::service_orders::update_service_order_item(
+                app_state, item_id, quantity, unit_price, discount, notes, emp_id,
+            )
+            .await
+            {
+                Ok(item) => Ok(InvokeResult::ok(serde_json::to_value(item).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "remove_service_order_item" => {
+            let val = payload.ok_or_else(|| "missing payload".to_string())?;
+            let item_id = val
+                .get("itemId")
+                .or_else(|| val.get("item_id"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing itemId".to_string())?;
+            let emp_id = val
+                .get("employeeId")
+                .or_else(|| val.get("employee_id"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .ok_or_else(|| "missing employeeId".to_string())?;
+
+            match crate::commands::service_orders::remove_service_order_item(
+                app_state, item_id, emp_id,
+            )
+            .await
+            {
+                Ok(()) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "get_motoparts_dashboard_stats" => {
+            match crate::commands::reports_motoparts::get_motoparts_dashboard_stats(app_state).await
+            {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "get_service_order_stats" => {
+            match crate::commands::reports_motoparts::get_service_order_stats(app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "get_top_products_motoparts" => {
+            let limit = payload
+                .as_ref()
+                .and_then(|p| p.get("limit"))
+                .and_then(|v| v.as_i64())
+                .unwrap_or(10);
+            match crate::commands::reports_motoparts::get_top_products_motoparts(limit, app_state)
+                .await
+            {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
         "add_cash_movement" => {
             if payload.is_none() {
                 return Ok(InvokeResult::err(
@@ -446,7 +1024,18 @@ pub async fn giro_invoke(
 
             match input {
                 Ok(movement_input) => {
-                    match crate::commands::cash::add_cash_movement(movement_input, app_state).await
+                    let emp_id = val
+                        .get("employee_id")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| movement_input.employee_id.clone());
+
+                    match crate::commands::cash::add_cash_movement(
+                        movement_input,
+                        emp_id,
+                        app_state,
+                    )
+                    .await
                     {
                         Ok(mv) => Ok(InvokeResult::ok(serde_json::to_value(mv).ok())),
                         Err(e) => Ok(InvokeResult::err(None, e.to_string())),

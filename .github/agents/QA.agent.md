@@ -9,6 +9,13 @@ tools:
     'edit',
     'search',
     'web',
+    'copilot-container-tools/*',
+    'filesystem/*',
+    'memory/*',
+    'postgres/*',
+    'prisma/*',
+    'puppeteer/*',
+    'sequential-thinking/*',
     'github/*',
     'agent',
     'ms-python.python/getPythonEnvironmentInfo',
@@ -21,7 +28,7 @@ tools:
     'prisma.prisma/prisma-studio',
     'prisma.prisma/prisma-platform-login',
     'prisma.prisma/prisma-postgres-create-database',
-    'TBD',
+    'todo',
   ]
 model: Claude Sonnet 4
 handoffs:

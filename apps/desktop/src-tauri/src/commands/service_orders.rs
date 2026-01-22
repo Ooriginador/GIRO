@@ -4,17 +4,20 @@
 
 use tauri::State;
 
+use crate::audit_log;
 use crate::error::AppResult;
+use crate::middleware::audit::{AuditAction, AuditService};
+use crate::middleware::Permission;
 use crate::models::{
     AddServiceOrderItem, CreateService, CreateServiceOrder, Service, ServiceOrder,
     ServiceOrderFilters, ServiceOrderItem, ServiceOrderSummary, ServiceOrderWithDetails,
     UpdateService, UpdateServiceOrder, UpdateServiceOrderItem,
 };
 use crate::repositories::{PaginatedResult, Pagination, ServiceOrderRepository};
+use crate::require_permission;
 use crate::AppState;
 
 // use sqlx::Row;
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ORDENS DE SERVIÇO
@@ -107,13 +110,14 @@ pub async fn create_service_order(
     internal_notes: Option<String>,
     status: Option<String>,
 ) -> AppResult<ServiceOrder> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::CreateServiceOrder);
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = CreateServiceOrder {
-        customer_id,
-        customer_vehicle_id,
+        customer_id: customer_id.clone(),
+        customer_vehicle_id: customer_vehicle_id.clone(),
         vehicle_year_id,
-        employee_id,
+        employee_id: employee_id.clone(),
         vehicle_km,
         symptoms,
         scheduled_date,
@@ -122,7 +126,21 @@ pub async fn create_service_order(
         status,
     };
 
-    repo.create(input).await
+    let result = repo.create(input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceOrderCreated,
+        &employee.id,
+        &employee.name,
+        "ServiceOrder",
+        &result.id,
+        format!("Cliente: {}, Veículo: {}", customer_id, customer_vehicle_id)
+    );
+
+    Ok(result)
 }
 
 /// Atualiza ordem de serviço
@@ -143,14 +161,16 @@ pub async fn update_service_order(
     is_paid: Option<bool>,
     notes: Option<String>,
     internal_notes: Option<String>,
+    employee_id: String,
 ) -> AppResult<ServiceOrder> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateServiceOrder);
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = UpdateServiceOrder {
         vehicle_km,
         symptoms,
         diagnosis,
-        status,
+        status: status.clone(),
         labor_cost,
         discount,
         warranty_days,
@@ -161,7 +181,21 @@ pub async fn update_service_order(
         internal_notes,
     };
 
-    repo.update(&id, input).await
+    let result = repo.update(&id, input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceOrderUpdated,
+        &employee.id,
+        &employee.name,
+        "ServiceOrder",
+        &id,
+        format!("Status: {:?}", status)
+    );
+
+    Ok(result)
 }
 
 /// Inicia ordem (muda status para IN_PROGRESS)
@@ -169,7 +203,9 @@ pub async fn update_service_order(
 pub async fn start_service_order(
     state: State<'_, AppState>,
     id: String,
+    employee_id: String,
 ) -> AppResult<ServiceOrder> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateServiceOrder);
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = UpdateServiceOrder {
@@ -177,7 +213,21 @@ pub async fn start_service_order(
         ..Default::default()
     };
 
-    repo.update(&id, input).await
+    let result = repo.update(&id, input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceOrderUpdated,
+        &employee.id,
+        &employee.name,
+        "ServiceOrder",
+        &id,
+        "Status: IN_PROGRESS"
+    );
+
+    Ok(result)
 }
 
 /// Finaliza ordem (muda status para COMPLETED)
@@ -186,7 +236,9 @@ pub async fn complete_service_order(
     state: State<'_, AppState>,
     id: String,
     diagnosis: Option<String>,
+    employee_id: String,
 ) -> AppResult<ServiceOrder> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateServiceOrder);
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = UpdateServiceOrder {
@@ -195,7 +247,21 @@ pub async fn complete_service_order(
         ..Default::default()
     };
 
-    repo.update(&id, input).await
+    let result = repo.update(&id, input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceOrderUpdated,
+        &employee.id,
+        &employee.name,
+        "ServiceOrder",
+        &id,
+        "Status: COMPLETED"
+    );
+
+    Ok(result)
 }
 
 /// Marca como entregue (muda status para DELIVERED)
@@ -204,7 +270,9 @@ pub async fn deliver_service_order(
     state: State<'_, AppState>,
     id: String,
     payment_method: String,
+    employee_id: String,
 ) -> AppResult<ServiceOrder> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateServiceOrder);
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = UpdateServiceOrder {
@@ -214,7 +282,21 @@ pub async fn deliver_service_order(
         ..Default::default()
     };
 
-    repo.update(&id, input).await
+    let result = repo.update(&id, input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceOrderUpdated,
+        &employee.id,
+        &employee.name,
+        "ServiceOrder",
+        &id,
+        "Status: DELIVERED"
+    );
+
+    Ok(result)
 }
 
 /// Cancela ordem
@@ -223,16 +305,27 @@ pub async fn cancel_service_order(
     state: State<'_, AppState>,
     id: String,
     notes: Option<String>,
+    employee_id: String,
 ) -> AppResult<ServiceOrder> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::CancelServiceOrder);
     let repo = ServiceOrderRepository::new(state.pool().clone());
+    let result = repo
+        .cancel_with_stock_restoration(&id, notes.clone())
+        .await?;
 
-    let input = UpdateServiceOrder {
-        status: Some("CANCELED".to_string()),
-        notes,
-        ..Default::default()
-    };
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceOrderCanceled,
+        &employee.id,
+        &employee.name,
+        "ServiceOrder",
+        &id,
+        format!("Motivo: {:?}", notes)
+    );
 
-    repo.update(&id, input).await
+    Ok(result)
 }
 
 /// Finaliza ordem de serviço (Gera venda e financeiro)
@@ -245,8 +338,31 @@ pub async fn finish_service_order(
     employee_id: String,
     cash_session_id: String,
 ) -> AppResult<String> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::FinishServiceOrder);
     let repo = ServiceOrderRepository::new(state.pool().clone());
-    repo.finish_order_transaction(&id, &payment_method, amount_paid, &employee_id, &cash_session_id).await
+    let sale_id = repo
+        .finish_order_transaction(
+            &id,
+            &payment_method,
+            amount_paid,
+            &employee_id,
+            &cash_session_id,
+        )
+        .await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceOrderFinished,
+        &employee.id,
+        &employee.name,
+        "ServiceOrder",
+        &id,
+        format!("Venda Gerada: {}", sale_id)
+    );
+
+    Ok(sale_id)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -278,21 +394,43 @@ pub async fn add_service_order_item(
     discount: Option<f64>,
     notes: Option<String>,
 ) -> AppResult<ServiceOrderItem> {
+    let employee_id_val = employee_id
+        .clone()
+        .ok_or_else(|| crate::error::AppError::BadRequest("employee_id is required".into()))?;
+    let employee = require_permission!(
+        state.pool(),
+        &employee_id_val,
+        Permission::UpdateServiceOrder
+    );
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = AddServiceOrderItem {
-        order_id,
-        product_id,
+        order_id: order_id.clone(),
+        product_id: product_id.clone(),
         item_type,
         description,
-        employee_id,
+        employee_id: employee_id.clone(),
         quantity,
         unit_price,
         discount,
         notes,
     };
 
-    repo.add_item(input).await
+    let result = repo.add_item(input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceOrderUpdated,
+        &employee.id,
+        &employee.name,
+        "ServiceOrder",
+        &order_id,
+        format!("Item Adicionado: {}", result.id)
+    );
+
+    Ok(result)
 }
 
 /// Remove item da ordem
@@ -300,9 +438,25 @@ pub async fn add_service_order_item(
 pub async fn remove_service_order_item(
     state: State<'_, AppState>,
     item_id: String,
+    employee_id: String,
 ) -> AppResult<()> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateServiceOrder);
     let repo = ServiceOrderRepository::new(state.pool().clone());
-    repo.remove_item(&item_id).await
+    repo.remove_item(&item_id).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceOrderUpdated,
+        &employee.id,
+        &employee.name,
+        "ServiceOrder",
+        &item_id, // We don't have order_id here easily, but item_id is something
+        format!("Item Removido: {}", item_id)
+    );
+
+    Ok(())
 }
 
 /// Atualiza item da ordem (com delta de estoque automático)
@@ -317,6 +471,14 @@ pub async fn update_service_order_item(
     notes: Option<String>,
     employee_id: Option<String>,
 ) -> AppResult<ServiceOrderItem> {
+    let employee_id_val = employee_id
+        .clone()
+        .ok_or_else(|| crate::error::AppError::BadRequest("employee_id is required".into()))?;
+    let employee = require_permission!(
+        state.pool(),
+        &employee_id_val,
+        Permission::UpdateServiceOrder
+    );
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = UpdateServiceOrderItem {
@@ -324,10 +486,24 @@ pub async fn update_service_order_item(
         unit_price,
         discount,
         notes,
-        employee_id,
+        employee_id: employee_id.clone(),
     };
 
-    repo.update_item(&item_id, input).await
+    let result = repo.update_item(&item_id, input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceOrderUpdated,
+        &employee.id,
+        &employee.name,
+        "ServiceOrder",
+        &item_id,
+        format!("Item Atualizado: {}", item_id)
+    );
+
+    Ok(result)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -371,7 +547,9 @@ pub async fn create_service(
     default_price: f64,
     estimated_time: Option<i32>,
     default_warranty_days: Option<i32>,
+    employee_id: String,
 ) -> AppResult<Service> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageServices);
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = CreateService {
@@ -383,7 +561,21 @@ pub async fn create_service(
         default_warranty_days,
     };
 
-    repo.create_service(input).await
+    let result = repo.create_service(input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceCreated,
+        &employee.id,
+        &employee.name,
+        "Service",
+        &result.id,
+        format!("Serviço Criado: {}", result.name)
+    );
+
+    Ok(result)
 }
 
 /// Atualiza serviço
@@ -399,7 +591,9 @@ pub async fn update_service(
     estimated_time: Option<i32>,
     default_warranty_days: Option<i32>,
     is_active: Option<bool>,
+    employee_id: String,
 ) -> AppResult<Service> {
+    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageServices);
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = UpdateService {
@@ -412,7 +606,21 @@ pub async fn update_service(
         is_active,
     };
 
-    repo.update_service(&id, input).await
+    let result = repo.update_service(&id, input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ServiceUpdated,
+        &employee.id,
+        &employee.name,
+        "Service",
+        &id,
+        format!("Serviço Atualizado: {}", id)
+    );
+
+    Ok(result)
 }
 
 /// Busca o histórico de serviços de um veículo

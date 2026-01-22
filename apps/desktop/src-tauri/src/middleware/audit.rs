@@ -23,10 +23,12 @@ pub enum AuditAction {
     DiscountApplied,
 
     // Caixa
-    CashOpened,
-    CashClosed,
+    CashSessionOpened,
+    CashSessionClosed,
     CashWithdrawal,
     CashDeposit,
+    CashSupply,
+    CashMovement,
 
     // Produtos
     ProductCreated,
@@ -39,6 +41,11 @@ pub enum AuditAction {
     StockAdjustment,
     StockTransfer,
 
+    // Clientes
+    CustomerCreated,
+    CustomerUpdated,
+    CustomerDeleted,
+
     // Funcionários
     EmployeeCreated,
     EmployeeUpdated,
@@ -49,6 +56,16 @@ pub enum AuditAction {
     SettingsChanged,
     BackupCreated,
     DataExported,
+
+    // Ordens de Serviço (Motopeças)
+    ServiceOrderCreated,
+    ServiceOrderUpdated,
+    ServiceOrderCanceled,
+    ServiceOrderFinished,
+
+    // Serviços
+    ServiceCreated,
+    ServiceUpdated,
 }
 
 impl std::fmt::Display for AuditAction {
@@ -269,40 +286,49 @@ macro_rules! audit_log {
 macro_rules! audit_log_tx {
     ($service:expr, $tx:expr, $action:expr, $employee_id:expr, $employee_name:expr) => {
         $service
-            .log_tx($tx, $crate::middleware::audit::CreateAuditLog {
-                action: $action,
-                employee_id: $employee_id.to_string(),
-                employee_name: $employee_name.to_string(),
-                target_type: None,
-                target_id: None,
-                details: None,
-            })
+            .log_tx(
+                $tx,
+                $crate::middleware::audit::CreateAuditLog {
+                    action: $action,
+                    employee_id: $employee_id.to_string(),
+                    employee_name: $employee_name.to_string(),
+                    target_type: None,
+                    target_id: None,
+                    details: None,
+                },
+            )
             .await
             .ok()
     };
     ($service:expr, $tx:expr, $action:expr, $employee_id:expr, $employee_name:expr, $target_type:expr, $target_id:expr) => {
         $service
-            .log_tx($tx, $crate::middleware::audit::CreateAuditLog {
-                action: $action,
-                employee_id: $employee_id.to_string(),
-                employee_name: $employee_name.to_string(),
-                target_type: Some($target_type.to_string()),
-                target_id: Some($target_id.to_string()),
-                details: None,
-            })
+            .log_tx(
+                $tx,
+                $crate::middleware::audit::CreateAuditLog {
+                    action: $action,
+                    employee_id: $employee_id.to_string(),
+                    employee_name: $employee_name.to_string(),
+                    target_type: Some($target_type.to_string()),
+                    target_id: Some($target_id.to_string()),
+                    details: None,
+                },
+            )
             .await
             .ok()
     };
     ($service:expr, $tx:expr, $action:expr, $employee_id:expr, $employee_name:expr, $target_type:expr, $target_id:expr, $details:expr) => {
         $service
-            .log_tx($tx, $crate::middleware::audit::CreateAuditLog {
-                action: $action,
-                employee_id: $employee_id.to_string(),
-                employee_name: $employee_name.to_string(),
-                target_type: Some($target_type.to_string()),
-                target_id: Some($target_id.to_string()),
-                details: Some($details.to_string()),
-            })
+            .log_tx(
+                $tx,
+                $crate::middleware::audit::CreateAuditLog {
+                    action: $action,
+                    employee_id: $employee_id.to_string(),
+                    employee_name: $employee_name.to_string(),
+                    target_type: Some($target_type.to_string()),
+                    target_id: Some($target_id.to_string()),
+                    details: Some($details.to_string()),
+                },
+            )
             .await
             .ok()
     };

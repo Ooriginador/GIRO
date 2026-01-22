@@ -50,6 +50,7 @@ pub struct CreateCashSession {
 #[serde(rename_all = "camelCase")]
 pub struct CreateCashMovement {
     pub session_id: String,
+    pub employee_id: String,
     pub movement_type: String,
     pub amount: f64,
     pub description: Option<String>,

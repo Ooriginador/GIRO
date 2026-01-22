@@ -62,7 +62,9 @@ mod tests {
         assert_eq!(product.barcode, Some("7890000000001".to_string()));
         assert_eq!(product.sale_price, 25.99);
         // Internal code format is MRC-XXXXX
+        // Internal code format is MRC-XXXXX
         assert!(product.internal_code.starts_with("MRC-"));
+        assert_eq!(product.unit, "UNIT");
     }
 
     #[tokio::test]
@@ -228,6 +230,53 @@ mod tests {
         let updated = result.unwrap();
         assert_eq!(updated.name, "Updated Name");
         assert_eq!(updated.sale_price, 55.0);
+    }
+
+    #[tokio::test]
+    async fn test_update_product_creates_stock_movement() {
+        let pool = setup_test_db().await;
+        let repo = ProductRepository::new(&pool);
+
+        let input = CreateProduct {
+            name: "Stock Update Product".to_string(),
+            barcode: None,
+            internal_code: None,
+            category_id: "cat-test-001".to_string(),
+            sale_price: 10.0,
+            cost_price: Some(5.0),
+            min_stock: Some(5.0),
+            current_stock: Some(10.0),
+            description: None,
+            unit: Some(crate::models::ProductUnit::Unit),
+            is_weighted: Some(false),
+            max_stock: None,
+        };
+        let product = repo.create(input).await.unwrap();
+
+        // Update stock via update() method
+        let update = crate::models::UpdateProduct {
+            current_stock: Some(15.0), // +5
+            reason: Some("Manual Correction".to_string()),
+            ..Default::default()
+        };
+
+        let result = repo.update(&product.id, update).await;
+        assert!(result.is_ok());
+
+        // Verify movement was created
+        let count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM stock_movements WHERE product_id = ? AND type = 'ADJUSTMENT'",
+        )
+        .bind(&product.id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+        assert_eq!(count, 1, "Should create 1 stock movement");
+
+        // Verify new stock
+        let updated = result.unwrap();
+        assert_eq!(updated.current_stock, 15.0);
     }
 
     #[tokio::test]

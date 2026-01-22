@@ -67,6 +67,7 @@ pub struct Sale {
     pub canceled_at: Option<String>,
     pub canceled_by_id: Option<String>,
     pub cancel_reason: Option<String>,
+    pub customer_id: Option<String>,
     pub employee_id: String,
     pub cash_session_id: String,
     pub created_at: String,
@@ -122,6 +123,7 @@ pub struct CreateSale {
     pub discount_type: Option<DiscountType>,
     pub discount_value: Option<f64>,
     pub discount_reason: Option<String>,
+    pub customer_id: Option<String>,
     pub employee_id: String,
     pub cash_session_id: String,
 }

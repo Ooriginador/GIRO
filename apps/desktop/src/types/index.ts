@@ -154,6 +154,8 @@ export interface Sale {
   dailyNumber: number;
   employeeId: string;
   employee?: Employee;
+  customerId?: string;
+  customer?: Customer;
   cashSessionId: string;
   cashSession?: CashSession;
   items: SaleItem[];
@@ -441,6 +443,7 @@ export interface CreateSaleInput {
   amountPaid: number;
   employeeId: string;
   cashSessionId: string;
+  customerId?: string;
 }
 
 export interface OpenCashSessionInput {
@@ -457,6 +460,7 @@ export interface CloseCashSessionInput {
 
 export interface CashMovementInput {
   sessionId: string;
+  employeeId: string;
   movementType: 'SUPPLY' | 'BLEED' | 'OPENING' | 'CLOSING';
   amount: number;
   description?: string;

@@ -1,6 +1,7 @@
 //! Comandos Tauri para Relatórios/Agrupamentos
 
 use crate::error::AppResult;
+use crate::middleware::Permission;
 use crate::models::Product;
 use crate::repositories::{ProductRepository, StockRepository};
 use crate::AppState;
@@ -39,7 +40,11 @@ pub struct SalesReport {
 }
 
 #[tauri::command]
-pub async fn get_stock_report(state: State<'_, AppState>) -> AppResult<StockReport> {
+pub async fn get_stock_report(
+    employee_id: String,
+    state: State<'_, AppState>,
+) -> AppResult<StockReport> {
+    crate::require_permission!(state.pool(), &employee_id, Permission::ViewReports);
     let product_repo = ProductRepository::new(state.pool());
     let stock_repo = StockRepository::new(state.pool());
 
@@ -70,8 +75,10 @@ pub async fn get_stock_report(state: State<'_, AppState>) -> AppResult<StockRepo
 #[tauri::command]
 pub async fn get_top_products(
     limit: i32,
+    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Vec<TopProduct>> {
+    crate::require_permission!(state.pool(), &employee_id, Permission::ViewReports);
     let limit = if limit <= 0 { 20 } else { limit };
 
     // Agrupa itens por produto usando apenas vendas COMPLETED
@@ -82,8 +89,8 @@ pub async fn get_top_products(
           si.product_id AS product_id,
           SUM(si.quantity) AS quantity,
           SUM(si.total) AS revenue
-        FROM SaleItem si
-        INNER JOIN Sale s ON s.id = si.sale_id
+        FROM sale_items si
+        INNER JOIN sales s ON s.id = si.sale_id
         WHERE s.status = 'COMPLETED'
         GROUP BY si.product_id
         ORDER BY revenue DESC
@@ -118,15 +125,17 @@ pub async fn get_top_products(
 pub async fn get_sales_report(
     start_date: String,
     end_date: String,
+    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<SalesReport> {
+    crate::require_permission!(state.pool(), &employee_id, Permission::ViewReports);
     // Totais
     let total_row = sqlx::query(
         r#"
         SELECT
           COUNT(*) AS total_sales,
           COALESCE(SUM(total), 0) AS total_revenue
-        FROM Sale
+        FROM sales
         WHERE status = 'COMPLETED'
           AND date(created_at) >= date(?)
           AND date(created_at) <= date(?)
@@ -151,7 +160,7 @@ pub async fn get_sales_report(
         SELECT
           payment_method AS method,
           COALESCE(SUM(total), 0) AS amount
-        FROM Sale
+        FROM sales
         WHERE status = 'COMPLETED'
           AND date(created_at) >= date(?)
           AND date(created_at) <= date(?)
@@ -176,7 +185,7 @@ pub async fn get_sales_report(
         SELECT
           strftime('%H', created_at) AS hour,
           COALESCE(SUM(total), 0) AS amount
-        FROM Sale
+        FROM sales
         WHERE status = 'COMPLETED'
           AND date(created_at) >= date(?)
           AND date(created_at) <= date(?)

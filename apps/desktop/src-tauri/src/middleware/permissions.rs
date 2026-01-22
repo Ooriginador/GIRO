@@ -31,6 +31,7 @@ pub enum Permission {
     CloseCash,
     ViewCashMovements,
     CreateCashMovement,
+    ManageCash,
 
     // Funcionários
     ViewEmployees,
@@ -53,6 +54,24 @@ pub enum Permission {
     // Categorias
     ViewCategories,
     ManageCategories,
+
+    // Clientes
+    ViewCustomers,
+    ManageCustomers,
+
+    // Ordens de Serviço
+    ViewServiceOrders,
+    CreateServiceOrder,
+    UpdateServiceOrder,
+    CancelServiceOrder,
+    FinishServiceOrder,
+
+    // Serviços
+    ViewServices,
+    ManageServices,
+
+    // Garantias
+    ManageWarranties,
 }
 
 impl Permission {
@@ -76,6 +95,7 @@ impl Permission {
                     Permission::CloseCash,
                     Permission::ViewCashMovements,
                     Permission::CreateCashMovement,
+                    Permission::ManageCash,
                     Permission::ViewEmployees,
                     Permission::CreateEmployees,
                     Permission::UpdateEmployees,
@@ -88,6 +108,16 @@ impl Permission {
                     Permission::ManageSuppliers,
                     Permission::ViewCategories,
                     Permission::ManageCategories,
+                    Permission::ViewCustomers,
+                    Permission::ManageCustomers,
+                    Permission::ViewServiceOrders,
+                    Permission::CreateServiceOrder,
+                    Permission::UpdateServiceOrder,
+                    Permission::CancelServiceOrder,
+                    Permission::FinishServiceOrder,
+                    Permission::ViewServices,
+                    Permission::ManageServices,
+                    Permission::ManageWarranties,
                 ]
             }
             EmployeeRole::Manager => {
@@ -107,14 +137,25 @@ impl Permission {
                     Permission::CloseCash,
                     Permission::ViewCashMovements,
                     Permission::CreateCashMovement,
-                    Permission::ViewEmployees, // Pode ver, mas não criar/editar
+                    Permission::ManageCash,
+                    Permission::ViewEmployees,
                     Permission::ViewReports,
                     Permission::ExportReports,
-                    Permission::ViewSettings, // Pode ver, mas não editar
+                    Permission::ViewSettings,
                     Permission::ViewSuppliers,
                     Permission::ManageSuppliers,
                     Permission::ViewCategories,
                     Permission::ManageCategories,
+                    Permission::ViewCustomers,
+                    Permission::ManageCustomers,
+                    Permission::ViewServiceOrders,
+                    Permission::CreateServiceOrder,
+                    Permission::UpdateServiceOrder,
+                    Permission::CancelServiceOrder,
+                    Permission::FinishServiceOrder,
+                    Permission::ViewServices,
+                    Permission::ManageServices,
+                    Permission::ManageWarranties,
                 ]
             }
             EmployeeRole::Cashier => {
@@ -128,6 +169,13 @@ impl Permission {
                     Permission::CloseCash,
                     Permission::ViewCashMovements,
                     Permission::CreateCashMovement,
+                    Permission::ManageCash,
+                    Permission::ViewCustomers,
+                    Permission::ManageCustomers,
+                    Permission::ViewServiceOrders,
+                    Permission::CreateServiceOrder,
+                    Permission::UpdateServiceOrder,
+                    Permission::ViewServices,
                 ]
             }
             EmployeeRole::Viewer => {
@@ -141,6 +189,9 @@ impl Permission {
                     Permission::ViewReports,
                     Permission::ViewSuppliers,
                     Permission::ViewCategories,
+                    Permission::ViewCustomers,
+                    Permission::ViewServiceOrders,
+                    Permission::ViewServices,
                 ]
             }
             EmployeeRole::Stocker => {
