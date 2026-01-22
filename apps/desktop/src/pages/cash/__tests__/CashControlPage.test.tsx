@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/stores/auth-store';
 import { createQueryWrapper } from '@/test/queryWrapper';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act } from 'react-dom/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CashControlPage } from '../CashControlPage';
 

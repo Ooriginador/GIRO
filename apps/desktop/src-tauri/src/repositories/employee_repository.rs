@@ -292,10 +292,11 @@ impl<'a> EmployeeRepository<'a> {
         if let Some(admin) = admin {
             // Update existing
             sqlx::query(
-                "UPDATE employees SET name = ?, email = ?, password = ?, updated_at = ? WHERE id = ?"
+                "UPDATE employees SET name = ?, email = ?, phone = ?, password = ?, updated_at = ? WHERE id = ?"
             )
             .bind(&data.name)
             .bind(&data.email)
+            .bind(&data.phone)
             .bind(&data.password_hash)
             .bind(&now)
             .bind(&admin.id)
@@ -311,12 +312,17 @@ impl<'a> EmployeeRepository<'a> {
                 new_id()
             };
 
+            // Set a default pin "0000" (hashed) so the user can login and change it
+            let default_pin_hash = hash_pin("0000");
+
             sqlx::query(
-                "INSERT INTO employees (id, name, email, password, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, 'ADMIN', 1, ?, ?)"
+                "INSERT INTO employees (id, name, email, phone, pin, password, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'ADMIN', 1, ?, ?)"
             )
             .bind(&id)
             .bind(&data.name)
             .bind(&data.email)
+            .bind(&data.phone)
+            .bind(&default_pin_hash)
             .bind(&data.password_hash)
             .bind(&now)
             .bind(&now)
