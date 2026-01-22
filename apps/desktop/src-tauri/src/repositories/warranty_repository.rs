@@ -284,6 +284,7 @@ impl WarrantyRepository {
 
     /// Cria nova garantia
     pub async fn create(&self, input: CreateWarrantyClaim) -> AppResult<WarrantyClaim> {
+        let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -319,8 +320,10 @@ impl WarrantyRepository {
             now,
             now
         )
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         self.find_by_id(&id)
             .await?

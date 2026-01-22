@@ -1,14 +1,15 @@
 //! Repositório de Funcionários
 
 use crate::error::AppResult;
+use crate::license::AdminUserSyncData;
 use crate::models::{CreateEmployee, Employee, SafeEmployee, UpdateEmployee};
 use crate::repositories::new_id;
-use sha2::{Digest, Sha256};
-use argon2::{Argon2, PasswordHasher, PasswordVerifier};
-use argon2::password_hash::{SaltString, PasswordHash};
 use argon2::password_hash::rand_core::OsRng;
-use hmac::{Hmac, Mac};
+use argon2::password_hash::{PasswordHash, SaltString};
+use argon2::{Argon2, PasswordHasher, PasswordVerifier};
 use hex;
+use hmac::{Hmac, Mac};
+use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 
 pub struct EmployeeRepository<'a> {
@@ -249,11 +250,89 @@ impl<'a> EmployeeRepository<'a> {
             return Ok(Some(emp));
         }
 
+        // Tenta Argon2 (sincronizado do servidor)
+        let employees = self.find_all_active().await?;
+        for emp in employees {
+            if let Some(stored_hash) = &emp.password {
+                if let Ok(parsed) = PasswordHash::new(stored_hash) {
+                    let argon2 = Argon2::default();
+                    if argon2.verify_password(pin.as_bytes(), &parsed).is_ok() {
+                        // Re-hash o PIN usando o novo método e atualize o registro
+                        let new_pin_hash = hash_pin(pin);
+                        let now = chrono::Utc::now().to_rfc3339();
+                        let _ = sqlx::query(
+                            "UPDATE employees SET pin = ?, updated_at = ? WHERE id = ?",
+                        )
+                        .bind(&new_pin_hash)
+                        .bind(&now)
+                        .bind(&emp.id)
+                        .execute(self.pool)
+                        .await;
+                        return Ok(Some(emp));
+                    }
+                }
+            }
+        }
+
         Ok(None)
     }
 
+    /// Sincroniza dados do administrador vindos do servidor
+    pub async fn sync_admin_from_server(&self, data: AdminUserSyncData) -> AppResult<Employee> {
+        // No desktop App, o admin costuma ser identificado pelo Role.
+
+        let admin = sqlx::query_as::<_, Employee>(
+            "SELECT * FROM employees WHERE role = 'ADMIN' AND is_active = 1 LIMIT 1",
+        )
+        .fetch_optional(self.pool)
+        .await?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        if let Some(admin) = admin {
+            // Update existing
+            sqlx::query(
+                "UPDATE employees SET name = ?, email = ?, password = ?, updated_at = ? WHERE id = ?"
+            )
+            .bind(&data.name)
+            .bind(&data.email)
+            .bind(&data.password_hash)
+            .bind(&now)
+            .bind(&admin.id)
+            .execute(self.pool)
+            .await?;
+
+            Ok(self.find_by_id(&admin.id).await?.unwrap())
+        } else {
+            // Create new admin
+            let id = if data.id.len() == 36 {
+                data.id.clone()
+            } else {
+                new_id()
+            };
+
+            sqlx::query(
+                "INSERT INTO employees (id, name, email, password, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, 'ADMIN', 1, ?, ?)"
+            )
+            .bind(&id)
+            .bind(&data.name)
+            .bind(&data.email)
+            .bind(&data.password_hash)
+            .bind(&now)
+            .bind(&now)
+            .execute(self.pool)
+            .await?;
+
+            Ok(self.find_by_id(&id).await?.unwrap())
+        }
+    }
+
     /// Verifica uma senha para um funcionário e migra hash legacy para Argon2 se necessário
-    pub async fn verify_password_and_migrate(&self, employee_id: &str, password: &str) -> AppResult<bool> {
+    pub async fn verify_password_and_migrate(
+        &self,
+        employee_id: &str,
+        password: &str,
+    ) -> AppResult<bool> {
         let existing = match self.find_by_id(employee_id).await? {
             Some(e) => e,
             None => return Ok(false),
@@ -315,7 +394,8 @@ fn hash_pin(pin: &str) -> String {
     // Deterministic HMAC-SHA256 using PIN_HMAC_KEY env var for lookup-friendly PIN hashing
     type HmacSha256 = Hmac<Sha256>;
     let key = std::env::var("PIN_HMAC_KEY").unwrap_or_else(|_| "giro-default-pin-key".to_string());
-    let mut mac = HmacSha256::new_from_slice(key.as_bytes()).expect("HMAC can take key of any size");
+    let mut mac =
+        HmacSha256::new_from_slice(key.as_bytes()).expect("HMAC can take key of any size");
     mac.update(pin.as_bytes());
     let result = mac.finalize();
     let bytes = result.into_bytes();

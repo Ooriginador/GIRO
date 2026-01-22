@@ -1,6 +1,7 @@
 {
   "name": "giro-monorepo",
   "private": true,
+  "version": "1.0.49",
   "license": "Proprietary",
   "pnpm": {
     "onlyBuiltDependencies": [

@@ -88,6 +88,7 @@ impl<'a> VehicleRepository<'a> {
 
     /// Cria nova marca
     pub async fn create_brand(&self, input: CreateVehicleBrand) -> AppResult<VehicleBrand> {
+        let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -102,8 +103,10 @@ impl<'a> VehicleRepository<'a> {
             now,
             now
         )
-        .execute(self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         self.find_brand_by_id(&id)
             .await?
@@ -189,6 +192,7 @@ impl<'a> VehicleRepository<'a> {
 
     /// Cria novo modelo
     pub async fn create_model(&self, input: CreateVehicleModel) -> AppResult<VehicleModel> {
+        let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -205,8 +209,10 @@ impl<'a> VehicleRepository<'a> {
             now,
             now
         )
-        .execute(self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         self.find_model_by_id(&id)
             .await?
@@ -288,6 +294,7 @@ impl<'a> VehicleRepository<'a> {
 
     /// Cria novo ano
     pub async fn create_year(&self, input: CreateVehicleYear) -> AppResult<VehicleYear> {
+        let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -303,8 +310,10 @@ impl<'a> VehicleRepository<'a> {
             now,
             now
         )
-        .execute(self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         self.find_year_by_id(&id)
             .await?

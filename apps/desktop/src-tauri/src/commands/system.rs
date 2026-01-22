@@ -102,3 +102,38 @@ pub struct DiskUsageInfo {
     pub database_path: String,
     pub backups_path: String,
 }
+
+/// Tenta corrigir as regras de firewall (Windows only)
+#[tauri::command]
+pub async fn fix_firewall_rules() -> AppResult<()> {
+    #[cfg(target_os = "windows")]
+    {
+        let current_exe = std::env::current_exe()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        // Script para adicionar regras de porta e programa
+        // Usa Start-Process com -Verb RunAs para solicitar UAC uma única vez para o bloco
+        let script = format!(
+            r#"Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile -Command "netsh advfirewall firewall add rule name=\"GIRO Mobile Sync\" dir=in action=allow protocol=TCP localport=3847 force=yes; netsh advfirewall firewall add rule name=\"GIRO Desktop App\" dir=in action=allow program=\"{}\" enable=yes force=yes"'" -Wait"#,
+            current_exe
+        );
+
+        let output = std::process::Command::new("powershell")
+            .args(["-Command", &script])
+            .output()
+            .map_err(|e| crate::error::AppError::System(format!("Erro ao invocar UAC: {}", e)))?;
+
+        if !output.status.success() {
+            return Err(crate::error::AppError::System(
+                "Falha ao aplicar regras (O usuário recusou ou erro no script)".to_string(),
+            ));
+        }
+
+        // Pequeno delay para garantir que o sistema processe
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+    }
+
+    Ok(())
+}

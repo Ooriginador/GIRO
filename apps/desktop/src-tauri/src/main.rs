@@ -9,6 +9,7 @@ use giro_lib::commands::mobile::MobileServerState;
 use giro_lib::commands::network::NetworkState;
 use giro_lib::{commands, nfce, AppState, DatabaseManager, HardwareState};
 use std::path::PathBuf;
+use tauri::Manager;
 use tokio::sync::RwLock;
 
 fn get_database_path() -> PathBuf {
@@ -34,9 +35,24 @@ async fn main() {
 
     tracing::info!("Iniciando GIRO Desktop v{}", env!("CARGO_PKG_VERSION"));
 
-
     let db_path = get_database_path();
     tracing::info!("DATABASE VERIFICATION PATH: {:?}", db_path);
+
+    // CRITICAL: Verify write permissions
+    if let Some(parent) = db_path.parent() {
+        let test_file = parent.join(".perm_check");
+        if let Err(e) = std::fs::write(&test_file, "ok") {
+            tracing::error!("❌ FATAL: Write permission denied in AppData: {:?}", e);
+            eprintln!(
+                "CRITICAL: Cannot write to {:?}. Check user permissions.",
+                parent
+            );
+            // We continue, but the DB connection will likely fail next.
+        } else {
+            tracing::info!("✅ Write permission verified in AppData");
+            let _ = std::fs::remove_file(test_file);
+        }
+    }
 
     let db = DatabaseManager::new(db_path.to_str().unwrap())
         .await
@@ -100,7 +116,15 @@ async fn main() {
         .manage(HardwareState::default())
         .manage(RwLock::new(MobileServerState::default()))
         .manage(RwLock::new(NetworkState::default()))
-        .setup(|_app| {
+        .setup(|app| {
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let state = handle.state::<AppState>();
+                let hw_state = handle.state::<HardwareState>();
+                if let Err(e) = commands::load_hardware_configs(state, hw_state).await {
+                    tracing::error!("Erro ao carregar configurações de hardware: {:?}", e);
+                }
+            });
             tracing::info!("Aplicação inicializada com sucesso");
             Ok(())
         })
@@ -195,6 +219,7 @@ async fn main() {
             commands::get_app_data_path,
             commands::get_database_path,
             commands::get_disk_usage,
+            commands::fix_firewall_rules,
             // Fornecedores
             commands::get_suppliers,
             commands::get_supplier_by_id,
@@ -215,6 +240,7 @@ async fn main() {
             commands::print_test_documents,
             commands::get_printer_config,
             commands::configure_scale,
+            commands::load_hardware_configs,
             commands::hardware_health_check,
             commands::read_weight,
             commands::auto_detect_scale,
@@ -377,7 +403,7 @@ fn get_cpu_id() -> String {
 
     #[cfg(target_os = "windows")]
     {
-        // Windows: Use WMIC
+        // 1. Try WMIC
         if let Ok(output) = std::process::Command::new("wmic")
             .args(["cpu", "get", "ProcessorId"])
             .output()
@@ -386,6 +412,19 @@ fn get_cpu_id() -> String {
                 let lines: Vec<&str> = stdout.lines().filter(|l| !l.trim().is_empty()).collect();
                 if lines.len() > 1 {
                     return lines[1].trim().to_string();
+                }
+            }
+        }
+
+        // 2. Try PowerShell (Fallback)
+        if let Ok(output) = std::process::Command::new("powershell")
+            .args(["-Command", "Get-CimInstance -ClassName Win32_Processor | Select-Object -ExpandProperty ProcessorId"])
+            .output()
+        {
+             if let Ok(stdout) = String::from_utf8(output.stdout) {
+                let id = stdout.trim();
+                if !id.is_empty() {
+                    return id.to_string();
                 }
             }
         }
@@ -426,6 +465,7 @@ fn get_motherboard_serial() -> String {
 
     #[cfg(target_os = "windows")]
     {
+        // 1. WMIC
         if let Ok(output) = std::process::Command::new("wmic")
             .args(["baseboard", "get", "serialnumber"])
             .output()
@@ -437,6 +477,19 @@ fn get_motherboard_serial() -> String {
                     if !serial.is_empty() && serial != "To be filled by O.E.M." {
                         return serial.to_string();
                     }
+                }
+            }
+        }
+
+        // 2. PowerShell
+        if let Ok(output) = std::process::Command::new("powershell")
+            .args(["-Command", "Get-CimInstance -ClassName Win32_BaseBoard | Select-Object -ExpandProperty SerialNumber"])
+            .output()
+        {
+             if let Ok(stdout) = String::from_utf8(output.stdout) {
+                let serial = stdout.trim();
+                if !serial.is_empty() && serial != "To be filled by O.E.M." {
+                    return serial.to_string();
                 }
             }
         }
@@ -509,7 +562,7 @@ fn get_disk_serial() -> String {
                     || name.starts_with("scsi-")
                 {
                     // Extract serial from name
-                    if let Some(serial) = name.split('_').last() {
+                    if let Some(serial) = name.split('_').next_back() {
                         return serial.chars().take(20).collect();
                     }
                 }
@@ -519,6 +572,7 @@ fn get_disk_serial() -> String {
 
     #[cfg(target_os = "windows")]
     {
+        // 1. WMIC
         if let Ok(output) = std::process::Command::new("wmic")
             .args(["diskdrive", "get", "serialnumber"])
             .output()
@@ -527,6 +581,19 @@ fn get_disk_serial() -> String {
                 let lines: Vec<&str> = stdout.lines().filter(|l| !l.trim().is_empty()).collect();
                 if lines.len() > 1 {
                     return lines[1].trim().to_string();
+                }
+            }
+        }
+
+        // 2. PowerShell
+        if let Ok(output) = std::process::Command::new("powershell")
+            .args(["-Command", "Get-CimInstance -ClassName Win32_DiskDrive | Select-Object -ExpandProperty SerialNumber | Select-Object -First 1"])
+            .output()
+        {
+             if let Ok(stdout) = String::from_utf8(output.stdout) {
+                let serial = stdout.trim();
+                if !serial.is_empty() {
+                    return serial.to_string();
                 }
             }
         }

@@ -99,6 +99,25 @@ impl AuditService {
 
     /// Registra uma ação de auditoria
     pub async fn log(&self, entry: CreateAuditLog) -> Result<AuditLog, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
+        self.log_conn(&mut conn, entry).await
+    }
+
+    /// Registra uma ação de auditoria dentro de uma transação
+    pub async fn log_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        entry: CreateAuditLog,
+    ) -> Result<AuditLog, sqlx::Error> {
+        self.log_conn(tx, entry).await
+    }
+
+    #[allow(clippy::explicit_auto_deref)]
+    async fn log_conn(
+        &self,
+        conn: &mut sqlx::SqliteConnection,
+        entry: CreateAuditLog,
+    ) -> Result<AuditLog, sqlx::Error> {
         let id = new_id();
         let action_str = entry.action.to_string();
         let created_at = Utc::now().to_rfc3339();
@@ -117,7 +136,7 @@ impl AuditService {
         .bind(&entry.target_id)
         .bind(&entry.details)
         .bind(&created_at)
-        .execute(&self.pool)
+        .execute(&mut *conn)
         .await?;
 
         Ok(AuditLog {
@@ -233,6 +252,50 @@ macro_rules! audit_log {
     ($service:expr, $action:expr, $employee_id:expr, $employee_name:expr, $target_type:expr, $target_id:expr, $details:expr) => {
         $service
             .log($crate::middleware::audit::CreateAuditLog {
+                action: $action,
+                employee_id: $employee_id.to_string(),
+                employee_name: $employee_name.to_string(),
+                target_type: Some($target_type.to_string()),
+                target_id: Some($target_id.to_string()),
+                details: Some($details.to_string()),
+            })
+            .await
+            .ok()
+    };
+}
+
+/// Macro para facilitar logging de auditoria dentro de uma transação
+#[macro_export]
+macro_rules! audit_log_tx {
+    ($service:expr, $tx:expr, $action:expr, $employee_id:expr, $employee_name:expr) => {
+        $service
+            .log_tx($tx, $crate::middleware::audit::CreateAuditLog {
+                action: $action,
+                employee_id: $employee_id.to_string(),
+                employee_name: $employee_name.to_string(),
+                target_type: None,
+                target_id: None,
+                details: None,
+            })
+            .await
+            .ok()
+    };
+    ($service:expr, $tx:expr, $action:expr, $employee_id:expr, $employee_name:expr, $target_type:expr, $target_id:expr) => {
+        $service
+            .log_tx($tx, $crate::middleware::audit::CreateAuditLog {
+                action: $action,
+                employee_id: $employee_id.to_string(),
+                employee_name: $employee_name.to_string(),
+                target_type: Some($target_type.to_string()),
+                target_id: Some($target_id.to_string()),
+                details: None,
+            })
+            .await
+            .ok()
+    };
+    ($service:expr, $tx:expr, $action:expr, $employee_id:expr, $employee_name:expr, $target_type:expr, $target_id:expr, $details:expr) => {
+        $service
+            .log_tx($tx, $crate::middleware::audit::CreateAuditLog {
                 action: $action,
                 employee_id: $employee_id.to_string(),
                 employee_name: $employee_name.to_string(),

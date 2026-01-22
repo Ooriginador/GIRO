@@ -27,10 +27,27 @@ impl<'a> SettingsRepository<'a> {
     }
 
     pub async fn find_by_key(&self, key: &str) -> AppResult<Option<Setting>> {
+        let mut conn = self.pool.acquire().await?;
+        self.find_by_key_conn(&mut conn, key).await
+    }
+
+    pub async fn find_by_key_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        key: &str,
+    ) -> AppResult<Option<Setting>> {
+        self.find_by_key_conn(tx, key).await
+    }
+
+    async fn find_by_key_conn(
+        &self,
+        conn: &mut sqlx::SqliteConnection,
+        key: &str,
+    ) -> AppResult<Option<Setting>> {
         let query = format!("SELECT {} FROM settings WHERE key = ?", Self::COLS);
         let result = sqlx::query_as::<_, Setting>(&query)
             .bind(key)
-            .fetch_optional(self.pool)
+            .fetch_optional(conn)
             .await?;
         Ok(result)
     }
@@ -74,7 +91,25 @@ impl<'a> SettingsRepository<'a> {
     }
 
     pub async fn set(&self, data: SetSetting) -> AppResult<Setting> {
-        let existing = self.find_by_key(&data.key).await?;
+        let mut conn = self.pool.acquire().await?;
+        self.set_conn(&mut conn, data).await
+    }
+
+    pub async fn set_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        data: SetSetting,
+    ) -> AppResult<Setting> {
+        self.set_conn(tx, data).await
+    }
+
+    #[allow(clippy::explicit_auto_deref)]
+    async fn set_conn(
+        &self,
+        conn: &mut sqlx::SqliteConnection,
+        data: SetSetting,
+    ) -> AppResult<Setting> {
+        let existing = self.find_by_key_conn(conn, &data.key).await?;
         let now = chrono::Utc::now().to_rfc3339();
 
         tracing::info!("Salvando configuração: {} = {}", data.key, data.value);
@@ -89,7 +124,7 @@ impl<'a> SettingsRepository<'a> {
                 .bind(&data.description)
                 .bind(&now)
                 .bind(&setting.id)
-                .execute(self.pool)
+                .execute(&mut *conn)
                 .await
         } else {
             // Create new
@@ -108,7 +143,7 @@ impl<'a> SettingsRepository<'a> {
             .bind(&data.description)
             .bind(&now)
             .bind(&now)
-            .execute(self.pool)
+            .execute(&mut *conn)
             .await
         };
 
@@ -117,12 +152,12 @@ impl<'a> SettingsRepository<'a> {
             return Err(e.into());
         }
 
-        self.find_by_key(&data.key).await?.ok_or_else(|| {
-            crate::error::AppError::NotFound {
+        self.find_by_key_conn(&mut *conn, &data.key)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
                 entity: "Setting".into(),
                 id: data.key,
-            }
-        })
+            })
     }
 
     pub async fn delete(&self, key: &str) -> AppResult<()> {

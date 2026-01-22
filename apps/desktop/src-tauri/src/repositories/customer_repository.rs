@@ -276,6 +276,7 @@ impl<'a> CustomerRepository<'a> {
 
     /// Cria novo cliente
     pub async fn create(&self, input: CreateCustomer) -> AppResult<Customer> {
+        let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -312,8 +313,10 @@ impl<'a> CustomerRepository<'a> {
             now,
             now
         )
-        .execute(self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         self.find_by_id(&id)
             .await?
@@ -325,6 +328,7 @@ impl<'a> CustomerRepository<'a> {
 
     /// Atualiza cliente
     pub async fn update(&self, id: &str, input: UpdateCustomer) -> AppResult<Customer> {
+        let mut tx = self.pool.begin().await?;
         let now = chrono::Utc::now().to_rfc3339();
 
         let existing = self
@@ -379,8 +383,10 @@ impl<'a> CustomerRepository<'a> {
             now,
             id
         )
-        .execute(self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         self.find_by_id(id)
             .await?
@@ -527,6 +533,7 @@ impl<'a> CustomerRepository<'a> {
         &self,
         input: CreateCustomerVehicle,
     ) -> AppResult<CustomerVehicle> {
+        let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -551,8 +558,10 @@ impl<'a> CustomerRepository<'a> {
             now,
             now
         )
-        .execute(self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         self.find_customer_vehicle_by_id(&id)
             .await?
