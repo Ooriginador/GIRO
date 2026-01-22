@@ -263,6 +263,7 @@ enum EmployeeRole {
   ADMIN // Acesso total
   MANAGER // Gerente (tudo exceto configurações críticas)
   CASHIER // Operador de caixa
+  STOCKER // Estoquista (gerenciamento de estoque)
   VIEWER // Apenas visualização
 }
 

@@ -1,7 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { EmployeeRole } from '@/types';
 
-export type EmployeeRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STOCKER' | 'VIEWER';
+// Re-export for convenience
+export type { EmployeeRole };
+
+export interface Employee {
+  id: string;
+  name: string;
+  role: EmployeeRole;
+  email?: string;
+  pin?: string;
+  username?: string; // Legacy field if needed
+}
+
+// Legacy alias for compatibility
+export type CurrentUser = Employee;
 
 export const PERMISSIONS = {
   // PDV
@@ -23,18 +37,6 @@ export const PERMISSIONS = {
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
-
-export interface Employee {
-  id: string;
-  name: string;
-  role: EmployeeRole;
-  email?: string;
-  username?: string;
-  pin?: string;
-}
-
-// Legacy alias for compatibility
-export type CurrentUser = Employee;
 
 export interface CashSession {
   id: string;
