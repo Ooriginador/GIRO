@@ -104,6 +104,7 @@ pub struct UpdateProduct {
     pub max_stock: Option<f64>,
     pub is_active: Option<bool>,
     pub category_id: Option<String>,
+    pub reason: Option<String>,
     /// ID do funcionário que está fazendo a alteração (para auditoria)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub employee_id: Option<String>,

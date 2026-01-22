@@ -1,7 +1,6 @@
 use crate::error::AppResult;
 use crate::models::{CreateProduct, Product, ProductFilters, StockSummary, UpdateProduct};
 use crate::repositories::new_id;
-use crate::repositories::PriceHistoryRepository;
 use sqlx::{QueryBuilder, Sqlite, SqlitePool};
 use crate::database::decimal_config;
 
@@ -48,6 +47,18 @@ impl<'a> ProductRepository<'a> {
         let result = sqlx::query_as::<_, Product>(&query)
             .bind(id)
             .fetch_optional(self.pool)
+            .await?;
+        Ok(result)
+    }
+
+    pub async fn find_by_id_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>, id: &str) -> AppResult<Option<Product>> {
+        let query = format!(
+            "SELECT {} FROM products WHERE id = ?",
+            self.product_columns_string()
+        );
+        let result = sqlx::query_as::<_, Product>(&query)
+            .bind(id)
+            .fetch_optional(&mut **tx)
             .await?;
         Ok(result)
     }
@@ -196,12 +207,20 @@ impl<'a> ProductRepository<'a> {
         Ok(format!("MRC-{:05}", result.0 + 1))
     }
 
+    pub async fn get_next_internal_code_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>) -> AppResult<String> {
+        let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM products")
+            .fetch_one(&mut **tx)
+            .await?;
+        Ok(format!("MRC-{:05}", result.0 + 1))
+    }
+
     pub async fn create(&self, data: CreateProduct) -> AppResult<Product> {
+        let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
         let internal_code = match data.internal_code {
             Some(code) => code,
-            None => self.get_next_internal_code().await?,
+            None => self.get_next_internal_code_tx(&mut tx).await?,
         };
         let unit = data
             .unit
@@ -231,7 +250,7 @@ impl<'a> ProductRepository<'a> {
         .bind(&data.category_id)
         .bind(&now)
         .bind(&now)
-        .execute(self.pool)
+        .execute(&mut *tx)
         .await?;
 
         // If decimal columns are enabled, populate them as well for parity
@@ -243,9 +262,11 @@ impl<'a> ProductRepository<'a> {
                 .bind(min_stock)
                 .bind(max_stock)
                 .bind(&id)
-                .execute(self.pool)
+                .execute(&mut *tx)
                 .await?;
         }
+
+        tx.commit().await?;
 
         self.find_by_id(&id)
             .await?
@@ -256,13 +277,13 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn update(&self, id: &str, data: UpdateProduct) -> AppResult<Product> {
-        let existing =
-            self.find_by_id(id)
-                .await?
-                .ok_or_else(|| crate::error::AppError::NotFound {
-                    entity: "Product".into(),
-                    id: id.into(),
-                })?;
+        let mut tx = self.pool.begin().await?;
+        
+        let existing = self.find_by_id_tx(&mut tx, id).await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Product".into(),
+                id: id.into(),
+            })?;
         let now = chrono::Utc::now().to_rfc3339();
 
         let name = data.name.unwrap_or(existing.name);
@@ -280,16 +301,19 @@ impl<'a> ProductRepository<'a> {
 
         // Registrar histórico de preço se o preço de venda mudou
         if (sale_price - existing.sale_price).abs() > 0.001 {
-            let price_history_repo = PriceHistoryRepository::new(self.pool);
-            price_history_repo
-                .create(crate::models::CreatePriceHistory {
-                    product_id: id.to_string(),
-                    old_price: existing.sale_price,
-                    new_price: sale_price,
-                    reason: Some("Atualização de preço via edição de produto".to_string()),
-                    employee_id: data.employee_id.clone(),
-                })
-                .await?;
+            let nid = new_id();
+            sqlx::query(
+                "INSERT INTO price_history (id, product_id, old_price, new_price, reason, employee_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+            )
+            .bind(&nid)
+            .bind(id)
+            .bind(existing.sale_price)
+            .bind(sale_price)
+            .bind(data.reason.as_deref().unwrap_or("Atualização de preço via edição de produto"))
+            .bind(&data.employee_id)
+            .bind(&now)
+            .execute(&mut *tx)
+            .await?;
         }
 
         sqlx::query(
@@ -309,7 +333,7 @@ impl<'a> ProductRepository<'a> {
         .bind(&category_id)
         .bind(&now)
         .bind(id)
-        .execute(self.pool)
+        .execute(&mut *tx)
         .await?;
 
         if decimal_config::use_decimal_columns() {
@@ -320,9 +344,11 @@ impl<'a> ProductRepository<'a> {
                 .bind(min_stock)
                 .bind(max_stock)
                 .bind(id)
-                .execute(self.pool)
+                .execute(&mut *tx)
                 .await?;
         }
+
+        tx.commit().await?;
 
         self.find_by_id(id)
             .await?
@@ -333,9 +359,9 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn update_stock(&self, id: &str, delta: f64) -> AppResult<Product> {
-        let existing =
-            self.find_by_id(id)
-                .await?
+        let mut tx = self.pool.begin().await?;
+        
+        let existing = self.find_by_id_tx(&mut tx, id).await?
                 .ok_or_else(|| crate::error::AppError::NotFound {
                     entity: "Product".into(),
                     id: id.into(),
@@ -347,8 +373,18 @@ impl<'a> ProductRepository<'a> {
             .bind(new_stock)
             .bind(&now)
             .bind(id)
-            .execute(self.pool)
+            .execute(&mut *tx)
             .await?;
+
+        if decimal_config::use_decimal_columns() {
+            sqlx::query("UPDATE products SET current_stock_decimal = ROUND(?,3) WHERE id = ?")
+                .bind(new_stock)
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        tx.commit().await?;
 
         self.find_by_id(id)
             .await?

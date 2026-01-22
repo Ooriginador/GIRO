@@ -302,6 +302,8 @@ impl<'a> InventoryRepository<'a> {
         inventory_id: &str,
         employee_id: &str,
     ) -> Result<(), sqlx::Error> {
+        let mut tx = self.pool.begin().await?;
+
         // Buscar itens com divergência
         let items: Vec<InventoryItemRow> = sqlx::query_as(
             r#"
@@ -310,7 +312,7 @@ impl<'a> InventoryRepository<'a> {
             "#,
         )
         .bind(inventory_id)
-        .fetch_all(self.pool)
+        .fetch_all(&mut *tx)
         .await?;
 
         for item in items {
@@ -337,7 +339,7 @@ impl<'a> InventoryRepository<'a> {
             .bind(format!("Ajuste inventário: {}", inventory_id))
             .bind(inventory_id)
             .bind(employee_id)
-            .execute(self.pool)
+            .execute(&mut *tx)
             .await?;
 
             // Atualizar estoque do produto
@@ -351,10 +353,20 @@ impl<'a> InventoryRepository<'a> {
             )
             .bind(item.counted_quantity)
             .bind(&item.product_id)
-            .execute(self.pool)
+            .execute(&mut *tx)
             .await?;
+
+            // Sync decimal columns
+            if crate::database::decimal_config::use_decimal_columns() {
+                sqlx::query("UPDATE products SET current_stock_decimal = ROUND(?,3) WHERE id = ?")
+                    .bind(item.counted_quantity)
+                    .bind(&item.product_id)
+                    .execute(&mut *tx)
+                    .await?;
+            }
         }
 
+        tx.commit().await?;
         Ok(())
     }
 }

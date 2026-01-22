@@ -59,13 +59,14 @@ impl<'a> StockRepository<'a> {
     }
 
     pub async fn create_movement(&self, data: CreateStockMovement) -> AppResult<StockMovementRow> {
+        let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
 
         // Get current stock
         let current: (f64,) = sqlx::query_as("SELECT current_stock FROM products WHERE id = ?")
             .bind(&data.product_id)
-            .fetch_one(self.pool)
+            .fetch_one(&mut *tx)
             .await?;
 
         let previous_stock = current.0;
@@ -90,7 +91,7 @@ impl<'a> StockRepository<'a> {
             .bind(cost)
             .bind(&now)
             .bind(&now)
-            .execute(self.pool)
+            .execute(&mut *tx)
             .await?;
             
             lot_id = Some(nid);
@@ -101,7 +102,7 @@ impl<'a> StockRepository<'a> {
                     .bind(cost)
                     .bind(&now)
                     .bind(&data.product_id)
-                    .execute(self.pool)
+                    .execute(&mut *tx)
                     .await?;
             }
         }
@@ -122,7 +123,7 @@ impl<'a> StockRepository<'a> {
         .bind(&data.reference_type)
         .bind(&data.employee_id)
         .bind(&now)
-        .execute(self.pool)
+        .execute(&mut *tx)
         .await?;
 
         // Update product stock
@@ -130,8 +131,21 @@ impl<'a> StockRepository<'a> {
             .bind(new_stock)
             .bind(&now)
             .bind(&data.product_id)
-            .execute(self.pool)
+            .execute(&mut *tx)
             .await?;
+
+        // If decimal columns are enabled, populate them as well for parity
+        // Using crate::database::decimal_config instead of local check if possible, or just checking for the setting
+        // Since I'm in the repo, I should use the same logic as ProductRepository
+        if crate::database::decimal_config::use_decimal_columns() {
+            sqlx::query("UPDATE products SET current_stock_decimal = ROUND(?,3) WHERE id = ?")
+                .bind(new_stock)
+                .bind(&data.product_id)
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        tx.commit().await?;
 
         self.find_movement_by_id(&id)
             .await?
@@ -238,13 +252,14 @@ impl<'a> StockRepository<'a> {
         employee_id: &str,
         reason: &str,
     ) -> AppResult<()> {
+        let mut tx = self.pool.begin().await?;
         let now = chrono::Utc::now().to_rfc3339();
         let movement_id = crate::repositories::new_id();
 
         // Buscar estoque atual
         let current: (f64,) = sqlx::query_as("SELECT current_stock FROM products WHERE id = ?")
             .bind(product_id)
-            .fetch_one(self.pool)
+            .fetch_one(&mut *tx)
             .await?;
 
         let previous_stock = current.0;
@@ -263,7 +278,7 @@ impl<'a> StockRepository<'a> {
         .bind(lot_id)
         .bind(employee_id)
         .bind(&now)
-        .execute(self.pool)
+        .execute(&mut *tx)
         .await?;
 
         // Atualizar estoque do produto
@@ -271,16 +286,26 @@ impl<'a> StockRepository<'a> {
             .bind(new_stock)
             .bind(&now)
             .bind(product_id)
-            .execute(self.pool)
+            .execute(&mut *tx)
             .await?;
+
+        // Sync decimal columns
+        if crate::database::decimal_config::use_decimal_columns() {
+            sqlx::query("UPDATE products SET current_stock_decimal = ROUND(?,3) WHERE id = ?")
+                .bind(new_stock)
+                .bind(product_id)
+                .execute(&mut *tx)
+                .await?;
+        }
 
         // Zerar quantidade do lote
         sqlx::query("UPDATE product_lots SET current_quantity = 0, status = 'EXPIRED', updated_at = ? WHERE id = ?")
             .bind(&now)
             .bind(lot_id)
-            .execute(self.pool)
+            .execute(&mut *tx)
             .await?;
 
+        tx.commit().await?;
         Ok(())
     }
 }
