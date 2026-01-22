@@ -1,10 +1,22 @@
 //! Comandos Tauri para Vendas
 
 use crate::error::AppResult;
-use crate::models::{CreateSale, DailySalesSummary, MonthlySalesSummary, Sale, SaleWithDetails};
+use crate::models::{
+    CreateSale, DailySalesSummary, MonthlySalesSummary, PaginatedResult, Sale, SaleFilters,
+    SaleWithDetails,
+};
 use crate::repositories::SaleRepository;
 use crate::AppState;
 use tauri::State;
+
+#[tauri::command]
+pub async fn get_sales(
+    filter: Option<SaleFilters>,
+    state: State<'_, AppState>,
+) -> AppResult<PaginatedResult<Sale>> {
+    let repo = SaleRepository::new(state.pool());
+    repo.find_all(filter.unwrap_or_default()).await
+}
 
 #[tauri::command]
 pub async fn get_sales_today(state: State<'_, AppState>) -> AppResult<Vec<Sale>> {

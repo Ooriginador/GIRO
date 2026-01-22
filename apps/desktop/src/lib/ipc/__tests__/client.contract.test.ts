@@ -12,9 +12,9 @@ describe('IPC client contract', () => {
     vi.clearAllMocks();
   });
 
-  it('safeCreateSale resolves when envelope ok', async () => {
-    // (invoke as unknown as jest.Mock) = invoke as any; // Invalid assignment removed
-    (invoke as any).mockResolvedValueOnce({ ok: true, data: { id: 'sale-1' } });
+  it('safeCreateSale resolves with data directly', async () => {
+    // New behavior: invoke returns data directly, no envelope
+    (invoke as any).mockResolvedValueOnce({ id: 'sale-1' });
 
     const sale = await safeCreateSale({
       items: [{ productId: 'p1', quantity: 1, unitPrice: 10 }],
@@ -25,12 +25,14 @@ describe('IPC client contract', () => {
     } as any);
 
     expect(sale).toEqual({ id: 'sale-1' });
-    expect((invoke as any).mock.calls[0][0]).toBe('giro_invoke');
-    expect((invoke as any).mock.calls[0][1]).toHaveProperty('cmd', 'create_sale');
+    // Expect direct command call
+    expect((invoke as any).mock.calls[0][0]).toBe('create_sale');
+    expect((invoke as any).mock.calls[0][1]).toHaveProperty('input');
   });
 
-  it('safeCreateSale throws when envelope not ok', async () => {
-    (invoke as any).mockResolvedValueOnce({ ok: false, error: 'bad' });
+  it('safeCreateSale throws on error', async () => {
+    // New behavior: invoke rejects on error
+    (invoke as any).mockRejectedValueOnce('backend error');
 
     await expect(
       safeCreateSale({
@@ -40,12 +42,13 @@ describe('IPC client contract', () => {
         employeeId: 'e1',
         cashSessionId: 's1',
       } as any)
-    ).rejects.toThrow('bad');
+    ).rejects.toThrow('backend error');
   });
 
-  it('safeGetHardwareId returns string when ok', async () => {
-    (invoke as any).mockResolvedValueOnce({ ok: true, data: 'HW-1234' });
+  it('safeGetHardwareId returns string directly', async () => {
+    (invoke as any).mockResolvedValueOnce('HW-1234');
     const id = await safeGetHardwareId();
     expect(id).toBe('HW-1234');
+    expect((invoke as any).mock.calls[0][0]).toBe('get_hardware_id');
   });
 });

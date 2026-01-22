@@ -161,7 +161,9 @@ pub struct PaymentMethodSummary {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SaleFilters {
+    #[serde(alias = "startDate")]
     pub date_from: Option<String>,
+    #[serde(alias = "endDate")]
     pub date_to: Option<String>,
     pub employee_id: Option<String>,
     pub cash_session_id: Option<String>,
@@ -171,4 +173,5 @@ pub struct SaleFilters {
     pub max_total: Option<f64>,
     pub limit: Option<i32>,
     pub offset: Option<i32>,
+    pub page: Option<i32>,
 }

@@ -31,6 +31,15 @@ pub async fn get_session_history(
     repo.find_session_history(limit).await
 }
 
+// Alias para compatibilidade com frontend
+#[tauri::command]
+pub async fn get_cash_session_history(
+    limit: i32,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<CashSession>> {
+    get_session_history(limit, state).await
+}
+
 #[tauri::command]
 pub async fn get_session_movements(
     session_id: String,

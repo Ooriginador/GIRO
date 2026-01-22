@@ -45,6 +45,9 @@ pub struct LicenseInfo {
     pub expires_at: Option<DateTime<Utc>>,
     pub days_remaining: Option<i64>,
     pub company_name: String,
+    pub company_cnpj: Option<String>,
+    pub company_address: Option<String>,
+    pub company_phone: Option<String>,
     pub max_users: i32,
     pub features: Vec<String>,
     pub plan_type: Option<String>,
@@ -199,6 +202,9 @@ impl LicenseClient {
             license_key: String,
             plan_type: String,
             company_name: String,
+            company_cnpj: Option<String>,
+            company_address: Option<String>,
+            company_phone: Option<String>,
             max_users: i32,
             features: Vec<String>,
             support_expires_at: Option<DateTime<Utc>>,
@@ -222,6 +228,9 @@ impl LicenseClient {
             expires_at: api_resp.expires_at,
             days_remaining: None,
             company_name: api_resp.company_name,
+            company_cnpj: api_resp.company_cnpj,
+            company_address: api_resp.company_address,
+            company_phone: api_resp.company_phone,
             max_users: api_resp.max_users,
             features: api_resp.features,
             plan_type: Some(api_resp.plan_type),
@@ -283,6 +292,9 @@ impl LicenseClient {
             license_key: String,
             plan_type: String,
             company_name: String,
+            company_cnpj: Option<String>,
+            company_address: Option<String>,
+            company_phone: Option<String>,
             max_users: i32,
             features: Vec<String>,
             support_expires_at: Option<DateTime<Utc>>,
@@ -306,6 +318,9 @@ impl LicenseClient {
             expires_at: api_resp.expires_at,
             days_remaining: api_resp.days_remaining,
             company_name: api_resp.company_name,
+            company_cnpj: api_resp.company_cnpj,
+            company_address: api_resp.company_address,
+            company_phone: api_resp.company_phone,
             max_users: api_resp.max_users,
             features: api_resp.features,
             plan_type: Some(api_resp.plan_type),
@@ -459,6 +474,118 @@ impl LicenseClient {
             .map_err(|e| format!("Erro ao processar resposta: {}", e))?;
 
         Ok(time_resp.server_time)
+    }
+
+    /// List cloud backups from license server using bearer token
+    pub async fn list_cloud_backups(
+        &self,
+        bearer_token: &str,
+    ) -> Result<serde_json::Value, String> {
+        let url = format!("{}/backups", self.config.server_url);
+
+        let response = self
+            .client
+            .get(&url)
+            .bearer_auth(bearer_token)
+            .send()
+            .await
+            .map_err(|e| format!("Erro ao listar backups na nuvem: {}", e))?;
+
+        if !response.status().is_success() {
+            let txt = response.text().await.unwrap_or_default();
+            return Err(format!("Erro do servidor ao listar backups: {}", txt));
+        }
+
+        let json = response
+            .json::<serde_json::Value>()
+            .await
+            .map_err(|e| format!("Erro ao parsear resposta: {}", e))?;
+
+        Ok(json)
+    }
+
+    /// Upload a backup blob to license server using bearer token
+    pub async fn upload_cloud_backup(
+        &self,
+        bearer_token: &str,
+        data: Vec<u8>,
+    ) -> Result<serde_json::Value, String> {
+        let url = format!("{}/backups", self.config.server_url);
+
+        let response = self
+            .client
+            .post(&url)
+            .bearer_auth(bearer_token)
+            .header("Content-Type", "application/octet-stream")
+            .body(data)
+            .send()
+            .await
+            .map_err(|e| format!("Erro ao enviar backup: {}", e))?;
+
+        if !response.status().is_success() {
+            let txt = response.text().await.unwrap_or_default();
+            return Err(format!("Erro do servidor ao enviar backup: {}", txt));
+        }
+
+        let json = response
+            .json::<serde_json::Value>()
+            .await
+            .map_err(|e| format!("Erro ao parsear resposta: {}", e))?;
+
+        Ok(json)
+    }
+
+    /// Get backup metadata or download via license server
+    pub async fn get_cloud_backup(
+        &self,
+        bearer_token: &str,
+        backup_id: &str,
+    ) -> Result<serde_json::Value, String> {
+        let url = format!("{}/backups/{}", self.config.server_url, backup_id);
+
+        let response = self
+            .client
+            .get(&url)
+            .bearer_auth(bearer_token)
+            .send()
+            .await
+            .map_err(|e| format!("Erro ao obter backup: {}", e))?;
+
+        if !response.status().is_success() {
+            let txt = response.text().await.unwrap_or_default();
+            return Err(format!("Erro do servidor ao obter backup: {}", txt));
+        }
+
+        let json = response
+            .json::<serde_json::Value>()
+            .await
+            .map_err(|e| format!("Erro ao parsear resposta: {}", e))?;
+
+        Ok(json)
+    }
+
+    /// Delete cloud backup
+    pub async fn delete_cloud_backup(
+        &self,
+        bearer_token: &str,
+        backup_id: &str,
+    ) -> Result<(), String> {
+        let url = format!("{}/backups/{}", self.config.server_url, backup_id);
+
+        let response = self
+            .client
+            .delete(&url)
+            .bearer_auth(bearer_token)
+            .send()
+            .await
+            .map_err(|e| format!("Erro ao excluir backup: {}", e))?;
+
+        if !response.status().is_success() {
+            let txt = response.text().await.unwrap_or_default();
+            return Err(format!("Erro do servidor ao excluir backup: {}", txt));
+        }
+
+        Ok(())
     }
 
     /// Update admin data (Sync)

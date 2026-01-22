@@ -155,3 +155,54 @@ pub async fn download_backup_from_drive(
     service.set_google_credentials(creds);
     service.download_from_drive(&file_id, &target_path).await
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// CLOUD BACKUP (License Server)
+// These commands wrap license server backup endpoints and accept a bearer token
+// from the frontend (the frontend is responsible for storing the JWT).
+// ────────────────────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn list_cloud_backups_cmd(
+    state: State<'_, AppState>,
+    bearer_token: String,
+) -> Result<serde_json::Value, String> {
+    state.license_client.list_cloud_backups(&bearer_token).await
+}
+
+#[tauri::command]
+pub async fn upload_cloud_backup_cmd(
+    state: State<'_, AppState>,
+    bearer_token: String,
+    data_base64: String,
+) -> Result<serde_json::Value, String> {
+    let decoded = base64::decode(&data_base64).map_err(|e| format!("Invalid base64: {}", e))?;
+    state
+        .license_client
+        .upload_cloud_backup(&bearer_token, decoded)
+        .await
+}
+
+#[tauri::command]
+pub async fn get_cloud_backup_cmd(
+    state: State<'_, AppState>,
+    bearer_token: String,
+    backup_id: String,
+) -> Result<serde_json::Value, String> {
+    state
+        .license_client
+        .get_cloud_backup(&bearer_token, &backup_id)
+        .await
+}
+
+#[tauri::command]
+pub async fn delete_cloud_backup_cmd(
+    state: State<'_, AppState>,
+    bearer_token: String,
+    backup_id: String,
+) -> Result<(), String> {
+    state
+        .license_client
+        .delete_cloud_backup(&bearer_token, &backup_id)
+        .await
+}

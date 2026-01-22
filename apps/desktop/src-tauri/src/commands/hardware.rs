@@ -7,7 +7,7 @@
 //! - Gaveta de dinheiro
 
 use crate::error::AppResult;
-use crate::AppState;
+use crate::hardware::device::HardwareDevice;
 use crate::hardware::{
     self,
     drawer::{CashDrawer, DrawerConfig},
@@ -16,8 +16,8 @@ use crate::hardware::{
     scanner::{MobileDevice, MobileScannerConfig, ScannerServerState},
     HardwareError,
 };
-use crate::hardware::device::HardwareDevice;
 use crate::services::mobile_server::MobileServer;
+use crate::AppState;
 use qrcode::render::svg;
 use qrcode::QrCode;
 use serde::{Deserialize, Serialize};
@@ -149,6 +149,75 @@ pub async fn print_receipt(receipt: Receipt, state: State<'_, HardwareState>) ->
     Ok(())
 }
 
+/// Imprime cupom de venda buscando pelo ID
+#[tauri::command]
+pub async fn print_sale_by_id(
+    sale_id: String,
+    state: State<'_, AppState>,
+    hw_state: State<'_, HardwareState>,
+) -> AppResult<()> {
+    // 1. Buscar Venda
+    let sale_repo = crate::repositories::SaleRepository::new(state.pool());
+    let sale = sale_repo
+        .find_with_details(&sale_id)
+        .await?
+        .ok_or_else(|| crate::error::AppError::NotFound {
+            entity: "Sale".into(),
+            id: sale_id,
+        })?;
+
+    // 2. Buscar Informações da Empresa
+    let settings_repo = crate::repositories::SettingsRepository::new(state.pool());
+    let company_name = settings_repo
+        .get_value("company.name")
+        .await?
+        .unwrap_or_else(|| "Minha Empresa".into());
+    let company_address = settings_repo
+        .get_value("company.address")
+        .await?
+        .unwrap_or_else(|| "".into());
+    let company_cnpj = settings_repo.get_value("company.cnpj").await?;
+    let company_phone = settings_repo.get_value("company.phone").await?;
+
+    // 3. Construir Recibo
+    // 3. Construir Recibo
+    let items = sale
+        .items
+        .iter()
+        .map(|item| crate::hardware::printer::ReceiptItem {
+            code: item.product_barcode.clone().unwrap_or_default(),
+            name: item.product_name.clone(),
+            quantity: item.quantity,
+            unit: item.product_unit.clone(),
+            unit_price: item.unit_price,
+            total: item.total,
+        })
+        .collect();
+
+    let receipt = Receipt {
+        company_name,
+        company_address,
+        company_cnpj,
+        company_phone,
+        sale_number: sale.sale.daily_number,
+        operator_name: sale
+            .employee_name
+            .clone()
+            .unwrap_or_else(|| "Operador".into()),
+        date_time: sale.sale.created_at.clone(),
+        items,
+        subtotal: sale.sale.subtotal,
+        discount: sale.sale.discount_value,
+        total: sale.sale.total,
+        payment_method: sale.sale.payment_method.clone(),
+        amount_paid: sale.sale.amount_paid,
+        change: sale.sale.change,
+    };
+
+    // 4. Imprimir
+    print_receipt(receipt, hw_state).await
+}
+
 /// Imprime ordem de serviço
 #[tauri::command]
 pub async fn print_service_order(
@@ -204,6 +273,15 @@ pub async fn test_printer(state: State<'_, HardwareState>) -> AppResult<()> {
     }
 
     Ok(())
+}
+
+// Alias para compatibilidade com frontend
+#[tauri::command]
+pub async fn test_printer_connection(state: State<'_, HardwareState>) -> AppResult<bool> {
+    match test_printer(state).await {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
+    }
 }
 
 /// Imprime múltiplos documentos de teste (nota, ordem de serviço, relatório)
@@ -365,6 +443,22 @@ pub async fn read_weight(state: State<'_, HardwareState>) -> AppResult<ScaleRead
     Ok(reading)
 }
 
+// Alias para compatibilidade com frontend
+#[tauri::command]
+pub async fn read_scale_weight(state: State<'_, HardwareState>) -> AppResult<f64> {
+    let reading = read_weight(state).await?;
+    Ok(reading.weight_kg)
+}
+
+// Alias para compatibilidade com frontend
+#[tauri::command]
+pub async fn test_scale_connection(state: State<'_, HardwareState>) -> AppResult<bool> {
+    match read_weight(state).await {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
+    }
+}
+
 /// Detecta automaticamente a balança
 #[tauri::command]
 pub async fn auto_detect_scale() -> AppResult<ScaleAutoDetectInfo> {
@@ -433,6 +527,12 @@ pub async fn open_drawer(state: State<'_, HardwareState>) -> AppResult<()> {
     Ok(())
 }
 
+// Alias para compatibilidade com frontend
+#[tauri::command]
+pub async fn open_cash_drawer(state: State<'_, HardwareState>) -> AppResult<()> {
+    open_drawer(state).await
+}
+
 /// Retorna configuração atual da gaveta
 #[tauri::command]
 pub async fn get_drawer_config(state: State<'_, HardwareState>) -> AppResult<DrawerConfig> {
@@ -458,23 +558,32 @@ pub async fn hardware_health_check(
 
     match printer_status {
         Ok(s) => results.push(s),
-        Err(msg) => results.push(crate::hardware::HardwareStatus { name: "printer".into(), ok: false, message: Some(msg) }),
+        Err(msg) => results.push(crate::hardware::HardwareStatus {
+            name: "printer".into(),
+            ok: false,
+            message: Some(msg),
+        }),
     }
 
     // Scale
     let scale_cfg = { (*state.scale_config.read().await).clone() };
-    let scale_status = tokio::task::spawn_blocking(move || {
-        match crate::hardware::scale::Scale::new(scale_cfg.clone()) {
-            Ok(scale) => scale.health_check(),
-            Err(e) => Err(format!("init error: {}", e)),
-        }
-    })
-    .await
-    .map_err(|e| HardwareError::CommunicationError(format!("task join error: {}", e)))?;
+    let scale_status =
+        tokio::task::spawn_blocking(move || {
+            match crate::hardware::scale::Scale::new(scale_cfg.clone()) {
+                Ok(scale) => scale.health_check(),
+                Err(e) => Err(format!("init error: {}", e)),
+            }
+        })
+        .await
+        .map_err(|e| HardwareError::CommunicationError(format!("task join error: {}", e)))?;
 
     match scale_status {
         Ok(s) => results.push(s),
-        Err(msg) => results.push(crate::hardware::HardwareStatus { name: "scale".into(), ok: false, message: Some(msg) }),
+        Err(msg) => results.push(crate::hardware::HardwareStatus {
+            name: "scale".into(),
+            ok: false,
+            message: Some(msg),
+        }),
     }
 
     // Scanner
@@ -486,7 +595,11 @@ pub async fn hardware_health_check(
         results.push(crate::hardware::HardwareStatus {
             name: "scanner:ws".to_string(),
             ok: true,
-            message: Some(format!("running devices={} task_id={:?}", devices.len(), task_id_opt)),
+            message: Some(format!(
+                "running devices={} task_id={:?}",
+                devices.len(),
+                task_id_opt
+            )),
         });
     } else {
         results.push(crate::hardware::HardwareStatus {
@@ -729,6 +842,7 @@ macro_rules! hardware_commands {
             // Impressora
             $crate::commands::hardware::configure_printer,
             $crate::commands::hardware::print_receipt,
+            $crate::commands::hardware::print_sale_by_id,
             $crate::commands::hardware::print_service_order,
             $crate::commands::hardware::test_printer,
             $crate::commands::hardware::print_test_documents,

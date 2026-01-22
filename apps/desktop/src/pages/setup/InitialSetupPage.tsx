@@ -221,39 +221,45 @@ export const InitialSetupPage: FC = () => {
 
   const handleSync = async () => {
     setIsLoading(true);
+    let currentKey = useLicenseStore.getState().licenseKey;
+
     try {
-      const licenseKey = useLicenseStore.getState().licenseKey;
-      if (!licenseKey) {
-        throw new Error('Chave de licença não encontrada');
+      const { restoreLicense, validateLicense } = await import('@/lib/tauri');
+
+      // 1. If no local key, try to restore from server using Hardware ID
+      if (!currentKey) {
+        console.log('[Setup] No local license key, attempting restore...');
+        try {
+          const restoredKey = await restoreLicense();
+          if (restoredKey) {
+            console.log('[Setup] License restored:', restoredKey);
+            useLicenseStore.getState().setLicenseKey(restoredKey);
+            currentKey = restoredKey;
+            toast({
+              title: 'Licença Encontrada',
+              description: 'Sua licença foi restaurada com sucesso.',
+            });
+          }
+        } catch (e) {
+          console.warn('[Setup] Restore failed:', e);
+          // Fallthrough to validation which will catch the missing key error
+        }
       }
 
-      // 1. Validate license again to get fresh data
-      // We import validateLicense dynamically to avoid circular deps if any
-      const { validateLicense } = await import('@/lib/tauri');
-      const info = await validateLicense(licenseKey);
+      if (!currentKey) {
+        throw new Error('Nenhuma licença encontrada. Ative o sistema no servidor primeiro.');
+      }
 
-      // 2. Check if we have admin data
+      // 2. Validate license again to get fresh data
+      const info = await validateLicense(currentKey);
+
+      // 3. Check if we have admin data
       if (info.has_admin && info.admin) {
         console.log('[Setup] Admin found in license, syncing...');
 
-        // 3. Create admin locally using the data from server
-        // Note: We don't have the PIN here for security.
-        // If the backend doesn't sync the DB, we might need to prompt for PIN or
-        // use a special "restore_admin" command.
-        // FOR NOW: We assume if we are here, we might need to ask the user to confirm/enter PIN
-        // OR we use a "restore" flow.
-
-        // Since we can't create admin without PIN, and we don't have it (hashed),
-        // we might just need to refresh the local state if the Backend ALREADY inserted it.
-
         await queryClient.invalidateQueries({ queryKey: ['has-admin'] });
-        const hasAdminNow = await queryClient.fetchQuery({
-          queryKey: ['has-admin'],
-          queryFn: async () => {
-            const { invoke } = await import('@/lib/tauri');
-            return await invoke<boolean>('has_admin');
-          },
-        });
+        const { invoke } = await import('@/lib/tauri');
+        const hasAdminNow = await invoke<boolean>('has_admin');
 
         if (hasAdminNow) {
           toast({
@@ -264,8 +270,6 @@ export const InitialSetupPage: FC = () => {
           return;
         }
 
-        // If still no admin, but server has it, we are in a tricky spot.
-        // We probably need to "Join" with just the email/pinned
         toast({
           title: 'Admin encontrado',
           description:
@@ -273,7 +277,6 @@ export const InitialSetupPage: FC = () => {
         });
       } else if (info.has_admin) {
         // Server says yes, but no data sent.
-        // Attempt a forced refresh
         await queryClient.invalidateQueries({ queryKey: ['has-admin'] });
         window.location.reload();
       } else {
@@ -287,7 +290,8 @@ export const InitialSetupPage: FC = () => {
       console.error('Erro na sincronização:', (error as Error)?.message ?? String(error));
       toast({
         title: 'Erro na sincronização',
-        description: 'Não foi possível conectar ao servidor de licenças.',
+        description:
+          (error as Error)?.message || 'Não foi possível conectar ao servidor de licenças.',
         variant: 'destructive',
       });
     } finally {

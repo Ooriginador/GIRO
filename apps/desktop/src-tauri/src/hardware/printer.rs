@@ -96,7 +96,9 @@ impl crate::hardware::HardwareDevice for ThermalPrinter {
                     c
                 };
 
-                let found = candidates.into_iter().any(|p| std::path::Path::new(&p).exists());
+                let found = candidates
+                    .into_iter()
+                    .any(|p| std::path::Path::new(&p).exists());
                 if found {
                     Ok(crate::hardware::HardwareStatus {
                         name,
@@ -125,7 +127,10 @@ impl crate::hardware::HardwareDevice for ThermalPrinter {
                 };
                 builder = builder.stop_bits(serialport::StopBits::One);
 
-                match builder.timeout(Duration::from_millis(self.config.timeout_ms)).open() {
+                match builder
+                    .timeout(Duration::from_millis(self.config.timeout_ms))
+                    .open()
+                {
                     Ok(mut p) => {
                         // quick flush
                         let _ = p.flush();
@@ -144,12 +149,23 @@ impl crate::hardware::HardwareDevice for ThermalPrinter {
             }
             PrinterConnection::Network => {
                 // Try connect TCP
-                match std::net::TcpStream::connect_timeout(&self.config.port.parse().unwrap_or_else(|_| {
-                    // fallback to socket addr parse fail
-                    "0.0.0.0:0".parse().unwrap()
-                }), Duration::from_millis(self.config.timeout_ms)) {
-                    Ok(_) => Ok(crate::hardware::HardwareStatus { name, ok: true, message: Some("network reachable".to_string()) }),
-                    Err(e) => Ok(crate::hardware::HardwareStatus { name, ok: false, message: Some(format!("network error: {}", e)) }),
+                match std::net::TcpStream::connect_timeout(
+                    &self.config.port.parse().unwrap_or_else(|_| {
+                        // fallback to socket addr parse fail
+                        "0.0.0.0:0".parse().unwrap()
+                    }),
+                    Duration::from_millis(self.config.timeout_ms),
+                ) {
+                    Ok(_) => Ok(crate::hardware::HardwareStatus {
+                        name,
+                        ok: true,
+                        message: Some("network reachable".to_string()),
+                    }),
+                    Err(e) => Ok(crate::hardware::HardwareStatus {
+                        name,
+                        ok: false,
+                        message: Some(format!("network error: {}", e)),
+                    }),
                 }
             }
         }
@@ -613,6 +629,7 @@ impl ThermalPrinter {
         self.style(TextStyle {
             bold: true,
             double_height: true,
+            double_width: true,
             ..Default::default()
         });
         self.line(&receipt.company_name);
@@ -627,53 +644,63 @@ impl ThermalPrinter {
         }
 
         self.feed(1);
-        self.separator('-');
+        self.separator('=');
+        self.style(TextStyle {
+            bold: true,
+            ..Default::default()
+        });
         self.line("CUPOM NÃO FISCAL");
-        self.separator('-');
+        self.style(TextStyle::default());
+        self.separator('=');
 
         // Info da venda
         self.align(TextAlign::Left);
-        self.line(&format!("Venda: #{:06}", receipt.sale_number));
-        self.line(&format!("Data: {}", receipt.date_time));
-        self.line(&format!("Operador: {}", receipt.operator_name));
+        self.line(&format!("VENDA: #{:06}", receipt.sale_number));
+        self.line(&format!("DATA:  {}", receipt.date_time));
+        self.line(&format!("OPER:  {}", receipt.operator_name));
+        self.separator('-');
+
+        // Itens - Cabeçalho
+        self.style(TextStyle {
+            bold: true,
+            ..Default::default()
+        });
+        self.line("ITEM   DESC   QTD   UN   VL.UNIT   TOTAL");
+        self.style(TextStyle::default());
         self.separator('-');
 
         // Itens
-        for item in &receipt.items {
-            let name = if item.name.len() > 24 {
-                &item.name[..24]
+        for (i, item) in receipt.items.iter().enumerate() {
+            let name = if item.name.len() > 30 {
+                &item.name[..30]
             } else {
                 &item.name
             };
 
-            if item.quantity == 1.0 {
-                // Formato simples: PRODUTO                    R$ 9,99
-                let price_str = format!("R$ {:.2}", item.total);
-                let spaces = self.config.paper_width as usize - name.len() - price_str.len();
-                self.line(&format!(
-                    "{}{:>width$}",
-                    name,
-                    price_str,
-                    width = spaces + price_str.len()
-                ));
-            } else {
-                // Formato com quantidade
-                self.line(name);
-                let detail = format!(
-                    "  {} {} x R$ {:.2} = R$ {:.2}",
-                    item.quantity, item.unit, item.unit_price, item.total
-                );
-                self.line(&detail);
-            }
+            self.line(&format!("{:03} {}", i + 1, name));
+
+            let detail = format!(
+                "      {:.3}{} x R$ {:.2}",
+                item.quantity, item.unit, item.unit_price
+            );
+            let total_str = format!("R$ {:.2}", item.total);
+            let spaces =
+                (self.config.paper_width as usize).saturating_sub(detail.len() + total_str.len());
+
+            self.line(&format!(
+                "{}{:>width$}",
+                detail,
+                total_str,
+                width = spaces + total_str.len()
+            ));
         }
 
         self.separator('-');
 
         // Totais
-        let _width = self.config.paper_width as usize;
+        self.align(TextAlign::Right);
 
         let subtotal_line = format!("SUBTOTAL: R$ {:.2}", receipt.subtotal);
-        self.align(TextAlign::Right);
         self.line(&subtotal_line);
 
         if receipt.discount > 0.0 {
@@ -681,26 +708,27 @@ impl ThermalPrinter {
             self.line(&discount_line);
         }
 
-        self.separator('=');
-
+        self.feed(1);
         self.style(TextStyle {
             bold: true,
             double_height: true,
+            double_width: true,
             ..Default::default()
         });
-        let total_line = format!("TOTAL: R$ {:.2}", receipt.total);
-        self.line(&total_line);
+        self.line(&format!("TOTAL: R$ {:.2}", receipt.total));
 
         self.style(TextStyle::default());
-        self.feed(1);
+        self.separator('=');
 
         // Pagamento
         self.align(TextAlign::Left);
-        self.line(&format!("Pagamento: {}", receipt.payment_method));
+        self.line(&format!("FORMA PGTO: {}", receipt.payment_method));
+        self.line(&format!("VALOR PAGO: R$ {:.2}", receipt.amount_paid));
+
         if receipt.change > 0.0 {
-            self.line(&format!("Valor recebido: R$ {:.2}", receipt.amount_paid));
             self.style(TextStyle {
                 bold: true,
+                double_height: true,
                 ..Default::default()
             });
             self.line(&format!("TROCO: R$ {:.2}", receipt.change));
@@ -708,11 +736,15 @@ impl ThermalPrinter {
         }
 
         // Rodapé
-        self.feed(1);
-        self.separator('-');
+        self.feed(2);
         self.align(TextAlign::Center);
         self.line("Obrigado pela preferência!");
         self.line("Volte sempre!");
+        self.feed(1);
+
+        // QR Code de autenticidade (simulado)
+        let qr_data = format!("SALE:{:06}:{}", receipt.sale_number, receipt.date_time);
+        self.qrcode(&qr_data);
 
         // Corte
         if self.config.auto_cut {
@@ -734,6 +766,7 @@ impl ThermalPrinter {
         self.style(TextStyle {
             bold: true,
             double_height: true,
+            double_width: true,
             ..Default::default()
         });
         self.line(&os.company_name);
@@ -744,60 +777,74 @@ impl ThermalPrinter {
         }
         self.line(&os.company_address);
         if let Some(ref phone) = os.company_phone {
-            self.line(&format!("Tel: {}", phone));
+            self.line(&format!("TEL: {}", phone));
         }
 
         self.feed(1);
-        self.separator('-');
+        self.separator('=');
         self.style(TextStyle {
             bold: true,
             double_height: true,
             ..Default::default()
         });
-        self.line("ORDEM DE SERVICO");
+        self.line("ORDEM DE SERVIÇO");
         self.style(TextStyle::default());
-        self.separator('-');
+        self.separator('=');
 
         // Info da OS
         self.align(TextAlign::Left);
-        self.style(TextStyle { bold: true, ..Default::default() });
-        self.line(&format!("OS: #{:06}", os.order_number));
+        self.style(TextStyle {
+            bold: true,
+            ..Default::default()
+        });
+        self.line(&format!("OS NÚMERO: #{:06}", os.order_number));
         self.style(TextStyle::default());
-        
-        self.line(&format!("Status: {}", os.status));
-        self.line(&format!("Data: {}", os.date_time));
-        self.line(&format!("Mecânico: {}", os.mechanic_name));
+
+        self.line(&format!("STATUS: {}", os.status.to_uppercase()));
+        self.line(&format!("DATA:   {}", os.date_time));
+        self.line(&format!("MECÂNICO: {}", os.mechanic_name));
         self.separator('-');
 
         // Info do Cliente/Veículo
-        self.line(&format!("Cliente: {}", os.customer_name));
+        self.style(TextStyle {
+            bold: true,
+            ..Default::default()
+        });
+        self.line("DADOS DO CLIENTE / VEÍCULO");
+        self.style(TextStyle::default());
+
+        self.line(&format!("CLIENTE: {}", os.customer_name));
         if let Some(ref phone) = os.customer_phone {
-            self.line(&format!("Telefone: {}", phone));
+            self.line(&format!("FONE:    {}", phone));
         }
-        self.line(&format!("Veículo: {}", os.vehicle_display_name));
+        self.line(&format!("VEÍCULO: {}", os.vehicle_display_name));
         if let Some(ref plate) = os.vehicle_plate {
-            self.line(&format!("Placa: {}", plate));
+            self.line(&format!("PLACA:   {}", plate));
         }
         if let Some(km) = os.vehicle_km {
-            self.line(&format!("KM: {}", km));
+            self.line(&format!("KM:      {}", km));
         }
-        
+
         // Garantia (Em destaque)
         if os.warranty_days > 0 {
-             self.separator('-');
-             self.align(TextAlign::Center);
-             self.style(TextStyle { bold: true, ..Default::default() });
-             self.line(&format!("GARANTIA: {} DIAS", os.warranty_days));
-             self.style(TextStyle::default());
-             self.align(TextAlign::Left);
+            self.feed(1);
+            self.align(TextAlign::Center);
+            self.style(TextStyle {
+                bold: true,
+                underline: true,
+                ..Default::default()
+            });
+            self.line(&format!("GARANTIA: {} DIAS", os.warranty_days));
+            self.style(TextStyle::default());
+            self.align(TextAlign::Left);
         }
 
         if let Some(ref symptoms) = os.symptoms {
             self.feed(1);
-            self.line("Sintomas relatados:");
+            self.line("SINTOMAS / RELATO:");
             self.line(symptoms);
         }
-        
+
         self.separator('-');
 
         // Itens
@@ -805,32 +852,32 @@ impl ThermalPrinter {
             bold: true,
             ..Default::default()
         });
-        self.line("SERVICOS E PECAS");
+        self.line("PEÇAS E SERVIÇOS");
         self.style(TextStyle::default());
+        self.separator('-');
 
         for item in &os.items {
-            let name = if item.name.len() > 24 {
-                &item.name[..24]
+            let name = if item.name.len() > 30 {
+                &item.name[..30]
             } else {
                 &item.name
             };
 
-            let price_str = format!("R$ {:.2}", item.total);
-            let spaces = if width > (name.len() + price_str.len()) {
-                width - name.len() - price_str.len()
-            } else {
-                1
-            };
-            
+            self.line(name);
+
+            let detail = format!(
+                "  {:.2}{} x R$ {:.2}",
+                item.quantity, item.unit, item.unit_price
+            );
+            let total_str = format!("R$ {:.2}", item.total);
+            let spaces = width.saturating_sub(detail.len() + total_str.len());
+
             self.line(&format!(
                 "{}{:>width$}",
-                name,
-                price_str,
-                width = spaces + price_str.len()
+                detail,
+                total_str,
+                width = spaces + total_str.len()
             ));
-            if item.quantity != 1.0 {
-                self.line(&format!("  {} x R$ {:.2}", item.quantity, item.unit_price));
-            }
         }
 
         self.separator('-');
@@ -841,38 +888,49 @@ impl ThermalPrinter {
             self.line(&format!("MÃO DE OBRA: R$ {:.2}", os.labor_cost));
         }
         if os.parts_cost > 0.0 {
-            self.line(&format!("PEÇAS: R$ {:.2}", os.parts_cost));
+            self.line(&format!("PEÇAS:       R$ {:.2}", os.parts_cost));
         }
         if os.discount > 0.0 {
-            self.line(&format!("DESCONTO: -R$ {:.2}", os.discount));
+            self.style(TextStyle {
+                bold: true,
+                ..Default::default()
+            });
+            self.line(&format!("DESCONTO:   -R$ {:.2}", os.discount));
+            self.style(TextStyle::default());
         }
 
+        self.feed(1);
         self.style(TextStyle {
             bold: true,
             double_height: true,
+            double_width: true,
             ..Default::default()
         });
         self.line(&format!("TOTAL: R$ {:.2}", os.total));
         self.style(TextStyle::default());
+        self.separator('=');
 
         // Rodapé
-        self.feed(1);
         if let Some(ref notes) = os.notes {
             self.align(TextAlign::Left);
-            self.line("Observações:");
+            self.line("OBSERVAÇÕES:");
             self.line(notes);
+            self.feed(1);
         }
 
         self.feed(2);
         self.align(TextAlign::Center);
-        // Signature line matching paper width (roughly)
-        let line_len = if width > 30 { 30 } else { width - 2 };
-        let underscores = "_".repeat(line_len);
+
+        let signature_label = "ASSINATURA DO CLIENTE";
+        let underscores = "_".repeat(24);
         self.line(&underscores);
-        self.line("Assinatura do Cliente");
-        
+        self.line(signature_label);
+
         self.feed(1);
-        self.line("Obrigado pela preferência!");
+        self.line("Obrigado pela confiança!");
+
+        let qr_data = format!("OS:{:06}:{}", os.order_number, os.date_time);
+        self.qrcode(&qr_data);
 
         // Corte
         if self.config.auto_cut {

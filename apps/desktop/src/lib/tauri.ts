@@ -313,25 +313,81 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
   try {
     if (isTauriRuntime()) {
       console.log('[Tauri.invoke] %s %o', command, args);
-      const raw = await withTimeout(
-        tauriCoreInvoke<unknown>(command, args),
-        DEFAULT_INVOKE_TIMEOUT,
-        `Timeout invoking ${command}`
-      );
-      console.log('[Tauri.result] %s %o', command, raw);
 
-      // If backend returns TauriResponse wrapper, unwrap it
-      if (raw && typeof raw === 'object' && 'success' in (raw as Record<string, unknown>)) {
-        const wrapped = raw as TauriResponse<unknown>;
-        if (!wrapped.success) {
+      // Prefer dispatcher `giro_invoke` to provide a unified envelope and better error handling.
+      // If dispatcher returns `not_found`, fallback to direct command invocation.
+      try {
+        const dispRaw = await withTimeout(
+          tauriCoreInvoke<unknown>('giro_invoke', { cmd: command, payload: args }),
+          DEFAULT_INVOKE_TIMEOUT,
+          `Timeout invoking dispatcher for ${command}`
+        );
+        console.log('[Tauri.dispatcher.result] %s %o', command, dispRaw);
+
+        if (
+          dispRaw &&
+          typeof dispRaw === 'object' &&
+          'ok' in (dispRaw as Record<string, unknown>)
+        ) {
+          const wrapped = dispRaw as { ok: boolean; code?: string; error?: string; data?: unknown };
+          if (wrapped.ok) {
+            return wrapped.data as T;
+          }
+
+          // If dispatcher explicitly says command not found, fallback to direct invoke
+          if (wrapped.code === 'not_found') {
+            console.warn(
+              '[Tauri.dispatcher] command not found, falling back to direct invoke:',
+              command
+            );
+            const raw = await withTimeout(
+              tauriCoreInvoke<unknown>(command, args),
+              DEFAULT_INVOKE_TIMEOUT,
+              `Timeout invoking ${command}`
+            );
+            console.log('[Tauri.result] %s %o', command, raw);
+
+            if (raw && typeof raw === 'object' && 'success' in (raw as Record<string, unknown>)) {
+              const wrapped2 = raw as TauriResponse<unknown>;
+              if (!wrapped2.success) {
+                const errMsg = wrapped2.error ?? `Erro no comando ${command}`;
+                console.error(`[Tauri Error] ${command}:`, errMsg);
+                throw new Error(errMsg);
+              }
+              return wrapped2.data as T;
+            }
+
+            return raw as T;
+          }
+
           const errMsg = wrapped.error ?? `Erro no comando ${command}`;
-          console.error(`[Tauri Error] ${command}:`, errMsg);
+          console.error(`[Tauri.dispatcher.error] ${command}:`, errMsg);
           throw new Error(errMsg);
         }
-        return wrapped.data as T;
-      }
 
-      return raw as T;
+        // If dispatcher did not return the expected envelope, try direct invoke as a fallback
+        const raw = await withTimeout(
+          tauriCoreInvoke<unknown>(command, args),
+          DEFAULT_INVOKE_TIMEOUT,
+          `Timeout invoking ${command}`
+        );
+        console.log('[Tauri.result] %s %o', command, raw);
+
+        if (raw && typeof raw === 'object' && 'success' in (raw as Record<string, unknown>)) {
+          const wrapped2 = raw as TauriResponse<unknown>;
+          if (!wrapped2.success) {
+            const errMsg = wrapped2.error ?? `Erro no comando ${command}`;
+            console.error(`[Tauri Error] ${command}:`, errMsg);
+            throw new Error(errMsg);
+          }
+          return wrapped2.data as T;
+        }
+
+        return raw as T;
+      } catch (e) {
+        // Re-throw so outer catch handles logging and normalization
+        throw e;
+      }
     }
 
     console.warn('[WebMock.invoke] %s %o (MOCK MODE)', command, args);
@@ -820,7 +876,7 @@ export async function setSetting(key: string, value: string, type?: string): Pro
 // ────────────────────────────────────────────────────────────────────────────
 
 export async function printReceipt(saleId: string): Promise<TauriResponse<void>> {
-  return tauriInvoke<TauriResponse<void>>('print_receipt', { saleId });
+  return tauriInvoke<TauriResponse<void>>('print_sale_by_id', { saleId });
 }
 
 export async function openCashDrawer(): Promise<TauriResponse<void>> {
@@ -912,7 +968,18 @@ export async function getLastBackupDate(): Promise<string | null> {
 // CLOUD BACKUP (License Server API)
 // ────────────────────────────────────────────────────────────────────────────
 
-const LICENSE_SERVER_URL = 'https://giro-license-server-production.up.railway.app/api/v1';
+// Use env var when available. Accept either a base URL with or without `/api/v1`.
+const API_BASE =
+  (typeof process !== 'undefined' &&
+    (process.env.NEXT_PUBLIC_API_URL || process.env.LICENSE_SERVER_URL)) ||
+  'https://giro-license-server-production.up.railway.app/api/v1';
+
+function buildApiUrl(path: string) {
+  // Normalize path and base to avoid double slashes or duplicate `/api/v1`
+  const base = API_BASE.replace(/\/$/, '');
+  const cleanPath = path.replace(/^\/*/, '');
+  return `${base}/${cleanPath}`;
+}
 
 export type CloudBackupMeta = {
   id: string;
@@ -965,22 +1032,14 @@ export async function uploadBackupToCloud(
   if (!token) {
     throw new Error('Não autenticado. Faça login no servidor de licenças primeiro.');
   }
+  // Convert data to base64 and send to backend Tauri command which will forward to license server
+  const buffer = backupData instanceof ArrayBuffer ? backupData : await backupData.arrayBuffer();
+  const base64 = arrayBufferToBase64(buffer);
 
-  const response = await fetch(`${LICENSE_SERVER_URL}/backups`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/octet-stream',
-    },
-    body: backupData,
+  return tauriInvoke<CloudBackupUploadResponse>('upload_cloud_backup_cmd', {
+    bearerToken: token,
+    dataBase64: base64,
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `Erro ao enviar backup: ${response.statusText}`);
-  }
-
-  return response.json();
 }
 
 /**
@@ -991,20 +1050,7 @@ export async function listCloudBackups(): Promise<CloudBackupListResponse> {
   if (!token) {
     throw new Error('Não autenticado. Faça login no servidor de licenças primeiro.');
   }
-
-  const response = await fetch(`${LICENSE_SERVER_URL}/backups`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `Erro ao listar backups: ${response.statusText}`);
-  }
-
-  return response.json();
+  return tauriInvoke<CloudBackupListResponse>('list_cloud_backups_cmd', { bearerToken: token });
 }
 
 /**
@@ -1015,20 +1061,7 @@ export async function getCloudBackup(backupId: string): Promise<CloudBackupMeta>
   if (!token) {
     throw new Error('Não autenticado. Faça login no servidor de licenças primeiro.');
   }
-
-  const response = await fetch(`${LICENSE_SERVER_URL}/backups/${backupId}`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `Erro ao obter backup: ${response.statusText}`);
-  }
-
-  return response.json();
+  return tauriInvoke<CloudBackupMeta>('get_cloud_backup_cmd', { bearerToken: token, backupId });
 }
 
 /**
@@ -1039,18 +1072,17 @@ export async function deleteCloudBackup(backupId: string): Promise<void> {
   if (!token) {
     throw new Error('Não autenticado. Faça login no servidor de licenças primeiro.');
   }
+  return tauriInvoke<void>('delete_cloud_backup_cmd', { bearerToken: token, backupId });
+}
 
-  const response = await fetch(`${LICENSE_SERVER_URL}/backups/${backupId}`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `Erro ao excluir backup: ${response.statusText}`);
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as any);
   }
+  return btoa(binary);
 }
 
 /**

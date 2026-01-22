@@ -37,7 +37,12 @@ pub async fn giro_invoke(
 
             let license_key = match license_key {
                 Some(k) => k,
-                None => return Ok(InvokeResult::err(Some("invalid_payload".to_string()), "missing licenseKey".to_string())),
+                None => {
+                    return Ok(InvokeResult::err(
+                        Some("invalid_payload".to_string()),
+                        "missing licenseKey".to_string(),
+                    ))
+                }
             };
 
             match crate::commands::license::activate_license(license_key, app_state).await {
@@ -49,56 +54,92 @@ pub async fn giro_invoke(
             }
         }
 
-        "license.get_server_time" => match crate::commands::license::get_server_time(app_state).await {
-            Ok(t) => Ok(InvokeResult::ok(Some(serde_json::json!(t)))),
-            Err(e) => Ok(InvokeResult::err(None, e.to_string())),
-        },
+        "license.get_server_time" => {
+            match crate::commands::license::get_server_time(app_state).await {
+                Ok(t) => Ok(InvokeResult::ok(Some(serde_json::json!(t)))),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
+
+        "license.restore_license" => {
+            match crate::commands::license::restore_license(app_state).await {
+                Ok(opt) => Ok(InvokeResult::ok(serde_json::to_value(opt).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
 
         "create_sale" => {
             if payload.is_none() {
-                return Ok(InvokeResult::err(Some("invalid_payload".to_string()), "missing payload".to_string()));
+                return Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    "missing payload".to_string(),
+                ));
             }
             let val = payload.unwrap();
             let input: Result<crate::models::CreateSale, _> = serde_json::from_value(val);
             match input {
-                Ok(sale_input) => match crate::commands::sales::create_sale(sale_input, app_state).await {
-                    Ok(sale) => Ok(InvokeResult::ok(serde_json::to_value(sale).ok())),
-                    Err(e) => Ok(InvokeResult::err(None, e.to_string())),
-                },
-                Err(e) => Ok(InvokeResult::err(Some("invalid_payload".to_string()), format!("Invalid payload: {}", e))),
+                Ok(sale_input) => {
+                    match crate::commands::sales::create_sale(sale_input, app_state).await {
+                        Ok(sale) => Ok(InvokeResult::ok(serde_json::to_value(sale).ok())),
+                        Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+                    }
+                }
+                Err(e) => Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    format!("Invalid payload: {}", e),
+                )),
             }
         }
 
         "open_cash_session" => {
             if payload.is_none() {
-                return Ok(InvokeResult::err(Some("invalid_payload".to_string()), "missing payload".to_string()));
+                return Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    "missing payload".to_string(),
+                ));
             }
             let val = payload.unwrap();
             let input: Result<crate::models::CreateCashSession, _> = serde_json::from_value(val);
             match input {
-                Ok(session_input) => match crate::commands::cash::open_cash_session(session_input, app_state).await {
-                    Ok(sess) => Ok(InvokeResult::ok(serde_json::to_value(sess).ok())),
-                    Err(e) => Ok(InvokeResult::err(None, e.to_string())),
-                },
-                Err(e) => Ok(InvokeResult::err(Some("invalid_payload".to_string()), format!("Invalid payload: {}", e))),
+                Ok(session_input) => {
+                    match crate::commands::cash::open_cash_session(session_input, app_state).await {
+                        Ok(sess) => Ok(InvokeResult::ok(serde_json::to_value(sess).ok())),
+                        Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+                    }
+                }
+                Err(e) => Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    format!("Invalid payload: {}", e),
+                )),
             }
         }
 
         "print_receipt" => {
             if payload.is_none() {
-                return Ok(InvokeResult::err(Some("invalid_payload".to_string()), "missing payload".to_string()));
+                return Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    "missing payload".to_string(),
+                ));
             }
             let val = payload.unwrap();
             let input: Result<crate::hardware::printer::Receipt, _> = serde_json::from_value(val);
             match input {
-                Ok(receipt) => match crate::commands::hardware::print_receipt(receipt, hw_state).await {
-                    Ok(()) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
-                    Err(e) => Ok(InvokeResult::err(None, e.to_string())),
-                },
-                Err(e) => Ok(InvokeResult::err(Some("invalid_payload".to_string()), format!("Invalid payload: {}", e))),
+                Ok(receipt) => {
+                    match crate::commands::hardware::print_receipt(receipt, hw_state).await {
+                        Ok(()) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
+                        Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+                    }
+                }
+                Err(e) => Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    format!("Invalid payload: {}", e),
+                )),
             }
         }
 
-        _ => Ok(InvokeResult::err(Some("not_found".to_string()), format!("Unknown cmd: {}", cmd))),
+        _ => Ok(InvokeResult::err(
+            Some("not_found".to_string()),
+            format!("Unknown cmd: {}", cmd),
+        )),
     }
 }

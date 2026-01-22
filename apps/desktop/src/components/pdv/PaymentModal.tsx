@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useCreateSale } from '@/hooks/useSales';
-import { emitNfce, type EmitNfceRequest, type NfceItem } from '@/lib/tauri';
+import { emitNfce, printReceipt, type EmitNfceRequest, type NfceItem } from '@/lib/tauri';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { usePDVStore, type PaymentMethod } from '@/stores/pdv-store';
@@ -193,6 +193,13 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
           amountPaid: amountPaidNum || total,
           employeeId: employee.id,
           cashSessionId: currentSession.id,
+        });
+      }
+
+      // Auto-print receipt
+      if (saleResult?.id) {
+        printReceipt(saleResult.id).catch((err) => {
+          console.error('Falha na impressão automática:', err);
         });
       }
 

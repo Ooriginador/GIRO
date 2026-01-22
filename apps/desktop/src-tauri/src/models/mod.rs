@@ -36,3 +36,13 @@ pub use supplier::*;
 pub use vehicle::*;
 pub use warranty::*;
 pub mod report_motoparts;
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaginatedResult<T> {
+    pub data: Vec<T>,
+    pub total: i64,
+    pub page: i32,
+    pub limit: i32,
+    pub total_pages: i32,
+}

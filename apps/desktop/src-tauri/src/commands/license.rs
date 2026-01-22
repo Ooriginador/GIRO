@@ -5,7 +5,8 @@
 use crate::license::LicenseInfo;
 use crate::license::MetricsPayload;
 use crate::license::UpdateAdminRequest;
-use crate::repositories::EmployeeRepository;
+use crate::models::SetSetting;
+use crate::repositories::{EmployeeRepository, SettingsRepository};
 use crate::AppState;
 use tauri::State;
 
@@ -58,6 +59,9 @@ pub async fn activate_license(
         }
     }
 
+    // Sync Company Data
+    sync_company_data(&info, state.pool()).await;
+
     Ok(info)
 }
 
@@ -109,6 +113,9 @@ pub async fn validate_license(
             );
         }
     }
+
+    // Sync Company Data
+    sync_company_data(&info, state.pool()).await;
 
     Ok(info)
 }
@@ -181,4 +188,59 @@ pub async fn update_license_admin(
     let normalized_key = license_key.trim().to_uppercase().replace(" ", "");
 
     client.update_admin(&normalized_key, data).await
+}
+
+/// Helper to sync company data from license info to local settings
+async fn sync_company_data(info: &LicenseInfo, pool: &sqlx::SqlitePool) {
+    let repo = SettingsRepository::new(pool);
+
+    // Sync Name
+    let _ = repo
+        .set(SetSetting {
+            key: "company.name".into(),
+            value: info.company_name.clone(),
+            value_type: Some("STRING".into()),
+            group_name: Some("company".into()),
+            description: Some("Nome da Empresa (Sincronizado)".into()),
+        })
+        .await;
+
+    // Sync CNPJ
+    if let Some(ref cnpj) = info.company_cnpj {
+        let _ = repo
+            .set(SetSetting {
+                key: "company.cnpj".into(),
+                value: cnpj.clone(),
+                value_type: Some("STRING".into()),
+                group_name: Some("company".into()),
+                description: Some("CNPJ da Empresa (Sincronizado)".into()),
+            })
+            .await;
+    }
+
+    // Sync Address
+    if let Some(ref address) = info.company_address {
+        let _ = repo
+            .set(SetSetting {
+                key: "company.address".into(),
+                value: address.clone(),
+                value_type: Some("STRING".into()),
+                group_name: Some("company".into()),
+                description: Some("Endereço da Empresa (Sincronizado)".into()),
+            })
+            .await;
+    }
+
+    // Sync Phone
+    if let Some(ref phone) = info.company_phone {
+        let _ = repo
+            .set(SetSetting {
+                key: "company.phone".into(),
+                value: phone.clone(),
+                value_type: Some("STRING".into()),
+                group_name: Some("company".into()),
+                description: Some("Telefone da Empresa (Sincronizado)".into()),
+            })
+            .await;
+    }
 }

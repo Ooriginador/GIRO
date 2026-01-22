@@ -81,6 +81,9 @@ pub enum AppError {
     #[error("Erro interno: {0}")]
     Internal(String),
 
+    #[error("Erro de sistema: {0}")]
+    System(String),
+
     #[error("Erro de banco de dados SQL: {0}")]
     Sql(#[from] sqlx::Error),
 }
@@ -127,6 +130,7 @@ impl Serialize for AppError {
             Self::Serialization(_) => "SERIALIZATION_ERROR",
             Self::Internal(_) => "INTERNAL_ERROR",
             Self::PermissionDenied => "PERMISSION_DENIED",
+            Self::System(_) => "SYSTEM_ERROR",
             Self::Sql(_) => "SQL_ERROR",
         };
 
