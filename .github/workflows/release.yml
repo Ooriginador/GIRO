@@ -96,6 +96,7 @@ jobs:
       #        run: pnpm run test:ci
 
       - name: Validate required secrets
+        shell: bash
         run: |
           if [ -z "${{ secrets.GH_TOKEN }}" ]; then echo "GH_TOKEN (secret) is missing"; exit 1; fi
           if [ -z "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then echo "TAURI_SIGNING_PRIVATE_KEY (secret) is missing"; exit 1; fi
