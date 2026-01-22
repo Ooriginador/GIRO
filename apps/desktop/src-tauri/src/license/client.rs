@@ -150,7 +150,7 @@ impl LicenseClient {
         let response = self
             .client
             .post(&url)
-            .header("X-API-Key", &self.config.api_key)
+            .header("X-API-Key", license_key)
             .json(&payload)
             .send()
             .await
@@ -240,7 +240,7 @@ impl LicenseClient {
         let response = self
             .client
             .post(&url)
-            .header("X-API-Key", &self.config.api_key)
+            .header("X-API-Key", license_key)
             .json(&payload)
             .send()
             .await
@@ -397,7 +397,7 @@ impl LicenseClient {
         let response = self
             .client
             .post(&url)
-            .header("X-API-Key", &self.config.api_key)
+            .header("X-API-Key", license_key)
             .json(&payload)
             .send()
             .await
@@ -457,7 +457,7 @@ impl LicenseClient {
         let response = self
             .client
             .post(&url)
-            .header("X-API-Key", &self.config.api_key)
+            .header("X-API-Key", license_key)
             .json(&data)
             .send()
             .await
