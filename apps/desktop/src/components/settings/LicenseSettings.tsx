@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { activateLicense, getSetting, setSetting, validateLicense } from '@/lib/tauri';
 import { LicenseInfo } from '@/types';
-import { Key, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Key, Loader2, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 export function LicenseSettings() {

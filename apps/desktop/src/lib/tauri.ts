@@ -1198,3 +1198,10 @@ export async function getStoredLicense(): Promise<unknown> {
 export async function restoreLicense(): Promise<string | null> {
   return tauriInvoke<string | null>('restore_license');
 }
+
+export async function recoverLicenseFromLogin(payload: {
+  email: string;
+  password: string;
+}): Promise<LicenseInfo> {
+  return tauriInvoke<LicenseInfo>('recover_license_from_login', { payload });
+}

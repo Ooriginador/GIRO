@@ -25,7 +25,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { invoke, seedDatabase, setSetting } from '@/lib/tauri';
-import { useSettingsStore } from '@/stores';
+import { useSettingsStore, useLicenseStore } from '@/stores';
 import {
   Bell,
   Building2,
@@ -46,6 +46,7 @@ import {
   Sun,
   Volume2,
 } from 'lucide-react';
+import type { TauriResponse } from '@/types';
 import { useCallback, useEffect, useState, type FC } from 'react';
 
 type SerialPort = string;
