@@ -63,6 +63,8 @@ export const ensureLicensePresent = async (page: Page): Promise<void> => {
       localStorage.setItem('giro-license', JSON.stringify(state));
       try {
         (globalThis as unknown as Record<string, unknown>).__E2E_BYPASS_LICENSE = true;
+        // Also signal that an admin exists to avoid the initial setup flow
+        (globalThis as unknown as Record<string, unknown>).__E2E_HAS_ADMIN = true;
       } catch {
         void 0;
       }

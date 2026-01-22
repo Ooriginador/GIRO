@@ -86,122 +86,28 @@ if (typeof window !== 'undefined') {
 }
 
 // Global mock for lucide-react icons used across tests.
-const _iconNames = [
-  'ArrowLeft',
-  'ArrowRight',
-  'ArrowDown',
-  'ArrowUp',
-  'ArrowUpDown',
-  'ArrowDownRight',
-  'ArrowUpRight',
-  'ArrowUpCircle',
-  'ArrowDownCircle',
-  'ChevronDown',
-  'ChevronUp',
-  'ChevronLeft',
-  'ChevronRight',
-  'ChevronsUpDown',
-  'Check',
-  'CheckCircle',
-  'CheckCircle2',
-  'X',
-  'XCircle',
-  'Loader2',
-  'Plus',
-  'Minus',
-  'Trash2',
-  'Delete',
-  'Edit',
-  'Save',
-  'Search',
-  'Package',
-  'PackagePlus',
-  'BarChart3',
-  'DollarSign',
-  'CalendarIcon',
-  'Calendar',
-  'Clock',
-  'Calculator',
-  'TrendingUp',
-  'TrendingDown',
-  'ShoppingCart',
-  'Bike',
-  'Phone',
-  'User',
-  'UserPlus',
-  'Bell',
-  'AlertCircle',
-  'AlertTriangle',
-  'Info',
-  'RefreshCw',
-  'Send',
-  'Printer',
-  'HardDrive',
-  'Scale',
-  'Wifi',
-  'WifiOff',
-  'QrCode',
-  'ShieldCheck',
-  'ShieldAlert',
-  'Key',
-  'Lock',
-  'Monitor',
-  'Moon',
-  'Sun',
-  'FileText',
-  'FileCode',
-  'FolderTree',
-  'CornerDownLeft',
-  'Delete',
-  'Loader2',
-  'ArrowDown',
-  'ArrowUp',
-  'ArrowLeft',
-  'ArrowRight',
-  'ChevronsUpDown',
-  'CheckCircle2',
-];
+// A simple Proxy-based mock that provides SVG components for any icon name.
+// This avoids the need to maintain a massive list of icons and prevents CI hangs.
+vi.mock('lucide-react', () => {
+  const IconMock = (name: string) => {
+    const Component = (props: React.SVGProps<SVGSVGElement>) =>
+      React.createElement('svg', { 'data-testid': `icon-${name}`, ...props });
+    Component.displayName = name;
+    return Component;
+  };
 
-const _makeIcon = (name: string) => (props: React.SVGProps<SVGSVGElement>) =>
-  React.createElement('svg', { 'data-testid': `icon-${name}`, ...props });
-
-// Create a Proxy that provides icon components for any requested name.
-// Implement `has`, `getOwnPropertyDescriptor` and `ownKeys` so module
-// shape checks (used by Vitest) succeed even for dynamic names.
-const _exportsTarget: Record<string, unknown> = {};
-_iconNames.forEach((n) => (_exportsTarget[n] = _makeIcon(n)));
-_exportsTarget.default = {};
-
-const lucideHandler: ProxyHandler<typeof _exportsTarget> = {
-  get(target, prop) {
-    if (prop === 'default') return target.default;
-    if (typeof prop === 'symbol') return (target as Record<string | symbol, unknown>)[prop];
-    const name = String(prop);
-    if (!(name in target)) target[name] = _makeIcon(name);
-    return target[name];
-  },
-  has() {
-    return true;
-  },
-  getOwnPropertyDescriptor(target, prop) {
-    if (typeof prop === 'symbol') return Object.getOwnPropertyDescriptor(target, prop);
-    const name = String(prop);
-    if (!(name in target)) target[name] = _makeIcon(name);
-    return {
-      configurable: true,
-      enumerable: true,
-      value: target[name],
-      writable: true,
-    } as PropertyDescriptor;
-  },
-  ownKeys(target) {
-    return Array.from(new Set([...Object.keys(target), ..._iconNames]));
-  },
-};
-
-const exportsObj = new Proxy(_exportsTarget, lucideHandler);
-
-vi.mock('lucide-react', () => exportsObj);
+  return new Proxy(
+    {},
+    {
+      get: (_target, prop) => {
+        if (prop === '__esModule') return true;
+        if (typeof prop === 'symbol') return undefined;
+        return IconMock(String(prop));
+      },
+      has: () => true,
+    }
+  );
+});
 
 // Ensure guards exports exist in tests to avoid partial-mock issues
 // Simple deterministic guards mock to avoid partial-mock pitfalls
