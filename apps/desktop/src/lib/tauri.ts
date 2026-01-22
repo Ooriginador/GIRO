@@ -316,78 +316,69 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
 
       // Prefer dispatcher `giro_invoke` to provide a unified envelope and better error handling.
       // If dispatcher returns `not_found`, fallback to direct command invocation.
-      try {
-        const dispRaw = await withTimeout(
-          tauriCoreInvoke<unknown>('giro_invoke', { cmd: command, payload: args }),
-          DEFAULT_INVOKE_TIMEOUT,
-          `Timeout invoking dispatcher for ${command}`
-        );
-        console.log('[Tauri.dispatcher.result] %s %o', command, dispRaw);
+      const dispRaw = await withTimeout(
+        tauriCoreInvoke<unknown>('giro_invoke', { cmd: command, payload: args }),
+        DEFAULT_INVOKE_TIMEOUT,
+        `Timeout invoking dispatcher for ${command}`
+      );
+      console.log('[Tauri.dispatcher.result] %s %o', command, dispRaw);
 
-        if (
-          dispRaw &&
-          typeof dispRaw === 'object' &&
-          'ok' in (dispRaw as Record<string, unknown>)
-        ) {
-          const wrapped = dispRaw as { ok: boolean; code?: string; error?: string; data?: unknown };
-          if (wrapped.ok) {
-            return wrapped.data as T;
-          }
+      if (dispRaw && typeof dispRaw === 'object' && 'ok' in (dispRaw as Record<string, unknown>)) {
+        const wrapped = dispRaw as { ok: boolean; code?: string; error?: string; data?: unknown };
+        if (wrapped.ok) {
+          return wrapped.data as T;
+        }
 
-          // If dispatcher explicitly says command not found, fallback to direct invoke
-          if (wrapped.code === 'not_found') {
-            console.warn(
-              '[Tauri.dispatcher] command not found, falling back to direct invoke:',
-              command
-            );
-            const raw = await withTimeout(
-              tauriCoreInvoke<unknown>(command, args),
-              DEFAULT_INVOKE_TIMEOUT,
-              `Timeout invoking ${command}`
-            );
-            console.log('[Tauri.result] %s %o', command, raw);
+        // If dispatcher explicitly says command not found, fallback to direct invoke
+        if (wrapped.code === 'not_found') {
+          console.warn(
+            '[Tauri.dispatcher] command not found, falling back to direct invoke:',
+            command
+          );
+          const raw = await withTimeout(
+            tauriCoreInvoke<unknown>(command, args),
+            DEFAULT_INVOKE_TIMEOUT,
+            `Timeout invoking ${command}`
+          );
+          console.log('[Tauri.result] %s %o', command, raw);
 
-            if (raw && typeof raw === 'object' && 'success' in (raw as Record<string, unknown>)) {
-              const wrapped2 = raw as TauriResponse<unknown>;
-              if (!wrapped2.success) {
-                const errMsg = wrapped2.error ?? `Erro no comando ${command}`;
-                console.error(`[Tauri Error] ${command}:`, errMsg);
-                throw new Error(errMsg);
-              }
-              return wrapped2.data as T;
+          if (raw && typeof raw === 'object' && 'success' in (raw as Record<string, unknown>)) {
+            const wrapped2 = raw as TauriResponse<unknown>;
+            if (!wrapped2.success) {
+              const errMsg = wrapped2.error ?? `Erro no comando ${command}`;
+              console.error(`[Tauri Error] ${command}:`, errMsg);
+              throw new Error(errMsg);
             }
-
-            return raw as T;
+            return wrapped2.data as T;
           }
 
-          const errMsg = wrapped.error ?? `Erro no comando ${command}`;
-          console.error(`[Tauri.dispatcher.error] ${command}:`, errMsg);
+          return raw as T;
+        }
+
+        const errMsg = wrapped.error ?? `Erro no comando ${command}`;
+        console.error(`[Tauri.dispatcher.error] ${command}:`, errMsg);
+        throw new Error(errMsg);
+      }
+
+      // If dispatcher did not return the expected envelope, try direct invoke as a fallback
+      const raw = await withTimeout(
+        tauriCoreInvoke<unknown>(command, args),
+        DEFAULT_INVOKE_TIMEOUT,
+        `Timeout invoking ${command}`
+      );
+      console.log('[Tauri.result] %s %o', command, raw);
+
+      if (raw && typeof raw === 'object' && 'success' in (raw as Record<string, unknown>)) {
+        const wrapped2 = raw as TauriResponse<unknown>;
+        if (!wrapped2.success) {
+          const errMsg = wrapped2.error ?? `Erro no comando ${command}`;
+          console.error(`[Tauri Error] ${command}:`, errMsg);
           throw new Error(errMsg);
         }
-
-        // If dispatcher did not return the expected envelope, try direct invoke as a fallback
-        const raw = await withTimeout(
-          tauriCoreInvoke<unknown>(command, args),
-          DEFAULT_INVOKE_TIMEOUT,
-          `Timeout invoking ${command}`
-        );
-        console.log('[Tauri.result] %s %o', command, raw);
-
-        if (raw && typeof raw === 'object' && 'success' in (raw as Record<string, unknown>)) {
-          const wrapped2 = raw as TauriResponse<unknown>;
-          if (!wrapped2.success) {
-            const errMsg = wrapped2.error ?? `Erro no comando ${command}`;
-            console.error(`[Tauri Error] ${command}:`, errMsg);
-            throw new Error(errMsg);
-          }
-          return wrapped2.data as T;
-        }
-
-        return raw as T;
-      } catch (e) {
-        // Re-throw so outer catch handles logging and normalization
-        throw e;
+        return wrapped2.data as T;
       }
+
+      return raw as T;
     }
 
     console.warn('[WebMock.invoke] %s %o (MOCK MODE)', command, args);
@@ -1069,7 +1060,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as any);
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
   }
   return btoa(binary);
 }

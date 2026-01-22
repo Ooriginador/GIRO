@@ -15,10 +15,7 @@ export type MetricsPayload = components['schemas']['MetricsPayload'];
 // type ValidateRequest = components['schemas']['ValidateRequest'];
 // type TransferRequest = components['schemas']['TransferRequest'];
 
-export async function activate(
-  licenseKey: string,
-  _hardwareId?: string
-): Promise<ActivateResponse> {
+export async function activate(licenseKey: string): Promise<ActivateResponse> {
   // hardwareId is handled by backend if not provided, but we keep signature for compatibility
   // The command expects 'license_key'
   return invoke<ActivateResponse>('activate_license', {
@@ -26,7 +23,7 @@ export async function activate(
   });
 }
 
-export async function validate(licenseKey: string, _hardwareId?: string): Promise<LicenseInfo> {
+export async function validate(licenseKey: string): Promise<LicenseInfo> {
   return invoke<LicenseInfo>('validate_license', {
     licenseKey,
   });
