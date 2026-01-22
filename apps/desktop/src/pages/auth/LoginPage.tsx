@@ -9,7 +9,6 @@ import { authenticateEmployee } from '@/lib/tauri';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useBusinessProfile } from '@/stores/useBusinessProfile';
-import type { EmployeeRole } from '@/types';
 import { Lock } from 'lucide-react';
 import { useEffect, useRef, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -63,7 +62,7 @@ export const LoginPage: FC = () => {
         login({
           id: employee.id,
           name: employee.name,
-          role: employee.role as EmployeeRole,
+          role: employee.role,
           email: employee.email,
           pin,
         });
