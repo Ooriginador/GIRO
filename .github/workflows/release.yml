@@ -79,10 +79,6 @@ jobs:
         working-directory: apps/desktop
         run: pnpm run typecheck
 
-      - name: Unit tests (Desktop)
-        working-directory: apps/desktop
-        run: pnpm run test:ci
-
       - name: Install dependencies (Database)
         working-directory: packages/database
         run: pnpm install --frozen-lockfile
@@ -94,6 +90,10 @@ jobs:
       - name: Build Frontend
         working-directory: apps/desktop
         run: pnpm build
+
+      - name: Unit tests (Desktop)
+        working-directory: apps/desktop
+        run: pnpm run test:ci
 
       - name: Validate required secrets
         run: |
