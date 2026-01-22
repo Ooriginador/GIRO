@@ -969,17 +969,6 @@ export async function getLastBackupDate(): Promise<string | null> {
 // ────────────────────────────────────────────────────────────────────────────
 
 // Use env var when available. Accept either a base URL with or without `/api/v1`.
-const API_BASE =
-  (typeof process !== 'undefined' &&
-    (process.env.NEXT_PUBLIC_API_URL || process.env.LICENSE_SERVER_URL)) ||
-  'https://giro-license-server-production.up.railway.app/api/v1';
-
-function buildApiUrl(path: string) {
-  // Normalize path and base to avoid double slashes or duplicate `/api/v1`
-  const base = API_BASE.replace(/\/$/, '');
-  const cleanPath = path.replace(/^\/*/, '');
-  return `${base}/${cleanPath}`;
-}
 
 export type CloudBackupMeta = {
   id: string;
