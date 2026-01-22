@@ -81,7 +81,7 @@ jobs:
 
       - name: Unit tests (Desktop)
         working-directory: apps/desktop
-        run: pnpm run test:run
+        run: pnpm run test:ci
 
       - name: Install dependencies (Database)
         working-directory: packages/database

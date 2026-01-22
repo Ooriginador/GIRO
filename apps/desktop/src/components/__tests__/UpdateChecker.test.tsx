@@ -1,6 +1,9 @@
 import React from 'react';
 import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { vi } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { check as mockCheck } from '@tauri-apps/plugin-updater';
+import { relaunch as mockRelaunch } from '@tauri-apps/plugin-process';
+import { UpdateChecker } from '../UpdateChecker';
 
 // Mocks
 vi.mock('@tauri-apps/plugin-updater', () => ({
@@ -14,7 +17,8 @@ vi.mock('@/hooks/use-toast', () => ({
     toast: vi.fn(),
   }),
 }));
-// Stub UI dialog and progress to avoid portal/focus complexities in tests
+
+// Stub UI components to avoid JSDOM complexities
 vi.mock('@/components/ui/alert-dialog', () => ({
   AlertDialog: ({ children, open }: any) => (open ? <div>{children}</div> : <div />),
   AlertDialogContent: ({ children }: any) => <div>{children}</div>,
@@ -25,25 +29,21 @@ vi.mock('@/components/ui/alert-dialog', () => ({
   AlertDialogCancel: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
   AlertDialogAction: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
 }));
+
 vi.mock('@/components/ui/progress', () => ({
   Progress: ({ value }: any) => <div data-testid="progress">{value}</div>,
 }));
 
-import { check as mockCheck } from '@tauri-apps/plugin-updater';
-import { relaunch as mockRelaunch } from '@tauri-apps/plugin-process';
-import { UpdateChecker } from '../UpdateChecker';
-
 describe('UpdateChecker', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
   });
 
   it('shows dialog when an update is available and performs download flow', async () => {
-    // Create a fake update object
     const fakeUpdate = {
       version: '1.2.3',
-      body: '<p>changelog</p>',
-      downloadAndInstall: async (cb: any) => {
+      body: 'Release notes',
+      downloadAndInstall: vi.fn(async (cb: any) => {
         // simulate start
         await cb({ event: 'Started', data: { contentLength: 100 } });
         // simulate progress
@@ -51,48 +51,45 @@ describe('UpdateChecker', () => {
         await cb({ event: 'Progress', data: { chunkLength: 50 } });
         // simulate finish
         await cb({ event: 'Finished', data: {} });
-      },
+      }),
     } as any;
 
-    (mockCheck as unknown as vi.Mock).mockResolvedValue(fakeUpdate);
+    vi.mocked(mockCheck).mockResolvedValue(fakeUpdate);
 
-    await act(async () => {
-      render(<UpdateChecker />);
-    });
+    render(<UpdateChecker />);
 
-    // Wait for the toast to be called and dialog to appear
+    // Wait for check
     await waitFor(() => expect(mockCheck).toHaveBeenCalled());
 
-    // The dialog title should be visible
-    expect(await screen.findByText('🎉 Nova versão disponível!')).toBeInTheDocument();
+    // Check dialog content
+    expect(await screen.findByText(/Nova versão disponível!/i)).toBeInTheDocument();
 
-    // Click update action
+    // Click update
     const updateBtn = screen.getByText('Atualizar Agora');
-    await act(async () => {
-      fireEvent.click(updateBtn);
-    });
+    fireEvent.click(updateBtn);
 
-    // allow enough time for download flow + 2s delay before relaunch
-    await waitFor(() => expect(mockRelaunch).toHaveBeenCalled(), { timeout: 15000 });
-  }, 20000);
+    // Verify download was triggered
+    expect(fakeUpdate.downloadAndInstall).toHaveBeenCalled();
+
+    // Verify transition to success/progress
+    await waitFor(() => expect(screen.getByText('100%')).toBeInTheDocument());
+
+    // Verify relaunch is eventually called (simulated with large enough timeout or fake timers)
+    // Note: The component has a 2s delay before relaunch
+    await waitFor(() => expect(mockRelaunch).toHaveBeenCalled(), { timeout: 10000 });
+  });
 
   it('dismisses update when clicking cancel', async () => {
     const fakeUpdate = { version: '9.9.9', body: null, downloadAndInstall: vi.fn() } as any;
-    (mockCheck as unknown as vi.Mock).mockResolvedValue(fakeUpdate);
+    vi.mocked(mockCheck).mockResolvedValue(fakeUpdate);
 
-    await act(async () => {
-      render(<UpdateChecker />);
-    });
+    render(<UpdateChecker />);
 
     await waitFor(() => expect(mockCheck).toHaveBeenCalled());
     const cancelBtn = screen.getByText('Agora Não');
-    await act(async () => {
-      fireEvent.click(cancelBtn);
-    });
+    fireEvent.click(cancelBtn);
 
-    // Dialog should be closed (title should not be visible)
-    await waitFor(() => expect(screen.queryByText('🎉 Nova versão disponível!')).toBeNull(), {
-      timeout: 5000,
-    });
-  }, 20000);
+    // Dialog should be closed
+    await waitFor(() => expect(screen.queryByText(/Nova versão disponível!/i)).toBeNull());
+  });
 });
