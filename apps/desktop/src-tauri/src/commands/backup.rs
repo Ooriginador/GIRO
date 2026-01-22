@@ -176,7 +176,10 @@ pub async fn upload_cloud_backup_cmd(
     bearer_token: String,
     data_base64: String,
 ) -> Result<serde_json::Value, String> {
-    let decoded = base64::decode(&data_base64).map_err(|e| format!("Invalid base64: {}", e))?;
+    use base64::{engine::general_purpose, Engine as _};
+    let decoded = general_purpose::STANDARD
+        .decode(&data_base64)
+        .map_err(|e| format!("Invalid base64: {}", e))?;
     state
         .license_client
         .upload_cloud_backup(&bearer_token, decoded)
