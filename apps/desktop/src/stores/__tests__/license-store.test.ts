@@ -170,6 +170,25 @@ describe('license-store', () => {
     expect(state.isHydrated).toBe(true);
   });
 
+  it('should update last validation and reset hydration', () => {
+    const store = useLicenseStore.getState();
+
+    // initially no lastValidation
+    expect(store.lastValidation).toBeNull();
+
+    store.updateLastValidation();
+    expect(useLicenseStore.getState().lastValidation).not.toBeNull();
+
+    // reset hydration should set isHydrated to false
+    store.resetHydration();
+    expect(useLicenseStore.getState().isHydrated).toBe(false);
+  });
+
+  it('should accept null when setting license key', () => {
+    useLicenseStore.getState().setLicenseKey(null);
+    expect(useLicenseStore.getState().licenseKey).toBeNull();
+  });
+
   it('should handle missing license on disk', async () => {
     vi.mocked(getStoredLicense).mockResolvedValue(null);
 

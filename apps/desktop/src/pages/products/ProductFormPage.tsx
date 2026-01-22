@@ -23,6 +23,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, BarChart3, DollarSign, Package, Save } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
 import { calculateMargin, formatCurrency } from '@/lib/utils';
+import { useBusinessProfile } from '@/stores/useBusinessProfile';
 import { type FC, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -50,6 +51,8 @@ export const ProductFormPage: FC = () => {
 
   const { data: product, isLoading: isLoadingProduct } = useProduct(id);
   const { data: categories, isLoading: isLoadingCategories } = useCategories();
+
+  const { isFeatureEnabled } = useBusinessProfile();
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -237,20 +240,22 @@ export const ProductFormPage: FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Controller
-                  name="isWeighted"
-                  control={control}
-                  render={({ field }) => (
-                    <Switch
-                      id="isWeighted"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-                <Label htmlFor="isWeighted">Produto pesável (balança)</Label>
-              </div>
+              {isFeatureEnabled('weightedProducts') && (
+                <div className="flex items-center gap-2">
+                  <Controller
+                    name="isWeighted"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        id="isWeighted"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="isWeighted">Produto pesável (balança)</Label>
+                </div>
+              )}
             </CardContent>
           </Card>
 

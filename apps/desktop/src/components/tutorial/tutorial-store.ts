@@ -323,10 +323,14 @@ export const useTutorialStore = create<TutorialStore>()(
       getTotalProgress: () => {
         const allTutorials = Object.keys(tutorials) as TutorialId[];
         const completedTutorials = get().getCompletedTutorials();
+        const total = allTutorials.length;
+        if (total === 0) {
+          return { completed: 0, total: 0, percentage: 0 };
+        }
         return {
           completed: completedTutorials.length,
-          total: allTutorials.length,
-          percentage: Math.round((completedTutorials.length / allTutorials.length) * 100),
+          total,
+          percentage: Math.round((completedTutorials.length / total) * 100),
         };
       },
 
@@ -370,6 +374,8 @@ export const useTutorialStore = create<TutorialStore>()(
 
 // Função auxiliar para anunciar para leitores de tela
 function announceToScreenReader(message: string) {
+  if (typeof document === 'undefined') return;
+
   const announcement = document.createElement('div');
   announcement.setAttribute('role', 'status');
   announcement.setAttribute('aria-live', 'polite');
@@ -385,6 +391,8 @@ function announceToScreenReader(message: string) {
 
 // Função auxiliar para som de conclusão
 function playCompletionSound() {
+  if (typeof window === 'undefined' || typeof (window as any).AudioContext === 'undefined') return;
+
   try {
     const webkitWindow = window as unknown as Window & {
       webkitAudioContext?: typeof AudioContext;

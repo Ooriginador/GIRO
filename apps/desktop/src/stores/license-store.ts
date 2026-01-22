@@ -15,7 +15,7 @@ interface LicenseStore {
   isHydrated: boolean;
 
   // Ações
-  setLicenseKey: (key: string) => void;
+  setLicenseKey: (key: string | null) => void;
   setLicenseInfo: (info: LicenseInfo) => void;
   setState: (state: LicenseState) => void;
   setError: (error: string | null) => void;

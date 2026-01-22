@@ -199,6 +199,7 @@ pub async fn check_permission(
         "MANAGER" => EmployeeRole::Manager,
         "CASHIER" => EmployeeRole::Cashier,
         "VIEWER" => EmployeeRole::Viewer,
+        "STOCKER" => EmployeeRole::Stocker,
         _ => return Err(AppError::Unauthorized("Role inválido".to_string())),
     };
 

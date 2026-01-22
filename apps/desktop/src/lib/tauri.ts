@@ -95,7 +95,16 @@ const randomId = (prefix: string): string =>
 const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
   const db = loadWebMockDb();
 
-  switch (command) {
+  // Normalize command to a predictable format so tests and different callers
+  // (camelCase, kebab-case, snake_case) are all accepted by the web mock.
+  const normalize = (s: string) =>
+    s
+      .replace(/-/g, '_')
+      .replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`)
+      .replace(/^_+/, '');
+  const cmd = normalize(command);
+
+  switch (cmd) {
     case 'authenticate_employee': {
       const pin = (args?.pin as string | undefined) ?? '';
       const employee = db.employees.find((e) => e.pin === pin && e.isActive);
@@ -253,6 +262,8 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
         role: (input.role as EmployeeRole) ?? 'OPERATOR',
         pin: (input.pin as string) ?? '0000',
         isActive: true,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       } as unknown as Employee;
       db.employees = [newEmp, ...db.employees];
       saveWebMockDb(db);
@@ -265,6 +276,9 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
         id: randomId('supplier'),
         name: (input.name as string) ?? 'Supplier',
         contact: (input.contact as string) ?? '',
+        isActive: true,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       } as unknown as Supplier;
       // We intentionally do not persist suppliers in this mock DB to keep it simple.
       return supplier as T;
@@ -285,6 +299,16 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
     }
     case 'get_categories': {
       return [] as unknown as T;
+    }
+    case 'get_stored_license': {
+      if (typeof window === 'undefined') return null as unknown as T;
+      try {
+        const raw = window.localStorage.getItem('giro-license');
+        if (!raw) return null as unknown as T;
+        return JSON.parse(raw) as unknown as T;
+      } catch {
+        return null as unknown as T;
+      }
     }
     default:
       throw new Error(`WebMock invoke: comando não suportado: ${command}`);

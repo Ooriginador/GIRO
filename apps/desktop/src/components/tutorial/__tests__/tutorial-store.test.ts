@@ -200,5 +200,72 @@ describe('tutorial-store', () => {
       const current = useTutorialStore.getState().getCurrentStep();
       expect(current).toBeNull();
     });
+
+    it('announceToScreenReader should create and remove the aria element', () => {
+      // use fake timers to control removal
+      vi.useFakeTimers();
+      try {
+        // ensure announcements enabled
+        useTutorialStore.getState().updateSettings({ screenReaderAnnouncements: true });
+        useTutorialStore.getState().startTutorial('welcome');
+
+        // element should be created
+        const el = document.querySelector('div[role="status"].sr-only');
+        expect(el).not.toBeNull();
+
+        // advance timers to trigger removal
+        vi.advanceTimersByTime(1100);
+        const elAfter = document.querySelector('div[role="status"].sr-only');
+        expect(elAfter).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('playCompletionSound should not throw when AudioContext absent and should call audio when present', () => {
+      // Ensure no AudioContext -> should silently not throw
+      const original = (window as any).AudioContext;
+      try {
+        delete (window as any).AudioContext;
+        useTutorialStore.getState().startTutorial('welcome');
+        expect(() => useTutorialStore.getState().completeTutorial()).not.toThrow();
+
+        // Mock AudioContext to verify calls
+        const startSpy = vi.fn();
+        const stopSpy = vi.fn();
+        const freqSpy = vi.fn();
+        const gainSetSpy = vi.fn();
+        const gainRampSpy = vi.fn();
+
+        class MockAudioContext {
+          currentTime = 0;
+          createOscillator() {
+            return {
+              connect: () => {},
+              frequency: { setValueAtTime: freqSpy },
+              start: startSpy,
+              stop: stopSpy,
+            };
+          }
+          createGain() {
+            return {
+              connect: () => {},
+              gain: { setValueAtTime: gainSetSpy, exponentialRampToValueAtTime: gainRampSpy },
+            };
+          }
+        }
+
+        (window as any).AudioContext = MockAudioContext;
+        useTutorialStore.getState().startTutorial('welcome');
+        useTutorialStore.getState().completeTutorial();
+
+        expect(freqSpy).toHaveBeenCalled();
+        expect(gainSetSpy).toHaveBeenCalled();
+        expect(startSpy).toHaveBeenCalled();
+        expect(stopSpy).toHaveBeenCalled();
+      } finally {
+        (window as any).AudioContext = original;
+      }
+    });
   });
 });

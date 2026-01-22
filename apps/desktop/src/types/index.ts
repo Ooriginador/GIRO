@@ -23,7 +23,7 @@ export type ProductUnit =
   | 'BOX'
   | 'DOZEN';
 
-export type EmployeeRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'VIEWER';
+export type EmployeeRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'VIEWER' | 'STOCKER';
 
 export type PaymentMethod = 'CASH' | 'PIX' | 'CREDIT' | 'DEBIT' | 'VOUCHER' | 'OTHER';
 
