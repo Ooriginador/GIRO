@@ -1,9 +1,5 @@
 'use client';
 
-// Debug: track module evaluation during tests
-// eslint-disable-next-line no-console
-console.log('[MODULE] ui/tabs evaluated');
-
 import { cn } from '@/lib/utils';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import * as React from 'react';
