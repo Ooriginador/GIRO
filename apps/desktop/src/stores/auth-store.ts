@@ -1,15 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type EmployeeRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'VIEWER';
+export type EmployeeRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STOCKER' | 'VIEWER';
 
 export const PERMISSIONS = {
   // PDV
-  'pdv.sell': ['ADMIN', 'MANAGER', 'CASHIER'],
-  'pdv.discount.basic': ['ADMIN', 'MANAGER', 'CASHIER'],
+  'pdv.sell': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER'],
+  'pdv.discount.basic': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER'],
   'pdv.discount.advanced': ['ADMIN', 'MANAGER'],
   'pdv.discount.unlimited': ['ADMIN'],
-  'pdv.cancel.current': ['ADMIN', 'MANAGER', 'CASHIER'],
+  'pdv.cancel.current': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER'],
   'pdv.cancel.completed': ['ADMIN', 'MANAGER'],
 
   // Caixa
@@ -73,6 +73,7 @@ interface AuthState {
 
 const roleHierarchy: Record<EmployeeRole, number> = {
   VIEWER: 0,
+  STOCKER: 1,
   CASHIER: 1,
   MANAGER: 2,
   ADMIN: 3,
@@ -80,6 +81,7 @@ const roleHierarchy: Record<EmployeeRole, number> = {
 
 const discountLimits: Record<EmployeeRole, number> = {
   VIEWER: 0,
+  STOCKER: 5,
   CASHIER: 5,
   MANAGER: 20,
   ADMIN: 100,

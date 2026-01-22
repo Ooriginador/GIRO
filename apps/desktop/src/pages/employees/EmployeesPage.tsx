@@ -69,7 +69,7 @@ const employeeFormSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres').max(100, 'Nome muito longo'),
   email: z.string().email('E-mail inválido').optional().or(z.literal('')),
   phone: z.string().optional(),
-  role: z.enum(['ADMIN', 'MANAGER', 'CASHIER', 'VIEWER'] as const),
+  role: z.enum(['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER', 'VIEWER'] as const),
   pin: z
     .string()
     .length(4, 'PIN deve ter 4 dígitos')
@@ -84,6 +84,7 @@ const roleLabels: Record<EmployeeRole, string> = {
   ADMIN: 'Administrador',
   MANAGER: 'Gerente',
   CASHIER: 'Operador de Caixa',
+  STOCKER: 'Estoquista',
   VIEWER: 'Visualizador',
 };
 
@@ -91,6 +92,7 @@ const roleColors: Record<EmployeeRole, string> = {
   ADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
   MANAGER: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   CASHIER: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  STOCKER: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
   VIEWER: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
 };
 
@@ -451,6 +453,7 @@ export const EmployeesPage: FC = () => {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="CASHIER">Operador de Caixa</SelectItem>
+                        <SelectItem value="STOCKER">Estoquista</SelectItem>
                         <SelectItem value="MANAGER">Gerente</SelectItem>
                         <SelectItem value="ADMIN">Administrador</SelectItem>
                         <SelectItem value="VIEWER">Visualizador</SelectItem>

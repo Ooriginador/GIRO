@@ -6,14 +6,12 @@ test('capture tutorial UI snapshot', async ({ page, browserName }) => {
   await page.addInitScript(() => {
     try {
       const license = {
-        key: 'TEST-LOCAL-KEY',
-        info: {
-          status: 'active',
-          license_key: 'TEST-LOCAL-KEY',
-          expires_at: '2099-01-01T00:00:00.000Z',
+        state: {
+          licenseKey: 'TEST-LOCAL-KEY',
+          licenseInfo: { status: 'active', expires_at: '2099-01-01T00:00:00.000Z', metadata: {} },
+          lastValidation: new Date().toISOString(),
         },
-        last_validated_at: new Date().toISOString(),
-        activated_at: new Date().toISOString(),
+        version: 1,
       };
       window.localStorage.setItem('giro-license', JSON.stringify(license));
 
@@ -48,14 +46,76 @@ test('capture tutorial UI snapshot', async ({ page, browserName }) => {
         isAuthenticated: true,
       };
       window.localStorage.setItem('auth-storage', JSON.stringify(auth));
+      // seed a simple tutorial state so the UI can render the spotlight
+      const tutorials = {
+        version: 1,
+        items: [{ id: 'tut-1', title: 'Welcome', completed: false, steps: [1, 2, 3] }],
+        current: { tutorialId: 'tut-1', stepIndex: 0 },
+      };
+      window.localStorage.setItem('giro-tutorials', JSON.stringify(tutorials));
       // E2E bypass for license guard: include TEST-LOCAL-KEY string
-      window.localStorage.setItem('giro-license', 'TEST-LOCAL-KEY');
+      // also set global bypass flag recognized by LicenseGuard
+      try {
+        (globalThis as any).__E2E_BYPASS_LICENSE = true;
+      } catch (e) {}
     } catch (e) {}
   });
 
-  await page.goto('/pdv');
+  // navigate directly to tutorials page to force tutorial overlay
+  await page.goto('/tutorials');
   await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  // In case the app clears or overwrites pre-init localStorage, set values again and reload
+  await page.evaluate(() => {
+    try {
+      const tutorials = {
+        progress: {
+          'tut-1': {
+            tutorialId: 'tut-1',
+            status: 'in-progress',
+            currentStep: 0,
+            completedSteps: [],
+          },
+        },
+        settings: { enabled: true, showWelcomeOnFirstLogin: true, screenReaderAnnouncements: true },
+      };
+      window.localStorage.setItem('giro-tutorials', JSON.stringify(tutorials));
+      const license = {
+        state: {
+          licenseKey: 'TEST-LOCAL-KEY',
+          licenseInfo: { status: 'active' },
+          lastValidation: new Date().toISOString(),
+        },
+        version: 1,
+      };
+      window.localStorage.setItem('giro-license', JSON.stringify(license));
+      const auth = {
+        employee: { id: 'seed-admin', name: 'Administrador Semente', role: 'ADMIN', pin: '8899' },
+        currentUser: {
+          id: 'seed-admin',
+          name: 'Administrador Semente',
+          role: 'ADMIN',
+          pin: '8899',
+        },
+        currentSession: null,
+        isAuthenticated: true,
+      };
+      window.localStorage.setItem('auth-storage', JSON.stringify(auth));
+      // ensure bypass flag remains
+      try {
+        (globalThis as any).__E2E_BYPASS_LICENSE = true;
+      } catch {}
+    } catch (e) {}
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+  // Click the first "Iniciar" button to start the tutorial and show the spotlight
+  try {
+    const startBtn = page.locator('button:has-text("Iniciar")').first();
+    if (await startBtn.count()) {
+      await startBtn.click();
+      await page.waitForTimeout(500);
+    }
+  } catch (e) {}
 
   const outDir = '/home/jhonslife/CICLOGIRO/GIRO/apps/desktop/test-results';
   fs.mkdirSync(outDir, { recursive: true });

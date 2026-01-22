@@ -206,6 +206,7 @@ export function getRoleLabel(role: EmployeeRole): string {
     ADMIN: 'Administrador',
     MANAGER: 'Gerente',
     CASHIER: 'Operador de Caixa',
+    STOCKER: 'Estoquista',
     VIEWER: 'Visualizador',
   };
   return labels[role];
@@ -219,6 +220,7 @@ export function getRoleBadgeColor(role: EmployeeRole): string {
     ADMIN: 'destructive',
     MANAGER: 'default',
     CASHIER: 'secondary',
+    STOCKER: 'info',
     VIEWER: 'outline',
   };
   return colors[role];
