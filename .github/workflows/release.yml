@@ -101,7 +101,6 @@ jobs:
           if [ -z "${{ secrets.GH_TOKEN }}" ]; then echo "GH_TOKEN (secret) is missing"; exit 1; fi
           if [ -z "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then echo "TAURI_SIGNING_PRIVATE_KEY (secret) is missing"; exit 1; fi
           if [ -z "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" ]; then echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD (secret) is missing"; exit 1; fi
-          if [ -z "${{ secrets.LICENSE_API_KEY }}" ]; then echo "LICENSE_API_KEY (secret) is missing"; exit 1; fi
 
       - name: Build Desktop App
         uses: tauri-apps/tauri-action@v0

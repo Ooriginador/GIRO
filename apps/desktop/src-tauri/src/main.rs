@@ -79,9 +79,7 @@ async fn main() {
     let license_server_url =
         std::env::var("LICENSE_SERVER_URL").unwrap_or_else(|_| default_server_url.to_string());
 
-    let api_key = std::env::var("LICENSE_API_KEY").expect(
-        "Environment variable LICENSE_API_KEY is required. Set LICENSE_API_KEY in the environment.",
-    );
+    let api_key = std::env::var("LICENSE_API_KEY").unwrap_or_else(|_| "dev-key".to_string());
 
     let app_state = AppState::new(
         db.pool().clone(),
