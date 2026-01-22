@@ -468,7 +468,6 @@ export const PDVPage: FC = () => {
           </DialogContent>
         </Dialog>
       </main>
-      // Modal de Desconto (F6)
       <Dialog open={showDiscountModal} onOpenChange={setShowDiscountModal}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
