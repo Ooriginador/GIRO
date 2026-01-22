@@ -1,9 +1,9 @@
 //! Comandos Tauri para Configurações
 
-use crate::audit_log;
 use crate::error::AppResult;
+use crate::middleware::permissions::Permission;
 use crate::middleware::audit::{AuditAction, AuditService};
-use crate::middleware::Permission;
+use crate::audit_log_tx;
 use crate::models::{SetSetting, Setting};
 use crate::repositories::SettingsRepository;
 use crate::require_permission;
@@ -50,13 +50,17 @@ pub async fn set_setting(
     state: State<'_, AppState>,
 ) -> AppResult<Setting> {
     let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateSettings);
+    
+    let mut tx = state.pool().begin().await?;
+    
     let repo = SettingsRepository::new(state.pool());
-    let result = repo.set(input).await?;
+    let result = repo.set_tx(&mut tx, input).await?;
 
     // Audit Log
     let audit_service = AuditService::new(state.pool().clone());
-    audit_log!(
+    audit_log_tx!(
         audit_service,
+        &mut tx,
         AuditAction::SettingsChanged,
         &employee.id,
         &employee.name,
@@ -64,6 +68,8 @@ pub async fn set_setting(
         &result.key,
         format!("Valor alterado para: {}", result.value)
     );
+
+    tx.commit().await?;
 
     Ok(result)
 }

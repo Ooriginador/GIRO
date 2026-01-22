@@ -7,6 +7,7 @@
 //! - Gaveta de dinheiro
 
 use crate::error::AppResult;
+use crate::AppState;
 use crate::hardware::{
     self,
     drawer::{CashDrawer, DrawerConfig},
@@ -101,10 +102,23 @@ pub fn check_port_exists(port: String) -> bool {
 #[tauri::command]
 pub async fn configure_printer(
     config: PrinterConfig,
-    state: State<'_, HardwareState>,
+    state: State<'_, AppState>,
+    hw_state: State<'_, HardwareState>,
 ) -> AppResult<()> {
-    let mut printer_config = state.printer_config.write().await;
-    *printer_config = config;
+    let mut printer_config = hw_state.printer_config.write().await;
+    *printer_config = config.clone();
+
+    // Persist to database
+    let repo = crate::repositories::SettingsRepository::new(state.pool());
+    repo.set(crate::models::SetSetting {
+        key: "hardware.printer.config".into(),
+        value: serde_json::to_string(&config).unwrap_or_default(),
+        value_type: Some("JSON".into()),
+        group_name: Some("hardware".into()),
+        description: Some("Configuração da impressora térmica".into()),
+    })
+    .await?;
+
     Ok(())
 }
 
@@ -316,10 +330,23 @@ pub async fn get_printer_config(state: State<'_, HardwareState>) -> AppResult<Pr
 #[tauri::command]
 pub async fn configure_scale(
     config: ScaleConfig,
-    state: State<'_, HardwareState>,
+    state: State<'_, AppState>,
+    hw_state: State<'_, HardwareState>,
 ) -> AppResult<()> {
-    let mut scale_config = state.scale_config.write().await;
-    *scale_config = config;
+    let mut scale_config = hw_state.scale_config.write().await;
+    *scale_config = config.clone();
+
+    // Persist to database
+    let repo = crate::repositories::SettingsRepository::new(state.pool());
+    repo.set(crate::models::SetSetting {
+        key: "hardware.scale.config".into(),
+        value: serde_json::to_string(&config).unwrap_or_default(),
+        value_type: Some("JSON".into()),
+        group_name: Some("hardware".into()),
+        description: Some("Configuração da balança serial".into()),
+    })
+    .await?;
+
     Ok(())
 }
 
@@ -371,10 +398,23 @@ pub async fn get_scale_config(state: State<'_, HardwareState>) -> AppResult<Scal
 #[tauri::command]
 pub async fn configure_drawer(
     config: DrawerConfig,
-    state: State<'_, HardwareState>,
+    state: State<'_, AppState>,
+    hw_state: State<'_, HardwareState>,
 ) -> AppResult<()> {
-    let mut drawer_config = state.drawer_config.write().await;
-    *drawer_config = config;
+    let mut drawer_config = hw_state.drawer_config.write().await;
+    *drawer_config = config.clone();
+
+    // Persist to database
+    let repo = crate::repositories::SettingsRepository::new(state.pool());
+    repo.set(crate::models::SetSetting {
+        key: "hardware.drawer.config".into(),
+        value: serde_json::to_string(&config).unwrap_or_default(),
+        value_type: Some("JSON".into()),
+        group_name: Some("hardware".into()),
+        description: Some("Configuração da gaveta de dinheiro".into()),
+    })
+    .await?;
+
     Ok(())
 }
 
@@ -714,4 +754,39 @@ macro_rules! hardware_commands {
             // Mobile Server comandos estão em mobile.rs
         ]
     };
+}
+
+/// Carrega configurações de hardware do banco de dados
+#[tauri::command]
+pub async fn load_hardware_configs(
+    state: State<'_, AppState>,
+    hw_state: State<'_, HardwareState>,
+) -> AppResult<()> {
+    let repo = crate::repositories::SettingsRepository::new(state.pool());
+
+    // Printer
+    if let Ok(Some(val)) = repo.get_value("hardware.printer.config").await {
+        if let Ok(config) = serde_json::from_str::<PrinterConfig>(&val) {
+            let mut printer_config = hw_state.printer_config.write().await;
+            *printer_config = config;
+        }
+    }
+
+    // Scale
+    if let Ok(Some(val)) = repo.get_value("hardware.scale.config").await {
+        if let Ok(config) = serde_json::from_str::<ScaleConfig>(&val) {
+            let mut scale_config = hw_state.scale_config.write().await;
+            *scale_config = config;
+        }
+    }
+
+    // Drawer
+    if let Ok(Some(val)) = repo.get_value("hardware.drawer.config").await {
+        if let Ok(config) = serde_json::from_str::<DrawerConfig>(&val) {
+            let mut drawer_config = hw_state.drawer_config.write().await;
+            *drawer_config = config;
+        }
+    }
+
+    Ok(())
 }

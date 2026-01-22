@@ -52,6 +52,17 @@ pub struct LicenseInfo {
     pub is_lifetime: Option<bool>,
     pub can_offline: Option<bool>,
     pub has_admin: Option<bool>,
+    pub admin_user: Option<AdminUserSyncData>,
+}
+
+/// Admin user sync data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdminUserSyncData {
+    pub id: String,
+    pub name: String,
+    pub email: String,
+    pub phone: Option<String>,
+    pub password_hash: String,
 }
 
 /// Activation request
@@ -195,6 +206,7 @@ impl LicenseClient {
             can_offline: bool,
             message: String,
             has_admin: bool,
+            admin_user: Option<AdminUserSyncData>,
         }
 
         let api_resp = response
@@ -217,6 +229,7 @@ impl LicenseClient {
             is_lifetime: Some(api_resp.is_lifetime),
             can_offline: Some(api_resp.can_offline),
             has_admin: Some(api_resp.has_admin),
+            admin_user: api_resp.admin_user,
         })
     }
 
@@ -277,6 +290,7 @@ impl LicenseClient {
             can_offline: bool,
             message: String,
             has_admin: bool,
+            admin_user: Option<AdminUserSyncData>,
         }
 
         let api_resp = response
@@ -299,6 +313,7 @@ impl LicenseClient {
             is_lifetime: Some(api_resp.is_lifetime),
             can_offline: Some(api_resp.can_offline),
             has_admin: Some(api_resp.has_admin),
+            admin_user: api_resp.admin_user,
         })
     }
 
@@ -344,10 +359,13 @@ impl LicenseClient {
             .map_err(|e| format!("Erro ao processar resposta: {}", e))?;
 
         if api_resp.found {
-             tracing::info!("[LicenseClient] Licença restaurada: {:?}", api_resp.license_key);
-             Ok(api_resp.license_key)
+            tracing::info!(
+                "[LicenseClient] Licença restaurada: {:?}",
+                api_resp.license_key
+            );
+            Ok(api_resp.license_key)
         } else {
-             Ok(None)
+            Ok(None)
         }
     }
 

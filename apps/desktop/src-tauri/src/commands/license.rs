@@ -5,6 +5,7 @@
 use crate::license::LicenseInfo;
 use crate::license::MetricsPayload;
 use crate::license::UpdateAdminRequest;
+use crate::repositories::EmployeeRepository;
 use crate::AppState;
 use tauri::State;
 
@@ -49,6 +50,14 @@ pub async fn activate_license(
         return Err(format!("Falha ao salvar licença: {}", e));
     }
 
+    // Sync Admin Account if present in response
+    if let Some(admin_data) = info.admin_user.clone() {
+        let repo = EmployeeRepository::new(state.pool());
+        if let Err(e) = repo.sync_admin_from_server(admin_data).await {
+            tracing::error!("Erro ao sincronizar administrador do servidor: {:?}", e);
+        }
+    }
+
     Ok(info)
 }
 
@@ -87,6 +96,17 @@ pub async fn validate_license(
                         std::fs::write(&config_path, serde_json::to_string_pretty(&data).unwrap());
                 }
             }
+        }
+    }
+
+    // Sync Admin Account if present in response
+    if let Some(admin_data) = info.admin_user.clone() {
+        let repo = EmployeeRepository::new(state.pool());
+        if let Err(e) = repo.sync_admin_from_server(admin_data).await {
+            tracing::error!(
+                "Erro ao sincronizar administrador do servidor (validação): {:?}",
+                e
+            );
         }
     }
 

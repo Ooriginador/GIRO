@@ -25,8 +25,8 @@ impl ServiceOrderRepository {
     // ORDENS DE SERVIÇO
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// Obtém próximo número de OS
-    async fn next_order_number(&self) -> AppResult<i32> {
+
+    async fn next_order_number_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>) -> AppResult<i32> {
         let result = sqlx::query!(
             r#"
             UPDATE _service_order_sequence
@@ -35,7 +35,7 @@ impl ServiceOrderRepository {
             RETURNING next_number
             "#
         )
-        .fetch_one(&self.pool)
+        .fetch_one(&mut **tx)
         .await?;
 
         Ok((result.next_number - 1) as i32)
@@ -178,6 +178,13 @@ impl ServiceOrderRepository {
 
     /// Busca ordem por ID
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<ServiceOrder>> {
+        let mut tx = self.pool.begin().await?;
+        let res = self.find_by_id_tx(&mut tx, id).await?;
+        tx.commit().await?;
+        Ok(res)
+    }
+
+    pub async fn find_by_id_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>, id: &str) -> AppResult<Option<ServiceOrder>> {
         let order = sqlx::query_as!(
             ServiceOrder,
             r#"SELECT 
@@ -195,7 +202,7 @@ impl ServiceOrderRepository {
             FROM service_orders WHERE id = ?"#,
             id
         )
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut **tx)
         .await?;
 
         Ok(order)
@@ -326,9 +333,10 @@ impl ServiceOrderRepository {
 
     /// Cria nova ordem de serviço
     pub async fn create(&self, input: CreateServiceOrder) -> AppResult<ServiceOrder> {
+        let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
-        let order_number = self.next_order_number().await?;
+        let order_number = self.next_order_number_tx(&mut tx).await?;
         let status = input.status.unwrap_or_else(|| "OPEN".to_string());
 
         sqlx::query!(
@@ -356,8 +364,10 @@ impl ServiceOrderRepository {
             now,
             now
         )
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         self.find_by_id(&id)
             .await?
@@ -369,6 +379,7 @@ impl ServiceOrderRepository {
 
     /// Atualiza ordem de serviço
     pub async fn update(&self, id: &str, input: UpdateServiceOrder) -> AppResult<ServiceOrder> {
+        let mut tx = self.pool.begin().await?;
         let now = chrono::Utc::now().to_rfc3339();
 
         // Buscar ordem atual
@@ -400,7 +411,7 @@ impl ServiceOrderRepository {
             }
             // QUOTE -> OPEN: Consumir estoque de todos os itens
             if current.status == "QUOTE" && (status == "OPEN" || status == "IN_PROGRESS") {
-                self.consume_stock_for_order(id).await?;
+                self.consume_stock_for_order_tx(&mut tx, id).await?;
             }
         }
 
@@ -443,11 +454,13 @@ impl ServiceOrderRepository {
             now,
             id
         )
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?;
 
         // Recalcular totais
-        self.recalculate_totals(id).await?;
+        self.recalculate_totals_tx(&mut tx, id).await?;
+
+        tx.commit().await?;
 
         self.find_by_id(id)
             .await?
@@ -457,8 +470,8 @@ impl ServiceOrderRepository {
             })
     }
 
-    /// Recalcula totais da ordem
-    async fn recalculate_totals(&self, order_id: &str) -> AppResult<()> {
+
+    async fn recalculate_totals_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>, order_id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
 
         // Calcular totais de serviços
@@ -471,13 +484,11 @@ impl ServiceOrderRepository {
             "#,
             order_id
         )
-        .fetch_one(&self.pool)
+        .fetch_one(&mut **tx)
         .await?;
 
         // Buscar desconto atual
-        let order = self
-            .find_by_id(order_id)
-            .await?
+        let order = self.find_by_id_tx(tx, order_id).await?
             .ok_or_else(|| AppError::NotFound {
                 entity: "ServiceOrder".to_string(),
                 id: order_id.to_string(),
@@ -492,7 +503,7 @@ impl ServiceOrderRepository {
             "#,
             order_id
         )
-        .fetch_one(&self.pool)
+        .fetch_one(&mut **tx)
         .await?;
 
         let labor_cost = totals.service_total as f64;
@@ -514,7 +525,7 @@ impl ServiceOrderRepository {
             now,
             order_id
         )
-        .execute(&self.pool)
+        .execute(&mut **tx)
         .await?;
 
         Ok(())
@@ -802,10 +813,10 @@ impl ServiceOrderRepository {
             .await?;
         }
 
-        tx.commit().await?;
-
         // Recalcular totais da ordem
-        self.recalculate_totals(&input.order_id).await?;
+        self.recalculate_totals_tx(&mut tx, &input.order_id).await?;
+
+        tx.commit().await?;
 
         // Retornar item adicionado (buscando do banco para ter todos os campos populados, incluindo estoque)
         let items = self.find_order_items(&input.order_id).await?;
@@ -885,12 +896,12 @@ impl ServiceOrderRepository {
             }
         }
         
-        tx.commit().await?;
-
         if let Some(oid) = order_id {
             // Recalcular totais
-            self.recalculate_totals(&oid).await?;
+            self.recalculate_totals_tx(&mut tx, &oid).await?;
         }
+
+        tx.commit().await?;
 
         Ok(())
     }
@@ -899,8 +910,8 @@ impl ServiceOrderRepository {
     // FUNÇÕES AUXILIARES DE ESTOQUE
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// Consome estoque para todos os itens de uma ordem (usado na transição QUOTE → OPEN)
-    async fn consume_stock_for_order(&self, order_id: &str) -> AppResult<()> {
+
+    async fn consume_stock_for_order_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>, order_id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
         
         // Buscar todos os produtos da ordem
@@ -908,7 +919,7 @@ impl ServiceOrderRepository {
             r#"SELECT id, product_id, quantity FROM order_products WHERE order_id = ?"#,
             order_id
         )
-        .fetch_all(&self.pool)
+        .fetch_all(&mut **tx)
         .await?;
 
         let mut tx = self.pool.begin().await?;
@@ -1120,11 +1131,11 @@ impl ServiceOrderRepository {
             }
         }
 
-        tx.commit().await?;
-
         if let Some(oid) = &order_id {
-            self.recalculate_totals(oid).await?;
+            self.recalculate_totals_tx(&mut tx, oid).await?;
         }
+
+        tx.commit().await?;
 
         // Retornar item atualizado
         if let Some(oid) = order_id {
