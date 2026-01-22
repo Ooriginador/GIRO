@@ -15,6 +15,20 @@ export function useHasAdmin() {
   return useQuery({
     queryKey: ['has-admin', SESSION_ID],
     queryFn: async () => {
+      try {
+        // Honor an E2E override when running Playwright tests so the
+        // frontend doesn't force the initial setup redirect.
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        if (typeof window !== 'undefined' && (window as any).__E2E_HAS_ADMIN !== undefined) {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          return Boolean((window as any).__E2E_HAS_ADMIN);
+        }
+      } catch {
+        void 0;
+      }
+
       return await invoke<boolean>('has_admin');
     },
     staleTime: 0, // Always consider data stale

@@ -49,7 +49,7 @@ test.describe('Autenticação E2E', () => {
     await expect(loginHeading).toBeVisible({ timeout: 10000 });
 
     // Verificar instrução
-    const instruction = page.locator('p:has-text("Digite seu PIN para entrar")');
+    const instruction = page.locator('p:has-text("Digite seu PIN para entrar")').first();
     await expect(instruction).toBeVisible({ timeout: 15000 });
   });
 
