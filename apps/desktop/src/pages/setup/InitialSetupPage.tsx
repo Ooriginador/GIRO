@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { recoverLicenseFromLogin } from '@/lib/tauri';
 
 interface FormData {
   name: string;
@@ -38,7 +39,7 @@ interface FormErrors {
 
 export const InitialSetupPage: FC = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<'welcome' | 'form' | 'success'>('welcome');
+  const [step, setStep] = useState<'welcome' | 'form' | 'success' | 'login'>('welcome');
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -49,7 +50,6 @@ export const InitialSetupPage: FC = () => {
     confirmPin: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
-  const { toast } = useToast();
 
   const { login } = useAuthStore();
   const createAdmin = useCreateFirstAdmin();
@@ -219,86 +219,6 @@ export const InitialSetupPage: FC = () => {
     return formatted || '';
   };
 
-  const handleSync = async () => {
-    setIsLoading(true);
-    let currentKey = useLicenseStore.getState().licenseKey;
-
-    try {
-      const { restoreLicense, validateLicense } = await import('@/lib/tauri');
-
-      // 1. If no local key, try to restore from server using Hardware ID
-      if (!currentKey) {
-        console.log('[Setup] No local license key, attempting restore...');
-        try {
-          const restoredKey = await restoreLicense();
-          if (restoredKey) {
-            console.log('[Setup] License restored:', restoredKey);
-            useLicenseStore.getState().setLicenseKey(restoredKey);
-            currentKey = restoredKey;
-            toast({
-              title: 'Licença Encontrada',
-              description: 'Sua licença foi restaurada com sucesso.',
-            });
-          }
-        } catch (e) {
-          console.warn('[Setup] Restore failed:', e);
-          // Fallthrough to validation which will catch the missing key error
-        }
-      }
-
-      if (!currentKey) {
-        throw new Error('Nenhuma licença encontrada. Ative o sistema no servidor primeiro.');
-      }
-
-      // 2. Validate license again to get fresh data
-      const info = await validateLicense(currentKey);
-
-      // 3. Check if we have admin data
-      if (info.has_admin && info.admin) {
-        console.log('[Setup] Admin found in license, syncing...');
-
-        await queryClient.invalidateQueries({ queryKey: ['has-admin'] });
-        const { invoke } = await import('@/lib/tauri');
-        const hasAdminNow = await invoke<boolean>('has_admin');
-
-        if (hasAdminNow) {
-          toast({
-            title: 'Sincronização Concluída',
-            description: 'Dados do administrador recuperados com sucesso.',
-          });
-          navigate('/login', { replace: true });
-          return;
-        }
-
-        toast({
-          title: 'Admin encontrado',
-          description:
-            'O servidor possui um administrador, tente reiniciar o sistema para sincronizar.',
-        });
-      } else if (info.has_admin) {
-        // Server says yes, but no data sent.
-        await queryClient.invalidateQueries({ queryKey: ['has-admin'] });
-        window.location.reload();
-      } else {
-        toast({
-          title: 'Nenhum dado encontrado',
-          description: 'Esta licença ainda não possui um administrador vinculado.',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Erro na sincronização:', (error as Error)?.message ?? String(error));
-      toast({
-        title: 'Erro na sincronização',
-        description:
-          (error as Error)?.message || 'Não foi possível conectar ao servidor de licenças.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   if (step === 'welcome') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 to-background p-4">
@@ -339,23 +259,43 @@ export const InitialSetupPage: FC = () => {
               </Button>
 
               <Button
-                onClick={handleSync}
+                onClick={() => setStep('login')}
                 variant="outline"
                 className="w-full"
                 size="lg"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-5 w-5" />
-                )}
-                Sincronizar Dados
+                <RefreshCw className="mr-2 h-5 w-5" />
+                Sincronizar Conta
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  if (step === 'login') {
+    return (
+      <LoginRecoveryForm
+        onBack={() => setStep('welcome')}
+        onSuccess={() => {
+          // Check if admin exists now
+          queryClient.invalidateQueries({ queryKey: ['has-admin'] }).then(() => {
+            import('@/lib/tauri').then(({ invoke }) => {
+              invoke<boolean>('has_admin').then((has) => {
+                if (has) {
+                  navigate('/login', { replace: true });
+                } else {
+                  // If license recovered but no admin, maybe go to admin creation?
+                  // For now, reload to let main guard decide
+                  window.location.reload();
+                }
+              });
+            });
+          });
+        }}
+      />
     );
   }
 
@@ -541,6 +481,94 @@ export const InitialSetupPage: FC = () => {
                     Criar Administrador
                   </>
                 )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const LoginRecoveryForm: FC<{ onBack: () => void; onSuccess: () => void }> = ({
+  onBack,
+  onSuccess,
+}) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+
+    setLoading(true);
+    try {
+      const { recoverLicenseFromLogin } = await import('@/lib/tauri');
+      const info = await recoverLicenseFromLogin({ email, password });
+
+      useLicenseStore.getState().setLicenseKey(info.key || '');
+
+      toast({
+        title: 'Licença Recuperada!',
+        description: `Empresa: ${info.company_name}`,
+      });
+
+      onSuccess();
+    } catch (err) {
+      toast({
+        title: 'Erro no Login',
+        description: (err as Error)?.message || String(err),
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 to-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Entrar com Conta GIRO</CardTitle>
+          <CardDescription>Use suas credenciais do painel web para ativar.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="login-email">Email</Label>
+              <Input
+                id="login-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="login-pass">Senha</Label>
+              <Input
+                id="login-pass"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onBack}
+                disabled={loading}
+                className="w-full"
+              >
+                Voltar
+              </Button>
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Entrar e Sincronizar
               </Button>
             </div>
           </form>

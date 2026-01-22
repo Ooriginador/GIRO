@@ -47,7 +47,8 @@ pub struct LicenseInfo {
     pub company_name: String,
     pub company_cnpj: Option<String>,
     pub company_address: Option<String>,
-    pub company_phone: Option<String>,
+    pub company_city: Option<String>,
+    pub company_state: Option<String>,
     pub max_users: i32,
     pub features: Vec<String>,
     pub plan_type: Option<String>,
@@ -83,6 +84,11 @@ pub struct UpdateAdminRequest {
     pub name: String,
     pub email: String,
     pub phone: String,
+    pub company_name: Option<String>,
+    pub company_cnpj: Option<String>,
+    pub company_address: Option<String>,
+    pub company_city: Option<String>,
+    pub company_state: Option<String>,
     pub pin: String,
 }
 
@@ -94,10 +100,39 @@ struct ValidateRequest {
     client_time: DateTime<Utc>,
 }
 
+/// Login request
+#[derive(Debug, Serialize)]
+struct LoginRequest {
+    email: String,
+    password: String,
+}
+
+/// Login response
+#[derive(Debug, Deserialize)]
+struct LoginResponse {
+    access_token: String,
+}
+
+/// License Summary from list endpoint
+#[derive(Debug, Clone, Deserialize)]
+pub struct LicenseSummary {
+    pub id: String,
+    pub license_key: String,
+    pub status: LicenseStatus,
+    pub plan_type: String,
+}
+
+/// Pagination wrapper
+#[derive(Debug, Deserialize)]
+struct PaginatedResponse<T> {
+    data: Vec<T>,
+}
+
 /// Metrics inner payload
 #[derive(Debug, Serialize)]
 pub struct MetricsData {
     pub date: NaiveDate,
+
     pub sales_total: f64,
     pub sales_count: i32,
     pub average_ticket: f64,
@@ -204,7 +239,8 @@ impl LicenseClient {
             company_name: String,
             company_cnpj: Option<String>,
             company_address: Option<String>,
-            company_phone: Option<String>,
+            company_city: Option<String>,
+            company_state: Option<String>,
             max_users: i32,
             features: Vec<String>,
             support_expires_at: Option<DateTime<Utc>>,
@@ -230,7 +266,8 @@ impl LicenseClient {
             company_name: api_resp.company_name,
             company_cnpj: api_resp.company_cnpj,
             company_address: api_resp.company_address,
-            company_phone: api_resp.company_phone,
+            company_city: api_resp.company_city,
+            company_state: api_resp.company_state,
             max_users: api_resp.max_users,
             features: api_resp.features,
             plan_type: Some(api_resp.plan_type),
@@ -294,7 +331,8 @@ impl LicenseClient {
             company_name: String,
             company_cnpj: Option<String>,
             company_address: Option<String>,
-            company_phone: Option<String>,
+            company_city: Option<String>,
+            company_state: Option<String>,
             max_users: i32,
             features: Vec<String>,
             support_expires_at: Option<DateTime<Utc>>,
@@ -320,7 +358,8 @@ impl LicenseClient {
             company_name: api_resp.company_name,
             company_cnpj: api_resp.company_cnpj,
             company_address: api_resp.company_address,
-            company_phone: api_resp.company_phone,
+            company_city: api_resp.company_city,
+            company_state: api_resp.company_state,
             max_users: api_resp.max_users,
             features: api_resp.features,
             plan_type: Some(api_resp.plan_type),
@@ -615,6 +654,64 @@ impl LicenseClient {
         }
 
         Ok(())
+    }
+
+    /// Authenticate with the server
+    pub async fn login(&self, email: &str, password: &str) -> Result<String, String> {
+        let url = format!("{}/auth/login", self.config.server_url);
+        let payload = LoginRequest {
+            email: email.to_string(),
+            password: password.to_string(),
+        };
+
+        let res = self
+            .client
+            .post(&url)
+            .json(&payload)
+            .timeout(self.config.timeout)
+            .send()
+            .await
+            .map_err(|e| format!("Falha na conexão: {}", e))?;
+
+        if !res.status().is_success() {
+            let status = res.status();
+            let text = res.text().await.unwrap_or_default();
+            return Err(format!("Falha no login ({}): {}", status, text));
+        }
+
+        let body: LoginResponse = res
+            .json()
+            .await
+            .map_err(|e| format!("Resposta inválida do servidor: {}", e))?;
+
+        Ok(body.access_token)
+    }
+
+    /// List licenses for the authenticated user
+    pub async fn list_licenses(&self, token: &str) -> Result<Vec<LicenseSummary>, String> {
+        let url = format!("{}/licenses", self.config.server_url);
+
+        let res = self
+            .client
+            .get(&url)
+            .bearer_auth(token)
+            .timeout(self.config.timeout)
+            .send()
+            .await
+            .map_err(|e| format!("Falha na conexão: {}", e))?;
+
+        if !res.status().is_success() {
+            let status = res.status();
+            let text = res.text().await.unwrap_or_default();
+            return Err(format!("Falha ao listar licenças ({}): {}", status, text));
+        }
+
+        let body: PaginatedResponse<LicenseSummary> = res
+            .json()
+            .await
+            .map_err(|e| format!("Resposta inválida do servidor: {}", e))?;
+
+        Ok(body.data)
     }
 }
 

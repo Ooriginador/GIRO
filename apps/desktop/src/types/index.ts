@@ -473,6 +473,10 @@ export interface LicenseInfo {
   expires_at?: string;
   days_remaining?: number;
   company_name: string;
+  company_cnpj?: string;
+  company_address?: string;
+  company_city?: string;
+  company_state?: string;
   max_users: number;
   features: string[];
   plan_type?: string;
@@ -491,6 +495,11 @@ export interface UpdateLicenseAdminRequest {
   name: string;
   email: string;
   phone: string;
+  company_name?: string;
+  company_cnpj?: string;
+  company_address?: string;
+  company_city?: string;
+  company_state?: string;
   pin: string;
 }
 

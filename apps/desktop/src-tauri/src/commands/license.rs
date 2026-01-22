@@ -3,6 +3,7 @@
 //! Tauri commands for license management
 
 use crate::license::LicenseInfo;
+use crate::license::LicenseStatus;
 use crate::license::MetricsPayload;
 use crate::license::UpdateAdminRequest;
 use crate::models::SetSetting;
@@ -10,7 +11,13 @@ use crate::repositories::{EmployeeRepository, SettingsRepository};
 use crate::AppState;
 use tauri::State;
 
-/// Get the hardware ID for this machine
+/// Payload for login-based recovery
+#[derive(Debug, serde::Deserialize)]
+pub struct LoginPayload {
+    pub email: String,
+    pub password: String,
+}
+
 /// Used by frontend to display hardware info and for activation
 #[tauri::command]
 pub async fn get_hardware_id(state: State<'_, AppState>) -> Result<String, String> {
@@ -103,21 +110,54 @@ pub async fn validate_license(
         }
     }
 
-    // Sync Admin Account if present in response
-    if let Some(admin_data) = info.admin_user.clone() {
-        let repo = EmployeeRepository::new(state.pool());
-        if let Err(e) = repo.sync_admin_from_server(admin_data).await {
-            tracing::error!(
-                "Erro ao sincronizar administrador do servidor (validação): {:?}",
-                e
-            );
-        }
+    Ok(info)
+}
+
+#[tauri::command]
+pub async fn recover_license_from_login(
+    payload: LoginPayload,
+    state: State<'_, AppState>,
+) -> Result<LicenseInfo, String> {
+    let client = &state.license_client;
+
+    // 1. Authenticate with server
+    let token = client
+        .login(&payload.email, &payload.password)
+        .await
+        .map_err(|e| format!("Falha na autenticação: {}", e))?;
+
+    // 2. Fetch licenses
+    let licenses = client
+        .list_licenses(&token)
+        .await
+        .map_err(|e| format!("Falha ao buscar licenças: {}", e))?;
+
+    if licenses.is_empty() {
+        return Err("Nenhuma licença encontrada nesta conta.".to_string());
     }
 
-    // Sync Company Data
-    sync_company_data(&info, state.pool()).await;
+    // 3. Find a valid license to activate
+    // Prioritize active, then pending.
+    let license_to_activate = licenses
+        .iter()
+        .find(|l| {
+            matches!(
+                l.status,
+                crate::license::client::LicenseStatus::Active
+                    | crate::license::client::LicenseStatus::Pending
+            )
+        })
+        .or(licenses.first())
+        .ok_or("Nenhuma licença válida encontrada.".to_string())?;
 
-    Ok(info)
+    tracing::info!(
+        "Recuperando licença via login: {} ({:?})",
+        license_to_activate.license_key,
+        license_to_activate.status
+    );
+
+    // 4. Activate the selected license
+    activate_license(license_to_activate.license_key.clone(), state).await
 }
 
 #[tauri::command]
@@ -231,15 +271,28 @@ async fn sync_company_data(info: &LicenseInfo, pool: &sqlx::SqlitePool) {
             .await;
     }
 
-    // Sync Phone
-    if let Some(ref phone) = info.company_phone {
+    // Sync City
+    if let Some(ref city) = info.company_city {
         let _ = repo
             .set(SetSetting {
-                key: "company.phone".into(),
-                value: phone.clone(),
+                key: "company.city".into(),
+                value: city.clone(),
                 value_type: Some("STRING".into()),
                 group_name: Some("company".into()),
-                description: Some("Telefone da Empresa (Sincronizado)".into()),
+                description: Some("Cidade da Empresa (Sincronizado)".into()),
+            })
+            .await;
+    }
+
+    // Sync State
+    if let Some(ref state) = info.company_state {
+        let _ = repo
+            .set(SetSetting {
+                key: "company.state".into(),
+                value: state.clone(),
+                value_type: Some("STRING".into()),
+                group_name: Some("company".into()),
+                description: Some("Estado da Empresa (Sincronizado)".into()),
             })
             .await;
     }

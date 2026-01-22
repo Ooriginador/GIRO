@@ -93,6 +93,35 @@ pub async fn giro_invoke(
             }
         }
 
+        "recover_license_from_login" => match payload {
+            Some(val) => {
+                let p: Result<crate::commands::license::LoginPayload, _> =
+                    serde_json::from_value(val);
+                match p {
+                    Ok(payload) => {
+                        match crate::commands::license::recover_license_from_login(
+                            payload, app_state,
+                        )
+                        .await
+                        {
+                            Ok(info) => {
+                                Ok(InvokeResult::ok(Some(serde_json::to_value(info).unwrap())))
+                            }
+                            Err(e) => Ok(InvokeResult::err(None, e)),
+                        }
+                    }
+                    Err(e) => Ok(InvokeResult::err(
+                        Some("invalid_payload".to_string()),
+                        format!("Invalid payload: {}", e),
+                    )),
+                }
+            }
+            None => Ok(InvokeResult::err(
+                Some("missing_payload".to_string()),
+                "Missing payload".to_string(),
+            )),
+        },
+
         "get_stored_license" => {
             match crate::commands::license::get_stored_license(app_state).await {
                 Ok(opt) => Ok(InvokeResult::ok(serde_json::to_value(opt).ok())),

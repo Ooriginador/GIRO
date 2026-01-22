@@ -12,6 +12,7 @@ export function LicenseSettings() {
   const [licenseKey, setLicenseKey] = useState('');
   const [info, setInfo] = useState<LicenseInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
 
   const validate = useCallback(async (key: string) => {
@@ -71,6 +72,27 @@ export function LicenseSettings() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSync = async () => {
+    if (!licenseKey) return;
+    setIsSyncing(true);
+    try {
+      const result = await validateLicense(licenseKey);
+      setInfo(result);
+      toast({
+        title: 'Sincronização Concluída',
+        description: 'Dados atualizados com sucesso.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro na Sincronização',
+        description: typeof error === 'string' ? error : 'Falha ao sincronizar com servidor.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -148,6 +170,17 @@ export function LicenseSettings() {
                     <span className="font-medium">{info.company_name}</span>
                   </div>
                 )}
+              </div>
+
+              <div className="mt-4 pt-4 border-t flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleSync} disabled={isSyncing}>
+                  {isSyncing ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Sincronizar Agora
+                </Button>
               </div>
             </div>
           ) : (

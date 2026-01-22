@@ -121,6 +121,8 @@ export const SettingsPage: FC = () => {
   const [testQrSvg, setTestQrSvg] = useState<string>('');
   const [testQrValue, setTestQrValue] = useState<string>('');
 
+  const [isSyncingLicense, setIsSyncingLicense] = useState(false);
+
   const fetchPorts = useCallback(async () => {
     setIsLoadingPorts(true);
     try {
@@ -370,6 +372,26 @@ export const SettingsPage: FC = () => {
         title: 'Configurações salvas',
         description: 'Todas as configurações foram atualizadas com sucesso.',
       });
+
+      // Sincroniza com o servidor de licenças (Background)
+      const { licenseKey } = useLicenseStore.getState();
+      if (licenseKey) {
+        invoke('update_license_admin', {
+          licenseKey,
+          data: {
+            name: companyName, // Usando nome da empresa como nome do admin para simplificar se não houver campo separado
+            email: '', // Email costuma ser fixo ou gerenciado pelo auth, mas o DTO exige.
+            // Na prática, o backend deve preservar o email se enviarmos vazio ou buscar o atual.
+            phone: companyPhone,
+            company_name: companyName,
+            company_cnpj: companyDocument,
+            company_address: companyAddress,
+            company_city: companyCity,
+            company_state: companyState,
+            pin: '', // O PIN não deve ser alterado aqui sem validação extra
+          },
+        }).catch((e) => console.warn('Erro ao sincronizar com servidor:', e));
+      }
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
       toast({
@@ -379,6 +401,38 @@ export const SettingsPage: FC = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSyncLicense = async () => {
+    setIsSyncingLicense(true);
+    try {
+      // Let's use useLicenseStore if that's where it is
+      const key = (await invoke<string | null>('get_setting', { key: 'license_key' })) || '';
+
+      if (!key) {
+        toast({
+          title: 'Licença não encontrada',
+          description: 'Ative sua licença antes de sincronizar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      await invoke('validate_license', { licenseKey: key });
+
+      toast({
+        title: 'Sincronização concluída',
+        description: 'Dados da licença e empresa atualizados com sucesso.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro na sincronização',
+        description: error instanceof Error ? error.message : 'Falha ao conectar com servidor.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncingLicense(false);
     }
   };
 
@@ -566,6 +620,53 @@ export const SettingsPage: FC = () => {
         {/* Licença */}
         <TabsContent value="license" className="space-y-6">
           <LicenseSettings />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Sincronização Avançada
+              </CardTitle>
+              <CardDescription>Gerencie seus dados na nuvem</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleSyncLicense}
+                  disabled={isSyncingLicense}
+                  className="w-full justify-start"
+                >
+                  {isSyncingLicense ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Forçar Sincronização de Licença e Dados
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const res = await invoke<TauriResponse<string>>('create_backup');
+                      if (res.success && res.data) {
+                        toast({
+                          title: 'Backup local criado',
+                          description: `Salvo em: ${res.data}`,
+                        });
+                      }
+                    } catch {
+                      toast({ title: 'Erro no backup', variant: 'destructive' });
+                    }
+                  }}
+                  className="w-full justify-start"
+                >
+                  <Database className="mr-2 h-4 w-4" />
+                  Criar Backup Local
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Hardware */}
