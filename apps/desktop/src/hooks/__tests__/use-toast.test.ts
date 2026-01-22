@@ -45,6 +45,10 @@ describe('use-toast Hook', () => {
     vi.useFakeTimers();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should update toast', () => {
     const { result } = renderHook(() => useToast());
     let toastRef: any;
