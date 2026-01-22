@@ -505,7 +505,6 @@ const LoginRecoveryForm: FC<{ onBack: () => void; onSuccess: () => void }> = ({
 
     setLoading(true);
     try {
-      const { recoverLicenseFromLogin } = await import('@/lib/tauri');
       const info = await recoverLicenseFromLogin({ email, password });
 
       useLicenseStore.getState().setLicenseKey(info.key || '');
