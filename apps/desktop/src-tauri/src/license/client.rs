@@ -520,7 +520,7 @@ impl LicenseClient {
         &self,
         bearer_token: &str,
     ) -> Result<serde_json::Value, String> {
-        let url = format!("{}/backups", self.config.server_url);
+        let url = format!("{}/api/v1/backups", self.config.server_url);
 
         let response = self
             .client
@@ -549,7 +549,7 @@ impl LicenseClient {
         bearer_token: &str,
         data: Vec<u8>,
     ) -> Result<serde_json::Value, String> {
-        let url = format!("{}/backups", self.config.server_url);
+        let url = format!("{}/api/v1/backups", self.config.server_url);
 
         let response = self
             .client
@@ -580,7 +580,7 @@ impl LicenseClient {
         bearer_token: &str,
         backup_id: &str,
     ) -> Result<serde_json::Value, String> {
-        let url = format!("{}/backups/{}", self.config.server_url, backup_id);
+        let url = format!("{}/api/v1/backups/{}", self.config.server_url, backup_id);
 
         let response = self
             .client
@@ -609,7 +609,7 @@ impl LicenseClient {
         bearer_token: &str,
         backup_id: &str,
     ) -> Result<(), String> {
-        let url = format!("{}/backups/{}", self.config.server_url, backup_id);
+        let url = format!("{}/api/v1/backups/{}", self.config.server_url, backup_id);
 
         let response = self
             .client
@@ -658,7 +658,7 @@ impl LicenseClient {
 
     /// Authenticate with the server
     pub async fn login(&self, email: &str, password: &str) -> Result<String, String> {
-        let url = format!("{}/auth/login", self.config.server_url);
+        let url = format!("{}/api/v1/auth/login", self.config.server_url);
         let payload = LoginRequest {
             email: email.to_string(),
             password: password.to_string(),
@@ -689,7 +689,7 @@ impl LicenseClient {
 
     /// List licenses for the authenticated user
     pub async fn list_licenses(&self, token: &str) -> Result<Vec<LicenseSummary>, String> {
-        let url = format!("{}/licenses", self.config.server_url);
+        let url = format!("{}/api/v1/licenses", self.config.server_url);
 
         let res = self
             .client

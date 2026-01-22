@@ -93,34 +93,37 @@ pub async fn giro_invoke(
             }
         }
 
-        "recover_license_from_login" => match payload {
-            Some(val) => {
-                let p: Result<crate::commands::license::LoginPayload, _> =
-                    serde_json::from_value(val);
-                match p {
-                    Ok(payload) => {
-                        match crate::commands::license::recover_license_from_login(
-                            payload, app_state,
-                        )
+        "recover_license_from_login" => {
+            let p_res = if let Some(val) = payload.as_ref() {
+                // Try direct, then nested
+                serde_json::from_value::<crate::commands::license::LoginPayload>(val.clone())
+                    .or_else(|_| {
+                        val.get("payload")
+                            .map(|v| serde_json::from_value(v.clone()))
+                            .unwrap_or(serde_json::from_value(val.clone()))
+                    })
+            } else {
+                return Ok(InvokeResult::err(
+                    Some("missing_payload".to_string()),
+                    "Missing payload".to_string(),
+                ));
+            };
+
+            match p_res {
+                Ok(data) => {
+                    match crate::commands::license::recover_license_from_login(data, app_state)
                         .await
-                        {
-                            Ok(info) => {
-                                Ok(InvokeResult::ok(Some(serde_json::to_value(info).unwrap())))
-                            }
-                            Err(e) => Ok(InvokeResult::err(None, e)),
-                        }
+                    {
+                        Ok(info) => Ok(InvokeResult::ok(Some(serde_json::to_value(info).unwrap()))),
+                        Err(e) => Ok(InvokeResult::err(None, e)),
                     }
-                    Err(e) => Ok(InvokeResult::err(
-                        Some("invalid_payload".to_string()),
-                        format!("Invalid payload: {}", e),
-                    )),
                 }
+                Err(e) => Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    format!("Invalid payload: {}. Received: {:?}", e, payload),
+                )),
             }
-            None => Ok(InvokeResult::err(
-                Some("missing_payload".to_string()),
-                "Missing payload".to_string(),
-            )),
-        },
+        }
 
         "get_stored_license" => {
             match crate::commands::license::get_stored_license(app_state).await {

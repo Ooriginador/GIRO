@@ -3,7 +3,6 @@
 //! Tauri commands for license management
 
 use crate::license::LicenseInfo;
-use crate::license::LicenseStatus;
 use crate::license::MetricsPayload;
 use crate::license::UpdateAdminRequest;
 use crate::models::SetSetting;
