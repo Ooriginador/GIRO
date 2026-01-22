@@ -78,7 +78,7 @@ describe('MotopartsDashboard', () => {
     expect(document.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
-  it('should render all dashboard sections when data is available', () => {
+  it('should render all dashboard sections when data is available', async () => {
     vi.mocked(useMotopartsReports).mockReturnValue({
       isLoadingDashboard: false,
       dashboardStats: mockDashboardStats as any,
@@ -109,7 +109,7 @@ describe('MotopartsDashboard', () => {
     expect(screen.getByText('4 unidades')).toBeInTheDocument();
   });
 
-  it('should handle empty top products', () => {
+  it('should handle empty top products', async () => {
     vi.mocked(useMotopartsReports).mockReturnValue({
       isLoadingDashboard: false,
       dashboardStats: mockDashboardStats as any,

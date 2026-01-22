@@ -81,7 +81,7 @@ export const LoginPage: FC = () => {
         setPin('');
       }
     } catch (err) {
-      console.error('Erro ao autenticar:', err);
+      console.error('Erro ao autenticar:', (err as Error)?.message ?? String(err));
       setError('Erro ao autenticar. Verifique se o servidor está rodando.');
       setPin('');
     } finally {

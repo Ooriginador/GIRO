@@ -60,7 +60,7 @@ export const FiscalSettings = () => {
         setCertPassword(settings.certPassword || '');
       } catch (err) {
         toast.error('Erro ao carregar configurações fiscais');
-        console.error(err);
+        console.error((err as Error)?.message ?? String(err));
       } finally {
         setLoading(false);
       }
@@ -110,7 +110,7 @@ export const FiscalSettings = () => {
         setCertPath(selected);
       }
     } catch (err) {
-      console.error('Falha ao selecionar arquivo', err);
+      console.error('Falha ao selecionar arquivo', (err as Error)?.message ?? String(err));
     }
   };
 

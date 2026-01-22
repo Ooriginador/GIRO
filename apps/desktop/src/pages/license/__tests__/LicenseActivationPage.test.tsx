@@ -59,12 +59,11 @@ describe('LicenseActivationPage', () => {
     } as any);
   });
 
-  it('should show loading state on mount', async () => {
+  it('should show loading state on mount', () => {
     vi.mocked(tauri.getHardwareId).mockReturnValue(new Promise(() => {})); // Never resolves to keep loading
 
-    await act(async () => {
-      render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
-    });
+    // render synchronously — do not await effects that never resolve
+    render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });
 
     expect(screen.getByText(/Verificando licença/)).toBeInTheDocument();
   });

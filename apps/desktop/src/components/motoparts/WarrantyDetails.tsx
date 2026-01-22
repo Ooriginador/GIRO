@@ -96,7 +96,7 @@ export function WarrantyDetails({ warrantyId, onBack }: WarrantyDetailsProps) {
         description: 'A solicitação foi aprovada com sucesso.',
       });
     } catch (error) {
-      console.error('Erro ao aprovar garantia:', error);
+      console.error('Erro ao aprovar garantia:', (error as Error)?.message ?? String(error));
       toast({
         title: 'Erro ao aprovar',
         description: 'Não foi possível aprovar a garantia.',
@@ -127,7 +127,7 @@ export function WarrantyDetails({ warrantyId, onBack }: WarrantyDetailsProps) {
         description: 'A solicitação foi negada.',
       });
     } catch (error) {
-      console.error('Erro ao negar garantia:', error);
+      console.error('Erro ao negar garantia:', (error as Error)?.message ?? String(error));
       toast({
         title: 'Erro ao negar',
         description: 'Não foi possível negar a garantia.',
@@ -160,7 +160,7 @@ export function WarrantyDetails({ warrantyId, onBack }: WarrantyDetailsProps) {
         description: 'A garantia foi finalizada com sucesso.',
       });
     } catch (error) {
-      console.error('Erro ao resolver garantia:', error);
+      console.error('Erro ao resolver garantia:', (error as Error)?.message ?? String(error));
       toast({
         title: 'Erro ao resolver',
         description: 'Não foi possível finalizar a garantia.',

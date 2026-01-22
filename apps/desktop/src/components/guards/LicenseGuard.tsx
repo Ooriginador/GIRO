@@ -76,7 +76,10 @@ export const LicenseGuard: FC<LicenseGuardProps> = ({ children }) => {
               setState('valid');
               console.log('[LicenseGuard] Online validation SUCCESS');
             } catch (err) {
-              console.error('[LicenseGuard] Online validation FAILED:', err);
+              console.error(
+                '[LicenseGuard] Online validation FAILED:',
+                (err as Error)?.message ?? String(err)
+              );
               setError('Falha na validação online.');
               setState('error');
             }
@@ -88,7 +91,10 @@ export const LicenseGuard: FC<LicenseGuardProps> = ({ children }) => {
           console.log(`[LicenseGuard] Store already in definitive state: ${store.state}`);
         }
       } catch (err) {
-        console.error('[LicenseGuard] Global error in checkLicense:', err);
+        console.error(
+          '[LicenseGuard] Global error in checkLicense:',
+          (err as Error)?.message ?? String(err)
+        );
       } finally {
         setLocalLoading(false);
         console.log('[LicenseGuard] checkLicense finished.');

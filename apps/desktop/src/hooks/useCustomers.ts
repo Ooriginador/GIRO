@@ -158,7 +158,7 @@ export function useCustomers() {
     try {
       return await invoke<Customer[]>('search_customers', { query, limit });
     } catch (err) {
-      console.error('Erro ao buscar clientes:', err);
+      console.error('Erro ao buscar clientes:', (err as Error)?.message ?? String(err));
       return [];
     }
   }, []);
@@ -168,7 +168,7 @@ export function useCustomers() {
     try {
       return await invoke<Customer | null>('get_customer_by_id', { id });
     } catch (err) {
-      console.error('Erro ao buscar cliente:', err);
+      console.error('Erro ao buscar cliente:', (err as Error)?.message ?? String(err));
       return null;
     }
   }, []);
@@ -178,7 +178,7 @@ export function useCustomers() {
     try {
       return await invoke<Customer | null>('get_customer_by_cpf', { cpf });
     } catch (err) {
-      console.error('Erro ao buscar cliente:', err);
+      console.error('Erro ao buscar cliente:', (err as Error)?.message ?? String(err));
       return null;
     }
   }, []);

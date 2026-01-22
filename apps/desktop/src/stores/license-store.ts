@@ -132,12 +132,30 @@ export const useLicenseStore = create<LicenseStore>()(
       hydrateFromDisk: async () => {
         console.log('[LicenseStore] Hydrating from disk...');
         try {
-          const data = (await getStoredLicense()) as {
+          let data: {
             key?: string;
             info?: LicenseInfo;
             last_validated_at?: string;
             activated_at?: string;
           } | null;
+
+          try {
+            data = (await getStoredLicense()) as {
+              key?: string;
+              info?: LicenseInfo;
+              last_validated_at?: string;
+              activated_at?: string;
+            } | null;
+          } catch (err) {
+            // Log only the error message to avoid printing stack traces in stderr
+            console.error(
+              '[LicenseStore] getStoredLicense rejected:',
+              (err as Error)?.message ?? String(err)
+            );
+            set({ state: 'error', isHydrated: true });
+            return;
+          }
+
           console.log('[LicenseStore] Data from disk:', data);
 
           if (data && data.key) {
@@ -177,7 +195,11 @@ export const useLicenseStore = create<LicenseStore>()(
             });
           }
         } catch (error) {
-          console.error('[LicenseStore] Failed to hydrate license from disk:', error);
+          // Log only the error message to reduce noisy stack traces
+          console.error(
+            '[LicenseStore] Failed to hydrate license from disk:',
+            (error as Error)?.message ?? String(error)
+          );
           set({ state: 'error', isHydrated: true });
         }
       },

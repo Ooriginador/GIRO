@@ -99,7 +99,7 @@ export const CategoriesPage: FC = () => {
       setSelectedColor(CATEGORY_COLORS[0]!.value);
       setIsDialogOpen(false);
     } catch (error) {
-      console.error('Erro ao criar categoria:', error);
+      console.error('Erro ao criar categoria:', (error as Error)?.message ?? String(error));
       // O erro é tratado pelo toast no hook, mas capturamos aqui para evitar unhandled rejection
     }
   };
@@ -113,7 +113,10 @@ export const CategoriesPage: FC = () => {
       }
       setConfirmDialog({ ...confirmDialog, open: false });
     } catch (error) {
-      console.error('Erro ao processar ação na categoria:', error);
+      console.error(
+        'Erro ao processar ação na categoria:',
+        (error as Error)?.message ?? String(error)
+      );
       // Capturamos para evitar unhandled rejection, o toast já é exibido pelo hook
     }
   };

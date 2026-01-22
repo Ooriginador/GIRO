@@ -167,7 +167,10 @@ export const InitialSetupPage: FC = () => {
           console.log('[Setup] Admin synced successfully');
         }
       } catch (e) {
-        console.error('[Setup] Failed to sync admin to license server:', e);
+        console.error(
+          '[Setup] Failed to sync admin to license server:',
+          (e as Error)?.message ?? String(e)
+        );
         // Não impedir o progresso, apenas logar o erro
       }
 
@@ -183,7 +186,7 @@ export const InitialSetupPage: FC = () => {
         navigate('/wizard', { replace: true });
       }, 2000);
     } catch (err) {
-      console.error('Erro ao criar admin:', err);
+      console.error('Erro ao criar admin:', (err as Error)?.message ?? String(err));
       setErrors({ name: 'Erro ao criar administrador. Tente novamente.' });
     } finally {
       setIsLoading(false);
@@ -281,7 +284,7 @@ export const InitialSetupPage: FC = () => {
         });
       }
     } catch (error) {
-      console.error('Erro na sincronização:', error);
+      console.error('Erro na sincronização:', (error as Error)?.message ?? String(error));
       toast({
         title: 'Erro na sincronização',
         description: 'Não foi possível conectar ao servidor de licenças.',

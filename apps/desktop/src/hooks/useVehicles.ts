@@ -124,7 +124,10 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
           console.log('[useVehicles] Marcas atualizadas em background');
         })
         .catch((err) => {
-          console.warn('[useVehicles] Falha na sync de background:', err);
+          console.warn(
+            '[useVehicles] Falha na sync de background:',
+            (err as Error)?.message ?? String(err)
+          );
         });
       return;
     }
@@ -139,7 +142,7 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
       setCachedBrands(result || []);
       markFullSyncComplete();
     } catch (err) {
-      console.error('Erro ao carregar marcas:', err);
+      console.error('Erro ao carregar marcas:', (err as Error)?.message ?? String(err));
       setError('Não foi possível carregar as marcas de veículos');
     } finally {
       setIsLoadingBrands(false);
@@ -182,7 +185,7 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
         // Salvar no cache
         setCachedModels(brandId, result);
       } catch (err) {
-        console.error('Erro ao carregar modelos:', err);
+        console.error('Erro ao carregar modelos:', (err as Error)?.message ?? String(err));
         setError('Não foi possível carregar os modelos');
       } finally {
         setIsLoadingModels(false);
@@ -225,7 +228,7 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
         // Salvar no cache
         setCachedYears(modelId, result);
       } catch (err) {
-        console.error('Erro ao carregar anos:', err);
+        console.error('Erro ao carregar anos:', (err as Error)?.message ?? String(err));
         setError('Não foi possível carregar os anos');
       } finally {
         setIsLoadingYears(false);
@@ -276,7 +279,7 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
       setCachedSearch(query, result);
       return result;
     } catch (err) {
-      console.error('Erro ao buscar veículos:', err);
+      console.error('Erro ao buscar veículos:', (err as Error)?.message ?? String(err));
       return [];
     }
   }, []);
@@ -380,7 +383,7 @@ export function useProductCompatibility(productId: string): UseProductCompatibil
       setOriginalCompatibilities(result);
       return result;
     } catch (err) {
-      console.error('Erro ao carregar compatibilidades:', err);
+      console.error('Erro ao carregar compatibilidades:', (err as Error)?.message ?? String(err));
       setError('Não foi possível carregar as compatibilidades');
       return [];
     } finally {
@@ -451,7 +454,7 @@ export function useProductCompatibility(productId: string): UseProductCompatibil
       const reloaded = await loadCompatibilities();
       return reloaded;
     } catch (err) {
-      console.error('Erro ao salvar compatibilidades:', err);
+      console.error('Erro ao salvar compatibilidades:', (err as Error)?.message ?? String(err));
       setError('Não foi possível salvar as compatibilidades');
       return null;
     } finally {

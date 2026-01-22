@@ -30,7 +30,7 @@ export function NetworkSettings() {
       setStatus(s);
       setEnabled(s.isRunning);
     } catch (error) {
-      console.error('Failed to get network status:', error);
+      console.error('Failed to get network status:', (error as Error)?.message ?? String(error));
     }
   };
 

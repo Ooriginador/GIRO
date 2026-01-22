@@ -245,13 +245,13 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
             useSettingsStore.getState().setFiscalConfig({ nextNumber: fiscal.nextNumber + 1 });
           }
         } catch (e) {
-          console.error('Falha NFC-e', e);
+          console.error('Falha NFC-e', (e as Error)?.message ?? String(e));
         }
       }
 
       onClose();
     } catch (error) {
-      console.error('Erro ao finalizar:', error);
+      console.error('Erro ao finalizar:', (error as Error)?.message ?? String(error));
     } finally {
       setIsProcessing(false);
     }

@@ -36,7 +36,7 @@ export function UpdateChecker() {
         });
       }
     } catch (error) {
-      console.error('Erro ao verificar atualizações:', error);
+      console.error('Erro ao verificar atualizações:', (error as Error)?.message ?? String(error));
     }
   }, [toast]);
 
@@ -83,7 +83,10 @@ export function UpdateChecker() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       await relaunch();
     } catch (error) {
-      console.error('Erro ao baixar/instalar atualização:', error);
+      console.error(
+        'Erro ao baixar/instalar atualização:',
+        (error as Error)?.message ?? String(error)
+      );
       toast({
         title: '❌ Erro na atualização',
         description: 'Não foi possível instalar a atualização. Tente novamente mais tarde.',
@@ -102,7 +105,7 @@ export function UpdateChecker() {
   }
 
   return (
-    <AlertDialog open={updateAvailable && !downloading} onOpenChange={setUpdateAvailable}>
+    <AlertDialog open={updateAvailable} onOpenChange={setUpdateAvailable}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>🎉 Nova versão disponível!</AlertDialogTitle>

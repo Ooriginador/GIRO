@@ -29,7 +29,7 @@ export function MotopartsDashboard() {
       setSoStats(sStats);
       setTopProducts(tProds);
     } catch (error) {
-      console.error('Failed to load dashboard stats:', error);
+      console.error('Failed to load dashboard stats:', (error as Error)?.message ?? String(error));
     } finally {
       setLoading(false);
     }

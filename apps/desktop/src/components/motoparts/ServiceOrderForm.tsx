@@ -115,7 +115,7 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
       });
       onSuccess(result.id);
     } catch (error) {
-      console.error('Erro ao criar ordem de serviço:', error);
+      console.error('Erro ao criar ordem de serviço:', (error as Error)?.message ?? String(error));
       toast({
         title: 'Erro ao criar OS',
         description: 'Não foi possível iniciar a ordem de serviço.',

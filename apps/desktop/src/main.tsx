@@ -21,10 +21,13 @@ const queryClient = new QueryClient({
 
 console.log('[main.tsx] Registering global error listeners');
 window.addEventListener('error', (event) => {
-  console.error('[Global Error]', event.error);
+  console.error('[Global Error]', (event.error as Error)?.message ?? String(event.error));
 });
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('[Unhandled Promise Rejection]', event.reason);
+  console.error(
+    '[Unhandled Promise Rejection]',
+    (event.reason as Error)?.message ?? String(event.reason)
+  );
 });
 
 console.log('[main.tsx] Starting ReactDOM.render');

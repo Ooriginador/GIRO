@@ -57,7 +57,10 @@ export const MobileServerSettings: FC = () => {
         setConnectedDevices([]);
       }
     } catch (error) {
-      console.error('Erro ao obter status do servidor:', error);
+      console.error(
+        'Erro ao obter status do servidor:',
+        (error as Error)?.message ?? String(error)
+      );
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +98,7 @@ export const MobileServerSettings: FC = () => {
       }
       await fetchStatus();
     } catch (error) {
-      console.error('Erro ao alternar servidor:', error);
+      console.error('Erro ao alternar servidor:', (error as Error)?.message ?? String(error));
       toast({
         title: 'Erro',
         description: `Falha ao ${status?.isRunning ? 'desligar' : 'ligar'} o servidor.`,
@@ -116,7 +119,7 @@ export const MobileServerSettings: FC = () => {
       });
       await fetchStatus();
     } catch (error) {
-      console.error('Erro ao desconectar dispositivo:', error);
+      console.error('Erro ao desconectar dispositivo:', (error as Error)?.message ?? String(error));
       toast({
         title: 'Erro',
         description: 'Falha ao desconectar o dispositivo.',

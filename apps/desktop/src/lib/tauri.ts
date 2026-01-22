@@ -343,7 +343,11 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
     console.log('[WebMock.result] %s %o', command, mock);
     return mock;
   } catch (err) {
-    console.error('[Invoke Failure] %s %o', command, err instanceof Error ? err.message : err);
+    console.error(
+      '[Invoke Failure] %s %o',
+      command,
+      err instanceof Error ? err.message : String(err)
+    );
     // Normalize error message
     if (err instanceof Error) throw err;
     throw new Error(String(err));
@@ -1072,7 +1076,7 @@ export async function syncBackupToCloud(): Promise<CloudBackupUploadResponse | n
     console.log('[Backup] Cloud sync not yet fully implemented - local backup saved');
     return null;
   } catch (error) {
-    console.error('[Backup] Sync failed:', error);
+    console.error('[Backup] Sync failed:', (error as Error)?.message ?? String(error));
     throw error;
   }
 }

@@ -87,7 +87,7 @@ export const CashControlPage: FC = () => {
       setIsWithdrawOpen(false);
       setIsSupplyOpen(false);
     } catch (error) {
-      console.error(error);
+      console.error((error as Error)?.message ?? String(error));
       // Toast de erro já tratado no hook useCashMovement
     }
   };
@@ -113,7 +113,7 @@ export const CashControlPage: FC = () => {
       setIsOpenDialogOpen(false);
       setOpeningBalance('');
     } catch (error) {
-      console.error(error);
+      console.error((error as Error)?.message ?? String(error));
       toast({ title: 'Erro ao abrir caixa', variant: 'destructive' });
     }
   };
@@ -138,7 +138,7 @@ export const CashControlPage: FC = () => {
       setIsCloseDialogOpen(false);
       setClosingBalance('');
     } catch (error) {
-      console.error(error); // Log error to use it
+      console.error((error as Error)?.message ?? String(error)); // Log error to use it
       toast({ title: 'Erro ao fechar caixa', variant: 'destructive' });
     }
   };

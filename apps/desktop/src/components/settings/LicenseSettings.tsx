@@ -20,7 +20,7 @@ export function LicenseSettings() {
       const result = await validateLicense(key);
       setInfo(result);
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Validation failed:', (error as Error)?.message ?? String(error));
       // Don't clear key, just show error state
     } finally {
       setIsLoading(false);
@@ -37,7 +37,7 @@ export function LicenseSettings() {
         setIsLoading(false);
       }
     } catch (error) {
-      console.error('Failed to load license:', error);
+      console.error('Failed to load license:', (error as Error)?.message ?? String(error));
       setIsLoading(false);
     }
   }, [validate]);

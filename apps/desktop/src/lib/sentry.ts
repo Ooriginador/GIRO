@@ -22,7 +22,7 @@ export function initSentry(): void {
  * Captura exceção manualmente
  */
 export function captureException(error: Error, context?: Record<string, unknown>): void {
-  console.error('[Sentry] Exceção capturada:', error, context);
+  console.error('[Sentry] Exceção capturada:', (error as Error)?.message ?? String(error), context);
 }
 
 /**

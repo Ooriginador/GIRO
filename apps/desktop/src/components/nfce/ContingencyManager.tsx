@@ -38,7 +38,7 @@ export function ContingencyManager() {
       result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setNotes(result);
     } catch (error) {
-      console.error('Erro ao listar notas:', error);
+      console.error('Erro ao listar notas:', (error as Error)?.message ?? String(error));
       toast({
         title: 'Erro ao carregar notas offline',
         description: String(error),
@@ -92,7 +92,7 @@ export function ContingencyManager() {
         });
       }
     } catch (error) {
-      console.error('Erro na transmissão:', error);
+      console.error('Erro na transmissão:', (error as Error)?.message ?? String(error));
       toast({
         title: 'Erro de Transmissão',
         description: String(error),

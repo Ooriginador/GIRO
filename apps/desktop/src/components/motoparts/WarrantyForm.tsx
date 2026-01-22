@@ -102,7 +102,7 @@ export function WarrantyForm({ onCancel, onSuccess }: WarrantyFormProps) {
       const result = await invoke<ProductSummary[]>('search_products', { query: term });
       setFoundProducts(result || []);
     } catch (error) {
-      console.error('Erro ao buscar produtos:', error);
+      console.error('Erro ao buscar produtos:', (error as Error)?.message ?? String(error));
     } finally {
       setIsSearchingProduct(false);
     }
@@ -128,7 +128,7 @@ export function WarrantyForm({ onCancel, onSuccess }: WarrantyFormProps) {
       });
       onSuccess();
     } catch (error) {
-      console.error('Erro ao registrar garantia:', error);
+      console.error('Erro ao registrar garantia:', (error as Error)?.message ?? String(error));
       toast({
         title: 'Erro ao registrar',
         description: 'Não foi possível abrir a garantia. Tente novamente.',

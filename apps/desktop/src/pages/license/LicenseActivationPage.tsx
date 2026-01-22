@@ -53,7 +53,10 @@ export function LicenseActivationPage() {
         try {
           await setSetting('system.license_key', key, 'string');
         } catch (err) {
-          console.error('Falha ao salvar license key nas configurações:', err);
+          console.error(
+            'Falha ao salvar license key nas configurações:',
+            (err as Error)?.message ?? String(err)
+          );
         }
 
         // Sincronizar dados do proprietário se existirem na licença
@@ -61,7 +64,10 @@ export function LicenseActivationPage() {
           try {
             await setSetting('company.name', info.company_name);
           } catch (err) {
-            console.error('Falha ao salvar nome da empresa da licença:', err);
+            console.error(
+              'Falha ao salvar nome da empresa da licença:',
+              (err as Error)?.message ?? String(err)
+            );
           }
         }
 
@@ -116,7 +122,7 @@ export function LicenseActivationPage() {
           setIsValidating(false);
         }
       } catch (error) {
-        console.error('License validation failed:', error);
+        console.error('License validation failed:', (error as Error)?.message ?? String(error));
         setState('error');
         setIsValidating(false);
       }
@@ -193,13 +199,19 @@ export function LicenseActivationPage() {
               setIsValidating(false);
             }
           } catch (restoreErr) {
-            console.warn('[LicenseActivationPage] Restore failed:', restoreErr);
+            console.warn(
+              '[LicenseActivationPage] Restore failed:',
+              (restoreErr as Error)?.message ?? String(restoreErr)
+            );
             setState('unlicensed');
             setIsValidating(false);
           }
         }
       } catch (error) {
-        console.error('[LicenseActivationPage] Failed to initialize license check:', error);
+        console.error(
+          '[LicenseActivationPage] Failed to initialize license check:',
+          (error as Error)?.message ?? String(error)
+        );
         setState('error');
         setIsValidating(false);
       } finally {
