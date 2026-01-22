@@ -52,9 +52,24 @@ pub async fn create_product(
     employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Product> {
+    tracing::debug!(
+        "create_product called with input: {:?}, employee_id: {}",
+        input,
+        employee_id
+    );
+
     let employee = require_permission!(state.pool(), &employee_id, Permission::CreateProducts);
     let repo = ProductRepository::new(state.pool());
-    let result = repo.create(input).await?;
+    let result = match repo.create(input).await {
+        Ok(product) => {
+            tracing::debug!("Product created successfully: {:?}", product.id);
+            product
+        }
+        Err(e) => {
+            tracing::error!("Failed to create product: {:?}", e);
+            return Err(e);
+        }
+    };
 
     // Audit Log
     let audit_service = AuditService::new(state.pool().clone());

@@ -56,8 +56,9 @@ impl<'a> CustomerRepository<'a> {
         pagination: &Pagination,
         filters: &CustomerFilters,
     ) -> AppResult<PaginatedResult<CustomerWithStats>> {
-        let mut count_builder: QueryBuilder<Sqlite> = QueryBuilder::new("SELECT COUNT(*) FROM customers c WHERE 1=1 ");
-        
+        let mut count_builder: QueryBuilder<Sqlite> =
+            QueryBuilder::new("SELECT COUNT(*) FROM customers c WHERE 1=1 ");
+
         if let Some(active) = filters.is_active {
             count_builder.push(" AND c.is_active = ");
             count_builder.push_bind(if active { 1 } else { 0 });
@@ -83,7 +84,8 @@ impl<'a> CustomerRepository<'a> {
             count_builder.push(")");
         }
 
-        let total: i64 = count_builder.build_query_as::<(i64,)>()
+        let total: i64 = count_builder
+            .build_query_as::<(i64,)>()
             .fetch_one(self.pool)
             .await?
             .0;
@@ -117,7 +119,7 @@ impl<'a> CustomerRepository<'a> {
                 GROUP BY customer_id
             ) so ON so.customer_id = c.id
             WHERE 1=1
-            "#
+            "#,
         );
 
         if let Some(active) = filters.is_active {
@@ -152,7 +154,7 @@ impl<'a> CustomerRepository<'a> {
         data_builder.push_bind(offset as i64);
 
         let rows = data_builder.build().fetch_all(self.pool).await?;
-        
+
         let data: Vec<CustomerWithStats> = rows
             .into_iter()
             .map(|row| {
@@ -236,6 +238,60 @@ impl<'a> CustomerRepository<'a> {
         Ok(customer)
     }
 
+    /// Busca cliente por CPF dentro de uma transação
+    pub async fn find_by_cpf_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        cpf: &str,
+    ) -> AppResult<Option<Customer>> {
+        let customer = sqlx::query_as!(
+            Customer,
+            r#"SELECT 
+                id as "id!", name as "name!",
+                cpf as "cpf?", phone as "phone?", phone2 as "phone2?", email as "email?",
+                zip_code as "zip_code?", street as "street?", number as "number?", 
+                complement as "complement?", neighborhood as "neighborhood?",
+                city as "city?", state as "state?",
+                is_active as "is_active!: bool",
+                notes as "notes?", 
+                created_at as "created_at!", 
+                updated_at as "updated_at!"
+            FROM customers WHERE cpf = ?"#,
+            cpf
+        )
+        .fetch_optional(&mut **tx)
+        .await?;
+
+        Ok(customer)
+    }
+
+    /// Busca cliente por ID dentro de uma transação
+    pub async fn find_by_id_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        id: &str,
+    ) -> AppResult<Option<Customer>> {
+        let customer = sqlx::query_as!(
+            Customer,
+            r#"SELECT 
+                id as "id!", name as "name!",
+                cpf as "cpf?", phone as "phone?", phone2 as "phone2?", email as "email?",
+                zip_code as "zip_code?", street as "street?", number as "number?", 
+                complement as "complement?", neighborhood as "neighborhood?",
+                city as "city?", state as "state?",
+                is_active as "is_active!: bool",
+                notes as "notes?", 
+                created_at as "created_at!", 
+                updated_at as "updated_at!"
+            FROM customers WHERE id = ?"#,
+            id
+        )
+        .fetch_optional(&mut **tx)
+        .await?;
+
+        Ok(customer)
+    }
+
     /// Busca clientes por termo (nome, CPF, telefone)
     pub async fn search(&self, query: &str, limit: i32) -> AppResult<Vec<Customer>> {
         let search_term = format!("%{}%", query.to_lowercase());
@@ -282,7 +338,7 @@ impl<'a> CustomerRepository<'a> {
 
         // Verificar CPF duplicado
         if let Some(ref cpf) = input.cpf {
-            if self.find_by_cpf(cpf).await?.is_some() {
+            if self.find_by_cpf_tx(&mut tx, cpf).await?.is_some() {
                 return Err(AppError::Validation("CPF já cadastrado".into()));
             }
         }
@@ -331,17 +387,19 @@ impl<'a> CustomerRepository<'a> {
         let mut tx = self.pool.begin().await?;
         let now = chrono::Utc::now().to_rfc3339();
 
-        let existing = self
-            .find_by_id(id)
-            .await?
-            .ok_or_else(|| AppError::NotFound {
-                entity: "Customer".to_string(),
-                id: id.to_string(),
-            })?;
+        let existing =
+            self.find_by_id_tx(&mut tx, id)
+                .await?
+                .ok_or_else(|| AppError::NotFound {
+                    entity: "Customer".to_string(),
+                    id: id.to_string(),
+                })?;
 
         // Verificar CPF duplicado (se estiver alterando)
         if let Some(ref cpf) = input.cpf {
-            if Some(cpf.clone()) != existing.cpf && self.find_by_cpf(cpf).await?.is_some() {
+            if Some(cpf.clone()) != existing.cpf
+                && self.find_by_cpf_tx(&mut tx, cpf).await?.is_some()
+            {
                 return Err(AppError::Validation("CPF já cadastrado".into()));
             }
         }

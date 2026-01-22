@@ -119,10 +119,12 @@ export const ProductFormPage: FC = () => {
         });
       }
       navigate('/products');
-    } catch {
+    } catch (error) {
+      console.error('Product save error:', error);
       toast({
         title: 'Erro',
-        description: 'Ocorreu um erro ao salvar o produto.',
+        description:
+          error instanceof Error ? error.message : 'Ocorreu um erro ao salvar o produto.',
         variant: 'destructive',
       });
     }
