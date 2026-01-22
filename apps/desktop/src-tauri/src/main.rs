@@ -29,6 +29,9 @@ async fn main() {
         )
         .init();
 
+    // Load .env file if it exists
+    dotenv::dotenv().ok();
+
     tracing::info!("Iniciando GIRO Desktop v{}", env!("CARGO_PKG_VERSION"));
 
 

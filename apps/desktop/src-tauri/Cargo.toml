@@ -57,6 +57,8 @@ hex = "0.4"
 
 # System info (para mobile server)
 sysinfo = "0.32"
+dotenv = "0.15"
+
 
 # Utilities
 thiserror = "1.0"

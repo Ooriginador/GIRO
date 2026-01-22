@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import { InvokeResult as InvokeResultSchema } from './contracts';
 import type { CreateSale, CreateCashSession, Receipt } from './contracts';
 
