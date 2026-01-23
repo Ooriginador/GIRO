@@ -102,7 +102,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     environment:
       name: production
-      url: https://api.giro.com.br
+      url: https://giro-license-server-production.up.railway.app
 
     steps:
       - uses: actions/checkout@v4
@@ -138,7 +138,7 @@ jobs:
 
       - name: Check API health
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://api.giro.com.br/api/v1/health || echo "000")
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://giro-license-server-production.up.railway.app/api/v1/health || echo "000")
           if [ "$response" != "200" ]; then
             echo "❌ Health check failed with status: $response"
             exit 1
