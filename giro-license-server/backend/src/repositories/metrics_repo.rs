@@ -177,7 +177,7 @@ impl MetricsRepository {
                 m.date,
                 COALESCE(SUM(m.sales_total), 0) as "total_sales",
                 COALESCE(SUM(m.sales_count), 0)::integer as "total_count",
-                COUNT(DISTINCT m.license_id)::integer as "active_licenses"
+                COUNT(m.license_id)::integer as "active_licenses"
             FROM metrics m
             INNER JOIN licenses l ON l.id = m.license_id
             WHERE l.admin_id = $1
