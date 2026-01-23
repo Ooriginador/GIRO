@@ -321,6 +321,7 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
 
   // List of commands that REQUIRE employee_id as a top-level argument
   const commandsRequiringEmployeeId = [
+    // Customers
     'create_customer',
     'update_customer',
     'deactivate_customer',
@@ -329,21 +330,12 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
     'update_customer_vehicle',
     'deactivate_customer_vehicle',
     'update_vehicle_km',
-    'start_service_order',
-    'complete_service_order',
-    'deliver_service_order',
-    'cancel_service_order',
-    'update_service_order',
-    'finish_service_order',
-    'add_service_order_item',
-    'update_service_order_item',
-    'remove_service_order_item',
-    'create_service',
-    'update_service',
-    'get_stock_report',
-    'get_top_products',
-    'get_sales_report',
-    'seed_database',
+    // Employees
+    'create_employee',
+    'update_employee',
+    'deactivate_employee',
+    'reactivate_employee',
+    // Products & Categories
     'create_product',
     'update_product',
     'delete_product',
@@ -354,29 +346,43 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
     'delete_category',
     'deactivate_category',
     'reactivate_category',
-    'close_cash_session',
-    'create_employee',
-    'update_employee',
-    'deactivate_employee',
-    'reactivate_employee',
+    // Stock & Suppliers
     'create_stock_movement',
-    'add_cash_movement',
     'create_supplier',
     'update_supplier',
     'delete_supplier',
     'deactivate_supplier',
     'reactivate_supplier',
+    // Settings
     'set_setting',
     'delete_setting',
+    // Service Orders & Services
+    'create_service_order',
+    'update_service_order',
+    'start_service_order',
+    'complete_service_order',
+    'deliver_service_order',
+    'cancel_service_order',
+    'finish_service_order',
+    'add_service_order_item',
+    'remove_service_order_item',
+    'update_service_order_item',
+    'create_service',
+    'update_service',
+    // Misc
+    'cancel_sale',
+    'seed_database',
+    'close_cash_session',
+    'cloud_backup',
+    'get_stock_report',
+    'get_top_products',
+    'get_sales_report',
+    'get_financial_report',
+    'get_employee_performance',
   ];
 
   // List of commands that require employee_id INSIDE an 'input' object
-  const commandsWithEmployeeIdInInput = [
-    'create_sale',
-    'cancel_sale',
-    'open_cash_session',
-    'add_cash_movement',
-  ];
+  const commandsWithEmployeeIdInInput = ['create_sale', 'open_cash_session', 'add_cash_movement'];
 
   const finalArgs = args ? { ...args } : {};
 
@@ -384,8 +390,14 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
   const employeeId = useAuthStore.getState().employee?.id;
 
   if (employeeId) {
-    if (commandsRequiringEmployeeId.includes(command) && !finalArgs.employee_id) {
+    if (
+      commandsRequiringEmployeeId.includes(command) &&
+      !finalArgs.employee_id &&
+      !finalArgs.employeeId
+    ) {
+      // Backend might expect snake_case (dispatcher) or camelCase (direct)
       finalArgs.employee_id = employeeId;
+      finalArgs.employeeId = employeeId;
     }
 
     if (commandsWithEmployeeIdInInput.includes(command)) {
@@ -1166,8 +1178,8 @@ export async function syncBackupToCloud(
     }
 
     const result = await tauriInvoke<CloudBackupUploadResponse>('upload_cloud_backup_cmd', {
-      bearer_token: bearerToken,
-      data_base64: dataBase64,
+      bearerToken,
+      dataBase64,
     });
 
     console.log('[Backup] Cloud sync successful:', result);
@@ -1287,4 +1299,11 @@ export async function recoverLicenseFromLogin(payload: {
   password: string;
 }): Promise<LicenseInfo> {
   return tauriInvoke<LicenseInfo>('recover_license_from_login', { ...payload });
+}
+export async function get_financial_report(startDate: string, endDate: string) {
+  return invoke<FinancialReport>('get_financial_report', { startDate, endDate });
+}
+
+export async function get_employee_performance(startDate: string, endDate: string) {
+  return invoke<EmployeeRanking[]>('get_employee_performance', { startDate, endDate });
 }

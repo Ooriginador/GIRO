@@ -58,12 +58,16 @@ pub async fn activate_license(
     }
 
     // Sync Admin Account if present in response
+    // DEPRECATED: Automatic sync was causing developer data to leak into new installs.
+    // Admin sync must now be explicitly triggered by the user in the setup wizard.
+    /*
     if let Some(admin_data) = info.admin_user.clone() {
         let repo = EmployeeRepository::new(state.pool());
         if let Err(e) = repo.sync_admin_from_server(admin_data).await {
             tracing::error!("Erro ao sincronizar administrador do servidor: {:?}", e);
         }
     }
+    */
 
     // Sync Company Data
     sync_company_data(&info, state.pool()).await;
@@ -156,7 +160,20 @@ pub async fn recover_license_from_login(
     );
 
     // 4. Activate the selected license
-    activate_license(license_to_activate.license_key.clone(), state).await
+    let info = activate_license(license_to_activate.license_key.clone(), state.clone()).await?;
+
+    // 5. Explicitly sync admin during recovery flow
+    if let Some(admin_data) = info.admin_user.clone() {
+        let repo = EmployeeRepository::new(state.pool());
+        if let Err(e) = repo.sync_admin_from_server(admin_data).await {
+            tracing::error!(
+                "Erro ao sincronizar administrador durante recuperação: {:?}",
+                e
+            );
+        }
+    }
+
+    Ok(info)
 }
 
 #[tauri::command]

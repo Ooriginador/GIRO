@@ -543,20 +543,26 @@ impl LicenseClient {
         Ok(json)
     }
 
-    /// Upload a backup blob to license server using bearer token
+    /// Upload a backup file to license server using bearer token (Streaming)
     pub async fn upload_cloud_backup(
         &self,
         bearer_token: &str,
-        data: Vec<u8>,
+        file_path: std::path::PathBuf,
     ) -> Result<serde_json::Value, String> {
         let url = format!("{}/api/v1/backups", self.config.server_url);
+
+        let file = tokio::fs::File::open(&file_path)
+            .await
+            .map_err(|e| format!("Erro ao abrir arquivo de backup: {}", e))?;
+
+        let stream = reqwest::Body::from(file);
 
         let response = self
             .client
             .post(&url)
             .bearer_auth(bearer_token)
             .header("Content-Type", "application/octet-stream")
-            .body(data)
+            .body(stream)
             .send()
             .await
             .map_err(|e| format!("Erro ao enviar backup: {}", e))?;

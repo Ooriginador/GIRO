@@ -547,3 +547,47 @@ export interface TopItem {
   quantity: number;
   total_value: number;
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// NEW REPORTS
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface SalesReport {
+  totalSales: number;
+  totalRevenue: number;
+  averageTicket: number;
+  salesByPaymentMethod: Record<string, number>;
+  salesByHour: Record<string, number>;
+}
+
+export interface FinancialReport {
+  revenue: number;
+  cogs: number;
+  grossProfit: number;
+  expenses: number;
+  netProfit: number;
+  margin: number;
+}
+
+export interface EmployeeRanking {
+  employeeId: string;
+  employeeName: string;
+  salesCount: number;
+  totalAmount: number;
+  totalCommission: number;
+}
+
+export interface StockReport {
+  totalProducts: number;
+  totalValue: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  expiringCount: number;
+  excessStockCount: number;
+}
+
+export interface TopProduct {
+  product: Product;
+  quantity: number;
+  revenue: number;
+}

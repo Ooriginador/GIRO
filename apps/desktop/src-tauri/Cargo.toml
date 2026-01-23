@@ -1,6 +1,6 @@
 [package]
 name = "giro-desktop"
-version = "1.1.1"
+version = "1.1.2"
 description = "GIRO - Sistema de Gestao Comercial para Varejo"
 authors = ["Arkheion"]
 license = "Proprietary"
@@ -79,6 +79,8 @@ reqwest = { version = "0.12", default-features = false, features = [
   "json",
   "rustls-tls",
   "rustls-tls-native-roots",
+  "multipart",
+  "stream",
 ] }
 rand = "0.9.2"
 argon2 = "0.4"

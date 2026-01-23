@@ -30,7 +30,14 @@ import { LicenseActivationPage } from '@/pages/license';
 import { MotopartsDashboardPage, ServiceOrdersPage, WarrantiesPage } from '@/pages/motoparts';
 import { PDVPage } from '@/pages/pdv';
 import { CategoriesPage, ProductFormPage, ProductsPage } from '@/pages/products';
-import { ReportsPage, SalesReportPage } from '@/pages/reports';
+import {
+  ReportsPage,
+  SalesReportPage,
+  FinancialReportPage,
+  StockReportPage,
+  ProductsRankingPage,
+  EmployeePerformancePage,
+} from '@/pages/reports';
 import { SettingsPage } from '@/pages/settings';
 import { InitialSetupPage } from '@/pages/setup';
 import { ExpirationPage, StockEntryPage, StockMovementsPage, StockPage } from '@/pages/stock';
@@ -280,6 +287,38 @@ const App: FC = () => {
               element={
                 <ProtectedRoute requiredRole={['ADMIN', 'MANAGER', 'VIEWER']}>
                   <SalesReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="reports/financial"
+              element={
+                <ProtectedRoute requiredRole={['ADMIN', 'MANAGER', 'VIEWER']}>
+                  <FinancialReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="reports/stock"
+              element={
+                <ProtectedRoute requiredRole={['ADMIN', 'MANAGER', 'VIEWER']}>
+                  <StockReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="reports/products"
+              element={
+                <ProtectedRoute requiredRole={['ADMIN', 'MANAGER', 'VIEWER']}>
+                  <ProductsRankingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="reports/employees"
+              element={
+                <ProtectedRoute requiredRole={['ADMIN', 'MANAGER', 'VIEWER']}>
+                  <EmployeePerformancePage />
                 </ProtectedRoute>
               }
             />

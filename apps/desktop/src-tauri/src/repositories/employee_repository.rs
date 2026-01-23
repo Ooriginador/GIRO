@@ -306,6 +306,16 @@ impl<'a> EmployeeRepository<'a> {
 
             Ok(self.find_by_id(&admin.id).await?.unwrap())
         } else {
+            // SAFEGUARD: Before creating a new admin from server sync,
+            // ensure there really is NO admin at all to avoid duplicates/account mixing.
+            let already_has_admin = self.has_admin().await?;
+            if already_has_admin {
+                return Err(crate::error::AppError::Duplicate(
+                    "Tentativa de sincronizar admin do servidor mas já existe um admin local."
+                        .into(),
+                ));
+            }
+
             // Create new admin
             let id = if data.id.len() == 36 {
                 data.id.clone()

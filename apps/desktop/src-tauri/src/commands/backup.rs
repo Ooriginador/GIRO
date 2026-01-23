@@ -174,15 +174,22 @@ pub async fn list_cloud_backups_cmd(
 pub async fn upload_cloud_backup_cmd(
     state: State<'_, AppState>,
     bearer_token: String,
-    data_base64: String,
+    filename: String,
 ) -> Result<serde_json::Value, String> {
-    use base64::{engine::general_purpose, Engine as _};
-    let decoded = general_purpose::STANDARD
-        .decode(&data_base64)
-        .map_err(|e| format!("Invalid base64: {}", e))?;
+    // Sanitize filename to prevent directory traversal
+    let safe_filename = std::path::Path::new(&filename)
+        .file_name()
+        .ok_or("Nome de arquivo inválido")?;
+
+    let backup_path = state.backup_dir.join(safe_filename);
+
+    if !backup_path.exists() {
+        return Err(format!("Arquivo de backup não encontrado: {}", filename));
+    }
+
     state
         .license_client
-        .upload_cloud_backup(&bearer_token, decoded)
+        .upload_cloud_backup(&bearer_token, backup_path)
         .await
 }
 

@@ -428,7 +428,7 @@ impl BackupService {
         Ok(())
     }
 
-    /// Faz upload do backup para o Google Drive
+    /// Faz upload do backup para o Google Drive (Streaming Multipart)
     pub async fn upload_to_drive(&self, backup_path: &PathBuf) -> Result<String, String> {
         let creds = self
             .credentials
@@ -439,42 +439,50 @@ impl BackupService {
             .as_ref()
             .ok_or("Token de acesso não disponível")?;
 
-        let data = fs::read(backup_path)
-            .await
-            .map_err(|e| format!("Erro ao ler arquivo: {}", e))?;
-
         let filename = backup_path
             .file_name()
             .and_then(|n| n.to_str())
-            .unwrap_or("backup.db");
+            .unwrap_or("backup.db")
+            .to_string();
 
         let metadata = serde_json::json!({
             "name": filename,
             "parents": ["appDataFolder"]
         });
 
+        let file = tokio::fs::File::open(backup_path)
+            .await
+            .map_err(|e| format!("Erro ao abrir arquivo: {}", e))?;
+
         let client = reqwest::Client::new();
+        let form = reqwest::multipart::Form::new()
+            .part(
+                "metadata",
+                reqwest::multipart::Part::text(metadata.to_string())
+                    .mime_str("application/json")
+                    .map_err(|e| e.to_string())?,
+            )
+            .part(
+                "file",
+                reqwest::multipart::Part::stream(file)
+                    .file_name(filename)
+                    .mime_str("application/octet-stream")
+                    .map_err(|e| e.to_string())?,
+            );
+
         let response = client
             .post("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart")
             .bearer_auth(token)
-            .header(
-                "Content-Type",
-                "multipart/related; boundary=backup_boundary",
-            )
-            .body(
-                format!(
-                    "--backup_boundary\r\n\
-                Content-Type: application/json; charset=UTF-8\r\n\r\n\
-                {}\r\n\
-                --backup_boundary\r\n\
-                Content-Type: application/octet-stream\r\n\r\n",
-                    metadata
-                ) + &String::from_utf8_lossy(&data)
-                    + "\r\n--backup_boundary--",
-            )
+            .multipart(form)
             .send()
             .await
             .map_err(|e| format!("Erro no upload: {}", e))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
+            return Err(format!("Erro no Google Drive ({}): {}", status, text));
+        }
 
         #[derive(Deserialize)]
         struct DriveFile {

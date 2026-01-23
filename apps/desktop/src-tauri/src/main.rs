@@ -239,6 +239,8 @@ async fn main() {
             commands::get_stock_report,
             commands::get_top_products,
             commands::get_sales_report,
+            commands::get_financial_report,
+            commands::get_employee_performance,
             commands::get_motoparts_dashboard_stats,
             commands::get_service_order_stats,
             commands::get_top_products_motoparts,

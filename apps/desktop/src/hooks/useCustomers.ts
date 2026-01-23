@@ -1,5 +1,5 @@
 import { useToast } from '@/hooks/use-toast';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@/lib/tauri';
 import { useCallback, useEffect, useState } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════════════

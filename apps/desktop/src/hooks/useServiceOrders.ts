@@ -283,20 +283,17 @@ export function useServiceOrders() {
       id,
       paymentMethod,
       amountPaid,
-      employeeId,
       sessionId,
     }: {
       id: string;
       paymentMethod: string;
       amountPaid: number;
-      employeeId: string;
       sessionId: string;
     }) => {
       const result = await invoke<string>('finish_service_order', {
         id,
         payment_method: paymentMethod,
         amount_paid: amountPaid,
-        employee_id: employeeId,
         cash_session_id: sessionId,
       });
       return result;

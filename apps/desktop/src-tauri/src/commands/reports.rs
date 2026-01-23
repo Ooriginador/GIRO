@@ -19,6 +19,7 @@ pub struct StockReport {
     pub out_of_stock_count: i64,
     pub expiring_count: i64,
     pub excess_stock_count: i64,
+    pub valuation_by_category: HashMap<String, f64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -37,6 +38,27 @@ pub struct SalesReport {
     pub average_ticket: f64,
     pub sales_by_payment_method: HashMap<String, f64>,
     pub sales_by_hour: HashMap<String, f64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FinancialReport {
+    pub revenue: f64,
+    pub cogs: f64, // Cost of Goods Sold
+    pub gross_profit: f64,
+    pub expenses: f64,
+    pub net_profit: f64,
+    pub margin: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EmployeeRanking {
+    pub employee_id: String,
+    pub employee_name: String,
+    pub sales_count: i64,
+    pub total_amount: f64,
+    pub total_commission: f64,
 }
 
 #[tauri::command]
@@ -62,6 +84,29 @@ pub async fn get_stock_report(
     // "Expirando" em 30 dias (padrão simples)
     let expiring_count = stock_repo.find_expiring_lots(30).await?.len() as i64;
 
+    // Valuation por categoria
+    let category_rows = sqlx::query(
+        r#"
+        SELECT 
+            COALESCE(c.name, 'Sem Categoria') as category_name,
+            SUM(p.current_stock * p.cost_price) as total_value
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.is_active = 1
+        GROUP BY category_name
+        ORDER BY total_value DESC
+        "#,
+    )
+    .fetch_all(state.pool())
+    .await?;
+
+    let mut valuation_by_category = HashMap::new();
+    for row in category_rows {
+        let name: String = row.try_get("category_name")?;
+        let value: f64 = row.try_get("total_value")?;
+        valuation_by_category.insert(name, value);
+    }
+
     Ok(StockReport {
         total_products,
         total_value,
@@ -69,6 +114,7 @@ pub async fn get_stock_report(
         out_of_stock_count,
         expiring_count,
         excess_stock_count,
+        valuation_by_category,
     })
 }
 
@@ -212,4 +258,119 @@ pub async fn get_sales_report(
         sales_by_payment_method,
         sales_by_hour,
     })
+}
+
+#[tauri::command]
+pub async fn get_financial_report(
+    start_date: String,
+    end_date: String,
+    employee_id: String,
+    state: State<'_, AppState>,
+) -> AppResult<FinancialReport> {
+    crate::require_permission!(state.pool(), &employee_id, Permission::ViewReports);
+
+    // Receita Total
+    let revenue_row = sqlx::query(
+        "SELECT COALESCE(SUM(total), 0.0) as revenue FROM sales WHERE status = 'COMPLETED' AND date(created_at) >= date(?) AND date(created_at) <= date(?)"
+    )
+    .bind(&start_date)
+    .bind(&end_date)
+    .fetch_one(state.pool())
+    .await?;
+    let revenue: f64 = revenue_row.try_get("revenue")?;
+
+    // CMV (Custo de Mercadoria Vendida)
+    let cogs_row = sqlx::query(
+        r#"
+        SELECT COALESCE(SUM(si.quantity * p.cost_price), 0.0) as cogs
+        FROM sale_items si
+        JOIN sales s ON s.id = si.sale_id
+        JOIN products p ON p.id = si.product_id
+        WHERE s.status = 'COMPLETED'
+          AND date(s.created_at) >= date(?)
+          AND date(s.created_at) <= date(?)
+        "#,
+    )
+    .bind(&start_date)
+    .bind(&end_date)
+    .fetch_one(state.pool())
+    .await?;
+    let cogs: f64 = cogs_row.try_get("cogs")?;
+
+    // Despesas (Sangrias/Saídas)
+    let expenses_row = sqlx::query(
+        r#"
+        SELECT COALESCE(SUM(amount), 0.0) as expenses
+        FROM cash_movements
+        WHERE type = 'OUTGO'
+          AND date(created_at) >= date(?)
+          AND date(created_at) <= date(?)
+        "#,
+    )
+    .bind(&start_date)
+    .bind(&end_date)
+    .fetch_one(state.pool())
+    .await?;
+    let expenses: f64 = expenses_row.try_get("expenses")?;
+
+    let gross_profit = revenue - cogs;
+    let net_profit = gross_profit - expenses;
+    let margin = if revenue > 0.0 {
+        (net_profit / revenue) * 100.0
+    } else {
+        0.0
+    };
+
+    Ok(FinancialReport {
+        revenue,
+        cogs,
+        gross_profit,
+        expenses,
+        net_profit,
+        margin,
+    })
+}
+
+#[tauri::command]
+pub async fn get_employee_performance(
+    start_date: String,
+    end_date: String,
+    employee_id: String,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<EmployeeRanking>> {
+    crate::require_permission!(state.pool(), &employee_id, Permission::ViewReports);
+
+    let rows = sqlx::query(
+        r#"
+        SELECT 
+            e.id as employee_id,
+            e.name as employee_name,
+            COUNT(s.id) as sales_count,
+            COALESCE(SUM(s.total), 0.0) as total_amount,
+            COALESCE(SUM(c.amount), 0.0) as total_commission
+        FROM employees e
+        LEFT JOIN sales s ON s.employee_id = e.id AND s.status = 'COMPLETED' 
+            AND date(s.created_at) >= date(?) AND date(s.created_at) <= date(?)
+        LEFT JOIN commissions c ON c.sale_id = s.id
+        GROUP BY e.id, e.name
+        ORDER BY total_amount DESC
+        "#,
+    )
+    .bind(&start_date)
+    .bind(&end_date)
+    .fetch_all(state.pool())
+    .await?;
+
+    let mut ranking = Vec::new();
+    for row in rows {
+        ranking.push(EmployeeRanking {
+            employee_id: row.try_get("employee_id")?,
+            employee_name: row.try_get("employee_name")?,
+            sales_count: row.try_get("sales_count")?,
+            total_amount: row.try_get("total_amount")?,
+            total_commission: row.try_get("total_commission")?,
+        });
+    }
+
+    Ok(ranking)
 }

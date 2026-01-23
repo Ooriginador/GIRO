@@ -96,37 +96,17 @@ pub async fn get_service_order_details(
 
 /// Cria nova ordem de serviço
 #[tauri::command]
-#[allow(clippy::too_many_arguments)]
 pub async fn create_service_order(
     state: State<'_, AppState>,
-    customer_id: String,
-    customer_vehicle_id: String,
-    vehicle_year_id: String,
-    employee_id: String,
-    vehicle_km: Option<i32>,
-    symptoms: Option<String>,
-    scheduled_date: Option<String>,
-    notes: Option<String>,
-    internal_notes: Option<String>,
-    status: Option<String>,
+    input: CreateServiceOrder,
 ) -> AppResult<ServiceOrder> {
-    let employee = require_permission!(state.pool(), &employee_id, Permission::CreateServiceOrder);
+    let employee = require_permission!(
+        state.pool(),
+        &input.employee_id,
+        Permission::CreateServiceOrder
+    );
     let repo = ServiceOrderRepository::new(state.pool().clone());
-
-    let input = CreateServiceOrder {
-        customer_id: customer_id.clone(),
-        customer_vehicle_id: customer_vehicle_id.clone(),
-        vehicle_year_id,
-        employee_id: employee_id.clone(),
-        vehicle_km,
-        symptoms,
-        scheduled_date,
-        notes,
-        internal_notes,
-        status,
-    };
-
-    let result = repo.create(input).await?;
+    let result = repo.create(input.clone()).await?;
 
     // Audit Log
     let audit_service = AuditService::new(state.pool().clone());
@@ -137,7 +117,10 @@ pub async fn create_service_order(
         &employee.name,
         "ServiceOrder",
         &result.id,
-        format!("Cliente: {}, Veículo: {}", customer_id, customer_vehicle_id)
+        format!(
+            "Cliente: {}, Veículo: {}",
+            input.customer_id, input.customer_vehicle_id
+        )
     );
 
     Ok(result)
@@ -145,43 +128,15 @@ pub async fn create_service_order(
 
 /// Atualiza ordem de serviço
 #[tauri::command]
-#[allow(clippy::too_many_arguments)]
 pub async fn update_service_order(
     state: State<'_, AppState>,
     id: String,
-    vehicle_km: Option<i32>,
-    symptoms: Option<String>,
-    diagnosis: Option<String>,
-    status: Option<String>,
-    labor_cost: Option<f64>,
-    discount: Option<f64>,
-    warranty_days: Option<i32>,
-    scheduled_date: Option<String>,
-    payment_method: Option<String>,
-    is_paid: Option<bool>,
-    notes: Option<String>,
-    internal_notes: Option<String>,
+    input: UpdateServiceOrder,
     employee_id: String,
 ) -> AppResult<ServiceOrder> {
     let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateServiceOrder);
     let repo = ServiceOrderRepository::new(state.pool().clone());
-
-    let input = UpdateServiceOrder {
-        vehicle_km,
-        symptoms,
-        diagnosis,
-        status: status.clone(),
-        labor_cost,
-        discount,
-        warranty_days,
-        scheduled_date,
-        payment_method,
-        is_paid,
-        notes,
-        internal_notes,
-    };
-
-    let result = repo.update(&id, input).await?;
+    let result = repo.update(&id, input.clone()).await?;
 
     // Audit Log
     let audit_service = AuditService::new(state.pool().clone());
@@ -192,7 +147,7 @@ pub async fn update_service_order(
         &employee.name,
         "ServiceOrder",
         &id,
-        format!("Status: {:?}", status)
+        format!("Status: {:?}", input.status)
     );
 
     Ok(result)
