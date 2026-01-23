@@ -67,6 +67,11 @@ pub fn normalize_license_key(key: &str) -> String {
     key.trim().to_uppercase().replace(' ', "")
 }
 
+/// Normalize machine name for comparison
+pub fn normalize_machine_name(name: Option<&str>) -> String {
+    name.unwrap_or_default().trim().to_lowercase()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

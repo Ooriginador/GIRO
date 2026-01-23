@@ -257,6 +257,7 @@ async fn main() {
             commands::update_license_admin,
             commands::recover_license_from_login,
             commands::license_server_login,
+            commands::test_license_connection,
         ]);
 
         builder
@@ -670,27 +671,30 @@ async fn main() {
             commands::get_server_time,
             commands::restore_license,
             commands::update_license_admin,
+            commands::test_license_connection,
         ])
         .run(tauri::generate_context!())
         .expect("Erro ao executar aplicação Tauri");
 }
 
 /// Generate hardware ID following server specification:
-/// Format: SHA256 hash (64 chars) of CPU:xxx|MB:xxx|MAC:xxx|DISK:xxx
-/// This creates a unique fingerprint for hardware binding
+/// Format: SHA256 hash (64 chars) of CPU:xxx|MB:xxx|MAC:xxx|BIOS:xxx
+/// This creates a unique fingerprint for hardware binding without dynamic IP instability
 fn generate_hardware_id() -> String {
     use sha2::{Digest, Sha256};
 
     let cpu_id = get_cpu_id();
     let mb_serial = get_motherboard_serial();
     let mac_address = get_primary_mac_address();
-    let disk_serial = get_disk_serial();
+    let bios_serial = get_bios_serial();
 
-    // Format raw fingerprint
+    // Format raw fingerprint (REMOVED IP dependency)
     let raw_fingerprint = format!(
-        "CPU:{}|MB:{}|MAC:{}|DISK:{}",
-        cpu_id, mb_serial, mac_address, disk_serial
+        "CPU:{}|MB:{}|MAC:{}|BIOS:{}",
+        cpu_id, mb_serial, mac_address, bios_serial
     );
+
+    tracing::debug!("Raw Hardware Fingerprint source: {}", raw_fingerprint);
 
     // Hash with SHA256 to create 64-char hex string (required by server)
     let mut hasher = Sha256::new();
@@ -699,11 +703,30 @@ fn generate_hardware_id() -> String {
     hex::encode(result)
 }
 
+/// Get BIOS serial number (Highly stable on Windows)
+fn get_bios_serial() -> String {
+    #[cfg(target_os = "windows")]
+    {
+        let output = std::process::Command::new("wmic")
+            .args(["bios", "get", "serialnumber"])
+            .output();
+
+        if let Ok(out) = output {
+            if let Ok(stdout) = String::from_utf8(out.stdout) {
+                let lines: Vec<&str> = stdout.lines().filter(|l| !l.trim().is_empty()).collect();
+                if lines.len() > 1 {
+                    return lines[1].trim().to_string();
+                }
+            }
+        }
+    }
+    "UNKNOWN-BIOS".to_string()
+}
+
 /// Get CPU identifier
 fn get_cpu_id() -> String {
     #[cfg(target_os = "linux")]
     {
-        // Linux: Read from /proc/cpuinfo
         if let Ok(content) = std::fs::read_to_string("/proc/cpuinfo") {
             for line in content.lines() {
                 if line.starts_with("model name") || line.starts_with("Serial") {
@@ -717,7 +740,6 @@ fn get_cpu_id() -> String {
 
     #[cfg(target_os = "windows")]
     {
-        // 1. Try WMIC with timeout
         let wmic_cmd = std::process::Command::new("wmic")
             .args(["cpu", "get", "ProcessorId"])
             .output();
@@ -727,20 +749,6 @@ fn get_cpu_id() -> String {
                 let lines: Vec<&str> = stdout.lines().filter(|l| !l.trim().is_empty()).collect();
                 if lines.len() > 1 {
                     return lines[1].trim().to_string();
-                }
-            }
-        }
-
-        // 2. Try PowerShell (Fallback)
-        let ps_cmd = std::process::Command::new("powershell")
-            .args(["-Command", "Get-CimInstance -ClassName Win32_Processor | Select-Object -ExpandProperty ProcessorId"])
-            .output();
-
-        if let Ok(output) = ps_cmd {
-            if let Ok(stdout) = String::from_utf8(output.stdout) {
-                let id = stdout.trim();
-                if !id.is_empty() {
-                    return id.to_string();
                 }
             }
         }
@@ -836,9 +844,35 @@ fn get_motherboard_serial() -> String {
 
 /// Get primary MAC address (physical, non-virtual)
 fn get_primary_mac_address() -> String {
-    // Use mac_address crate or fallback to interface names
+    #[cfg(target_os = "windows")]
+    {
+        // Use getmac on Windows for reliable physical MAC
+        let output = std::process::Command::new("getmac")
+            .args(["/FO", "CSV", "/NH", "/V"])
+            .output();
+
+        if let Ok(out) = output {
+            if let Ok(stdout) = String::from_utf8(out.stdout) {
+                for line in stdout.lines() {
+                    // Try to find a physical adapter (Ethernet or Wi-Fi)
+                    if (line.contains("Ethernet") || line.contains("Wi-Fi"))
+                        && !line.contains("Virtual")
+                    {
+                        let parts: Vec<&str> = line.split(',').collect();
+                        if parts.len() > 3 {
+                            let mac = parts[2].trim().replace("\"", "").replace("-", ":");
+                            if !mac.is_empty() && mac != "N/A" {
+                                return mac;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Fallback/Non-Windows logic (Linux/MacOS)
     if let Ok(interfaces) = local_ip_address::list_afinet_netifas() {
-        // Filter physical interfaces
         let physical_interfaces: Vec<_> = interfaces
             .iter()
             .filter(|(name, _)| {
@@ -848,19 +882,12 @@ fn get_primary_mac_address() -> String {
                     && !name.starts_with("br-")
                     && !name.contains("VMware")
                     && !name.contains("VirtualBox")
+                    && !name.contains("wsl")
             })
             .collect();
 
-        if let Some((name, ip)) = physical_interfaces.first() {
-            // Return a hash of interface name + IP for consistency
-            use sha2::{Digest, Sha256};
-            let mut hasher = Sha256::new();
-            hasher.update(format!("{}:{}", name, ip).as_bytes());
-            let result = hasher.finalize();
-            return format!(
-                "{:02X}-{:02X}-{:02X}-{:02X}-{:02X}-{:02X}",
-                result[0], result[1], result[2], result[3], result[4], result[5]
-            );
+        if let Some((name, _)) = physical_interfaces.first() {
+            return name.to_string(); // Stable interface name
         }
     }
 

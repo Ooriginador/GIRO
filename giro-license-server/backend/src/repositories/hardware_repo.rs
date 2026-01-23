@@ -181,4 +181,25 @@ impl HardwareRepository {
 
         Ok(conflict)
     }
+
+    /// Update hardware fingerprint (Used for stable ID migration)
+    pub async fn update_fingerprint(&self, old_hw_id_row_id: Uuid, new_fingerprint: &str) -> AppResult<()> {
+        let mut tx = self.pool.begin().await?;
+
+        // 1. Update the record in license_hardware (this links to licenses)
+        sqlx::query(
+            "UPDATE license_hardware SET hardware_id = $1 WHERE id = $2"
+        )
+        .bind(new_fingerprint)
+        .bind(old_hw_id_row_id)
+        .execute(&mut *tx)
+        .await?;
+
+        // 2. We don't necessarily update the 'hardware' table because it's a global registry 
+        // and fingerprints are unique keys there. If we just changed it there, it might collide.
+        // For GIRO's transition, updating license_hardware is enough to satisfy the service match.
+
+        tx.commit().await?;
+        Ok(())
+    }
 }

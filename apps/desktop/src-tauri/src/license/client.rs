@@ -37,7 +37,7 @@ pub enum LicenseStatus {
 
 /// License information
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct LicenseInfo {
     pub key: Option<String>,
     pub status: LicenseStatus,
@@ -62,7 +62,7 @@ pub struct LicenseInfo {
 
 /// Admin user sync data
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct AdminUserSyncData {
     pub id: String,
     pub name: String,
@@ -82,7 +82,7 @@ struct ActivateRequest {
 
 /// Admin update request
 #[derive(Debug, Serialize, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct UpdateAdminRequest {
     pub name: String,
     pub email: String,
@@ -95,12 +95,25 @@ pub struct UpdateAdminRequest {
     pub pin: String,
 }
 
+/// Network diagnostic result
+#[derive(Debug, Serialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+pub struct ConnectionDiagnostic {
+    pub success: bool,
+    pub status_code: u16,
+    pub message: String,
+    pub dns_resolved: bool,
+    pub can_reach_server: bool,
+}
+
 /// Validation request
 #[derive(Debug, Serialize)]
 struct ValidateRequest {
     license_key: String,
     hardware_id: String,
     client_time: DateTime<Utc>,
+    machine_name: Option<String>,
+    os_version: Option<String>,
 }
 
 /// Login request
@@ -118,18 +131,38 @@ struct LoginResponse {
 
 /// License Summary from list endpoint
 #[derive(Debug, Clone, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct LicenseSummary {
     pub id: String,
     pub license_key: String,
     pub status: LicenseStatus,
     pub plan_type: String,
+    pub activated_at: Option<DateTime<Utc>>,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub last_validated: Option<DateTime<Utc>>,
+    pub support_expires_at: Option<DateTime<Utc>>,
+    pub can_offline: Option<bool>,
+    pub created_at: DateTime<Utc>,
+    pub max_hardware: i32,
+    pub active_hardware_count: Option<i64>,
+}
+
+/// Pagination metadata alignment
+#[derive(Debug, Deserialize, specta::Type)]
+pub struct PaginationMeta {
+    pub page: i32,
+    pub limit: i32,
+    pub total: i64,
+    pub total_pages: i32,
+    pub has_next: bool,
+    pub has_prev: bool,
 }
 
 /// Pagination wrapper
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, specta::Type)]
 struct PaginatedResponse<T> {
-    data: Vec<T>,
+    pub data: Vec<T>,
+    pub pagination: PaginationMeta,
 }
 
 /// Metrics inner payload
@@ -149,7 +182,7 @@ pub struct MetricsData {
 
 /// Metrics sync payload (as passed from frontend/service)
 #[derive(Debug, Serialize, Deserialize, Clone, specta::Type)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct MetricsPayload {
     pub date: String,
     pub sales_total: f64,
@@ -314,6 +347,12 @@ impl LicenseClient {
             license_key: license_key.to_string(),
             hardware_id: hardware_id.to_string(),
             client_time: Utc::now(),
+            machine_name: hostname::get().ok().and_then(|h| h.into_string().ok()),
+            os_version: Some(format!(
+                "{} {}",
+                std::env::consts::OS,
+                std::env::consts::ARCH
+            )),
         };
 
         // Retry with exponential backoff on transient connection errors
@@ -756,6 +795,49 @@ impl LicenseClient {
             .map_err(|e| format!("Resposta inválida do servidor: {}", e))?;
 
         Ok(body.data)
+    }
+
+    /// Test connection to license server
+    pub async fn test_connection(&self) -> ConnectionDiagnostic {
+        let url = format!("{}/api/v1/health", self.config.server_url);
+
+        let res = self.client.get(&url).send().await;
+
+        match res {
+            Ok(resp) => {
+                let status = resp.status();
+                ConnectionDiagnostic {
+                    success: status.is_success(),
+                    status_code: status.as_u16(),
+                    message: "Conexão estabelecida com sucesso".to_string(),
+                    dns_resolved: true,
+                    can_reach_server: true,
+                }
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                let dns_failed = msg.contains("dns") || msg.contains("resolve");
+                let server_unreachable = msg.contains("connect") || msg.contains("timeout");
+
+                let friendly_msg = if msg.contains("cert") || msg.contains("ssl") {
+                    "Erro de Certificado SSL/TLS. Verifique se a data do seu computador está correta.".to_string()
+                } else if dns_failed {
+                    "Não foi possível resolver o endereço do servidor (DNS). Verifique sua internet.".to_string()
+                } else if server_unreachable {
+                    "O servidor de licenças está inacessível. Pode estar em manutenção ou bloqueado pelo Firewall.".to_string()
+                } else {
+                    format!("Erro de conexão: {}", msg)
+                };
+
+                ConnectionDiagnostic {
+                    success: false,
+                    status_code: 0,
+                    message: friendly_msg,
+                    dns_resolved: !dns_failed,
+                    can_reach_server: !server_unreachable,
+                }
+            }
+        }
     }
 }
 

@@ -172,9 +172,9 @@ impl LicenseService {
         &self,
         license_key: &str,
         hardware_id: &str,
-        machine_name: Option<&str>,
-        os_version: Option<&str>,
-        cpu_info: Option<&str>,
+        machine_name: Option<String>,
+        os_version: Option<String>,
+        cpu_info: Option<String>,
         ip_address: Option<IpAddr>,
     ) -> AppResult<ActivateLicenseResponse> {
         let license_repo = self.license_repo();
@@ -265,9 +265,9 @@ impl LicenseService {
             .activate_with_support(
                 license.id, 
                 hardware_id, 
-                machine_name, 
-                os_version, 
-                cpu_info, 
+                machine_name.as_deref(), 
+                os_version.as_deref(), 
+                cpu_info.as_deref(), 
                 expires_at, 
                 support_expires_at
             )
@@ -341,6 +341,8 @@ impl LicenseService {
         license_key: &str,
         hardware_id: &str,
         client_time: chrono::DateTime<Utc>,
+        machine_name: Option<&str>,
+        os_version: Option<&str>,
         ip_address: Option<IpAddr>,
     ) -> AppResult<ValidateLicenseResponse> {
         let license_repo = self.license_repo();
@@ -363,24 +365,49 @@ impl LicenseService {
             .ok_or_else(|| AppError::NotFound("Licença não encontrada".to_string()))?;
 
         // Check hardware match
-        let has_hardware_match = license.hardware.iter().any(|h| h.hardware_id == hardware_id);
+        let hardware_match = license.hardware.iter().find(|h| h.hardware_id == hardware_id);
 
-        if !has_hardware_match {
-            audit_repo
-                .log(
-                    AuditAction::LicenseValidationFailed,
-                    Some(license.admin_id),
-                    Some(license.id),
-                    ip_address.map(|ip| ip.to_string()),
-                    serde_json::json!({
-                        "reason": "hardware_mismatch",
-                        "received": hardware_id,
-                        "allowed_count": license.hardware.len()
-                    }),
-                )
-                .await?;
+        if hardware_match.is_none() {
+            // TRANSITION FALLBACK: If ID doesn't match, check if machine_name + os_version does
+            // This allows auto-updating from the old "IP-inclusive" ID to the new stable ID.
+            let machine_name_received = crate::utils::normalize_machine_name(machine_name.as_deref());
+            
+            let possible_match = license.hardware.iter().find(|h| {
+                let h_name = crate::utils::normalize_machine_name(h.machine_name.as_deref());
+                let h_os = h.os_version.as_deref().unwrap_or_default();
+                let req_os = os_version.as_deref().unwrap_or_default();
+                
+                !h_name.is_empty() && h_name == machine_name_received && h_os == req_os
+            });
 
-            return Err(AppError::HardwareMismatch);
+            if let Some(matched_hw) = possible_match {
+                tracing::info!(
+                    "🔄 [LicenseService] Auto-migrating hardware ID for machine '{}': {} -> {}",
+                    matched_hw.machine_name.as_deref().unwrap_or("unknown"),
+                    matched_hw.hardware_id,
+                    hardware_id
+                );
+
+                self.hardware_repo()
+                    .update_fingerprint(matched_hw.id, hardware_id)
+                    .await?;
+            } else {
+                audit_repo
+                    .log(
+                        AuditAction::LicenseValidationFailed,
+                        Some(license.admin_id),
+                        Some(license.id),
+                        ip_address.map(|ip| ip.to_string()),
+                        serde_json::json!({
+                            "reason": "hardware_mismatch",
+                            "received": hardware_id,
+                            "allowed_count": license.hardware.len()
+                        }),
+                    )
+                    .await?;
+
+                return Err(AppError::HardwareMismatch);
+            }
         }
 
         // Check status and expiration

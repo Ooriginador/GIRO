@@ -277,6 +277,14 @@ pub async fn update_license_admin(
     client.update_admin(&normalized_key, data).await
 }
 
+#[tauri::command]
+#[specta::specta]
+pub async fn test_license_connection(
+    state: State<'_, AppState>,
+) -> Result<crate::license::ConnectionDiagnostic, String> {
+    Ok(state.license_client.test_connection().await)
+}
+
 /// Helper to sync company data from license info to local settings
 async fn sync_company_data(info: &LicenseInfo, pool: &sqlx::SqlitePool) {
     let repo = SettingsRepository::new(pool);

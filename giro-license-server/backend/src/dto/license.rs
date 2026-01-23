@@ -151,6 +151,12 @@ pub struct ValidateLicenseRequest {
 
     /// Client timestamp for drift detection
     pub client_time: DateTime<Utc>,
+
+    /// Machine name (for transition matching)
+    pub machine_name: Option<String>,
+
+    /// OS version (for transition matching)
+    pub os_version: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
