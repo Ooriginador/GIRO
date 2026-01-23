@@ -159,19 +159,19 @@ if [ -d "src-tauri/target/x86_64-pc-windows-gnu/release/bundle" ]; then
     CLEANED=$((CLEANED+1))
 fi
 
-# Arquivos temporários
+# Arquivos temporários e bancos de dados persistentes (LIMPEZA AGRESSIVA)
 if [ -d ".tauri" ]; then
     log_info "Removendo diretório .tauri..."
     rm -rf .tauri
     CLEANED=$((CLEANED+1))
 fi
 
-# Logs antigos
-if [ -f "src-tauri/giro.db-shm" ] || [ -f "src-tauri/giro.db-wal" ]; then
-    log_info "Removendo arquivos WAL/SHM do SQLite..."
-    rm -f src-tauri/giro.db-shm src-tauri/giro.db-wal
-    CLEANED=$((CLEANED+1))
-fi
+log_info "Limpando diretórios de dados locais (Removendo DBs e Logs)..."
+rm -f src-tauri/giro.db*
+rm -rf src-tauri/logs
+# No Windows, os dados ficam em %LOCALAPPDATA%\GIRO. No Linux simulando build, limpamos o local
+CLEANED=$((CLEANED+1))
+
 
 if [ $CLEANED -eq 0 ]; then
     log_info "Nenhum arquivo antigo encontrado. Ambiente limpo!"
@@ -235,6 +235,23 @@ else
     pnpm install --frozen-lockfile
     log_success "Dependências atualizadas!"
 fi
+
+# ────────────────────────────────────────────────────────────────────────────
+# Preparação de Dependências Nativas (Windows)
+# ────────────────────────────────────────────────────────────────────────────
+
+log_step "4b. Baixando WebView2Loader.dll"
+
+cd src-tauri
+if [ ! -f "libs/x64/WebView2Loader.dll" ]; then
+    log_info "Baixando DLL necessária para o target GNU..."
+    chmod +x download-webview2-dll.sh
+    ./download-webview2-dll.sh
+else
+    log_info "WebView2Loader.dll já presente."
+fi
+cd ..
+
 
 # ────────────────────────────────────────────────────────────────────────────
 # Build do Frontend
