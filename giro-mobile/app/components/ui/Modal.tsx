@@ -85,10 +85,10 @@ interface ConfirmModalProps {
   cancelText?: string;
   confirmVariant?: 'default' | 'destructive';
   onConfirm: () => void;
-  onCancel: () => void;
-  onClose?: () => void; // Compatibilidade com Modal base
+  onCancel?: () => void; // Made optional - onClose serves as fallback
+  onClose?: () => void;
   isLoading?: boolean;
-  variant?: 'default' | 'destructive'; // Alias para confirmVariant
+  variant?: 'default' | 'destructive';
 }
 
 export function ConfirmModal({
@@ -105,7 +105,8 @@ export function ConfirmModal({
   isLoading,
 }: ConfirmModalProps) {
   const finalVariant = variant || confirmVariant;
-  const finalClose = onClose || onCancel;
+  const handleCancel = onCancel || onClose || (() => {});
+  const finalClose = onClose || onCancel || (() => {});
 
   return (
     <Modal
@@ -118,7 +119,7 @@ export function ConfirmModal({
       <Text className="text-foreground-secondary mb-6">{message}</Text>
 
       <View className="flex-row gap-3">
-        <Button variant="secondary" className="flex-1" onPress={onCancel} disabled={isLoading}>
+        <Button variant="secondary" className="flex-1" onPress={handleCancel} disabled={isLoading}>
           {cancelText}
         </Button>
         <Button variant={finalVariant} className="flex-1" onPress={onConfirm} isLoading={isLoading}>
