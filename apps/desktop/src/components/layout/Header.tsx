@@ -34,7 +34,7 @@ export const Header: FC = () => {
   const [showLogoutWarning, setShowLogoutWarning] = useState(false);
 
   const handleLogout = () => {
-    if (currentSession) {
+    if (currentSession && currentSession.status === 'OPEN') {
       // Mostrar modal de confirmação se caixa está aberto
       setShowLogoutWarning(true);
       return;
