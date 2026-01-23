@@ -111,6 +111,37 @@ export const LicenseGuard: FC<LicenseGuardProps> = ({ children }) => {
 
     checkLicense();
 
+    // Configurar revalidação periódica (a cada 60 minutos)
+    const VALIDATION_INTERVAL_MS = 60 * 60 * 1000;
+
+    const revalidationId = setInterval(async () => {
+      console.log('[LicenseGuard] Triggering periodic revalidation...');
+      const store = useLicenseStore.getState();
+
+      // Só tenta revalidar se já estiver "valid" e tivermos uma chave
+      if (store.state === 'valid' && store.licenseKey) {
+        try {
+          // Verifica se PRECISA validar (expirou cache local)
+          // Ou forçamos a cada X tempo. needsValidation já checa cache de 1h.
+          if (store.needsValidation()) {
+            console.log('[LicenseGuard] Cache expired, attempting online validation...');
+            const info = await validateLicense(store.licenseKey);
+
+            // Atualiza info. Se status mudou (ex: expired), setLicenseInfo atualiza state e UI reage.
+            setLicenseInfo(info);
+            updateLastValidation();
+            console.log(`[LicenseGuard] Revalidation success. Status: ${info.status}`);
+          } else {
+            console.log('[LicenseGuard] Validation cache still valid, skipping online check.');
+          }
+        } catch (err) {
+          console.warn('[LicenseGuard] Periodic validation failed (network?):', err);
+          // Não mudamos estado para 'error' aqui para não bloquear o usuário no meio da operação
+          // se for apenas queda de internet. O Grace Period cuida disso.
+        }
+      }
+    }, VALIDATION_INTERVAL_MS);
+
     const timeoutId = setTimeout(() => {
       if (localLoading) {
         console.warn('[LicenseGuard] 10s timeout reached, forcing loading end.');
@@ -118,7 +149,10 @@ export const LicenseGuard: FC<LicenseGuardProps> = ({ children }) => {
       }
     }, 10000);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(revalidationId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     e2eBypass,
