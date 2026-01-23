@@ -69,17 +69,17 @@ export function Badge({ children, variant, size, icon, className, ...props }: Ba
 // Badge específico para estoque
 interface StockBadgeProps extends ViewProps {
   current: number;
-  min: number;
+  minimum: number;
 }
 
-export function StockBadge({ current, min, className, ...props }: StockBadgeProps) {
+export function StockBadge({ current, minimum, className, ...props }: StockBadgeProps) {
   let variant: 'success' | 'warning' | 'error' = 'success';
   let label = 'OK';
 
   if (current <= 0) {
     variant = 'error';
     label = 'Sem estoque';
-  } else if (current <= min) {
+  } else if (current <= minimum) {
     variant = 'warning';
     label = 'Baixo';
   }
@@ -93,20 +93,38 @@ export function StockBadge({ current, min, className, ...props }: StockBadgeProp
 
 // Badge para validade
 interface ExpirationBadgeProps extends ViewProps {
-  daysUntil: number;
+  daysUntil?: number;
+  expirationDate?: string | Date; // Compatibilidade com datas diretas
 }
 
-export function ExpirationBadge({ daysUntil, className, ...props }: ExpirationBadgeProps) {
-  let variant: 'success' | 'warning' | 'error' = 'success';
-  let label = `${daysUntil}d`;
+export function ExpirationBadge({
+  daysUntil,
+  expirationDate,
+  className,
+  ...props
+}: ExpirationBadgeProps) {
+  let days = daysUntil;
 
-  if (daysUntil <= 0) {
+  // Se passou data, calcula dias restantes
+  if (expirationDate) {
+    const date = new Date(expirationDate);
+    const now = new Date();
+    const diffTime = date.getTime() - now.getTime();
+    days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  if (days === undefined) return null;
+
+  let variant: 'success' | 'warning' | 'error' = 'success';
+  let label = `${days}d`;
+
+  if (days <= 0) {
     variant = 'error';
     label = 'Vencido';
-  } else if (daysUntil <= 2) {
+  } else if (days <= 2) {
     variant = 'error';
-    label = daysUntil === 1 ? 'Amanhã' : `${daysUntil}d`;
-  } else if (daysUntil <= 7) {
+    label = days === 1 ? 'Amanhã' : `${days}d`;
+  } else if (days <= 7) {
     variant = 'warning';
   }
 

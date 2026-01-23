@@ -201,18 +201,33 @@ impl LicenseClient {
             cpu_info: None,
         };
 
-        let response = self
-            .client
-            .post(&url)
-            .header("X-API-Key", license_key)
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| {
-                let err_msg = format!("Erro ao conectar com servidor de licenças: {}", e);
-                tracing::error!("[LicenseClient] {}", err_msg);
-                err_msg
-            })?;
+        // Retry with exponential backoff on transient connection errors
+        const MAX_RETRIES: usize = 2; // total attempts = MAX_RETRIES + 1
+        let mut attempt: usize = 0;
+        let response = loop {
+            match self
+                .client
+                .post(&url)
+                .header("X-License-Key", license_key)
+                .json(&payload)
+                .send()
+                .await
+            {
+                Ok(resp) => break resp,
+                Err(e) => {
+                    let err_msg = format!("Erro ao conectar com servidor de licenças: {}", e);
+                    tracing::error!("[LicenseClient] {}", err_msg);
+                    if attempt >= MAX_RETRIES {
+                        return Err(err_msg);
+                    }
+                    // backoff (ms): 200 * 2^attempt
+                    let backoff = std::time::Duration::from_millis(200 * 2u64.pow(attempt as u32));
+                    tokio::time::sleep(backoff).await;
+                    attempt += 1;
+                    continue;
+                }
+            }
+        };
 
         if !response.status().is_success() {
             let status = response.status();
@@ -301,14 +316,32 @@ impl LicenseClient {
             client_time: Utc::now(),
         };
 
-        let response = self
-            .client
-            .post(&url)
-            .header("X-API-Key", license_key)
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| format!("Erro ao validar licença: {}", e))?;
+        // Retry with exponential backoff on transient connection errors
+        const MAX_RETRIES: usize = 2;
+        let mut attempt: usize = 0;
+        let response = loop {
+            match self
+                .client
+                .post(&url)
+                .header("X-License-Key", license_key)
+                .json(&payload)
+                .send()
+                .await
+            {
+                Ok(resp) => break resp,
+                Err(e) => {
+                    let err_msg = format!("Erro ao validar licença: {}", e);
+                    tracing::error!("[LicenseClient] {}", err_msg);
+                    if attempt >= MAX_RETRIES {
+                        return Err(err_msg);
+                    }
+                    let backoff = std::time::Duration::from_millis(200 * 2u64.pow(attempt as u32));
+                    tokio::time::sleep(backoff).await;
+                    attempt += 1;
+                    continue;
+                }
+            }
+        };
 
         if !response.status().is_success() {
             let error: serde_json::Value = response
@@ -474,7 +507,7 @@ impl LicenseClient {
         let response = self
             .client
             .post(&url)
-            .header("X-API-Key", license_key)
+            .header("X-License-Key", license_key)
             .json(&payload)
             .send()
             .await
@@ -652,7 +685,7 @@ impl LicenseClient {
         let response = self
             .client
             .post(&url)
-            .header("X-API-Key", license_key)
+            .header("X-License-Key", license_key)
             .json(&data)
             .send()
             .await

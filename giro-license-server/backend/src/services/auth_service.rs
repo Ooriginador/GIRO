@@ -52,10 +52,11 @@ impl AuthService {
         company_name: Option<&str>,
         license_key: Option<&str>,
     ) -> AppResult<RegisterResponse> {
+        let email = email.to_lowercase();
         let admin_repo = self.admin_repo();
 
         // Check if email exists
-        if admin_repo.email_exists(email).await? {
+        if admin_repo.email_exists(&email).await? {
             return Err(AppError::Conflict("Email já cadastrado".to_string()));
         }
 
@@ -78,7 +79,7 @@ impl AuthService {
 
         // Create admin
         let admin = admin_repo
-            .create(email, &password_hash, name, phone, company_name, None, None, None, None)
+            .create(&email, &password_hash, name, phone, company_name, None, None, None, None)
             .await?;
 
         // If license_key provided, link it to the new admin
@@ -95,6 +96,7 @@ impl AuthService {
             id: admin.id,
             email: admin.email,
             name: admin.name,
+            role: admin.role,
             company_name: admin.company_name,
             created_at: admin.created_at.unwrap_or_else(chrono::Utc::now),
             message: if license_key.is_some() {
@@ -113,6 +115,7 @@ impl AuthService {
         ip_address: Option<IpAddr>,
         user_agent: Option<&str>,
     ) -> AppResult<LoginResponse> {
+        let email = email.to_lowercase();
         let admin_repo = self.admin_repo();
         let token_repo = self.token_repo();
         let audit_repo = self.audit_repo();
@@ -121,7 +124,7 @@ impl AuthService {
 
         // Find admin
         let admin = admin_repo
-            .find_by_email(email)
+            .find_by_email(&email)
             .await?
             .ok_or_else(|| AppError::Unauthorized("Credenciais inválidas".to_string()))?;
 
@@ -139,7 +142,7 @@ impl AuthService {
                     Some(admin.id),
                     None,
                     ip_address.map(|ip| ip.to_string()),
-                    serde_json::json!({ "email": email }),
+                    serde_json::json!({ "email": &email }),
                 )
                 .await?;
 
@@ -247,10 +250,11 @@ impl AuthService {
     pub async fn forgot_password(&self, email: &str) -> AppResult<()> {
         use redis::AsyncCommands;
         
+        let email = email.to_lowercase();
         let admin_repo = self.admin_repo();
         
         // Find admin (don't reveal if email exists or not for security)
-        let admin = admin_repo.find_by_email(email).await?;
+        let admin = admin_repo.find_by_email(&email).await?;
         
         if let Some(admin) = admin {
             // Generate reset token
@@ -280,7 +284,7 @@ impl AuthService {
             // Return the token for the handler to use
             tracing::info!(
                 "🔐 Password reset requested for: {}",
-                email
+                &email
             );
         }
         
@@ -292,10 +296,11 @@ impl AuthService {
     pub async fn generate_reset_token(&self, email: &str) -> AppResult<Option<(String, String)>> {
         use redis::AsyncCommands;
         
+        let email = email.to_lowercase();
         let admin_repo = self.admin_repo();
         
         // Find admin
-        let admin = admin_repo.find_by_email(email).await?;
+        let admin = admin_repo.find_by_email(&email).await?;
         
         if let Some(admin) = admin {
             // Generate reset token

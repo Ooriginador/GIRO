@@ -23,10 +23,15 @@ interface UseInventoryResult {
   isLoading: boolean;
   error: string | null;
 
+  // Compatibilidade
+  countedItems: InventoryItem[];
+
   // Actions
   startInventory: (scope: InventoryScope, categoryId?: string, name?: string) => Promise<void>;
   countProduct: (productId: string, quantity: number, notes?: string) => Promise<void>;
+  countItem: (productId: string, quantity: number, notes?: string) => Promise<void>;
   skipProduct: (productId: string) => void;
+  skipItem: (productId: string) => void;
   finishInventory: (applyAdjustments: boolean) => Promise<InventoryFinishResponse>;
   cancelInventory: () => Promise<void>;
 
@@ -81,22 +86,24 @@ export function useInventory(): UseInventoryResult {
           throw new Error(response.error?.message || 'Falha ao iniciar inventário');
         }
 
+        const data = response.data;
+
         const inventory: Inventory = {
-          id: response.data.inventoryId,
-          name: response.data.name,
-          scope: response.data.scope as InventoryScope,
+          id: data.inventoryId,
+          name: data.name,
+          scope: data.scope as InventoryScope,
           status: 'in_progress',
-          startedAt: response.data.startedAt,
+          startedAt: data.startedAt,
           employeeId: '', // Será preenchido pelo servidor
           employeeName: '',
-          expectedProducts: response.data.expectedProducts,
+          expectedProducts: data.expectedProducts,
           countedProducts: 0,
           productsWithDifference: 0,
         };
 
-        const inventoryItems: InventoryItem[] = response.data.products.map((p) => ({
-          id: `${response.data.inventoryId}-${p.id}`,
-          inventoryId: response.data.inventoryId,
+        const inventoryItems: InventoryItem[] = data.products.map((p) => ({
+          id: `${data.inventoryId}-${p.id}`,
+          inventoryId: data.inventoryId,
           productId: p.id,
           productBarcode: p.barcode,
           productName: p.name,
@@ -240,10 +247,13 @@ export function useInventory(): UseInventoryResult {
     error,
     startInventory,
     countProduct,
+    countItem: countProduct,
     skipProduct,
+    skipItem: skipProduct,
     finishInventory,
     cancelInventory,
     getNextPendingItem,
     getItemByBarcode,
+    countedItems: items,
   };
 }

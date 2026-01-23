@@ -11,7 +11,7 @@ import type {
   Operator,
 } from '@/types/connection';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { createJSONStorage, persist, subscribeWithSelector } from 'zustand/middleware';
 
 interface ConnectionStore {
   // State
@@ -44,6 +44,7 @@ interface ConnectionStore {
   reset: () => void;
   logout: () => void;
   disconnect: () => void;
+  clearHistory: () => void;
 }
 
 const initialState = {
@@ -58,111 +59,120 @@ const initialState = {
 };
 
 export const useConnectionStore = create<ConnectionStore>()(
-  persist(
-    (set, get) => ({
-      ...initialState,
+  subscribeWithSelector(
+    persist(
+      (set, get) => ({
+        ...initialState,
 
-      // Actions
-      setConnectionState: (state) => set({ connectionState: state }),
+        // Actions
+        setConnectionState: (state) => set({ connectionState: state }),
 
-      setSelectedDesktop: (desktop) => set({ selectedDesktop: desktop }),
+        setSelectedDesktop: (desktop) => set({ selectedDesktop: desktop }),
 
-      setDiscoveredDesktops: (desktops) => set({ discoveredDesktops: desktops }),
+        setDiscoveredDesktops: (desktops) => set({ discoveredDesktops: desktops }),
 
-      addDiscoveredDesktop: (desktop) =>
-        set((state) => {
-          const exists = state.discoveredDesktops.find((d) => d.id === desktop.id);
-          if (exists) {
-            // Atualiza desktop existente
+        addDiscoveredDesktop: (desktop) =>
+          set((state) => {
+            const exists = state.discoveredDesktops.find((d) => d.id === desktop.id);
+            if (exists) {
+              // Atualiza desktop existente
+              return {
+                discoveredDesktops: state.discoveredDesktops.map((d) =>
+                  d.id === desktop.id ? { ...d, ...desktop, lastSeen: Date.now() } : d
+                ),
+              };
+            }
             return {
-              discoveredDesktops: state.discoveredDesktops.map((d) =>
-                d.id === desktop.id ? { ...d, ...desktop, lastSeen: Date.now() } : d
-              ),
+              discoveredDesktops: [...state.discoveredDesktops, desktop],
             };
-          }
-          return {
-            discoveredDesktops: [...state.discoveredDesktops, desktop],
-          };
-        }),
+          }),
 
-      removeDiscoveredDesktop: (desktopId) =>
-        set((state) => ({
-          discoveredDesktops: state.discoveredDesktops.filter((d) => d.id !== desktopId),
-        })),
+        removeDiscoveredDesktop: (desktopId) =>
+          set((state) => ({
+            discoveredDesktops: state.discoveredDesktops.filter((d) => d.id !== desktopId),
+          })),
 
-      setOperator: (operator) => set({ operator }),
+        setOperator: (operator) => set({ operator }),
 
-      setToken: (token) => set({ token }),
+        setToken: (token) => set({ token }),
 
-      setDeviceId: (deviceId) => set({ deviceId }),
+        setDeviceId: (deviceId) => set({ deviceId }),
 
-      addToHistory: (desktop) =>
-        set((state) => {
-          const existing = state.connectionHistory.find((h) => h.desktop.id === desktop.id);
+        addToHistory: (desktop) =>
+          set((state) => {
+            const existing = state.connectionHistory.find((h) => h.desktop.id === desktop.id);
 
-          if (existing) {
-            // Atualiza histórico existente
-            const updated = state.connectionHistory.map((h) =>
-              h.desktop.id === desktop.id
-                ? { ...h, desktop, lastConnected: Date.now(), timesConnected: h.timesConnected + 1 }
-                : h
+            if (existing) {
+              // Atualiza histórico existente
+              const updated = state.connectionHistory.map((h) =>
+                h.desktop.id === desktop.id
+                  ? {
+                      ...h,
+                      desktop,
+                      lastConnected: Date.now(),
+                      timesConnected: h.timesConnected + 1,
+                    }
+                  : h
+              );
+              return { connectionHistory: updated };
+            }
+
+            // Adiciona novo ao histórico
+            const newHistory: ConnectionHistory = {
+              desktop,
+              lastConnected: Date.now(),
+              timesConnected: 1,
+            };
+
+            const updated = [newHistory, ...state.connectionHistory].slice(
+              0,
+              LIMITS.CONNECTION_HISTORY_MAX
             );
+
             return { connectionHistory: updated };
-          }
+          }),
 
-          // Adiciona novo ao histórico
-          const newHistory: ConnectionHistory = {
-            desktop,
-            lastConnected: Date.now(),
-            timesConnected: 1,
-          };
+        setLastError: (error) => set({ lastError: error }),
 
-          const updated = [newHistory, ...state.connectionHistory].slice(
-            0,
-            LIMITS.CONNECTION_HISTORY_MAX
-          );
+        // Computed
+        isConnected: () => {
+          const state = get().connectionState;
+          return state === 'connected' || state === 'authenticated';
+        },
 
-          return { connectionHistory: updated };
-        }),
+        isAuthenticated: () => {
+          return get().connectionState === 'authenticated';
+        },
 
-      setLastError: (error) => set({ lastError: error }),
+        // Reset
+        reset: () => set(initialState),
 
-      // Computed
-      isConnected: () => {
-        const state = get().connectionState;
-        return state === 'connected' || state === 'authenticated';
-      },
+        logout: () =>
+          set({
+            connectionState: 'connected',
+            operator: null,
+            token: null,
+          }),
 
-      isAuthenticated: () => {
-        return get().connectionState === 'authenticated';
-      },
+        disconnect: () =>
+          set({
+            connectionState: 'disconnected',
+            operator: null,
+            token: null,
+            selectedDesktop: null,
+          }),
 
-      // Reset
-      reset: () => set(initialState),
-
-      logout: () =>
-        set({
-          connectionState: 'connected',
-          operator: null,
-          token: null,
-        }),
-
-      disconnect: () =>
-        set({
-          connectionState: 'disconnected',
-          operator: null,
-          token: null,
-          selectedDesktop: null,
-        }),
-    }),
-    {
-      name: STORAGE_KEYS.SELECTED_DESKTOP,
-      storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({
-        selectedDesktop: state.selectedDesktop,
-        deviceId: state.deviceId,
-        connectionHistory: state.connectionHistory,
+        clearHistory: () => set({ connectionHistory: [] }),
       }),
-    }
+      {
+        name: STORAGE_KEYS.SELECTED_DESKTOP,
+        storage: createJSONStorage(() => AsyncStorage),
+        partialize: (state) => ({
+          selectedDesktop: state.selectedDesktop,
+          deviceId: state.deviceId,
+          connectionHistory: state.connectionHistory,
+        }),
+      }
+    )
   )
 );

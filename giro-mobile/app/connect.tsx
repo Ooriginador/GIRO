@@ -159,12 +159,12 @@ export default function ConnectScreen() {
             <Text className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">
               Conexões Recentes
             </Text>
-            {connectionHistory.map((desktop) => (
+            {connectionHistory.map((item) => (
               <DesktopCard
-                key={desktop.id}
-                desktop={desktop}
-                onPress={() => handleConnect(desktop)}
-                isLoading={selectedId === desktop.id && isConnecting}
+                key={item.desktop.id}
+                desktop={item.desktop}
+                onPress={() => handleConnect(item.desktop)}
+                isLoading={selectedId === item.desktop.id && isConnecting}
                 disabled={isConnecting}
                 isHistory
               />

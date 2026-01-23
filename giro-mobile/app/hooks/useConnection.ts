@@ -24,6 +24,7 @@ interface UseConnectionResult {
   connectionState: ReturnType<typeof useWebSocket>['connectionState'];
   selectedDesktop: DiscoveredDesktop | null;
   isConnected: boolean;
+  isConnecting: boolean;
   isAuthenticated: boolean;
   lastError: string | null;
 
@@ -54,6 +55,7 @@ export function useConnection(): UseConnectionResult {
   const {
     connectionState,
     isConnected,
+    isConnecting,
     isAuthenticated,
     connect,
     disconnect,
@@ -75,9 +77,23 @@ export function useConnection(): UseConnectionResult {
     const checkNetwork = async () => {
       try {
         const state = await Network.getNetworkStateAsync();
+        let type: NetworkInfo['type'] = 'unknown';
+
+        switch (state.type) {
+          case Network.NetworkStateType.WIFI:
+            type = 'wifi';
+            break;
+          case Network.NetworkStateType.CELLULAR:
+            type = 'cellular';
+            break;
+          case Network.NetworkStateType.NONE:
+            type = 'none';
+            break;
+        }
+
         setNetworkInfo({
           isConnected: state.isConnected ?? false,
-          type: state.type as NetworkInfo['type'],
+          type,
         });
       } catch {
         setNetworkInfo({
@@ -144,6 +160,7 @@ export function useConnection(): UseConnectionResult {
     connectionState,
     selectedDesktop,
     isConnected,
+    isConnecting,
     isAuthenticated,
     lastError,
     startDiscovery,

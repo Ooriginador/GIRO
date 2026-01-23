@@ -86,7 +86,9 @@ interface ConfirmModalProps {
   confirmVariant?: 'default' | 'destructive';
   onConfirm: () => void;
   onCancel: () => void;
+  onClose?: () => void; // Compatibilidade com Modal base
   isLoading?: boolean;
+  variant?: 'default' | 'destructive'; // Alias para confirmVariant
 }
 
 export function ConfirmModal({
@@ -98,13 +100,18 @@ export function ConfirmModal({
   confirmVariant = 'default',
   onConfirm,
   onCancel,
+  onClose,
+  variant,
   isLoading,
 }: ConfirmModalProps) {
+  const finalVariant = variant || confirmVariant;
+  const finalClose = onClose || onCancel;
+
   return (
     <Modal
       visible={visible}
       title={title}
-      onClose={onCancel}
+      onClose={finalClose}
       closeOnBackdrop={!isLoading}
       showCloseButton={false}
     >
@@ -114,12 +121,7 @@ export function ConfirmModal({
         <Button variant="secondary" className="flex-1" onPress={onCancel} disabled={isLoading}>
           {cancelText}
         </Button>
-        <Button
-          variant={confirmVariant}
-          className="flex-1"
-          onPress={onConfirm}
-          isLoading={isLoading}
-        >
+        <Button variant={finalVariant} className="flex-1" onPress={onConfirm} isLoading={isLoading}>
           {confirmText}
         </Button>
       </View>

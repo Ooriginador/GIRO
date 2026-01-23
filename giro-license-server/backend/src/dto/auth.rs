@@ -40,6 +40,7 @@ pub struct RegisterResponse {
     pub id: Uuid,
     pub email: String,
     pub name: String,
+    pub role: crate::models::UserRole,
     pub company_name: Option<String>,
     pub created_at: DateTime<Utc>,
     pub message: String,
@@ -62,7 +63,7 @@ pub struct LoginResponse {
     pub refresh_token: String,
     pub token_type: String,
     pub expires_in: i64,
-    pub admin: AdminSummary,
+    pub admin: AdminSummary, // AdminSummary already updated
 }
 
 impl LoginResponse {

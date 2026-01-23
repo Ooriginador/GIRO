@@ -18,6 +18,7 @@ interface LoginResponse {
     id: string;
     email: string;
     name: string;
+    role: 'admin' | 'customer';
     company_name: string | null;
     is_verified: boolean;
     created_at: string;
@@ -116,7 +117,7 @@ class APIClient {
 
   // License endpoints
   async getLicenses(params?: { status?: string; page?: number; limit?: number }) {
-    const query = new URLSearchParams(params as any).toString();
+    const query = params ? new URLSearchParams(params as Record<string, string>).toString() : '';
     return this.request(`/licenses${query ? `?${query}` : ''}`);
   }
 

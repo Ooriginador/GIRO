@@ -27,6 +27,12 @@ interface SettingsStore {
   stockAlerts: boolean;
   expirationAlerts: boolean;
 
+  // Compatibilidade
+  soundEnabled: boolean;
+  vibrationEnabled: boolean;
+  autoFlash: boolean;
+  darkMode: boolean;
+
   // Actions
   setScannerVibration: (enabled: boolean) => void;
   setScannerSound: (enabled: boolean) => void;
@@ -39,6 +45,12 @@ interface SettingsStore {
   setConfirmInventoryFinish: (enabled: boolean) => void;
   setStockAlerts: (enabled: boolean) => void;
   setExpirationAlerts: (enabled: boolean) => void;
+
+  // Actions de Compatibilidade
+  setSoundEnabled: (enabled: boolean) => void;
+  setVibrationEnabled: (enabled: boolean) => void;
+  setAutoFlash: (enabled: boolean) => void;
+  setDarkMode: (enabled: boolean) => void;
 
   // Reset
   reset: () => void;
@@ -69,6 +81,10 @@ export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
       ...initialState,
+      soundEnabled: initialState.scannerSound,
+      vibrationEnabled: initialState.scannerVibration,
+      autoFlash: initialState.scannerTorch,
+      darkMode: (initialState.theme as string) === 'dark',
 
       // Actions
       setScannerVibration: (enabled) => set({ scannerVibration: enabled }),
@@ -82,6 +98,13 @@ export const useSettingsStore = create<SettingsStore>()(
       setConfirmInventoryFinish: (enabled) => set({ confirmInventoryFinish: enabled }),
       setStockAlerts: (enabled) => set({ stockAlerts: enabled }),
       setExpirationAlerts: (enabled) => set({ expirationAlerts: enabled }),
+
+      // Compatibilidade
+      setSoundEnabled: (enabled) => set({ scannerSound: enabled, soundEnabled: enabled }),
+      setVibrationEnabled: (enabled) =>
+        set({ scannerVibration: enabled, vibrationEnabled: enabled }),
+      setAutoFlash: (enabled) => set({ scannerTorch: enabled, autoFlash: enabled }),
+      setDarkMode: (enabled) => set({ theme: enabled ? 'dark' : 'light', darkMode: enabled }),
 
       // Reset
       reset: () => set(initialState),

@@ -25,6 +25,7 @@ interface UseWebSocketResult {
   // State
   connectionState: ConnectionState;
   isConnected: boolean;
+  isConnecting: boolean;
   isAuthenticated: boolean;
 
   // Actions
@@ -304,6 +305,7 @@ export function useWebSocket(): UseWebSocketResult {
   return {
     connectionState,
     isConnected,
+    isConnecting: connectionState === 'connecting',
     isAuthenticated,
     connect,
     disconnect,

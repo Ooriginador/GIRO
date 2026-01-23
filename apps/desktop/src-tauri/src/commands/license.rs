@@ -53,11 +53,17 @@ pub async fn activate_license(
         "info": info
     });
 
-    if let Err(e) = std::fs::write(
-        &config_path,
-        serde_json::to_string_pretty(&license_data).unwrap(),
-    ) {
-        return Err(format!("Falha ao salvar licença: {}", e));
+    // Write license.json atomically using tokio async I/O
+    let tmp_path = config_path.with_extension("json.tmp");
+    let data_str = serde_json::to_string_pretty(&license_data)
+        .map_err(|e| format!("Falha ao serializar licença: {}", e))?;
+
+    if let Err(e) = tokio::fs::write(&tmp_path, data_str.as_bytes()).await {
+        return Err(format!("Falha ao salvar licença temporária: {}", e));
+    }
+
+    if let Err(e) = tokio::fs::rename(&tmp_path, &config_path).await {
+        return Err(format!("Falha ao mover arquivo de licença: {}", e));
     }
 
     // Sync Admin Account if present in response
@@ -98,21 +104,23 @@ pub async fn validate_license(
         .ok_or("Invalid DB path")?
         .join("license.json");
 
-    if config_path.exists() {
-        if let Ok(content) = std::fs::read_to_string(&config_path) {
-            if let Ok(mut data) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(obj) = data.as_object_mut() {
-                    obj.insert(
-                        "last_validated_at".to_string(),
-                        serde_json::json!(chrono::Utc::now().to_rfc3339()),
-                    );
-                    obj.insert(
-                        "info".to_string(),
-                        serde_json::to_value(&info).unwrap_or(serde_json::Value::Null),
-                    );
-                    let _ =
-                        std::fs::write(&config_path, serde_json::to_string_pretty(&data).unwrap());
-                }
+    if let Ok(content) = tokio::fs::read_to_string(&config_path).await {
+        if let Ok(mut data) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(obj) = data.as_object_mut() {
+                obj.insert(
+                    "last_validated_at".to_string(),
+                    serde_json::json!(chrono::Utc::now().to_rfc3339()),
+                );
+                obj.insert(
+                    "info".to_string(),
+                    serde_json::to_value(&info).unwrap_or(serde_json::Value::Null),
+                );
+
+                // Write atomically
+                let tmp_path = config_path.with_extension("json.tmp");
+                let data_str = serde_json::to_string_pretty(&data).unwrap_or_default();
+                let _ = tokio::fs::write(&tmp_path, data_str.as_bytes()).await;
+                let _ = tokio::fs::rename(&tmp_path, &config_path).await;
             }
         }
     }
@@ -223,12 +231,11 @@ pub async fn get_stored_license(
         .ok_or("Invalid DB path")?
         .join("license.json");
 
-    if !config_path.exists() {
-        return Ok(None);
-    }
-
-    let content = std::fs::read_to_string(&config_path)
-        .map_err(|e| format!("Falha ao ler licença: {}", e))?;
+    // Read asynchronously. If file missing or unreadable, return None.
+    let content = match tokio::fs::read_to_string(&config_path).await {
+        Ok(c) => c,
+        Err(_) => return Ok(None),
+    };
 
     let data: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("Falha ao processar licença: {}", e))?;

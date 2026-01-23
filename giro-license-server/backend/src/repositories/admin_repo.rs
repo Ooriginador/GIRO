@@ -22,7 +22,7 @@ impl AdminRepository {
         let admin = sqlx::query_as::<_, Admin>(
             r#"
             SELECT 
-                id, email, password_hash, name, phone, company_name,
+                id, email, password_hash, name, role, phone, company_name,
                 company_cnpj, company_address, company_address_city, company_address_state,
                 is_verified, 
                 verified_at, 
@@ -48,7 +48,7 @@ impl AdminRepository {
         let admin = sqlx::query_as::<_, Admin>(
             r#"
             SELECT 
-                id, email, password_hash, name, phone, company_name,
+                id, email, password_hash, name, role, phone, company_name,
                 company_cnpj, company_address, company_address_city, company_address_state,
                 is_verified, 
                 verified_at, 
@@ -84,10 +84,10 @@ impl AdminRepository {
     ) -> AppResult<Admin> {
         let admin = sqlx::query_as::<_, Admin>(
             r#"
-            INSERT INTO admins (email, password_hash, name, phone, company_name, company_cnpj, company_address, company_address_city, company_address_state)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            INSERT INTO admins (email, password_hash, name, role, phone, company_name, company_cnpj, company_address, company_address_city, company_address_state)
+            VALUES ($1, $2, $3, 'customer', $4, $5, $6, $7, $8, $9)
             RETURNING 
-                id, email, password_hash, name, phone, company_name,
+                id, email, password_hash, name, role, phone, company_name,
                 company_cnpj, company_address, company_address_city, company_address_state,
                 is_verified, 
                 verified_at, 
@@ -178,7 +178,7 @@ impl AdminRepository {
                 company_address_state = COALESCE($8, company_address_state)
             WHERE id = $1
             RETURNING 
-                id, email, password_hash, name, phone, company_name,
+                id, email, password_hash, name, role, phone, company_name,
                 company_cnpj, company_address, company_address_city, company_address_state,
                 is_verified, 
                 verified_at, 

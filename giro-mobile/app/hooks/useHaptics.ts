@@ -15,6 +15,12 @@ interface UseHapticsResult {
   error: () => Promise<void>;
   selection: () => Promise<void>;
   impact: (style?: 'light' | 'medium' | 'heavy') => Promise<void>;
+
+  // Compatibilidade
+  hapticSuccess: () => Promise<void>;
+  hapticWarning: () => Promise<void>;
+  hapticError: () => Promise<void>;
+  hapticSelection: () => Promise<void>;
 }
 
 export function useHaptics(): UseHapticsResult {
@@ -74,5 +80,9 @@ export function useHaptics(): UseHapticsResult {
     error,
     selection,
     impact,
+    hapticSuccess: success,
+    hapticWarning: warning,
+    hapticError: error,
+    hapticSelection: selection,
   };
 }

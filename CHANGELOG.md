@@ -58,6 +58,20 @@ O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
 - Backend: Rust, Tauri 2.0, SQLite
 - 332 testes automatizados (254 Vitest + 78 Rust)
 
+## [1.1.4] - 2026-01-23
+
+### Adicionado
+
+- **Separação de Funções (RBAC)**: Introdução formal de roles `Admin` (equipe interna) e `Customer` (clientes) no Servidor de Licenças.
+- **E-mail de Administrador**: Ativação automática da role `admin` para `ooriginador@gmail.com`.
+
+### Corrigido
+
+- **Mobile TypeScript**: Alinhamento completo de tipos e interfaces em hooks, stores e componentes UI (`useHaptics`, `settingsStore`, `Badge`, `Modal`, etc.).
+- **Estabilidade Mobile**: Resolvidos erros de compilação que impediam o build do aplicativo.
+- **Desktop I/O**: Implementação de escrita atômica e assíncrona para o arquivo de licença local, prevenindo corrupção de dados.
+- **Type Safety**: Limpeza de lints e tipos `any` nos clientes API do Dashboard e Website.
+
 ---
 
 ## [1.1.2] - 2026-01-23

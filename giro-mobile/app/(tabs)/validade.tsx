@@ -61,11 +61,13 @@ export default function ValidadeScreen() {
   } = useQuery({
     queryKey: ['expiration', daysFilter],
     queryFn: async () => {
-      const response = await send<ExpiringProduct[]>({
-        action: 'expiration.list',
-        payload: { days: daysFilter },
+      const response = await send<{ days: number }, ExpiringProduct[]>('expiration.list', {
+        days: daysFilter,
       });
-      return response || [];
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return [];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -75,13 +77,10 @@ export default function ValidadeScreen() {
     if (!selectedProduct || !selectedAction) return;
 
     try {
-      await send({
-        action: 'expiration.action',
-        payload: {
-          productId: selectedProduct.productId,
-          lotId: selectedProduct.lotId,
-          action: selectedAction,
-        },
+      await send('expiration.action', {
+        productId: selectedProduct.product.id,
+        lotId: selectedProduct.lot.id,
+        action: selectedAction,
       });
 
       hapticSuccess();
@@ -137,13 +136,15 @@ export default function ValidadeScreen() {
             {/* Product Info */}
             <View className="flex-1">
               <Text className="font-medium text-foreground" numberOfLines={1}>
-                {item.productName}
+                {item.product.name}
               </Text>
-              <Text className="text-sm text-muted-foreground">Lote: {item.lotNumber}</Text>
+              <Text className="text-sm text-muted-foreground">
+                Lote: {item.lot.batchNumber || '-'}
+              </Text>
               <View className="flex-row items-center mt-1">
-                <ExpirationBadge expirationDate={item.expirationDate} />
+                <ExpirationBadge expirationDate={item.lot.expirationDate} />
                 <Text className="text-xs text-muted-foreground ml-2">
-                  {formatQuantity(item.quantity, item.unit)}
+                  {formatQuantity(item.lot.quantity, item.product.unit)}
                 </Text>
               </View>
             </View>
@@ -211,40 +212,22 @@ export default function ValidadeScreen() {
         <View className="flex-row justify-around py-3 bg-card border-b border-border">
           <View className="items-center">
             <Text className="text-lg font-bold text-destructive">
-              {
-                products.filter((p) => {
-                  const days = Math.ceil(
-                    (new Date(p.expirationDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                  );
-                  return days <= 2;
-                }).length
-              }
+              {products.filter((p) => p.daysUntilExpiration <= 2).length}
             </Text>
             <Text className="text-xs text-muted-foreground">Crítico</Text>
           </View>
           <View className="items-center">
             <Text className="text-lg font-bold text-warning">
               {
-                products.filter((p) => {
-                  const days = Math.ceil(
-                    (new Date(p.expirationDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                  );
-                  return days > 2 && days <= 7;
-                }).length
+                products.filter((p) => p.daysUntilExpiration > 2 && p.daysUntilExpiration <= 7)
+                  .length
               }
             </Text>
             <Text className="text-xs text-muted-foreground">Atenção</Text>
           </View>
           <View className="items-center">
             <Text className="text-lg font-bold text-foreground">
-              {
-                products.filter((p) => {
-                  const days = Math.ceil(
-                    (new Date(p.expirationDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                  );
-                  return days > 7;
-                }).length
-              }
+              {products.filter((p) => p.daysUntilExpiration > 7).length}
             </Text>
             <Text className="text-xs text-muted-foreground">Normal</Text>
           </View>
@@ -260,7 +243,7 @@ export default function ValidadeScreen() {
         <FlatList
           data={products}
           renderItem={renderProductItem}
-          keyExtractor={(item) => `${item.productId}-${item.lotId}`}
+          keyExtractor={(item) => `${item.product.id}-${item.lot.id}`}
           contentContainerStyle={{ padding: 16, flexGrow: 1 }}
           ListEmptyComponent={
             <EmptyState
@@ -288,10 +271,12 @@ export default function ValidadeScreen() {
         {selectedProduct && (
           <View>
             <Text className="text-lg font-bold text-foreground mb-1">
-              {selectedProduct.productName}
+              {selectedProduct.product.name}
             </Text>
-            <Text className="text-muted-foreground mb-1">Lote: {selectedProduct.lotNumber}</Text>
-            <ExpirationBadge expirationDate={selectedProduct.expirationDate} />
+            <Text className="text-muted-foreground mb-1">
+              Lote: {selectedProduct.lot.batchNumber || '-'}
+            </Text>
+            <ExpirationBadge expirationDate={selectedProduct.lot.expirationDate} />
 
             <Text className="text-muted-foreground mt-4 mb-3">Selecione uma ação:</Text>
 
@@ -357,7 +342,7 @@ export default function ValidadeScreen() {
         title="Confirmar Ação"
         message={`Deseja executar "${
           ACTION_OPTIONS.find((a) => a.value === selectedAction)?.label
-        }" para ${selectedProduct?.productName}?`}
+        }" para ${selectedProduct?.product.name}?`}
         confirmText="Confirmar"
         onConfirm={handleAction}
         variant="default"
