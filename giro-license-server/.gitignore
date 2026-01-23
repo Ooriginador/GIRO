@@ -47,7 +47,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
-backend/s
 backend/e-db*
 backend/sword*
 backend/t@*

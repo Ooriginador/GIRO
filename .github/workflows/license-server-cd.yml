@@ -63,7 +63,10 @@ jobs:
         id: build
         uses: docker/build-push-action@v5
         with:
-          context: giro-license-server/backend
+          context: giro-license-server
+          file: giro-license-server/backend/Dockerfile
+          build-args: |
+            BACKEND_DIR=backend
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
