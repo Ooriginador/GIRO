@@ -16,7 +16,7 @@ pub struct AppState {
     pub db: sqlx::PgPool,
     pub redis: redis::aio::ConnectionManager,
     pub settings: Arc<Settings>,
-    pub s3: S3Service,
+    pub s3: Option<S3Service>,
 }
 
 impl AppState {
@@ -53,8 +53,10 @@ impl AppState {
     }
 
     /// Get S3 service
-    pub fn s3_service(&self) -> S3Service {
-        self.s3.clone()
+    pub fn s3_service(&self) -> crate::errors::AppResult<S3Service> {
+        self.s3.clone().ok_or_else(|| {
+            crate::errors::AppError::BadRequest("Serviço de backup em nuvem não configurado".into())
+        })
     }
 
     /// Get frontend URL for password reset links
