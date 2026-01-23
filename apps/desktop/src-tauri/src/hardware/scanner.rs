@@ -94,8 +94,8 @@ pub struct MobileDevice {
     pub id: String,
     pub name: Option<String>,
     pub ip_address: String,
-    pub connected_at: i64,
-    pub last_activity: i64,
+    pub connected_at: f64,
+    pub last_activity: f64,
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -226,7 +226,7 @@ impl ScannerServerState {
     pub async fn update_activity(&self, device_id: &str) {
         let mut devices = self.devices.write().await;
         if let Some(device) = devices.get_mut(device_id) {
-            device.last_activity = chrono::Utc::now().timestamp_millis();
+            device.last_activity = chrono::Utc::now().timestamp_millis() as f64;
         }
     }
 
@@ -388,8 +388,8 @@ async fn handle_scanner_connection(
                                 id: id.clone(),
                                 name: device_name,
                                 ip_address: ip.clone(),
-                                connected_at: chrono::Utc::now().timestamp_millis(),
-                                last_activity: chrono::Utc::now().timestamp_millis(),
+                                connected_at: chrono::Utc::now().timestamp_millis() as f64,
+                                last_activity: chrono::Utc::now().timestamp_millis() as f64,
                             };
 
                             state.register_device(device).await;

@@ -219,6 +219,7 @@ pub struct PrinterConfig {
     pub baud_rate: u32,
     pub data_bits: u8,
     pub parity: String,
+    #[specta(type = i32)]
     pub timeout_ms: u64,
     pub mock_mode: bool,
 }

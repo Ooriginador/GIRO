@@ -15,6 +15,7 @@ use tokio::sync::RwLock;
 pub struct MobileServerStatus {
     pub is_running: bool,
     pub port: u16,
+    #[specta(type = i32)]
     pub connected_devices: usize,
     pub local_ip: Option<String>,
     pub version: String,
@@ -36,6 +37,7 @@ pub struct ConnectedDevice {
 #[serde(rename_all = "camelCase")]
 pub struct StartServerConfig {
     pub port: u16,
+    #[specta(type = i32)]
     pub max_connections: usize,
 }
 

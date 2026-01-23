@@ -39,7 +39,7 @@ pub struct HardwareState {
     pub scanner_task: RwLock<Option<tokio::task::JoinHandle<()>>>,
     // ID da task do scanner (UUID) para monitoramento
     pub scanner_task_id: RwLock<Option<String>>,
-    pub scanner_task_started_at: RwLock<Option<i64>>,
+    pub scanner_task_started_at: RwLock<Option<f64>>,
     pub mobile_server: RwLock<Option<Arc<MobileServer>>>,
 }
 
@@ -743,7 +743,7 @@ pub async fn start_scanner_server(
     }
     {
         let mut started_slot = state.scanner_task_started_at.write().await;
-        *started_slot = Some(chrono::Utc::now().timestamp_millis());
+        *started_slot = Some(chrono::Utc::now().timestamp_millis() as f64);
     }
 
     Ok(ScannerServerInfo {
@@ -751,7 +751,7 @@ pub async fn start_scanner_server(
         ip: local_ip.clone(),
         port: config.port,
         url: format!("ws://{}:{}", local_ip, config.port),
-        started_at: chrono::Utc::now().timestamp_millis(),
+        started_at: chrono::Utc::now().timestamp_millis() as f64,
         task_id: Some(task_id),
     })
 }
@@ -824,7 +824,7 @@ pub async fn get_scanner_server_info(
                 hardware::scanner::get_local_ip().unwrap_or_else(|| "localhost".to_string());
 
             let task_id = state.scanner_task_id.read().await.clone();
-            let started_at = (*state.scanner_task_started_at.read().await).unwrap_or(0);
+            let started_at = (*state.scanner_task_started_at.read().await).unwrap_or(0.0);
 
             Ok(Some(ScannerServerInfo {
                 running: true,
@@ -923,7 +923,7 @@ pub struct ScannerServerInfo {
     pub ip: String,
     pub port: u16,
     pub url: String,
-    pub started_at: i64,
+    pub started_at: f64,
     pub task_id: Option<String>,
 }
 

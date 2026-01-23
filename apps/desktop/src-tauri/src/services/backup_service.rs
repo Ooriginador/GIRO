@@ -62,7 +62,7 @@ pub struct GoogleCredentials {
 pub struct BackupMetadata {
     pub id: String,
     pub filename: String,
-    pub size_bytes: u64,
+    pub size_bytes: f64,
     pub created_at: DateTime<Utc>,
     pub encrypted: bool,
     pub drive_file_id: Option<String>,
@@ -267,7 +267,7 @@ impl BackupService {
         let metadata = BackupMetadata {
             id: uuid::Uuid::new_v4().to_string(),
             filename,
-            size_bytes: final_data.len() as u64,
+            size_bytes: final_data.len() as f64,
             created_at: Utc::now(),
             encrypted,
             drive_file_id: None,
@@ -325,7 +325,7 @@ impl BackupService {
             if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
                 if filename.starts_with("backup_") {
                     let metadata = fs::metadata(&path).await.ok();
-                    let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+                    let size = metadata.as_ref().map(|m| m.len() as f64).unwrap_or(0.0);
                     let encrypted = filename.ends_with(".enc");
                     let created_at = parse_backup_created_at(filename)
                         .or_else(|| {
@@ -548,7 +548,7 @@ impl BackupService {
             .map(|f| BackupMetadata {
                 id: f.id.clone(),
                 filename: f.name,
-                size_bytes: f.size.and_then(|s| s.parse().ok()).unwrap_or(0),
+                size_bytes: f.size.and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0),
                 created_at: f
                     .created_time
                     .and_then(|t| DateTime::parse_from_rfc3339(&t).ok())
