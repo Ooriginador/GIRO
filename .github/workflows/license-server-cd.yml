@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "giro-license-server/backend/**"
+      - ".github/workflows/license-server-cd.yml"
   workflow_dispatch:
     inputs:
       environment:
