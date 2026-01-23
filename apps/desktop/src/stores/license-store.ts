@@ -12,6 +12,7 @@ interface LicenseStore {
   state: LicenseState;
   error: string | null;
   lastValidation: string | null;
+  cloudToken: string | null;
   isHydrated: boolean;
 
   // Ações
@@ -20,6 +21,7 @@ interface LicenseStore {
   setState: (state: LicenseState) => void;
   setError: (error: string | null) => void;
   updateLastValidation: () => void;
+  setCloudToken: (token: string | null) => void;
   clearLicense: () => void;
 
   // Verificações
@@ -43,6 +45,7 @@ export const useLicenseStore = create<LicenseStore>()(
       state: 'loading',
       error: null,
       lastValidation: null,
+      cloudToken: null,
       isHydrated: false,
 
       setLicenseKey: (key) => set({ licenseKey: key }),
@@ -71,6 +74,8 @@ export const useLicenseStore = create<LicenseStore>()(
 
       updateLastValidation: () => set({ lastValidation: new Date().toISOString() }),
 
+      setCloudToken: (cloudToken) => set({ cloudToken }),
+
       clearLicense: () =>
         set({
           licenseKey: null,
@@ -78,6 +83,7 @@ export const useLicenseStore = create<LicenseStore>()(
           state: 'unlicensed',
           error: null,
           lastValidation: null,
+          cloudToken: null,
           isHydrated: true,
         }),
 
@@ -210,6 +216,7 @@ export const useLicenseStore = create<LicenseStore>()(
         licenseKey: state.licenseKey,
         licenseInfo: state.licenseInfo,
         lastValidation: state.lastValidation,
+        cloudToken: state.cloudToken,
       }),
     }
   )

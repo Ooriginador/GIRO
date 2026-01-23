@@ -160,6 +160,19 @@ pub async fn recover_license_from_login(
 }
 
 #[tauri::command]
+pub async fn license_server_login(
+    payload: LoginPayload,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let client = &state.license_client;
+
+    client
+        .login(&payload.email, &payload.password)
+        .await
+        .map_err(|e| format!("Falha na autenticação: {}", e))
+}
+
+#[tauri::command]
 pub async fn sync_metrics(
     license_key: String,
     metrics: MetricsPayload,
