@@ -5,6 +5,6 @@
 pub mod client;
 
 pub use client::{
-    AdminUserSyncData, LicenseClient, LicenseClientConfig, LicenseInfo, LicenseStatus,
-    MetricsPayload, UpdateAdminRequest,
+    AdminUserSyncData, ConnectionDiagnostic, LicenseClient, LicenseClientConfig, LicenseInfo,
+    LicenseStatus, MetricsPayload, UpdateAdminRequest,
 };
