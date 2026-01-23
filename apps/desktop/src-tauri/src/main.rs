@@ -12,15 +12,6 @@ use std::path::PathBuf;
 use tauri::Manager;
 use tokio::sync::RwLock;
 
-fn get_database_path() -> PathBuf {
-    let app_data = dirs::data_local_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("GIRO");
-
-    std::fs::create_dir_all(&app_data).ok();
-    app_data.join("giro.db")
-}
-
 #[tokio::main]
 async fn main() {
     let app_data = dirs::data_local_dir()
