@@ -14,6 +14,7 @@ import {
   getHardwareId,
   restoreLicense,
   setSetting,
+  testLicenseConnection,
   validateLicense,
 } from '@/lib/tauri';
 import { useLicenseStore } from '@/stores/license-store';
@@ -25,6 +26,7 @@ export function LicenseActivationPage() {
   const [licenseKey, setLicenseKey] = useState('');
   const [hardwareId, setHardwareId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
   const [step, setStep] = useState<'activate' | 'sync'>('activate');
 
@@ -224,6 +226,33 @@ export function LicenseActivationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrateFromDisk, navigate, setState, validateStoredLicense, performActivation, toast]);
 
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    try {
+      const diag = await testLicenseConnection();
+      if (diag.success) {
+        toast({
+          title: 'Conexão OK',
+          description: 'A comunicação com o servidor de licenças está funcionando perfeitamente.',
+        });
+      } else {
+        toast({
+          title: 'Falha na Conexão',
+          description: diag.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      toast({
+        title: 'Erro no Teste',
+        description: (err as Error)?.message ?? 'Não foi possível realizar o teste.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   const handleActivate = async () => {
     if (!licenseKey.trim()) {
       toast({
@@ -394,6 +423,19 @@ export function LicenseActivationPage() {
             >
               Precisa de ajuda? Contate o suporte
             </a>
+            <button
+              onClick={handleTestConnection}
+              disabled={isTesting}
+              className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 mt-2"
+            >
+              {isTesting ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" /> Testando...
+                </>
+              ) : (
+                'Testar conexão com o servidor'
+              )}
+            </button>
           </div>
         </CardContent>
       </Card>

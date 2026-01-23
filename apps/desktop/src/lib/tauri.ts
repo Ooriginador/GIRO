@@ -1314,3 +1314,18 @@ export async function getTopProducts(limit: number = 20): Promise<TopProduct[]> 
 export async function getSalesReport(startDate: string, endDate: string): Promise<SalesReport> {
   return tauriInvoke<SalesReport>('get_sales_report', { startDate, endDate });
 }
+
+export type ConnectionDiagnostic = {
+  success: boolean;
+  status_code: number;
+  message: string;
+  dns_resolved: boolean;
+  can_reach_server: boolean;
+};
+
+/**
+ * Test connectivity and SSL/TLS health to the GIRO License Server
+ */
+export async function testLicenseConnection(): Promise<ConnectionDiagnostic> {
+  return tauriInvoke<ConnectionDiagnostic>('test_license_connection');
+}

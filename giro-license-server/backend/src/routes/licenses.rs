@@ -163,9 +163,9 @@ async fn activate_license(
         .activate(
             &key,
             &payload.hardware_id,
-            payload.machine_name.as_deref(),
-            payload.os_version.as_deref(),
-            payload.cpu_info.as_deref(),
+            payload.machine_name.clone(),
+            payload.os_version.clone(),
+            payload.cpu_info.clone(),
             Some(addr.ip()),
         )
         .await?;
@@ -185,7 +185,14 @@ async fn validate_license(
     let license_service = state.license_service();
 
     let response = license_service
-        .validate(&key, &payload.hardware_id, payload.client_time, Some(addr.ip()))
+        .validate(
+            &key, 
+            &payload.hardware_id, 
+            payload.client_time, 
+            payload.machine_name.as_deref(),
+            payload.os_version.as_deref(),
+            Some(addr.ip())
+        )
         .await?;
 
     Ok(Json(response))
