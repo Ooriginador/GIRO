@@ -35,11 +35,33 @@ import type {
   UpdateProductInput,
   UpdateLicenseAdminRequest,
   EmployeeRole,
+  FinancialReport,
+  EmployeeRanking,
+  StockReport,
+  TopProduct,
+  MonthlySalesSummary,
+  DashboardStats,
+  ServiceOrderStats,
+  TopItem,
+  SalesReport,
+  DailyRevenue,
 } from '@/types';
 import { invoke as tauriCoreInvoke } from '@tauri-apps/api/core';
 import { readFile } from '@tauri-apps/plugin-fs';
 
 export type { EmitNfceRequest, NfceItem } from '@/types/nfce';
+export type {
+  MonthlySalesSummary,
+  TopProduct,
+  FinancialReport,
+  EmployeeRanking,
+  StockReport,
+  DashboardStats,
+  ServiceOrderStats,
+  TopItem,
+  SalesReport,
+  DailyRevenue,
+};
 
 type WebMockDb = {
   employees: Employee[];
@@ -665,11 +687,7 @@ export async function getDailySalesTotal(): Promise<number> {
   return tauriInvoke<number>('get_daily_sales_total');
 }
 
-export type MonthlySalesSummary = {
-  yearMonth: string;
-  totalSales: number;
-  totalAmount: number;
-};
+// MonthlySalesSummary moved to types/index.ts and re-exported
 
 export async function getMonthlySummary(yearMonth: string): Promise<MonthlySalesSummary> {
   return tauriInvoke<MonthlySalesSummary>('get_monthly_summary', { yearMonth });
@@ -960,45 +978,16 @@ export async function testScaleConnection(): Promise<TauriResponse<boolean>> {
 // REPORTS
 // ────────────────────────────────────────────────────────────────────────────
 
-export async function getSalesReport(
-  startDate: string,
-  endDate: string
-): Promise<{
-  totalSales: number;
-  totalRevenue: number;
-  averageTicket: number;
-  salesByPaymentMethod: Record<string, number>;
-  salesByHour: Record<string, number>;
-}> {
-  return invoke('get_sales_report', { startDate, endDate });
-}
-
-export async function getTopProducts(
-  limit?: number
-): Promise<{ product: Product; quantity: number; revenue: number }[]> {
-  return invoke('get_top_products', { limit: limit ?? 20 });
-}
-
-export async function getStockReport(): Promise<{
-  totalProducts: number;
-  totalValue: number;
-  lowStockCount: number;
-  outOfStockCount: number;
-  expiringCount: number;
-  excessStockCount: number;
-}> {
-  return invoke('get_stock_report');
-}
-
-export async function getMotopartsDashboardStats(): Promise<import('@/types').DashboardStats> {
+// Note: getSalesReport, getTopProducts, getStockReport are defined below with centralized types
+export async function getMotopartsDashboardStats(): Promise<DashboardStats> {
   return invoke('get_motoparts_dashboard_stats');
 }
 
-export async function getServiceOrderStats(): Promise<import('@/types').ServiceOrderStats> {
+export async function getServiceOrderStats(): Promise<ServiceOrderStats> {
   return invoke('get_service_order_stats');
 }
 
-export async function getTopProductsMotoparts(limit: number): Promise<import('@/types').TopItem[]> {
+export async function getTopProductsMotoparts(limit: number): Promise<TopItem[]> {
   return invoke('get_top_products_motoparts', { limit });
 }
 
@@ -1300,10 +1289,28 @@ export async function recoverLicenseFromLogin(payload: {
 }): Promise<LicenseInfo> {
   return tauriInvoke<LicenseInfo>('recover_license_from_login', { ...payload });
 }
-export async function get_financial_report(startDate: string, endDate: string) {
-  return invoke<FinancialReport>('get_financial_report', { startDate, endDate });
+export async function getFinancialReport(
+  startDate: string,
+  endDate: string
+): Promise<FinancialReport> {
+  return tauriInvoke<FinancialReport>('get_financial_report', { startDate, endDate });
 }
 
-export async function get_employee_performance(startDate: string, endDate: string) {
-  return invoke<EmployeeRanking[]>('get_employee_performance', { startDate, endDate });
+export async function getEmployeePerformance(
+  startDate: string,
+  endDate: string
+): Promise<EmployeeRanking[]> {
+  return tauriInvoke<EmployeeRanking[]>('get_employee_performance', { startDate, endDate });
+}
+
+export async function getStockReport(): Promise<StockReport> {
+  return tauriInvoke<StockReport>('get_stock_report');
+}
+
+export async function getTopProducts(limit: number = 20): Promise<TopProduct[]> {
+  return tauriInvoke<TopProduct[]>('get_top_products', { limit });
+}
+
+export async function getSalesReport(startDate: string, endDate: string): Promise<SalesReport> {
+  return tauriInvoke<SalesReport>('get_sales_report', { startDate, endDate });
 }

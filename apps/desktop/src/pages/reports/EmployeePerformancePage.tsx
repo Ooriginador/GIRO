@@ -51,9 +51,9 @@ export const EmployeePerformancePage: React.FC = () => {
 
   const chartData =
     performance?.map((item) => ({
-      name: item.employee_name,
-      total: item.total_amount,
-      sales: item.sales_count,
+      name: item.employeeName,
+      total: item.totalAmount,
+      sales: item.salesCount,
     })) || [];
 
   const stats = (
@@ -65,7 +65,7 @@ export const EmployeePerformancePage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="text-xl font-bold text-sky-600 truncate">
-            {performance?.[0]?.employee_name || '---'}
+            {performance?.[0]?.employeeName || '---'}
           </div>
           <p className="text-xs text-muted-foreground mt-1">Líder em vendas no período</p>
         </CardContent>
@@ -80,9 +80,7 @@ export const EmployeePerformancePage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-emerald-600">
-            {formatCurrency(
-              performance?.reduce((acc, curr) => acc + curr.total_commission, 0) ?? 0
-            )}
+            {formatCurrency(performance?.reduce((acc, curr) => acc + curr.totalCommission, 0) ?? 0)}
           </div>
           <p className="text-xs text-muted-foreground mt-1">Valor a ser pago</p>
         </CardContent>
@@ -97,7 +95,7 @@ export const EmployeePerformancePage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-violet-600">
-            {performance?.reduce((acc, curr) => acc + curr.sales_count, 0) ?? 0}
+            {performance?.reduce((acc, curr) => acc + curr.salesCount, 0) ?? 0}
           </div>
           <p className="text-xs text-muted-foreground mt-1">Volume de transações</p>
         </CardContent>
@@ -113,8 +111,8 @@ export const EmployeePerformancePage: React.FC = () => {
         <CardContent>
           <div className="text-2xl font-bold text-amber-600">
             {formatCurrency(
-              (performance?.reduce((acc, curr) => acc + curr.total_amount, 0) ?? 0) /
-                (performance?.reduce((acc, curr) => acc + curr.sales_count, 0) || 1)
+              (performance?.reduce((acc, curr) => acc + curr.totalAmount, 0) ?? 0) /
+                (performance?.reduce((acc, curr) => acc + curr.salesCount, 0) || 1)
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">Média por atendimento</p>
@@ -270,26 +268,26 @@ export const EmployeePerformancePage: React.FC = () => {
               </thead>
               <tbody className="divide-y overflow-hidden">
                 {performance?.map((item) => (
-                  <tr key={item.employee_id} className="hover:bg-muted/10 transition-colors">
+                  <tr key={item.employeeId} className="hover:bg-muted/10 transition-colors">
                     <td className="p-4 pl-8">
-                      <div className="font-bold uppercase text-sm">{item.employee_name}</div>
+                      <div className="font-bold uppercase text-sm">{item.employeeName}</div>
                       <div className="text-xs text-muted-foreground">
-                        ID: {item.employee_id.substring(0, 8)}...
+                        ID: {item.employeeId.substring(0, 8)}...
                       </div>
                     </td>
                     <td className="p-4 text-center">
                       <span className="inline-flex items-center justify-center min-w-[32px] h-8 px-2 rounded-full bg-muted/50 font-bold text-xs">
-                        {item.sales_count}
+                        {item.salesCount}
                       </span>
                     </td>
                     <td className="p-4 text-right font-black">
-                      {formatCurrency(item.total_amount)}
+                      {formatCurrency(item.totalAmount)}
                     </td>
                     <td className="p-4 text-right font-bold text-muted-foreground tabular-nums">
-                      {formatCurrency(item.total_amount / (item.sales_count || 1))}
+                      {formatCurrency(item.totalAmount / (item.salesCount || 1))}
                     </td>
                     <td className="p-4 text-right pr-8 font-black text-emerald-600 tabular-nums">
-                      {formatCurrency(item.total_commission)}
+                      {formatCurrency(item.totalCommission)}
                     </td>
                   </tr>
                 ))}

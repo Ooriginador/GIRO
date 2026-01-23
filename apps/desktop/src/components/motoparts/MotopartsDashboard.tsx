@@ -86,11 +86,9 @@ export function MotopartsDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(stats?.total_sales_today || 0)}
-            </div>
+            <div className="text-2xl font-bold">{formatCurrency(stats?.totalSalesToday || 0)}</div>
             <p className="text-xs text-muted-foreground">
-              {stats?.count_sales_today} transações hoje
+              {stats?.countSalesToday} transações hoje
             </p>
           </CardContent>
         </Card>
@@ -101,7 +99,7 @@ export function MotopartsDashboard() {
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.open_service_orders}</div>
+            <div className="text-2xl font-bold">{stats?.openServiceOrders}</div>
             <p className="text-xs text-muted-foreground">Ordens de serviço ativas</p>
           </CardContent>
         </Card>
@@ -112,7 +110,7 @@ export function MotopartsDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(soStats?.average_ticket || 0)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(soStats?.averageTicket || 0)}</div>
             <p className="text-xs text-muted-foreground">Baseado em OS finalizadas</p>
           </CardContent>
         </Card>
@@ -123,7 +121,7 @@ export function MotopartsDashboard() {
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats?.low_stock_products}</div>
+            <div className="text-2xl font-bold text-destructive">{stats?.lowStockProducts}</div>
             <p className="text-xs text-muted-foreground">Produtos precisam de reposição</p>
           </CardContent>
         </Card>
@@ -139,7 +137,7 @@ export function MotopartsDashboard() {
           <CardContent className="pl-2">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats?.revenue_weekly || []}>
+                <BarChart data={stats?.revenueWeekly || []}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="date"
@@ -202,7 +200,7 @@ export function MotopartsDashboard() {
                       {item.quantity} unidades vendidas
                     </p>
                   </div>
-                  <div className="ml-auto font-medium">{formatCurrency(item.total_value)}</div>
+                  <div className="ml-auto font-medium">{formatCurrency(item.totalValue)}</div>
                 </div>
               ))}
               {topProducts.length === 0 && (
@@ -229,20 +227,20 @@ export function MotopartsDashboard() {
                   <div className="h-2 w-2 rounded-full bg-blue-500" />
                   <span className="text-sm font-medium">Mão de Obra</span>
                 </div>
-                <span className="font-bold">{formatCurrency(soStats?.revenue_labor || 0)}</span>
+                <span className="font-bold">{formatCurrency(soStats?.revenueLabor || 0)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="h-2 w-2 rounded-full bg-green-500" />
                   <span className="text-sm font-medium">Peças</span>
                 </div>
-                <span className="font-bold">{formatCurrency(soStats?.revenue_parts || 0)}</span>
+                <span className="font-bold">{formatCurrency(soStats?.revenueParts || 0)}</span>
               </div>
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Total</span>
                   <span className="font-bold text-lg">
-                    {formatCurrency((soStats?.revenue_labor || 0) + (soStats?.revenue_parts || 0))}
+                    {formatCurrency((soStats?.revenueLabor || 0) + (soStats?.revenueParts || 0))}
                   </span>
                 </div>
               </div>

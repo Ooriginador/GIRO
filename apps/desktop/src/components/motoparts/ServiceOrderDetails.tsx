@@ -171,7 +171,6 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
         id: orderId,
         paymentMethod: data.paymentMethod,
         amountPaid: data.amountPaid,
-        employeeId: employee.id,
         sessionId: currentSession.id,
       });
       toast({

@@ -11,7 +11,6 @@ use std::time::Duration;
 // TIPOS
 // ════════════════════════════════════════════════════════════════════════════
 
-/// Configuração da gaveta
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DrawerConfig {
     pub enabled: bool,
@@ -21,6 +20,7 @@ pub struct DrawerConfig {
     pub pin: DrawerPin,
     /// Duração do pulso em ms
     pub pulse_duration: u16,
+    pub mock_mode: bool,
 }
 
 /// Pino de acionamento da gaveta
@@ -37,6 +37,7 @@ impl Default for DrawerConfig {
             printer_port: String::new(),
             pin: DrawerPin::Pin2,
             pulse_duration: 200,
+            mock_mode: false,
         }
     }
 }
@@ -103,6 +104,10 @@ impl CashDrawer {
 
     /// Abre a gaveta usando a conexão configurada
     pub fn open(&self) -> HardwareResult<()> {
+        if self.config.mock_mode {
+            tracing::info!("[CashDrawer] MOCK OPEN (Pin: {:?})", self.config.pin);
+            return Ok(());
+        }
         if !self.is_enabled() {
             return Ok(());
         }

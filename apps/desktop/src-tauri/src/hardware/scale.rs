@@ -27,7 +27,6 @@ pub enum ScaleProtocol {
     Generic,
 }
 
-/// Configuração da balança
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScaleConfig {
     pub enabled: bool,
@@ -37,6 +36,7 @@ pub struct ScaleConfig {
     pub data_bits: u8,  // 7 ou 8
     pub parity: String, // none, odd, even
     pub stop_bits: u8,  // 1 ou 2
+    pub mock_mode: bool,
 }
 
 impl Default for ScaleConfig {
@@ -49,6 +49,7 @@ impl Default for ScaleConfig {
             data_bits: 8,
             parity: "none".to_string(),
             stop_bits: 1,
+            mock_mode: false,
         }
     }
 }
@@ -281,6 +282,16 @@ impl Scale {
 
     /// Lê o peso da balança
     pub fn read_weight(&self) -> HardwareResult<ScaleReading> {
+        if self.config.mock_mode {
+            return Ok(ScaleReading {
+                weight_kg: 1.234,
+                weight_grams: 1234,
+                stable: true,
+                overload: false,
+                negative: false,
+                protocol: self.config.protocol.clone(),
+            });
+        }
         if !self.config.enabled {
             return Err(HardwareError::NotConfigured(
                 "Balança não habilitada".to_string(),
@@ -519,6 +530,14 @@ impl WeightedBarcode {
 impl crate::hardware::HardwareDevice for Scale {
     fn health_check(&self) -> Result<crate::hardware::HardwareStatus, String> {
         let name = format!("scale:{:?}", self.config.protocol);
+
+        if self.config.mock_mode {
+            return Ok(crate::hardware::HardwareStatus {
+                name,
+                ok: true,
+                message: Some("mock mode enabled".to_string()),
+            });
+        }
 
         if !self.config.enabled {
             return Ok(crate::hardware::HardwareStatus {

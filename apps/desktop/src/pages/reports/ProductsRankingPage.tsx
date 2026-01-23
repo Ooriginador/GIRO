@@ -2,7 +2,8 @@ import React from 'react';
 import { BaseReportLayout } from '@/components/reports/BaseReportLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useTopProductsRank } from '@/hooks/useReports';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency } from '@/lib/utils';
+import { TopProduct } from '@/types';
 import {
   TrendingUp,
   Package,
@@ -28,7 +29,7 @@ export const ProductsRankingPage: React.FC = () => {
   const { data: topProducts, isLoading } = useTopProductsRank(50);
 
   const chartData =
-    topProducts?.slice(0, 10).map((item) => ({
+    topProducts?.slice(0, 10).map((item: TopProduct) => ({
       name: item.product.name.substring(0, 15) + (item.product.name.length > 15 ? '...' : ''),
       revenue: item.revenue,
       quantity: item.quantity,
@@ -60,7 +61,9 @@ export const ProductsRankingPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-sky-600">
-            {formatCurrency(topProducts?.reduce((acc, curr) => acc + curr.revenue, 0) ?? 0)}
+            {formatCurrency(
+              topProducts?.reduce((acc: number, curr: TopProduct) => acc + curr.revenue, 0) ?? 0
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">Faturamento acumulado</p>
         </CardContent>
@@ -75,7 +78,7 @@ export const ProductsRankingPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-violet-600">
-            {topProducts?.reduce((acc, curr) => acc + curr.quantity, 0) ?? 0}
+            {topProducts?.reduce((acc: number, curr: TopProduct) => acc + curr.quantity, 0) ?? 0}
           </div>
           <p className="text-xs text-muted-foreground mt-1">Volume total do ranking</p>
         </CardContent>
@@ -91,7 +94,7 @@ export const ProductsRankingPage: React.FC = () => {
         <CardContent>
           <div className="text-2xl font-bold text-amber-600">
             {formatCurrency(
-              (topProducts?.reduce((acc, curr) => acc + curr.revenue, 0) ?? 0) /
+              (topProducts?.reduce((acc: number, curr: TopProduct) => acc + curr.revenue, 0) ?? 0) /
                 (topProducts?.length || 1)
             )}
           </div>
@@ -148,7 +151,7 @@ export const ProductsRankingPage: React.FC = () => {
                   formatter={(val: number) => formatCurrency(val)}
                 />
                 <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
-                  {chartData.map((_, index) => (
+                  {chartData.map((_: { name: string; revenue: number }, index: number) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}
@@ -186,7 +189,7 @@ export const ProductsRankingPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y overflow-hidden">
-                  {topProducts?.map((item, index) => (
+                  {topProducts?.map((item: TopProduct, index: number) => (
                     <tr key={item.product.id} className="hover:bg-muted/10 transition-colors group">
                       <td className="p-4 pl-8 font-black text-muted-foreground group-hover:text-primary transition-colors">
                         {index + 1}
@@ -196,7 +199,7 @@ export const ProductsRankingPage: React.FC = () => {
                           {item.product.name}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {item.product.sku || 'Sem SKU'}
+                          {item.product.internalCode || 'Sem Código'}
                         </div>
                       </td>
                       <td className="p-4 text-center">

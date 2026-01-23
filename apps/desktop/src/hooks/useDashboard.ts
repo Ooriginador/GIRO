@@ -5,6 +5,7 @@ import {
   getTodaySales,
   getTopProducts,
   getUnreadAlertsCount,
+  getMotopartsDashboardStats,
 } from '@/lib/tauri';
 import { useQuery } from '@tanstack/react-query';
 
@@ -12,14 +13,21 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ['dashboard', 'stats'],
     queryFn: async () => {
-      const [todaySalesTotal, todaySalesList, stockReport, unreadAlerts, topProductsList] =
-        await Promise.all([
-          getDailySalesTotal(),
-          getTodaySales(),
-          getStockReport(),
-          getUnreadAlertsCount(),
-          getTopProducts(5),
-        ]);
+      const [
+        todaySalesTotal,
+        todaySalesList,
+        stockReport,
+        unreadAlerts,
+        topProductsList,
+        motopartsStats,
+      ] = await Promise.all([
+        getDailySalesTotal(),
+        getTodaySales(),
+        getStockReport(),
+        getUnreadAlertsCount(),
+        getTopProducts(5),
+        getMotopartsDashboardStats(),
+      ]);
 
       const todaySalesCount = todaySalesList.length;
       const averageTicket = todaySalesCount > 0 ? todaySalesTotal / todaySalesCount : 0;
@@ -56,6 +64,7 @@ export function useDashboardStats() {
             total: sale.total,
           };
         }),
+        revenueWeekly: motopartsStats.revenueWeekly || [],
         topProducts: topProductsList.map((item) => ({
           name: item.product.name,
           quantity: item.quantity,

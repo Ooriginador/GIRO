@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DashboardStats {
     pub total_sales_today: f64,
     pub count_sales_today: i64,
@@ -11,12 +12,14 @@ pub struct DashboardStats {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DailyRevenue {
     pub date: String,
     pub amount: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ServiceOrderStats {
     pub total_orders: i64,
     pub by_status: Vec<StatusCount>,
@@ -26,12 +29,14 @@ pub struct ServiceOrderStats {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StatusCount {
     pub status: String,
     pub count: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TopItem {
     pub id: String,
     pub name: String,
@@ -40,6 +45,7 @@ pub struct TopItem {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MotopartsReport {
     pub period_start: String,
     pub period_end: String,

@@ -12,6 +12,7 @@ import {
   getTopProducts,
   type MonthlySalesSummary,
   type TopProduct,
+  type DailyRevenue,
 } from '@/lib/tauri';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -126,7 +127,7 @@ export const ReportsPage: FC = () => {
   const lowStock = stats?.lowStockCount || 0;
 
   const chartData =
-    stats?.revenueWeekly?.map((d) => ({
+    stats?.revenueWeekly?.map((d: DailyRevenue) => ({
       name: format(new Date(d.date), 'dd/MM'),
       value: d.amount,
     })) || [];
@@ -230,7 +231,7 @@ export const ReportsPage: FC = () => {
                   }}
                 />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {chartData.map((_, index) => (
+                  {chartData.map((_: { name: string; value: number }, index: number) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}

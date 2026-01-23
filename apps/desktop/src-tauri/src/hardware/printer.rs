@@ -75,6 +75,14 @@ impl crate::hardware::HardwareDevice for ThermalPrinter {
     fn health_check(&self) -> Result<crate::hardware::HardwareStatus, String> {
         let name = format!("printer:{:?}", self.config.model);
 
+        if self.config.mock_mode {
+            return Ok(crate::hardware::HardwareStatus {
+                name,
+                ok: true,
+                message: Some("mock mode enabled".to_string()),
+            });
+        }
+
         if !self.config.enabled {
             return Ok(crate::hardware::HardwareStatus {
                 name,
@@ -198,20 +206,21 @@ pub enum PrinterModel {
 }
 
 /// Configuração da impressora
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct PrinterConfig {
     pub enabled: bool,
     pub model: PrinterModel,
     pub connection: PrinterConnection,
-    pub port: String,    // COM3, /dev/ttyUSB0, ou 192.168.1.100:9100
-    pub paper_width: u8, // 48 (58mm) ou 42 (80mm) caracteres
+    pub port: String,
+    pub paper_width: u16,
     pub auto_cut: bool,
     pub open_drawer_on_sale: bool,
-    // Serial params (used when connection == Serial)
     pub baud_rate: u32,
     pub data_bits: u8,
-    pub parity: String, // "none", "odd", "even"
+    pub parity: String,
     pub timeout_ms: u64,
+    pub mock_mode: bool,
 }
 
 impl Default for PrinterConfig {
@@ -228,6 +237,7 @@ impl Default for PrinterConfig {
             data_bits: 8,
             parity: "none".to_string(),
             timeout_ms: 3000,
+            mock_mode: false,
         }
     }
 }
@@ -410,6 +420,10 @@ impl ThermalPrinter {
 
     /// Envia para a impressora via porta serial
     pub fn print_serial(&self) -> HardwareResult<()> {
+        if self.config.mock_mode {
+            tracing::info!("[Printer] MOCK PRINT (Serial)");
+            return Ok(());
+        }
         if !self.config.enabled {
             return Ok(());
         }
@@ -444,6 +458,10 @@ impl ThermalPrinter {
     /// Observação: isso funciona tipicamente em Linux via `/dev/usb/lp0`.
     /// Em Windows, recomenda-se usar interface Serial/COM (driver virtual COM).
     pub fn print_usb(&self) -> HardwareResult<()> {
+        if self.config.mock_mode {
+            tracing::info!("[Printer] MOCK PRINT (USB)");
+            return Ok(());
+        }
         if !self.config.enabled {
             return Ok(());
         }
@@ -478,6 +496,10 @@ impl ThermalPrinter {
 
     /// Envia para impressora via rede
     pub async fn print_network(&self) -> HardwareResult<()> {
+        if self.config.mock_mode {
+            tracing::info!("[Printer] MOCK PRINT (Network)");
+            return Ok(());
+        }
         if !self.config.enabled {
             return Ok(());
         }

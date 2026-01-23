@@ -525,27 +525,27 @@ export interface DailyRevenue {
 }
 
 export interface DashboardStats {
-  total_sales_today: number;
-  count_sales_today: number;
-  open_service_orders: number;
-  active_warranties: number;
-  low_stock_products: number;
-  revenue_weekly: DailyRevenue[];
+  totalSalesToday: number;
+  countSalesToday: number;
+  openServiceOrders: number;
+  activeWarranties: number;
+  lowStockProducts: number;
+  revenueWeekly: DailyRevenue[];
 }
 
 export interface ServiceOrderStats {
-  total_orders: number;
-  by_status: { status: string; count: number }[];
-  revenue_labor: number;
-  revenue_parts: number;
-  average_ticket: number;
+  totalOrders: number;
+  byStatus: { status: string; count: number }[];
+  revenueLabor: number;
+  revenueParts: number;
+  averageTicket: number;
 }
 
 export interface TopItem {
   id: string;
   name: string;
   quantity: number;
-  total_value: number;
+  totalValue: number;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -584,10 +584,17 @@ export interface StockReport {
   outOfStockCount: number;
   expiringCount: number;
   excessStockCount: number;
+  valuationByCategory: Record<string, number>;
 }
 
 export interface TopProduct {
   product: Product;
   quantity: number;
   revenue: number;
+}
+
+export interface MonthlySalesSummary {
+  yearMonth: string;
+  totalSales: number;
+  totalAmount: number;
 }

@@ -3,10 +3,9 @@
  * @description Relatório detalhado de vendas com filtros e gráficos modernizados
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { BaseReportLayout } from '@/components/reports/BaseReportLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -40,8 +39,6 @@ import {
 } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -349,22 +346,29 @@ export const SalesReportPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-6 mt-2">
-                {(report?.topProducts || []).slice(0, 5).map((product, index) => (
-                  <div key={product.id || index} className="flex items-center gap-4">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/50 text-sm font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate uppercase">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {product.quantity} unidades vendidas
-                      </p>
-                    </div>
-                    <div className="text-sm font-black text-foreground/80">
-                      {formatCurrency(product.amount)}
-                    </div>
-                  </div>
-                ))}
+                {(report?.topProducts || [])
+                  .slice(0, 5)
+                  .map(
+                    (
+                      product: { id: string; name: string; quantity: number; amount: number },
+                      index: number
+                    ) => (
+                      <div key={product.id || index} className="flex items-center gap-4">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/50 text-sm font-bold">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold truncate uppercase">{product.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {product.quantity} unidades vendidas
+                          </p>
+                        </div>
+                        <div className="text-sm font-black text-foreground/80">
+                          {formatCurrency(product.amount)}
+                        </div>
+                      </div>
+                    )
+                  )}
               </div>
             </CardContent>
           </Card>

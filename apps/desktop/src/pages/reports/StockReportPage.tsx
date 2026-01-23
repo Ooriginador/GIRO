@@ -2,13 +2,13 @@ import React from 'react';
 import { BaseReportLayout } from '@/components/reports/BaseReportLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useStockReport } from '@/hooks/useReports';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency } from '@/lib/utils';
+import { StockReport } from '@/types';
 import {
   Package,
   AlertTriangle,
   XCircle,
   Clock,
-  TrendingUp,
   PieChart as PieChartIcon,
   BarChart3,
 } from 'lucide-react';
@@ -29,16 +29,17 @@ import {
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#ef4444'];
 
 export const StockReportPage: React.FC = () => {
-  const { data: report, isLoading } = useStockReport();
+  const { data: reportData, isLoading } = useStockReport();
+  const report = reportData as StockReport;
 
   const pieData = report?.valuationByCategory
-    ? Object.entries(report.valuationByCategory)
-        .map(([name, value]) => ({
-          name,
-          value,
-        }))
-        .sort((a, b) => b.value - a.value)
+    ? Object.entries(report.valuationByCategory).map(([name, value]) => ({
+        name,
+        value: value as number,
+      }))
     : [];
+
+  const sortedPieData = [...pieData].sort((a, b) => (b.value as number) - (a.value as number));
 
   const stats = (
     <>
@@ -118,7 +119,7 @@ export const StockReportPage: React.FC = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={pieData}
+                    data={sortedPieData}
                     cx="50%"
                     cy="45%"
                     innerRadius={80}
@@ -126,7 +127,7 @@ export const StockReportPage: React.FC = () => {
                     paddingAngle={2}
                     dataKey="value"
                   >
-                    {pieData.map((_, index) => (
+                    {sortedPieData.map((_: { name: string; value: number }, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -216,7 +217,7 @@ export const StockReportPage: React.FC = () => {
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y">
-            {pieData.map((item, index) => (
+            {sortedPieData.map((item, index) => (
               <div
                 key={index}
                 className="flex justify-between items-center p-4 hover:bg-muted/10 transition-colors"
@@ -229,14 +230,15 @@ export const StockReportPage: React.FC = () => {
                   <span className="font-medium">{item.name}</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold">{formatCurrency(item.value)}</div>
+                  <div className="font-bold">{formatCurrency(item.value as number)}</div>
                   <div className="text-xs text-muted-foreground">
-                    {((item.value / (report?.totalValue || 1)) * 100).toFixed(1)}% do estoque
+                    {(((item.value as number) / (report?.totalValue || 1)) * 100).toFixed(1)}% do
+                    estoque
                   </div>
                 </div>
               </div>
             ))}
-            {pieData.length === 0 && (
+            {sortedPieData.length === 0 && (
               <div className="p-12 text-center text-muted-foreground">
                 Nenhum dado de valorização disponível.
               </div>

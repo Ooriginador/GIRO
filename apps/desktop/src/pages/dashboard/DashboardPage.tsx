@@ -161,22 +161,24 @@ export const DashboardPage: FC = () => {
           <CardContent>
             <div className="space-y-4">
               {data.recentSales.length > 0 ? (
-                data.recentSales.map((sale) => (
-                  <div key={sale.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
-                        <ShoppingCart className="h-4 w-4" />
+                data.recentSales.map(
+                  (sale: { id: string; items: number; time: string; total: number }) => (
+                    <div key={sale.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                          <ShoppingCart className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Venda #{sale.id.slice(0, 8)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {sale.items} itens • {sale.time}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">Venda #{sale.id.slice(0, 8)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {sale.items} itens • {sale.time}
-                        </p>
-                      </div>
+                      <span className="font-medium">{formatCurrency(sale.total)}</span>
                     </div>
-                    <span className="font-medium">{formatCurrency(sale.total)}</span>
-                  </div>
-                ))
+                  )
+                )
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Nenhuma venda hoje.
@@ -195,20 +197,24 @@ export const DashboardPage: FC = () => {
           <CardContent>
             <div className="space-y-4">
               {data.topProducts.length > 0 ? (
-                data.topProducts.map((product, index) => (
-                  <div key={product.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-medium">
-                        {index + 1}
+                data.topProducts.map(
+                  (product: { name: string; quantity: number; revenue: number }, index: number) => (
+                    <div key={product.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-medium">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{product.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {product.quantity} vendidos
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">{product.quantity} vendidos</p>
-                      </div>
+                      <span className="font-medium">{formatCurrency(product.revenue)}</span>
                     </div>
-                    <span className="font-medium">{formatCurrency(product.revenue)}</span>
-                  </div>
-                ))
+                  )
+                )
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Sem dados de produtos.
