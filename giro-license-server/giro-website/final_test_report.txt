@@ -1,0 +1,139 @@
+
+> giro-website@0.1.0 test:coverage
+> vitest run --coverage --reporter=verbose
+
+
+[1m[46m RUN [49m[22m [36mv4.0.17 [39m[90m/home/jhonslife/CICLOGIRO/giro-license-server/giro-website[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+[90mstderr[2m | lib/github.test.ts[2m > [22m[2mgithub.ts[2m > [22m[2mshould handle fetch failure
+[22m[39mFailed to fetch latest release: [90mundefined[39m
+
+[90mstderr[2m | lib/github.test.ts[2m > [22m[2mgithub.ts[2m > [22m[2mshould handle fetch errors
+[22m[39mError fetching release: Error: Network error
+    at [90m/home/jhonslife/CICLOGIRO/giro-license-server/giro-website/[39mlib/github.test.ts:47:46
+    at [90mfile:///home/jhonslife/CICLOGIRO/giro-license-server/giro-website/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:145:11
+    at [90mfile:///home/jhonslife/CICLOGIRO/giro-license-server/giro-website/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:915:26
+    at [90mfile:///home/jhonslife/CICLOGIRO/giro-license-server/giro-website/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/jhonslife/CICLOGIRO/giro-license-server/giro-website/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///home/jhonslife/CICLOGIRO/giro-license-server/giro-website/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1653:37
+    at Traces.$ [90m(file:///home/jhonslife/CICLOGIRO/giro-license-server/giro-website/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///home/jhonslife/CICLOGIRO/giro-license-server/giro-website/[39mnode_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///home/jhonslife/CICLOGIRO/giro-license-server/giro-website/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1653:12[90m)[39m
+
+ [32m✓[39m lib/api.test.ts[2m > [22mapi.ts[2m > [22mshould handle login successfully[32m 11[2mms[22m[39m
+ [32m✓[39m lib/api.test.ts[2m > [22mapi.ts[2m > [22mshould handle login failure[32m 4[2mms[22m[39m
+ [32m✓[39m lib/api.test.ts[2m > [22mapi.ts[2m > [22mshould handle registration[32m 1[2mms[22m[39m
+ [32m✓[39m lib/api.test.ts[2m > [22mapi.ts[2m > [22mshould fetch licenses with token from localStorage[32m 10[2mms[22m[39m
+ [32m✓[39m lib/api.test.ts[2m > [22mapi.ts[2m > [22mshould create MercadoPago preference[32m 1[2mms[22m[39m
+ [32m✓[39m lib/api.test.ts[2m > [22mapi.ts[2m > [22mshould handle 401 and redirect to login[32m 3[2mms[22m[39m
+ [32m✓[39m lib/api.test.ts[2m > [22mapi.ts[2m > [22mshould get profile[32m 0[2mms[22m[39m
+ [32m✓[39m lib/api.test.ts[2m > [22mapi.ts[2m > [22mshould get hardware info[32m 3[2mms[22m[39m
+ [32m✓[39m lib/api.test.ts[2m > [22mapi.ts[2m > [22mshould handle registration failure[32m 1[2mms[22m[39m
+ [32m✓[39m lib/api.test.ts[2m > [22mapi.ts[2m > [22mshould handle generic error in fetchWithAuth when json() fails[32m 2[2mms[22m[39m
+ [32m✓[39m lib/github.test.ts[2m > [22mgithub.ts[2m > [22mshould fetch latest release successfully[32m 5[2mms[22m[39m
+ [32m✓[39m lib/github.test.ts[2m > [22mgithub.ts[2m > [22mshould handle fetch failure[32m 11[2mms[22m[39m
+ [32m✓[39m lib/github.test.ts[2m > [22mgithub.ts[2m > [22mshould handle fetch errors[32m 13[2mms[22m[39m
+ [32m✓[39m lib/github.test.ts[2m > [22mgithub.ts[2m > [22mshould use patterns to find correct assets[32m 1[2mms[22m[39m
+[90mstderr[2m | components/sections/MobileSection.test.tsx[2m > [22m[2mMobileSection[2m > [22m[2mshould render mobile section content
+[22m[39mReceived `true` for a non-boolean attribute `fill`.
+
+If you want to write it to the DOM, pass a string instead: fill="true" or fill={value.toString()}.
+
+ [31m×[39m components/sections/ShowcaseSection.test.tsx[2m > [22mShowcaseSection[2m > [22mshould render showcase items[32m 37[2mms[22m[39m
+[31m   → useEffect is not defined[39m
+ [31m×[39m components/sections/ShowcaseSection.test.tsx[2m > [22mShowcaseSection[2m > [22mshould allow changing active screenshot[32m 3[2mms[22m[39m
+[31m   → useEffect is not defined[39m
+ [31m×[39m components/sections/ShowcaseSection.test.tsx[2m > [22mShowcaseSection[2m > [22mshould auto-rotate screenshots[32m 3[2mms[22m[39m
+[31m   → useEffect is not defined[39m
+ [31m×[39m components/sections/ShowcaseSection.test.tsx[2m > [22mShowcaseSection[2m > [22mshould pause auto-rotate on hover[32m 3[2mms[22m[39m
+[31m   → useEffect is not defined[39m
+ [32m✓[39m components/sections/MobileSection.test.tsx[2m > [22mMobileSection[2m > [22mshould render mobile section content[32m 98[2mms[22m[39m
+ [32m✓[39m components/sections/MobileSection.test.tsx[2m > [22mMobileSection[2m > [22mshould show Em Breve badges[32m 19[2mms[22m[39m
+ [32m✓[39m components/sections/FAQSection.test.tsx[2m > [22mFAQSection[2m > [22mshould render all questions[32m 73[2mms[22m[39m
+[90mstdout[2m | components/sections/PricingSection.test.tsx[2m > [22m[2mPricingSection[2m > [22m[2mshould call createMercadoPagoPreference when subscribing
+[22m[39mCheckout: { plan: [32m'mensal'[39m, interval: [32m'monthly'[39m }
+
+[90mstderr[2m | app/page.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mshould render the homepage with all sections
+[22m[39m<Home> is an async Client Component. Only Server Components can be async at the moment. This error is often caused by accidentally adding `'use client'` to a module that was originally written for the server.
+
+[90mstderr[2m | app/page.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mshould render the homepage with all sections
+[22m[39mA component suspended inside an `act` scope, but the `act` call was not awaited. When testing React components that depend on asynchronous data, you must await the result:
+
+await act(() => ...)
+
+ [32m✓[39m app/dashboard/page.test.tsx[2m > [22mDashboardPage[2m > [22mshould render loading state then data[32m 130[2mms[22m[39m
+ [32m✓[39m app/dashboard/page.test.tsx[2m > [22mDashboardPage[2m > [22mshould render empty state if no licenses[32m 25[2mms[22m[39m
+ [32m✓[39m components/sections/PricingSection.test.tsx[2m > [22mPricingSection[2m > [22mshould render all plans[32m 141[2mms[22m[39m
+ [31m×[39m app/page.test.tsx[2m > [22mHomePage[2m > [22mshould render the homepage with all sections[32m 87[2mms[22m[39m
+[31m   → Unable to find an element with the text: Hero Section. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div />[31m
+[36m</body>[31m[39m
+Not implemented: Window's alert() method
+ [32m✓[39m components/sections/PricingSection.test.tsx[2m > [22mPricingSection[2m > [22mshould call createMercadoPagoPreference when subscribing[32m 116[2mms[22m[39m
+ [32m✓[39m components/sections/PricingSection.test.tsx[2m > [22mPricingSection[2m > [22mshould alert and redirect if not logged in[32m 43[2mms[22m[39m
+ [32m✓[39m components/sections/FAQSection.test.tsx[2m > [22mFAQSection[2m > [22mshould toggle answer when question is clicked[32m 31[2mms[22m[39m
+ [32m✓[39m app/register/page.test.tsx[2m > [22mRegisterPage[2m > [22mshould handle registration form submission[32m 272[2mms[22m[39m
+ [32m✓[39m app/login/page.test.tsx[2m > [22mLoginPage[2m > [22mshould handle login form submission[32m 236[2mms[22m[39m
+ [32m✓[39m components/sections/FAQSection.test.tsx[2m > [22mFAQSection[2m > [22mshould have a working support link[32m 174[2mms[22m[39m
+ [32m✓[39m components/sections/HeroSection.test.tsx[2m > [22mHeroSection[2m > [22mshould render latest version if provided[32m 61[2mms[22m[39m
+ [32m✓[39m components/sections/HeroSection.test.tsx[2m > [22mHeroSection[2m > [22mshould render default message if no release[32m 17[2mms[22m[39m
+ [32m✓[39m components/sections/HeroSection.test.tsx[2m > [22mHeroSection[2m > [22mshould have correct download links[32m 217[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 5 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m app/page.test.tsx[2m > [22mHomePage[2m > [22mshould render the homepage with all sections
+[31m[1mTestingLibraryElementError[22m: Unable to find an element with the text: Hero Section. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div />[31m
+[36m</body>[31m[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m app/page.test.tsx:[2m16:19[22m[39m
+    [90m 14| [39m  [34mit[39m([32m"should render the homepage with all sections"[39m[33m,[39m () [33m=>[39m {
+    [90m 15| [39m    [34mrender[39m([33m<[39m[33mHomePage[39m [33m/[39m[33m>[39m)[33m;[39m
+    [90m 16| [39m    [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m"Hero Section"[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m   | [39m                  [31m^[39m
+    [90m 17| [39m  })[33m;[39m
+    [90m 18| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/sections/ShowcaseSection.test.tsx[2m > [22mShowcaseSection[2m > [22mshould render showcase items
+[41m[1m FAIL [22m[49m components/sections/ShowcaseSection.test.tsx[2m > [22mShowcaseSection[2m > [22mshould allow changing active screenshot
+[41m[1m FAIL [22m[49m components/sections/ShowcaseSection.test.tsx[2m > [22mShowcaseSection[2m > [22mshould auto-rotate screenshots
+[41m[1m FAIL [22m[49m components/sections/ShowcaseSection.test.tsx[2m > [22mShowcaseSection[2m > [22mshould pause auto-rotate on hover
+[31m[1mReferenceError[22m: useEffect is not defined[39m
+[36m [2m❯[22m ShowcaseSection components/sections/ShowcaseSection.tsx:[2m67:3[22m[39m
+    [90m 65| [39m  }[33m;[39m
+    [90m 66| [39m
+    [90m 67| [39m  [34museEffect[39m(() [33m=>[39m {
+    [90m   | [39m  [31m^[39m
+    [90m 68| [39m    [35mif[39m (isHovered) [35mreturn[39m[33m;[39m
+    [90m 69| [39m    [35mconst[39m interval [33m=[39m [34msetInterval[39m(next[33m,[39m [34m5000[39m)[33m;[39m
+[90m [2m❯[22m Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:[2m25904:20[22m[39m
+[90m [2m❯[22m renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:[2m7662:22[22m[39m
+[90m [2m❯[22m updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:[2m10166:19[22m[39m
+[90m [2m❯[22m beginWork node_modules/react-dom/cjs/react-dom-client.development.js:[2m11778:18[22m[39m
+[90m [2m❯[22m runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:[2m874:13[22m[39m
+[90m [2m❯[22m performUnitOfWork node_modules/react-dom/cjs/react-dom-client.development.js:[2m17641:22[22m[39m
+[90m [2m❯[22m workLoopSync node_modules/react-dom/cjs/react-dom-client.development.js:[2m17469:41[22m[39m
+[90m [2m❯[22m renderRootSync node_modules/react-dom/cjs/react-dom-client.development.js:[2m17450:11[22m[39m
+[90m [2m❯[22m performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:[2m16583:35[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m9 passed[39m[22m[90m (11)[39m
+[2m      Tests [22m [1m[31m5 failed[39m[22m[2m | [22m[1m[32m29 passed[39m[22m[90m (34)[39m
+[2m   Start at [22m 14:40:02
+[2m   Duration [22m 2.26s[2m (transform 1.23s, setup 1.91s, import 5.02s, tests 1.88s, environment 8.66s)[22m
+

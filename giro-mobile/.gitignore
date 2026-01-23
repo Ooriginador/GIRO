@@ -1,0 +1,29 @@
+# General
+node_modules/
+.idea/
+.vscode/
+.DS_Store
+*.pem
+*.local
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Native
+android/
+ios/
+.cxx/
+
+# Credentials
+key-info.txt
+*.keystore
+!debug.keystore
+
+# Build filescript/Expo
+expo-env.d.ts
+
+# NPM/Yarn/PNPM
+npm-debug.log
+yarn-error.log

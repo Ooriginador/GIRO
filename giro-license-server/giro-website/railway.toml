@@ -1,0 +1,14 @@
+# Railway configuration for giro-website
+# Set custom config path in Railway UI: /giro-website/railway.toml
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "giro-website/Dockerfile"
+
+[deploy]
+startCommand = "node server.js"
+healthcheckPath = "/"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+numReplicas = 1

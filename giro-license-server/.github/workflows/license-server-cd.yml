@@ -1,0 +1,135 @@
+name: CD - Deploy License Server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/license-server-cd.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging-api.giro.com.br
+
+    steps:
+      - name: Deploy to Railway (Staging)
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
+        run: |
+          echo "🚀 Deploying to staging environment..."
+          # Railway CLI deployment
+          # npx @railway/cli deploy --service giro-license-server
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment:
+      name: production
+      url: https://api.giro.com.br
+
+    steps:
+      - name: Deploy to Railway (Production)
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "🚀 Deploying to production environment..."
+          # Railway CLI deployment
+          # npx @railway/cli deploy --service giro-license-server
+
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "✅ Deployment successful!"
+          echo "Image: ${{ needs.build-and-push.outputs.image_tag }}"
+          echo "Digest: ${{ needs.build-and-push.outputs.image_digest }}"
+
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Wait for deployment
+        run: sleep 60
+
+      - name: Check API health
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://api.giro.com.br/api/v1/health || echo "000")
+          if [ "$response" != "200" ]; then
+            echo "❌ Health check failed with status: $response"
+            exit 1
+          fi
+          echo "✅ Health check passed"

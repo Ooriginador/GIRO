@@ -36,9 +36,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: "pnpm"
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v3
         with:
           version: 9
 
@@ -50,7 +51,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: apps/desktop/src-tauri
+          shared-key: "tauri-build"
 
       - name: Install system dependencies (Linux)
         if: matrix.platform == 'ubuntu-22.04'
@@ -67,20 +68,7 @@ jobs:
             librsvg2-dev \
             libudev-dev
 
-      - name: Install dependencies (Desktop)
-        working-directory: apps/desktop
-        run: pnpm install --frozen-lockfile
-
-      #      - name: Lint (Desktop)
-      #        working-directory: apps/desktop
-      #        run: pnpm run lint
-
-      #      - name: Typecheck (Desktop)
-      #        working-directory: apps/desktop
-      #        run: pnpm run typecheck
-
-      - name: Install dependencies (Database)
-        working-directory: packages/database
+      - name: Install dependencies (Monorepo)
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client

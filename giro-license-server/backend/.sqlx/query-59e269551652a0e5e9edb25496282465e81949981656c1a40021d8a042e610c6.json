@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO license_hardware (license_id, hardware_id, machine_name, os_version, cpu_info)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (license_id, hardware_id) DO UPDATE\n            SET \n                machine_name = EXCLUDED.machine_name,\n                os_version = EXCLUDED.os_version,\n                cpu_info = EXCLUDED.cpu_info,\n                activations_count = license_hardware.activations_count + 1,\n                last_activated_at = NOW()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "59e269551652a0e5e9edb25496282465e81949981656c1a40021d8a042e610c6"
+}

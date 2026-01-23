@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, email, password_hash, name, phone, company_name,\n                company_cnpj, company_address, company_address_city, company_address_state,\n                is_verified as \"is_verified!\", \n                verified_at, \n                totp_secret, \n                totp_enabled as \"totp_enabled!\",\n                is_active as \"is_active!\", \n                created_at, \n                updated_at, \n                deleted_at\n            FROM admins\n            WHERE id = $1 AND deleted_at IS NULL\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "password_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "phone",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "company_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "company_cnpj",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "company_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "company_address_city",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "company_address_state",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "is_verified!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "verified_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "totp_secret",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 13,
+        "name": "totp_enabled!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "is_active!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "9d60b1204055dd6ddb88e0ace5b171a6132a8b0ec8a08d826c39321abc03d511"
+}

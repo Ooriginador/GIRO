@@ -1,0 +1,122 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  CARGO_TERM_COLOR: always
+  DATABASE_URL: postgresql://giro:giro123@localhost:5432/giro_test
+
+jobs:
+  test-backend:
+    name: Test Backend (Rust)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: giro
+          POSTGRES_PASSWORD: giro123
+          POSTGRES_DB: giro_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install SQLx CLI
+        run: cargo install sqlx-cli --no-default-features --features postgres
+
+      - name: Run migrations
+        working-directory: ./giro-license-server/backend
+        run: sqlx migrate run
+
+      - name: Check formatting
+        working-directory: ./giro-license-server/backend
+        run: cargo fmt --check
+
+      - name: Run Clippy
+        working-directory: ./giro-license-server/backend
+        run: cargo clippy -- -D warnings
+
+      - name: Run tests
+        working-directory: ./giro-license-server/backend
+        run: cargo test --lib --verbose
+
+      - name: Build
+        working-directory: ./giro-license-server/backend
+        run: cargo build --release
+
+  test-dashboard:
+    name: Test Dashboard (Next.js)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ./giro-license-server/dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./giro-license-server/dashboard
+        run: npm ci
+
+      - name: Run linter
+        working-directory: ./giro-license-server/dashboard
+        run: npm run lint
+
+      - name: Type check
+        working-directory: ./giro-license-server/dashboard
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: ./giro-license-server/dashboard
+        run: npm run build
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Audit Rust dependencies
+        working-directory: ./giro-license-server/backend
+        run: |
+          cargo install cargo-audit
+          cargo audit
+
+      - name: Audit npm dependencies
+        working-directory: ./giro-license-server/dashboard
+        run: npm audit --audit-level=moderate

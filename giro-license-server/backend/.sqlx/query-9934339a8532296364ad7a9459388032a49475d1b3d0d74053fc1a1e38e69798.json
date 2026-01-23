@@ -1,0 +1,137 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE licenses\n            SET \n                hardware_id = NULL,\n                status = 'pending'\n            WHERE id = $1\n            RETURNING \n                id, license_key, admin_id, hardware_id,\n                plan_type as \"plan_type: PlanType\",\n                status as \"status: LicenseStatus\",\n                activated_at, expires_at, last_validated,\n                support_expires_at,\n                COALESCE(can_offline, false) as \"can_offline!\",\n                offline_activated_at,\n                validation_count as \"validation_count!\", \n                COALESCE(max_hardware, 1) as \"max_hardware!\",\n                created_at as \"created_at!\", updated_at as \"updated_at!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "license_key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "admin_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "hardware_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "plan_type: PlanType",
+        "type_info": {
+          "Custom": {
+            "name": "plan_type",
+            "kind": {
+              "Enum": [
+                "monthly",
+                "semiannual",
+                "annual",
+                "lifetime"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "status: LicenseStatus",
+        "type_info": {
+          "Custom": {
+            "name": "license_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "active",
+                "expired",
+                "suspended",
+                "revoked"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "activated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_validated",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "support_expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "can_offline!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "offline_activated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "validation_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "max_hardware!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      null,
+      true,
+      true,
+      null,
+      true,
+      true
+    ]
+  },
+  "hash": "9934339a8532296364ad7a9459388032a49475d1b3d0d74053fc1a1e38e69798"
+}

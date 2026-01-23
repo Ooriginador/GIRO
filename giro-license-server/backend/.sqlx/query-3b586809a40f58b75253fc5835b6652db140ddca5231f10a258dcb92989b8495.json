@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE admins\n            SET is_verified = TRUE, verified_at = NOW()\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3b586809a40f58b75253fc5835b6652db140ddca5231f10a258dcb92989b8495"
+}

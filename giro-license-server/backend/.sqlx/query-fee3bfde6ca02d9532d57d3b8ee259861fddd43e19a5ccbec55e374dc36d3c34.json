@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT l.license_key\n            FROM licenses l\n            INNER JOIN hardware h ON h.id = l.hardware_id\n            WHERE h.fingerprint = $1\n            AND l.id != $2\n            AND l.status = 'active'\n            LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "license_key",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fee3bfde6ca02d9532d57d3b8ee259861fddd43e19a5ccbec55e374dc36d3c34"
+}

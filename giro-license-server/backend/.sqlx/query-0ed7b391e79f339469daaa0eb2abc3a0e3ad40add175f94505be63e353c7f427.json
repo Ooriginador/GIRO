@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT DISTINCT\n                lh.id,\n                l.license_key,\n                lh.hardware_id,\n                lh.machine_name as device_name,\n                lh.last_activated_at as \"activated_at!\",\n                h.last_seen as last_heartbeat,\n                h.is_active as \"is_active!\"\n            FROM license_hardware lh\n            INNER JOIN licenses l ON l.id = lh.license_id\n            LEFT JOIN hardware h ON h.fingerprint = lh.hardware_id\n            WHERE l.admin_id = $1\n            ORDER BY h.last_seen DESC NULLS LAST, lh.last_activated_at DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "license_key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "hardware_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "device_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "activated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "last_heartbeat",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_active!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "0ed7b391e79f339469daaa0eb2abc3a0e3ad40add175f94505be63e353c7f427"
+}

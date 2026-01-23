@@ -1,0 +1,8 @@
+# Ignorar backend no deploy do dashboard
+../backend/
+backend/
+*.rs
+Cargo.toml
+Cargo.lock
+.sqlx/
+migrations/

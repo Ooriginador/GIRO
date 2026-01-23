@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, license_id, hardware_id, machine_name, os_version, cpu_info,\n                activations_count as \"activations_count!\",\n                last_activated_at as \"last_activated_at!\",\n                created_at as \"created_at!\"\n            FROM license_hardware\n            WHERE license_id = $1\n            ORDER BY last_activated_at DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "license_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "hardware_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "machine_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "os_version",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "cpu_info",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "activations_count!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_activated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "2ffafefd2b748a19747a62ffa76d29498ce5bdf29e3452fe03d8f3f4b20d610e"
+}

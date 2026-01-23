@@ -1,0 +1,130 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO payments (\n                admin_id, amount, provider, provider_id, \n                description, licenses_count, status\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, 'pending')\n            RETURNING \n                id, admin_id, amount as \"amount: Decimal\", currency as \"currency!\", \n                provider as \"provider: PaymentProvider\", \n                provider_id, \n                status as \"status: PaymentStatus\", \n                licenses_count as \"licenses_count!\", \n                description, receipt_url, paid_at, created_at as \"created_at!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "admin_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount: Decimal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "currency!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "provider: PaymentProvider",
+        "type_info": {
+          "Custom": {
+            "name": "payment_provider",
+            "kind": {
+              "Enum": [
+                "stripe",
+                "pix",
+                "manual",
+                "mercadopago"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "provider_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "status: PaymentStatus",
+        "type_info": {
+          "Custom": {
+            "name": "payment_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "processing",
+                "completed",
+                "failed",
+                "refunded"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "licenses_count!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "receipt_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "paid_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Numeric",
+        {
+          "Custom": {
+            "name": "payment_provider",
+            "kind": {
+              "Enum": [
+                "stripe",
+                "pix",
+                "manual",
+                "mercadopago"
+              ]
+            }
+          }
+        },
+        "Varchar",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "4765df788d48b0d0013b9ffc67e599b2faee97b893b426a50526908f7b32bd6a"
+}

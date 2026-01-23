@@ -1,0 +1,65 @@
+# Environment Variable
+.env
+.env.local
+.env.*.local
+
+# Rust
+backend/target/
+backend/**/*.rs.bk
+# backend/Cargo.lock
+
+# Node.js / Next.js
+dashboard/node_modules/
+dashboard/.next/
+dashboard/out/
+dashboard/dist/
+dashboard/.cache/
+dashboard/.turbo/
+dashboard/coverage/
+
+# Testing
+dashboard/test-results/
+dashboard/playwright-report/
+dashboard/.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.temp
+backend/s
+backend/e-db*
+backend/sword*
+backend/t@*
+backend/*.sh.old
+backend/*_fix.sh
+
+# Build outputs
+dist/
+build/
+
+# Railway
+.railway/
+
+# Docker
+docker-compose.override.yml

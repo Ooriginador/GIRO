@@ -1,0 +1,90 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, license_id, date, sales_total as \"sales_total!\", sales_count as \"sales_count!\", average_ticket as \"average_ticket!\",\n                products_sold as \"products_sold!\", low_stock_count as \"low_stock_count!\", expiring_count as \"expiring_count!\", \n                cash_opens as \"cash_opens!\", cash_closes as \"cash_closes!\",\n                synced_at as \"synced_at!\"\n            FROM metrics\n            WHERE license_id = $1\n            AND date BETWEEN $2 AND $3\n            ORDER BY date DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "license_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "sales_total!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "sales_count!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "average_ticket!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "products_sold!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "low_stock_count!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "expiring_count!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "cash_opens!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "cash_closes!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "synced_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "401845c1cad2cc6a8ed4652cbf7baa7c92fb033fa9704ff00177c4c159a34f94"
+}

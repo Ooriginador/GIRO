@@ -1,0 +1,121 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO audit_logs (admin_id, license_id, action, ip_address, user_agent, details)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            RETURNING id, admin_id, license_id, action as \"action: AuditAction\", \n                      ip_address, user_agent, details, created_at as \"created_at!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "admin_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "license_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "action: AuditAction",
+        "type_info": {
+          "Custom": {
+            "name": "audit_action",
+            "kind": {
+              "Enum": [
+                "login",
+                "logout",
+                "login_failed",
+                "password_reset",
+                "license_created",
+                "license_activated",
+                "license_validated",
+                "license_validation_failed",
+                "license_transferred",
+                "license_suspended",
+                "license_revoked",
+                "hardware_registered",
+                "hardware_conflict",
+                "hardware_cleared",
+                "payment_created",
+                "payment_completed",
+                "payment_failed",
+                "admin_profile_updated"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "ip_address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "user_agent",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "details",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        {
+          "Custom": {
+            "name": "audit_action",
+            "kind": {
+              "Enum": [
+                "login",
+                "logout",
+                "login_failed",
+                "password_reset",
+                "license_created",
+                "license_activated",
+                "license_validated",
+                "license_validation_failed",
+                "license_transferred",
+                "license_suspended",
+                "license_revoked",
+                "hardware_registered",
+                "hardware_conflict",
+                "hardware_cleared",
+                "payment_created",
+                "payment_completed",
+                "payment_failed",
+                "admin_profile_updated"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "5fdbdf1a422f708a40d2a08a0e29a7282b8c5b68075709ca32a0af845ce25576"
+}
