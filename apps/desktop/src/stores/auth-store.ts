@@ -14,6 +14,8 @@ export interface Employee {
   username?: string; // Legacy field if needed
 }
 
+export type CurrentUser = Employee;
+
 export const PERMISSIONS = {
   // PDV
   'pdv.sell': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER'],

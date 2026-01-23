@@ -8,6 +8,8 @@ export * from './business-profile';
 export * from './motoparts';
 export * from './nfce';
 
+import type { Customer } from './motoparts';
+
 // ────────────────────────────────────────────────────────────────────────────
 // ENUMS
 // ────────────────────────────────────────────────────────────────────────────

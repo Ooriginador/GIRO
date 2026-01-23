@@ -76,6 +76,7 @@ export const CashControlPage: FC = () => {
       // Backend expects 'movementType' field with values 'SUPPLY' or 'BLEED'
       await addMovementMutation.mutateAsync({
         sessionId: sessionData.id,
+        employeeId: employee!.id,
         movementType: type === 'WITHDRAWAL' ? 'BLEED' : 'SUPPLY',
         amount: value,
         description: movementReason || '',

@@ -283,15 +283,21 @@ export function useServiceOrders() {
       id,
       paymentMethod,
       amountPaid,
+      employeeId,
+      sessionId,
     }: {
       id: string;
       paymentMethod: string;
       amountPaid: number;
+      employeeId: string;
+      sessionId: string;
     }) => {
       const result = await invoke<string>('finish_service_order', {
         id,
-        paymentMethod,
-        amountPaid,
+        payment_method: paymentMethod,
+        amount_paid: amountPaid,
+        employee_id: employeeId,
+        cash_session_id: sessionId,
       });
       return result;
     },
@@ -385,13 +391,15 @@ export function useServiceOrderItems(orderId?: string) {
       unitPrice?: number;
       discount?: number;
       notes?: string;
+      employeeId?: string;
     }) => {
       const result = await invoke<ServiceOrderItem>('update_service_order_item', {
-        itemId: vars.itemId,
+        item_id: vars.itemId,
         quantity: vars.quantity,
-        unitPrice: vars.unitPrice,
+        unit_price: vars.unitPrice,
         discount: vars.discount,
         notes: vars.notes,
+        employee_id: vars.employeeId,
       });
       return result;
     },
