@@ -2,17 +2,20 @@ FROM rust:1.90-slim-bookworm AS builder
 
 WORKDIR /app
 
+# Allow specifying the backend directory context (defaults to current dir)
+ARG BACKEND_DIR=.
+
 # Install dependencies
 RUN apt-get update && apt-get install -y   pkg-config   libssl-dev   && rm -rf /var/lib/apt/lists/*
 
 # Copy manifests
-COPY Cargo.toml Cargo.lock ./
+COPY ${BACKEND_DIR}/Cargo.toml ${BACKEND_DIR}/Cargo.lock ./
 
 # Copy migrations (required by sqlx at compile time)
-COPY migrations ./migrations
+COPY ${BACKEND_DIR}/migrations ./migrations
 
 # Copy SQLx cache BEFORE dummy build to ensure it exists
-COPY .sqlx ./.sqlx
+COPY ${BACKEND_DIR}/.sqlx ./.sqlx
 
 # Create dummy main to cache dependencies
 RUN mkdir src &&   echo "fn main() {}" > src/main.rs &&   echo "pub fn lib() {}" > src/lib.rs
@@ -24,7 +27,7 @@ ENV SQLX_OFFLINE=true
 RUN cargo build --release &&   rm -rf src target/release/deps/giro_license_server*
 
 # Copy source code
-COPY src ./src
+COPY ${BACKEND_DIR}/src ./src
 
 # Build application in offline mode (no DATABASE_URL needed)
 RUN cargo build --release
@@ -39,7 +42,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y   pkg-config   libssl-dev   && rm -rf /var/lib/apt/lists/* &&   cargo install cargo-watch --locked
 
 # Copy source from backend/
-COPY . .
+COPY ${BACKEND_DIR}/. .
 
 EXPOSE 3000
 

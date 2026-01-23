@@ -148,9 +148,13 @@ export default function InventarioScreen() {
 
   // Render inventory item
   const renderInventoryItem = ({ item }: { item: InventoryItem }) => {
-    const isCounted = countedItems.has(item.productId);
-    const countedValue = countedItems.get(item.productId);
-    const hasDifference = isCounted && countedValue !== item.expectedQuantity;
+    // countedItems is an array (aliased to items), not a Map
+    const foundItem = countedItems.find((i) => i.productId === item.productId);
+    const isCounted = foundItem && foundItem.status === 'counted';
+    const countedValue = foundItem?.countedQuantity;
+    // Expected quantity might be undefined in some cases, simplify logic
+    const expected = item.expectedQuantity || item.expectedStock || 0;
+    const hasDifference = isCounted && countedValue !== null && countedValue !== expected;
 
     return (
       <Pressable
