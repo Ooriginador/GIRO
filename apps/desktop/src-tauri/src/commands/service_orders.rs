@@ -9,9 +9,9 @@ use crate::error::AppResult;
 use crate::middleware::audit::{AuditAction, AuditService};
 use crate::middleware::Permission;
 use crate::models::{
-    AddServiceOrderItem, CreateService, CreateServiceOrder, Service, ServiceOrder,
-    ServiceOrderFilters, ServiceOrderItem, ServiceOrderSummary, ServiceOrderWithDetails,
-    UpdateService, UpdateServiceOrder, UpdateServiceOrderItem,
+    AddServiceOrderItem, CreateServiceOrder, Service, ServiceOrder, ServiceOrderFilters,
+    ServiceOrderItem, ServiceOrderSummary, ServiceOrderWithDetails, UpdateServiceOrder,
+    UpdateServiceOrderItem,
 };
 use crate::repositories::{PaginatedResult, Pagination, ServiceOrderRepository};
 use crate::require_permission;
@@ -541,25 +541,11 @@ pub async fn get_service_by_code(
 #[tauri::command]
 pub async fn create_service(
     state: State<'_, AppState>,
-    code: String,
-    name: String,
-    description: Option<String>,
-    default_price: f64,
-    estimated_time: Option<i32>,
-    default_warranty_days: Option<i32>,
     employee_id: String,
+    input: crate::models::CreateService,
 ) -> AppResult<Service> {
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageServices);
     let repo = ServiceOrderRepository::new(state.pool().clone());
-
-    let input = CreateService {
-        code,
-        name,
-        description,
-        default_price,
-        estimated_time,
-        default_warranty_days,
-    };
 
     let result = repo.create_service(input).await?;
 
@@ -580,31 +566,14 @@ pub async fn create_service(
 
 /// Atualiza serviço
 #[tauri::command]
-#[allow(clippy::too_many_arguments)]
 pub async fn update_service(
     state: State<'_, AppState>,
     id: String,
-    code: Option<String>,
-    name: Option<String>,
-    description: Option<String>,
-    default_price: Option<f64>,
-    estimated_time: Option<i32>,
-    default_warranty_days: Option<i32>,
-    is_active: Option<bool>,
+    input: crate::models::UpdateService,
     employee_id: String,
 ) -> AppResult<Service> {
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageServices);
     let repo = ServiceOrderRepository::new(state.pool().clone());
-
-    let input = UpdateService {
-        code,
-        name,
-        description,
-        default_price,
-        estimated_time,
-        default_warranty_days,
-        is_active,
-    };
 
     let result = repo.update_service(&id, input).await?;
 

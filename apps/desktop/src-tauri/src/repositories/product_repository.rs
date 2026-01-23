@@ -398,12 +398,7 @@ impl<'a> ProductRepository<'a> {
     pub async fn update_stock(
         &self,
         id: &str,
-        delta: f64,
-        reason: &str,
-        movement_type: &str,
-        reference_id: Option<String>,
-        reference_type: Option<String>,
-        employee_id: Option<String>,
+        data: crate::models::UpdateStockData,
     ) -> AppResult<Product> {
         let mut tx = self.pool.begin().await?;
 
@@ -413,7 +408,7 @@ impl<'a> ProductRepository<'a> {
                 id: id.into(),
             }
         })?;
-        let new_stock = existing.current_stock + delta;
+        let new_stock = existing.current_stock + data.delta;
         let now = chrono::Utc::now().to_rfc3339();
         let movement_id = new_id();
 
@@ -423,14 +418,14 @@ impl<'a> ProductRepository<'a> {
         )
         .bind(&movement_id)
         .bind(id)
-        .bind(movement_type)
-        .bind(delta)
+        .bind(&data.movement_type)
+        .bind(data.delta)
         .bind(existing.current_stock)
         .bind(new_stock)
-        .bind(reason)
-        .bind(reference_id)
-        .bind(reference_type)
-        .bind(employee_id)
+        .bind(&data.reason)
+        .bind(&data.reference_id)
+        .bind(&data.reference_type)
+        .bind(&data.employee_id)
         .bind(&now)
         .execute(&mut *tx)
         .await?;

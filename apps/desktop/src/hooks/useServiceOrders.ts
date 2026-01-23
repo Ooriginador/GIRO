@@ -461,7 +461,7 @@ export function useServices() {
       estimated_time?: number;
       default_warranty_days?: number;
     }) => {
-      const result = await invoke<Service>('create_service', input);
+      const result = await invoke<Service>('create_service', { input });
       return result;
     },
     onSuccess: () => {
@@ -484,7 +484,7 @@ export function useServices() {
       default_warranty_days?: number;
       is_active?: boolean;
     }) => {
-      const result = await invoke<Service>('update_service', { id, ...input });
+      const result = await invoke<Service>('update_service', { id, input });
       return result;
     },
     onSuccess: () => {

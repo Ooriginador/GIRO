@@ -139,7 +139,20 @@ pub struct UpdateProduct {
     pub category_id: Option<String>,
     pub reason: Option<String>,
     /// ID do funcionário que está fazendo a alteração (para auditoria)
+    /// ID do funcionário que está fazendo a alteração (para auditoria)
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub employee_id: Option<String>,
+}
+
+/// Para atualizar estoque de produto (via movimentação)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateStockData {
+    pub delta: f64,
+    pub reason: String,
+    pub movement_type: String,
+    pub reference_id: Option<String>,
+    pub reference_type: Option<String>,
     pub employee_id: Option<String>,
 }
 
@@ -168,4 +181,9 @@ pub struct StockSummary {
     pub unit: String,
     pub is_low: bool,
     pub is_out: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    // any models tests if needed
 }
