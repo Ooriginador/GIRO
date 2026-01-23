@@ -84,6 +84,8 @@ jobs:
       url: https://staging-api.giro.com.br
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Deploy to Railway (Staging)
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
@@ -102,6 +104,8 @@ jobs:
       url: https://api.giro.com.br
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Deploy to Railway (Production)
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
