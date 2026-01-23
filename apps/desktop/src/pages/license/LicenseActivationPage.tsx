@@ -18,7 +18,7 @@ import {
 } from '@/lib/tauri';
 import { useLicenseStore } from '@/stores/license-store';
 import { AlertCircle, Key, Loader2, Monitor, ShieldCheck } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export function LicenseActivationPage() {
@@ -280,7 +280,7 @@ export function LicenseActivationPage() {
           <CardContent>
             <SyncLoginForm
               onBack={() => setStep('activate')}
-              onSuccess={(key) => {
+              onSuccess={(key: string) => {
                 setLicenseKey(key);
                 setStep('activate');
                 toast({
