@@ -74,6 +74,8 @@ jobs:
 
       - name: Generate Prisma Client
         working-directory: packages/database
+        env:
+          DATABASE_URL: "file:./mercearias.db"
         run: pnpm prisma generate
 
       - name: Build Frontend
