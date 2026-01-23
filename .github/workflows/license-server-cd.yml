@@ -128,6 +128,10 @@ jobs:
     needs: [deploy-production]
     if: github.ref == 'refs/heads/main'
 
+    defaults:
+      run:
+        working-directory: .
+
     steps:
       - name: Wait for deployment
         run: sleep 60
