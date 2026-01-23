@@ -30,6 +30,7 @@ pub fn license_routes() -> Router<AppState> {
         .route("/", get(list_licenses).post(create_license))
         .route("/:key", get(get_license).delete(revoke_license))
         .route("/:key/transfer", post(transfer_license))
+        .route("/:key/resend-email", post(resend_license_email))
         .route("/stats", get(get_stats))
         // Desktop endpoints (API key auth)
         .route("/restore", post(restore_license))
@@ -216,4 +217,19 @@ async fn update_license_admin(
         .await?;
 
     Ok(Json(response))
+}
+
+/// POST /licenses/:key/resend-email - Resend license email
+async fn resend_license_email(
+    State(state): State<AppState>,
+    auth: AuthAdmin,
+    Path(key): Path<String>,
+) -> AppResult<Json<serde_json::Value>> {
+    let license_service = state.license_service();
+    license_service.resend_license_email(&key, auth.admin_id).await?;
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "message": "Email de licença reenviado com sucesso"
+    })))
 }
