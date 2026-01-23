@@ -68,8 +68,14 @@ async fn create_app_state(settings: Settings) -> AppResult<AppState> {
     tracing::info!("✅ Redis connected");
 
     // S3 Service
-    let s3 = S3Service::new(&settings.s3).await;
-    tracing::info!("✅ S3 Service initialized");
+    let s3 = if let Some(ref s3_settings) = settings.s3 {
+        let service = S3Service::new(s3_settings).await;
+        tracing::info!("✅ S3 Service initialized");
+        Some(service)
+    } else {
+        tracing::warn!("⚠️ S3 Service not configured (S3_ENDPOINT etc missing)");
+        None
+    };
 
     Ok(AppState {
         db,

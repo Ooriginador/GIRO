@@ -1,8 +1,8 @@
-# GIRO - Changelog
+## [1.1.5] - 2026-01-23
 
-Todas as alteracoes notaveis deste projeto serao documentadas neste arquivo.
+### Corrigido
 
-O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
+- **Hotfix: Deploy do Servidor**: Tornadas opcionais as variáveis de ambiente do S3 (`S3_ENDPOINT`, etc.), permitindo que o servidor inicie corretamente mesmo sem backup em nuvem configurado.
 
 ---
 

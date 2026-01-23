@@ -10,7 +10,7 @@ pub struct Settings {
     pub rate_limit: RateLimitSettings,
     pub email: EmailSettings,
     pub mercadopago: MercadoPagoSettings,
-    pub s3: S3Settings,
+    pub s3: Option<S3Settings>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -124,12 +124,27 @@ impl Settings {
                 access_token: env::var("MERCADO_PAGO_ACCESS_TOKEN")
                     .unwrap_or_else(|_| "not_configured".to_string()),
             },
-            s3: S3Settings {
-                endpoint: env::var("S3_ENDPOINT")?,
-                region: env::var("S3_REGION")?,
-                access_key_id: env::var("S3_ACCESS_KEY_ID")?,
-                secret_access_key: env::var("S3_SECRET_ACCESS_KEY")?,
-                bucket: env::var("S3_BUCKET_NAME")?,
+            s3: match (
+                env::var("S3_ENDPOINT"),
+                env::var("S3_REGION"),
+                env::var("S3_ACCESS_KEY_ID"),
+                env::var("S3_SECRET_ACCESS_KEY"),
+                env::var("S3_BUCKET_NAME"),
+            ) {
+                (
+                    Ok(endpoint),
+                    Ok(region),
+                    Ok(access_key_id),
+                    Ok(secret_access_key),
+                    Ok(bucket),
+                ) => Some(S3Settings {
+                    endpoint,
+                    region,
+                    access_key_id,
+                    secret_access_key,
+                    bucket,
+                }),
+                _ => None,
             },
         })
     }
