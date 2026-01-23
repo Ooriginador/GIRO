@@ -750,7 +750,7 @@ impl LicenseService {
             can_offline: license.can_offline,
             created_at: license.created_at,
             max_hardware: license.max_hardware,
-            active_hardware_count: Some(license.hardware.len() as i32),
+            active_hardware_count: Some(license.hardware.len() as i64),
         })
     }
 }

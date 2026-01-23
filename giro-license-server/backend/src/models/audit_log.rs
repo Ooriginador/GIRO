@@ -27,6 +27,7 @@ pub enum AuditAction {
     LicenseTransferred,
     LicenseSuspended,
     LicenseRevoked,
+    LicenseClaimed,
 
     // Hardware
     HardwareRegistered,
