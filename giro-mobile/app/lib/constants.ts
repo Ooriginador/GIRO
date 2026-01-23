@@ -22,6 +22,7 @@ export const STORAGE_KEYS = {
   CONNECTION_HISTORY: '@giro/connection_history',
   SETTINGS: '@giro/settings',
   SCAN_HISTORY: '@giro/scan_history',
+  LICENSE_DATA: '@giro/license_data',
 } as const;
 
 // Limites

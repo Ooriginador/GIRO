@@ -29,6 +29,7 @@ interface ProductsStore {
   updateProductStock: (productId: string, newStock: number) => void;
   setCategories: (categories: Category[]) => void;
   addToScanHistory: (barcode: string, product: Product | null) => void;
+  addRecentScan: (barcode: string, product: Product | null) => void; // Alias for addToScanHistory
   clearScanHistory: () => void;
   setSearchResults: (products: Product[]) => void;
   setIsSearching: (isSearching: boolean) => void;
@@ -132,6 +133,9 @@ export const useProductsStore = create<ProductsStore>((set, get) => ({
     }),
 
   clearScanHistory: () => set({ recentScans: [] }),
+
+  // Alias for backwards compatibility
+  addRecentScan: (barcode, product) => get().addToScanHistory(barcode, product),
 
   setSearchResults: (products) => set({ searchResults: products }),
 

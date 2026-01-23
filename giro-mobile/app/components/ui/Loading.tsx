@@ -86,9 +86,10 @@ export function Skeleton({
 
 // Empty state
 interface EmptyStateProps {
-  icon?: string;
+  icon?: string | React.ReactNode;
   title: string;
   description?: string;
+  message?: string; // alias for description
   action?: React.ReactNode;
   className?: string;
 }
@@ -97,16 +98,21 @@ export function EmptyState({
   icon = '📦',
   title,
   description,
+  message,
   action,
   className,
 }: EmptyStateProps) {
+  const desc = description || message;
+  const isStringIcon = typeof icon === 'string';
   return (
     <View className={cn('items-center justify-center py-12 px-6', className)}>
-      <Text className="text-5xl mb-4">{icon}</Text>
-      <Text className="text-lg font-semibold text-foreground text-center mb-2">{title}</Text>
-      {description && (
-        <Text className="text-foreground-secondary text-center mb-6">{description}</Text>
+      {isStringIcon ? (
+        <Text className="text-5xl mb-4">{icon}</Text>
+      ) : (
+        <View className="mb-4">{icon}</View>
       )}
+      <Text className="text-lg font-semibold text-foreground text-center mb-2">{title}</Text>
+      {desc && <Text className="text-foreground-secondary text-center mb-6">{desc}</Text>}
       {action}
     </View>
   );

@@ -39,7 +39,7 @@ export default function ConfiguracoesScreen() {
   const { hapticSelection } = useHaptics();
 
   const { logout, isConnected } = useWebSocket();
-  const { selectedDesktop, operator, connectionState, clearHistory } = useConnectionStore();
+  const { selectedDesktop, operator } = useConnectionStore();
 
   const {
     soundEnabled,
