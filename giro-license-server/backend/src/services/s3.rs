@@ -7,12 +7,21 @@ use crate::config::settings::S3Settings;
 
 #[derive(Debug, Clone)]
 pub struct S3Service {
-    client: Client,
+    client: Option<Client>,
     bucket: String,
+    configured: bool,
 }
 
 impl S3Service {
     pub async fn new(settings: &S3Settings) -> Self {
+        if settings.access_key_id == "not_configured" || settings.secret_access_key == "not_configured" {
+            return Self {
+                client: None,
+                bucket: String::new(),
+                configured: false,
+            };
+        }
+
         let region_provider = RegionProviderChain::first_try(aws_sdk_s3::config::Region::new(settings.region.clone()));
         
         // Custom credentials if provided, otherwise use default chain
@@ -34,15 +43,22 @@ impl S3Service {
         let client = Client::new(&config);
 
         Self {
-            client,
+            client: Some(client),
             bucket: settings.bucket.clone(),
+            configured: true,
         }
     }
 
     pub async fn upload(&self, key: &str, body: Vec<u8>) -> Result<()> {
+        if !self.configured || self.client.is_none() {
+            return Err(anyhow::anyhow!("S3 Service is not configured. Set S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY."));
+        }
+
         let byte_stream = ByteStream::from(body);
 
         self.client
+            .as_ref()
+            .unwrap()
             .put_object()
             .bucket(&self.bucket)
             .key(key)
@@ -55,7 +71,13 @@ impl S3Service {
     }
 
     pub async fn download(&self, key: &str) -> Result<Vec<u8>> {
+        if !self.configured || self.client.is_none() {
+            return Err(anyhow::anyhow!("S3 Service is not configured."));
+        }
+
         let output = self.client
+            .as_ref()
+            .unwrap()
             .get_object()
             .bucket(&self.bucket)
             .key(key)
@@ -68,7 +90,13 @@ impl S3Service {
     }
 
     pub async fn delete(&self, key: &str) -> Result<()> {
+        if !self.configured || self.client.is_none() {
+            return Err(anyhow::anyhow!("S3 Service is not configured."));
+        }
+
         self.client
+            .as_ref()
+            .unwrap()
             .delete_object()
             .bucket(&self.bucket)
             .key(key)

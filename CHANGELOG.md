@@ -1,5 +1,16 @@
 # GIRO - Changelog
 
+## [1.1.6] - 2026-01-23
+
+### Corrigido
+
+- **Dashboard API Types**: Adicionado campo `role` à interface `LoginResponse`.
+- **Website API**: Corrigida porta padrão de 8000 para 3000.
+- **Type Safety**: Removido cast `any` no Dashboard `getLicenses`.
+- **Sync Diretórios**: Sincronizado `GIRO/giro-license-server` com `giro-license-server` root.
+
+---
+
 Todas as alteracoes notaveis deste projeto serao documentadas neste arquivo.
 
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
