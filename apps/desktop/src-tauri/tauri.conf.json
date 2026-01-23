@@ -45,6 +45,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": [
+      "libs/x64/WebView2Loader.dll"
+    ],
     "publisher": "Arkheion",
     "copyright": "Copyright 2026 Arkheion. Todos os direitos reservados.",
     "shortDescription": "Sistema de gestao comercial para varejo",
