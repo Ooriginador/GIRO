@@ -11,10 +11,15 @@ use tauri::State;
 
 /// Cria um backup do banco de dados
 #[tauri::command]
+#[specta::specta]
 pub async fn create_backup(
     state: State<'_, AppState>,
     password: Option<String>,
 ) -> Result<BackupResult, String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     let db_path = state.db_path.clone();
     let backup_dir = state.backup_dir.clone();
 
@@ -24,7 +29,12 @@ pub async fn create_backup(
 
 /// Lista backups locais
 #[tauri::command]
+#[specta::specta]
 pub async fn list_backups(state: State<'_, AppState>) -> Result<Vec<BackupMetadata>, String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     let backup_dir = state.backup_dir.clone();
     let service = BackupService::new(backup_dir, BackupConfig::default());
     service.list_backups().await
@@ -32,11 +42,16 @@ pub async fn list_backups(state: State<'_, AppState>) -> Result<Vec<BackupMetada
 
 /// Restaura um backup
 #[tauri::command]
+#[specta::specta]
 pub async fn restore_backup(
     state: State<'_, AppState>,
     filename: String,
     password: Option<String>,
 ) -> Result<(), String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     let backup_dir = state.backup_dir.clone();
     let db_path = state.db_path.clone();
     let backup_path = backup_dir.join(&filename);
@@ -49,7 +64,12 @@ pub async fn restore_backup(
 
 /// Remove backups antigos
 #[tauri::command]
+#[specta::specta]
 pub async fn cleanup_old_backups(state: State<'_, AppState>) -> Result<u32, String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     let backup_dir = state.backup_dir.clone();
     let service = BackupService::new(backup_dir, BackupConfig::default());
     service.cleanup_old_backups().await
@@ -57,7 +77,16 @@ pub async fn cleanup_old_backups(state: State<'_, AppState>) -> Result<u32, Stri
 
 /// Obtém URL de autorização do Google
 #[tauri::command]
-pub fn get_google_auth_url(client_id: String, client_secret: String) -> Result<String, String> {
+#[specta::specta]
+pub fn get_google_auth_url(
+    client_id: String,
+    client_secret: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     let creds = GoogleCredentials {
         client_id,
         client_secret,
@@ -76,12 +105,17 @@ pub fn get_google_auth_url(client_id: String, client_secret: String) -> Result<S
 
 /// Troca código OAuth por tokens
 #[tauri::command]
+#[specta::specta]
 pub async fn exchange_google_code(
     state: State<'_, AppState>,
     client_id: String,
     client_secret: String,
     code: String,
 ) -> Result<(), String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     let creds = GoogleCredentials {
         client_id,
         client_secret,
@@ -97,11 +131,16 @@ pub async fn exchange_google_code(
 
 /// Faz upload de backup para Google Drive
 #[tauri::command]
+#[specta::specta]
 pub async fn upload_backup_to_drive(
     state: State<'_, AppState>,
     filename: String,
     access_token: String,
 ) -> Result<String, String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     let backup_path = state.backup_dir.join(&filename);
 
     let creds = GoogleCredentials {
@@ -119,7 +158,15 @@ pub async fn upload_backup_to_drive(
 
 /// Lista backups no Google Drive
 #[tauri::command]
-pub async fn list_drive_backups(access_token: String) -> Result<Vec<BackupMetadata>, String> {
+#[specta::specta]
+pub async fn list_drive_backups(
+    access_token: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<BackupMetadata>, String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     let creds = GoogleCredentials {
         client_id: String::new(),
         client_secret: String::new(),
@@ -135,12 +182,17 @@ pub async fn list_drive_backups(access_token: String) -> Result<Vec<BackupMetada
 
 /// Baixa backup do Google Drive
 #[tauri::command]
+#[specta::specta]
 pub async fn download_backup_from_drive(
     state: State<'_, AppState>,
     file_id: String,
     filename: String,
     access_token: String,
 ) -> Result<(), String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     let target_path = state.backup_dir.join(&filename);
 
     let creds = GoogleCredentials {
@@ -163,19 +215,29 @@ pub async fn download_backup_from_drive(
 // ────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
+#[specta::specta]
 pub async fn list_cloud_backups_cmd(
     state: State<'_, AppState>,
     bearer_token: String,
 ) -> Result<serde_json::Value, String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     state.license_client.list_cloud_backups(&bearer_token).await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn upload_cloud_backup_cmd(
     state: State<'_, AppState>,
     bearer_token: String,
     filename: String,
 ) -> Result<serde_json::Value, String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     // Sanitize filename to prevent directory traversal
     let safe_filename = std::path::Path::new(&filename)
         .file_name()
@@ -194,11 +256,16 @@ pub async fn upload_cloud_backup_cmd(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_cloud_backup_cmd(
     state: State<'_, AppState>,
     bearer_token: String,
     backup_id: String,
 ) -> Result<serde_json::Value, String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     state
         .license_client
         .get_cloud_backup(&bearer_token, &backup_id)
@@ -206,11 +273,16 @@ pub async fn get_cloud_backup_cmd(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_cloud_backup_cmd(
     state: State<'_, AppState>,
     bearer_token: String,
     backup_id: String,
 ) -> Result<(), String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
     state
         .license_client
         .delete_cloud_backup(&bearer_token, &backup_id)

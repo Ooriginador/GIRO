@@ -107,6 +107,7 @@ const HONDA_MODELS: &[&str] = &["CG 160 Titan", "CB 300F Twister", "XRE 300", "B
 const YAMAHA_MODELS: &[&str] = &["Fazer FZ25", "Lander 250", "MT-03", "Factor 150"];
 
 #[tauri::command]
+#[cfg(debug_assertions)]
 pub async fn seed_database(employee_id: String, state: State<'_, AppState>) -> AppResult<String> {
     crate::require_permission!(state.pool(), &employee_id, Permission::UpdateSettings);
     let pool = state.pool();

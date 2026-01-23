@@ -1,10 +1,11 @@
 //! Modelos de Caixa (Sessão e Movimentações)
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use sqlx::FromRow;
 
 /// Sessão de caixa
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CashSession {
     pub id: String,
@@ -22,7 +23,7 @@ pub struct CashSession {
 }
 
 /// Movimentação de caixa
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 #[sqlx(rename_all = "snake_case")]
 pub struct CashMovement {
@@ -37,7 +38,7 @@ pub struct CashMovement {
 }
 
 /// Para abrir sessão de caixa
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateCashSession {
     pub employee_id: String,
@@ -46,7 +47,7 @@ pub struct CreateCashSession {
 }
 
 /// Para criar movimentação
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateCashMovement {
     pub session_id: String,
@@ -57,7 +58,7 @@ pub struct CreateCashMovement {
 }
 
 /// Resumo da sessão
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CashSessionSummary {
     pub session: CashSession,
@@ -65,6 +66,7 @@ pub struct CashSessionSummary {
     pub total_canceled: f64,
     pub total_withdrawals: f64,
     pub total_supplies: f64,
+    #[specta(type = i32)]
     pub movement_count: i64,
     pub sales_by_method: Vec<crate::models::PaymentMethodSummary>,
     pub cash_in_drawer: f64, // Opening + Supply - Bleed + Cash Sales

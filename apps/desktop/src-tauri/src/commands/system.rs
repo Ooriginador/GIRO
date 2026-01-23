@@ -1,11 +1,15 @@
 //! Comandos utilitários do sistema
 
 use crate::error::AppResult;
+use crate::AppState;
 use std::path::PathBuf;
+use tauri::State;
 
 /// Retorna o caminho do diretório de dados do aplicativo
 #[tauri::command]
-pub async fn get_app_data_path() -> AppResult<String> {
+#[specta::specta]
+pub async fn get_app_data_path(state: State<'_, AppState>) -> AppResult<String> {
+    state.session.require_authenticated()?;
     let app_data = dirs::data_local_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("GIRO");
@@ -15,7 +19,9 @@ pub async fn get_app_data_path() -> AppResult<String> {
 
 /// Retorna o caminho do banco de dados
 #[tauri::command]
-pub async fn get_database_path() -> AppResult<String> {
+#[specta::specta]
+pub async fn get_database_path(state: State<'_, AppState>) -> AppResult<String> {
+    state.session.require_authenticated()?;
     let app_data = dirs::data_local_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("GIRO")
@@ -26,16 +32,18 @@ pub async fn get_database_path() -> AppResult<String> {
 
 /// Retorna informações sobre o uso de disco
 #[tauri::command]
-pub async fn get_disk_usage() -> AppResult<DiskUsageInfo> {
+#[specta::specta]
+pub async fn get_disk_usage(state: State<'_, AppState>) -> AppResult<DiskUsageInfo> {
+    state.session.require_authenticated()?;
     let app_data = dirs::data_local_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("GIRO");
 
     let mut info = DiskUsageInfo {
-        database_size: 0,
-        backups_size: 0,
-        logs_size: 0,
-        total_size: 0,
+        database_size: 0.0,
+        backups_size: 0.0,
+        logs_size: 0.0,
+        total_size: 0.0,
         database_path: String::new(),
         backups_path: String::new(),
     };
@@ -44,7 +52,7 @@ pub async fn get_disk_usage() -> AppResult<DiskUsageInfo> {
     let db_path = app_data.join("giro.db");
     if db_path.exists() {
         if let Ok(metadata) = std::fs::metadata(&db_path) {
-            info.database_size = metadata.len();
+            info.database_size = metadata.len() as f64;
         }
         info.database_path = db_path.to_string_lossy().to_string();
     }
@@ -52,7 +60,7 @@ pub async fn get_disk_usage() -> AppResult<DiskUsageInfo> {
     // Backups
     let backups_dir = app_data.join("backups");
     if backups_dir.exists() {
-        info.backups_size = calculate_dir_size(&backups_dir);
+        info.backups_size = calculate_dir_size(&backups_dir) as f64;
         info.backups_path = backups_dir.to_string_lossy().to_string();
     }
 
@@ -62,7 +70,7 @@ pub async fn get_disk_usage() -> AppResult<DiskUsageInfo> {
             if let Some(ext) = entry.path().extension() {
                 if ext == "log" {
                     if let Ok(metadata) = entry.metadata() {
-                        info.logs_size += metadata.len();
+                        info.logs_size += metadata.len() as f64;
                     }
                 }
             }
@@ -93,19 +101,22 @@ fn calculate_dir_size(path: &PathBuf) -> u64 {
     total
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct DiskUsageInfo {
-    pub database_size: u64,
-    pub backups_size: u64,
-    pub logs_size: u64,
-    pub total_size: u64,
+    pub database_size: f64,
+    pub backups_size: f64,
+    pub logs_size: f64,
+    pub total_size: f64,
     pub database_path: String,
     pub backups_path: String,
 }
 
 /// Tenta corrigir as regras de firewall (Windows only)
 #[tauri::command]
-pub async fn fix_firewall_rules() -> AppResult<()> {
+#[specta::specta]
+pub async fn fix_firewall_rules(state: State<'_, AppState>) -> AppResult<()> {
+    state.session.require_authenticated()?;
     #[cfg(target_os = "windows")]
     {
         let current_exe = std::env::current_exe()

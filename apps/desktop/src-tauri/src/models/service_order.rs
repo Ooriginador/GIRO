@@ -10,7 +10,7 @@ use sqlx::FromRow;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Status da ordem de serviço
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ServiceOrderStatus {
     #[default]
@@ -53,7 +53,7 @@ impl From<String> for ServiceOrderStatus {
 }
 
 /// Tipo de item da OS
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ServiceItemType {
     Part, // Peça
@@ -66,7 +66,7 @@ pub enum ServiceItemType {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Ordem de serviço
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ServiceOrder {
     pub id: String,
@@ -97,7 +97,7 @@ pub struct ServiceOrder {
 }
 
 /// Ordem de serviço com dados relacionados
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ServiceOrderWithDetails {
     #[serde(flatten)]
@@ -116,7 +116,7 @@ pub struct ServiceOrderWithDetails {
 }
 
 /// Resumo da OS para listagens
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ServiceOrderSummary {
     pub id: String,
@@ -135,7 +135,7 @@ pub struct ServiceOrderSummary {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Item de ordem de serviço
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ServiceOrderItem {
     pub id: String,
@@ -159,7 +159,7 @@ pub struct ServiceOrderItem {
 }
 
 /// Item com dados do produto
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ServiceOrderItemWithProduct {
     #[serde(flatten)]
@@ -173,7 +173,7 @@ pub struct ServiceOrderItemWithProduct {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Serviço padrão (mão de obra)
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Service {
     pub id: String,
@@ -193,7 +193,7 @@ pub struct Service {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Para criar ordem de serviço
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateServiceOrder {
     pub customer_id: String,
@@ -209,7 +209,7 @@ pub struct CreateServiceOrder {
 }
 
 /// Para atualizar ordem de serviço
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateServiceOrder {
     pub vehicle_km: Option<i32>,
@@ -227,7 +227,7 @@ pub struct UpdateServiceOrder {
 }
 
 /// Para adicionar item à OS
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AddServiceOrderItem {
     pub order_id: String,
@@ -242,7 +242,7 @@ pub struct AddServiceOrderItem {
 }
 
 /// Para atualizar item da OS (com delta de estoque)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateServiceOrderItem {
     pub quantity: Option<f64>,
@@ -253,7 +253,7 @@ pub struct UpdateServiceOrderItem {
 }
 
 /// Para criar serviço padrão
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateService {
     pub code: String,
@@ -265,7 +265,7 @@ pub struct CreateService {
 }
 
 /// Para atualizar serviço
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateService {
     pub code: Option<String>,
@@ -282,7 +282,7 @@ pub struct UpdateService {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Filtros para busca de ordens
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ServiceOrderFilters {
     pub status: Option<String>,

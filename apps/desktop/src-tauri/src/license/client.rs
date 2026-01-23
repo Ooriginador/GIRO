@@ -25,7 +25,7 @@ impl Default for LicenseClientConfig {
 }
 
 /// License status from server
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "snake_case")]
 pub enum LicenseStatus {
     Pending,
@@ -36,7 +36,8 @@ pub enum LicenseStatus {
 }
 
 /// License information
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct LicenseInfo {
     pub key: Option<String>,
     pub status: LicenseStatus,
@@ -60,7 +61,8 @@ pub struct LicenseInfo {
 }
 
 /// Admin user sync data
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct AdminUserSyncData {
     pub id: String,
     pub name: String,
@@ -79,7 +81,8 @@ struct ActivateRequest {
 }
 
 /// Admin update request
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateAdminRequest {
     pub name: String,
     pub email: String,
@@ -114,7 +117,8 @@ struct LoginResponse {
 }
 
 /// License Summary from list endpoint
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct LicenseSummary {
     pub id: String,
     pub license_key: String,
@@ -144,7 +148,8 @@ pub struct MetricsData {
 }
 
 /// Metrics sync payload (as passed from frontend/service)
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct MetricsPayload {
     pub date: String,
     pub sales_total: f64,

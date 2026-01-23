@@ -95,10 +95,10 @@ impl ReportMotopartsRepository {
 
         Ok(DashboardStats {
             total_sales_today: sales_today.total,
-            count_sales_today: sales_today.count, // Sqlite COUNT returns i64 or i32
-            open_service_orders: open_os.count,
+            count_sales_today: sales_today.count as i32,
+            open_service_orders: open_os.count as i32,
             active_warranties: active_warranties_count,
-            low_stock_products: low_stock.count,
+            low_stock_products: low_stock.count as i32,
             revenue_weekly,
         })
     }
@@ -140,7 +140,7 @@ impl ReportMotopartsRepository {
             .into_iter()
             .map(|r| StatusCount {
                 status: r.status,
-                count: r.count,
+                count: r.count as i32,
             })
             .collect();
 
@@ -153,7 +153,7 @@ impl ReportMotopartsRepository {
         };
 
         Ok(ServiceOrderStats {
-            total_orders: total.count,
+            total_orders: total.count as i32,
             by_status,
             revenue_labor: revenue.labor as f64,
             revenue_parts: revenue.parts as f64,

@@ -11,7 +11,8 @@ use std::time::Duration;
 // TIPOS
 // ════════════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct DrawerConfig {
     pub enabled: bool,
     /// Porta da impressora conectada à gaveta
@@ -24,7 +25,8 @@ pub struct DrawerConfig {
 }
 
 /// Pino de acionamento da gaveta
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, specta::Type)]
+#[serde(rename_all = "lowercase")]
 pub enum DrawerPin {
     Pin2,
     Pin5,
@@ -43,7 +45,8 @@ impl Default for DrawerConfig {
 }
 
 /// Status da gaveta
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct DrawerStatus {
     pub is_open: bool,
     pub last_opened: Option<String>,

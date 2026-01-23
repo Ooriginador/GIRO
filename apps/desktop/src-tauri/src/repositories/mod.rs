@@ -46,8 +46,10 @@ pub fn new_id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
 
+use specta::Type;
+
 /// Paginação
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Type)]
 pub struct Pagination {
     pub page: i32,
     pub per_page: i32,
@@ -73,9 +75,10 @@ impl Pagination {
 }
 
 /// Resultado paginado
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Type)]
 pub struct PaginatedResult<T> {
     pub data: Vec<T>,
+    #[specta(type = i32)]
     pub total: i64,
     pub page: i32,
     pub per_page: i32,

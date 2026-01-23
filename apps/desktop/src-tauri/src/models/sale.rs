@@ -1,10 +1,11 @@
 //! Modelos de Venda
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use sqlx::FromRow;
 
 /// Forma de pagamento
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default, Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[sqlx(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PaymentMethod {
@@ -31,7 +32,7 @@ impl std::fmt::Display for PaymentMethod {
 }
 
 /// Tipo de desconto
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[sqlx(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DiscountType {
@@ -40,7 +41,7 @@ pub enum DiscountType {
 }
 
 /// Status da venda
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default, Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[sqlx(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SaleStatus {
@@ -50,7 +51,7 @@ pub enum SaleStatus {
 }
 
 /// Venda completa
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Sale {
     pub id: String,
@@ -75,7 +76,7 @@ pub struct Sale {
 }
 
 /// Venda com informações relacionadas
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SaleWithDetails {
     #[serde(flatten)]
@@ -86,7 +87,7 @@ pub struct SaleWithDetails {
 }
 
 /// Item de venda
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SaleItem {
     pub id: String,
@@ -104,7 +105,7 @@ pub struct SaleItem {
 }
 
 /// Para criar item de venda (do carrinho)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSaleItem {
     pub product_id: String,
@@ -114,7 +115,7 @@ pub struct CreateSaleItem {
 }
 
 /// Para criar venda
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSale {
     pub items: Vec<CreateSaleItem>,
@@ -129,38 +130,42 @@ pub struct CreateSale {
 }
 
 /// Resumo diário de vendas
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DailySalesSummary {
     pub date: String,
+    #[specta(type = i32)]
     pub total_sales: i64,
     pub total_amount: f64,
+    #[specta(type = i32)]
     pub total_items: i64,
     pub average_ticket: f64,
     pub by_payment_method: Vec<PaymentMethodSummary>,
 }
 
 /// Resumo mensal de vendas (totais do mês)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct MonthlySalesSummary {
     /// Formato: YYYY-MM
     pub year_month: String,
+    #[specta(type = i32)]
     pub total_sales: i64,
     pub total_amount: f64,
 }
 
 /// Resumo por forma de pagamento
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PaymentMethodSummary {
     pub method: String,
+    #[specta(type = i32)]
     pub count: i64,
     pub amount: f64,
 }
 
 /// Filtros de busca de vendas
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SaleFilters {
     #[serde(alias = "startDate")]

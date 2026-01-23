@@ -1,10 +1,11 @@
 //! Modelo de Categoria
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use sqlx::FromRow;
 
 /// Categoria de produtos
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Category {
     pub id: String,
@@ -20,7 +21,7 @@ pub struct Category {
 }
 
 /// Categoria com campos adicionais para mobile
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CategoryForMobile {
     pub id: String,
@@ -49,7 +50,7 @@ impl From<CategoryWithCount> for CategoryForMobile {
 }
 
 /// Para criar categoria
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateCategory {
     pub name: String,
@@ -61,7 +62,7 @@ pub struct CreateCategory {
 }
 
 /// Para atualizar categoria
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCategory {
     pub name: Option<String>,
@@ -74,10 +75,11 @@ pub struct UpdateCategory {
 }
 
 /// Categoria com contagem de produtos
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CategoryWithCount {
     #[serde(flatten)]
     pub category: Category,
+    #[specta(type = i32)]
     pub product_count: i64,
 }

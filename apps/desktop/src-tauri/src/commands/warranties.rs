@@ -18,15 +18,18 @@ use crate::AppState;
 
 /// Lista garantias ativas (não fechadas/negadas)
 #[tauri::command]
+#[specta::specta]
 pub async fn get_active_warranties(
     state: State<'_, AppState>,
 ) -> AppResult<Vec<WarrantyClaimSummary>> {
+    state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
     repo.find_active().await
 }
 
 /// Lista garantias com paginação e filtros
 #[tauri::command]
+#[specta::specta]
 #[allow(clippy::too_many_arguments)]
 pub async fn get_warranties_paginated(
     state: State<'_, AppState>,
@@ -39,6 +42,7 @@ pub async fn get_warranties_paginated(
     date_from: Option<String>,
     date_to: Option<String>,
 ) -> AppResult<PaginatedResult<WarrantyClaimSummary>> {
+    state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
 
     let pagination = Pagination::new(page.unwrap_or(1), per_page.unwrap_or(20));
@@ -57,26 +61,31 @@ pub async fn get_warranties_paginated(
 
 /// Busca garantia por ID
 #[tauri::command]
+#[specta::specta]
 pub async fn get_warranty_by_id(
     state: State<'_, AppState>,
     id: String,
 ) -> AppResult<Option<WarrantyClaim>> {
+    state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
     repo.find_by_id(&id).await
 }
 
 /// Busca garantia com detalhes completos
 #[tauri::command]
+#[specta::specta]
 pub async fn get_warranty_details(
     state: State<'_, AppState>,
     id: String,
 ) -> AppResult<Option<WarrantyClaimWithDetails>> {
+    state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
     repo.find_by_id_with_details(&id).await
 }
 
 /// Cria nova garantia
 #[tauri::command]
+#[specta::specta]
 #[allow(clippy::too_many_arguments)]
 pub async fn create_warranty_claim(
     state: State<'_, AppState>,
@@ -88,6 +97,7 @@ pub async fn create_warranty_claim(
     description: String,
     reason: String,
 ) -> AppResult<WarrantyClaim> {
+    state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
 
     let input = CreateWarrantyClaim {
@@ -105,6 +115,7 @@ pub async fn create_warranty_claim(
 
 /// Atualiza garantia
 #[tauri::command]
+#[specta::specta]
 #[allow(clippy::too_many_arguments)]
 pub async fn update_warranty_claim(
     state: State<'_, AppState>,
@@ -118,6 +129,7 @@ pub async fn update_warranty_claim(
     refund_amount: Option<f64>,
     replacement_cost: Option<f64>,
 ) -> AppResult<WarrantyClaim> {
+    state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
 
     let input = UpdateWarrantyClaim {
@@ -140,45 +152,45 @@ pub async fn update_warranty_claim(
 
 /// Aprova garantia
 #[tauri::command]
-pub async fn approve_warranty(
-    state: State<'_, AppState>,
-    id: String,
-    employee_id: String,
-) -> AppResult<WarrantyClaim> {
+#[specta::specta]
+pub async fn approve_warranty(state: State<'_, AppState>, id: String) -> AppResult<WarrantyClaim> {
+    let info = state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
-    repo.approve(&id, &employee_id).await
+    repo.approve(&id, &info.employee_id).await
 }
 
 /// Nega garantia
 #[tauri::command]
+#[specta::specta]
 pub async fn deny_warranty(
     state: State<'_, AppState>,
     id: String,
-    employee_id: String,
     reason: String,
 ) -> AppResult<WarrantyClaim> {
+    let info = state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
-    repo.deny(&id, &employee_id, reason).await
+    repo.deny(&id, &info.employee_id, reason).await
 }
 
 /// Resolve garantia (fecha com solução)
 #[tauri::command]
+#[specta::specta]
 #[allow(clippy::too_many_arguments)]
 pub async fn resolve_warranty(
     state: State<'_, AppState>,
     id: String,
     resolution_type: String,
     resolution: String,
-    resolved_by_id: String,
     refund_amount: Option<f64>,
     replacement_cost: Option<f64>,
 ) -> AppResult<WarrantyClaim> {
+    let info = state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
 
     let input = ResolveWarrantyClaim {
         resolution_type,
         resolution,
-        resolved_by_id,
+        resolved_by_id: info.employee_id,
         refund_amount,
         replacement_cost,
     };
@@ -192,31 +204,37 @@ pub async fn resolve_warranty(
 
 /// Busca garantias por cliente
 #[tauri::command]
+#[specta::specta]
 pub async fn get_warranties_by_customer(
     state: State<'_, AppState>,
     customer_id: String,
 ) -> AppResult<Vec<WarrantyClaimSummary>> {
+    state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
     repo.find_by_customer(&customer_id).await
 }
 
 /// Busca garantias por produto
 #[tauri::command]
+#[specta::specta]
 pub async fn get_warranties_by_product(
     state: State<'_, AppState>,
     product_id: String,
 ) -> AppResult<Vec<WarrantyClaimSummary>> {
+    state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
     repo.find_by_product(&product_id).await
 }
 
 /// Obtém estatísticas de garantias
 #[tauri::command]
+#[specta::specta]
 pub async fn get_warranty_stats(
     state: State<'_, AppState>,
     date_from: Option<String>,
     date_to: Option<String>,
 ) -> AppResult<WarrantyStats> {
+    state.session.require_authenticated()?;
     let repo = WarrantyRepository::new(state.pool().clone());
     repo.get_stats(date_from, date_to).await
 }

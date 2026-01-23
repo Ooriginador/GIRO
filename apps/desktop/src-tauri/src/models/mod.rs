@@ -2,6 +2,8 @@
 //!
 //! Structs Rust correspondentes ao schema Prisma.
 
+use specta::Type;
+
 pub mod alert;
 pub mod cash;
 pub mod category;
@@ -37,10 +39,11 @@ pub use vehicle::*;
 pub use warranty::*;
 pub mod report_motoparts;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PaginatedResult<T> {
     pub data: Vec<T>,
+    #[specta(type = i32)]
     pub total: i64,
     pub page: i32,
     pub limit: i32,

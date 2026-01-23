@@ -185,7 +185,7 @@ impl crate::hardware::HardwareDevice for ThermalPrinter {
 // ════════════════════════════════════════════════════════════════════════════
 
 /// Tipo de conexão da impressora
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
 #[serde(rename_all = "lowercase")]
 pub enum PrinterConnection {
     Usb,
@@ -194,7 +194,7 @@ pub enum PrinterConnection {
 }
 
 /// Modelo de impressora
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
 #[serde(rename_all = "lowercase")]
 pub enum PrinterModel {
     Epson,
@@ -206,7 +206,7 @@ pub enum PrinterModel {
 }
 
 /// Configuração da impressora
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PrinterConfig {
     pub enabled: bool,
@@ -584,7 +584,8 @@ impl ThermalPrinter {
 // ════════════════════════════════════════════════════════════════════════════
 
 /// Item do cupom
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ReceiptItem {
     pub code: String,
     pub name: String,
@@ -595,7 +596,8 @@ pub struct ReceiptItem {
 }
 
 /// Dados do cupom
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct Receipt {
     pub company_name: String,
     pub company_address: String,
@@ -617,7 +619,8 @@ pub struct Receipt {
 }
 
 /// Dados para impressão de Ordem de Serviço
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ServiceOrderReceipt {
     pub company_name: String,
     pub company_address: String,

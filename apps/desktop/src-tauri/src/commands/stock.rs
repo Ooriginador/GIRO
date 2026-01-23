@@ -11,6 +11,7 @@ use crate::AppState;
 use tauri::State;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_recent_stock_movements(
     limit: i32,
     state: State<'_, AppState>,
@@ -20,6 +21,7 @@ pub async fn get_recent_stock_movements(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_product_stock_movements(
     product_id: String,
     limit: i32,
@@ -30,11 +32,14 @@ pub async fn get_product_stock_movements(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn create_stock_movement(
-    input: CreateStockMovement,
-    employee_id: String,
+    mut input: CreateStockMovement,
     state: State<'_, AppState>,
 ) -> AppResult<StockMovementRow> {
+    let info = state.session.require_authenticated()?;
+    input.employee_id = Some(info.employee_id.clone());
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageStock);
     let repo = StockRepository::new(state.pool());
     let result = repo.create_movement(input.clone()).await?;
@@ -61,6 +66,7 @@ pub async fn create_stock_movement(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_product_lots(
     product_id: String,
     state: State<'_, AppState>,
@@ -70,6 +76,7 @@ pub async fn get_product_lots(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_expiring_lots(
     days: i32,
     state: State<'_, AppState>,
@@ -79,6 +86,7 @@ pub async fn get_expiring_lots(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_expired_lots(state: State<'_, AppState>) -> AppResult<Vec<ProductLot>> {
     let repo = StockRepository::new(state.pool());
     repo.find_expired_lots().await

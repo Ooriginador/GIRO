@@ -11,7 +11,8 @@ use crate::AppState;
 use tauri::State;
 
 /// Payload for login-based recovery
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct LoginPayload {
     pub email: String,
     pub password: String,
@@ -19,11 +20,13 @@ pub struct LoginPayload {
 
 /// Used by frontend to display hardware info and for activation
 #[tauri::command]
+#[specta::specta]
 pub async fn get_hardware_id(state: State<'_, AppState>) -> Result<String, String> {
     Ok(state.hardware_id.clone())
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn activate_license(
     license_key: String,
     state: State<'_, AppState>,
@@ -76,6 +79,7 @@ pub async fn activate_license(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn validate_license(
     license_key: String,
     state: State<'_, AppState>,
@@ -117,6 +121,7 @@ pub async fn validate_license(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn recover_license_from_login(
     payload: LoginPayload,
     state: State<'_, AppState>,
@@ -177,6 +182,7 @@ pub async fn recover_license_from_login(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn license_server_login(
     payload: LoginPayload,
     state: State<'_, AppState>,
@@ -190,6 +196,7 @@ pub async fn license_server_login(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn sync_metrics(
     license_key: String,
     metrics: MetricsPayload,
@@ -206,6 +213,7 @@ pub async fn sync_metrics(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_stored_license(
     state: State<'_, AppState>,
 ) -> Result<Option<serde_json::Value>, String> {
@@ -229,6 +237,7 @@ pub async fn get_stored_license(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_server_time(state: State<'_, AppState>) -> Result<String, String> {
     let client = &state.license_client;
 
@@ -238,6 +247,7 @@ pub async fn get_server_time(state: State<'_, AppState>) -> Result<String, Strin
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn restore_license(state: State<'_, AppState>) -> Result<Option<String>, String> {
     let client = &state.license_client;
     let hardware_id = &state.hardware_id;
@@ -248,6 +258,7 @@ pub async fn restore_license(state: State<'_, AppState>) -> Result<Option<String
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn update_license_admin(
     license_key: String,
     data: UpdateAdminRequest,

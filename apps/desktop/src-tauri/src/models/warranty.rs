@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 // ENUMS
 // ══════════════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, specta::Type)]
 #[sqlx(type_name = "TEXT")]
 pub enum WarrantySourceType {
     #[serde(rename = "SALE")]
@@ -28,7 +28,7 @@ impl std::fmt::Display for WarrantySourceType {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, specta::Type)]
 #[sqlx(type_name = "TEXT")]
 pub enum WarrantyStatus {
     #[serde(rename = "OPEN")]
@@ -59,7 +59,7 @@ impl std::fmt::Display for WarrantyStatus {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, specta::Type)]
 #[sqlx(type_name = "TEXT")]
 pub enum WarrantyResolutionType {
     #[serde(rename = "REFUND")]
@@ -90,7 +90,8 @@ impl std::fmt::Display for WarrantyResolutionType {
 // STRUCTS
 // ══════════════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct WarrantyClaim {
     pub id: String,
     pub customer_id: String,
@@ -112,7 +113,8 @@ pub struct WarrantyClaim {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct WarrantyClaimWithDetails {
     pub claim: WarrantyClaim,
     pub customer_name: String,
@@ -123,7 +125,8 @@ pub struct WarrantyClaimWithDetails {
     pub source_number: Option<String>, // Número da venda ou OS
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct WarrantyClaimSummary {
     pub id: String,
     pub customer_name: String,
@@ -139,7 +142,8 @@ pub struct WarrantyClaimSummary {
 // INPUT DTOs
 // ══════════════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateWarrantyClaim {
     pub customer_id: String,
     pub source_type: String, // "SALE" ou "SERVICE_ORDER"
@@ -150,7 +154,8 @@ pub struct CreateWarrantyClaim {
     pub reason: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateWarrantyClaim {
     pub description: Option<String>,
     pub reason: Option<String>,
@@ -162,7 +167,8 @@ pub struct UpdateWarrantyClaim {
     pub replacement_cost: Option<f64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ResolveWarrantyClaim {
     pub resolution_type: String, // WarrantyResolutionType
     pub resolution: String,      // Descrição da resolução
@@ -175,7 +181,8 @@ pub struct ResolveWarrantyClaim {
 // FILTERS
 // ══════════════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct WarrantyClaimFilters {
     pub status: Option<String>,
     pub source_type: Option<String>,
@@ -189,14 +196,15 @@ pub struct WarrantyClaimFilters {
 // STATS
 // ══════════════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct WarrantyStats {
-    pub total_claims: i64,
-    pub open_claims: i64,
-    pub in_progress_claims: i64,
-    pub approved_claims: i64,
-    pub denied_claims: i64,
-    pub closed_claims: i64,
+    pub total_claims: f64,
+    pub open_claims: f64,
+    pub in_progress_claims: f64,
+    pub approved_claims: f64,
+    pub denied_claims: f64,
+    pub closed_claims: f64,
     pub total_refund_amount: f64,
     pub total_replacement_cost: f64,
     pub avg_resolution_days: Option<f64>,

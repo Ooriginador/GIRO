@@ -2,10 +2,11 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use sqlx::FromRow;
 
 /// Tipo de movimentação de estoque
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum StockMovementType {
     Entry,  // Entrada de mercadoria
@@ -35,7 +36,7 @@ impl std::fmt::Display for StockMovementType {
 }
 
 /// Movimentação de estoque (compatível com DB existente)
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StockMovementRow {
     pub id: String,
@@ -54,7 +55,7 @@ pub struct StockMovementRow {
 }
 
 /// Movimentação de estoque (tipada para uso interno)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StockMovement {
     pub id: String,
@@ -70,7 +71,7 @@ pub struct StockMovement {
 }
 
 /// Para criar movimentação
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateStockMovement {
     pub product_id: String,
@@ -88,7 +89,7 @@ pub struct CreateStockMovement {
 }
 
 /// Lote de produto
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductLot {
     pub id: String,
@@ -107,7 +108,7 @@ pub struct ProductLot {
 }
 
 /// Lote com informações adicionais (para mobile)
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductLotWithProduct {
     pub id: String,
@@ -122,7 +123,7 @@ pub struct ProductLotWithProduct {
 }
 
 /// Status de estoque
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StockStatus {
     pub product_id: String,
@@ -134,7 +135,7 @@ pub struct StockStatus {
 }
 
 /// Ação de validade
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ExpirationAction {
     WriteOff, // Dar baixa
@@ -144,7 +145,7 @@ pub enum ExpirationAction {
 }
 
 /// Status de expiração de lote
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ExpirationStatus {
     Valid,     // Ainda válido

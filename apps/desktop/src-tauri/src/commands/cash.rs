@@ -13,6 +13,7 @@ use crate::AppState;
 use tauri::State;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_current_session(state: State<'_, AppState>) -> AppResult<Option<CashSession>> {
     let repo = CashRepository::new(state.pool());
     repo.find_current_session().await
@@ -20,6 +21,7 @@ pub async fn get_current_session(state: State<'_, AppState>) -> AppResult<Option
 
 // Alias para compatibilidade com frontend
 #[tauri::command]
+#[specta::specta]
 pub async fn get_current_cash_session(
     state: State<'_, AppState>,
 ) -> AppResult<Option<CashSession>> {
@@ -27,6 +29,7 @@ pub async fn get_current_cash_session(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_session_history(
     limit: i32,
     state: State<'_, AppState>,
@@ -37,6 +40,7 @@ pub async fn get_session_history(
 
 // Alias para compatibilidade com frontend
 #[tauri::command]
+#[specta::specta]
 pub async fn get_cash_session_history(
     limit: i32,
     state: State<'_, AppState>,
@@ -45,6 +49,7 @@ pub async fn get_cash_session_history(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_session_movements(
     session_id: String,
     state: State<'_, AppState>,
@@ -54,11 +59,15 @@ pub async fn get_session_movements(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn open_cash_session(
-    input: CreateCashSession,
+    mut input: CreateCashSession,
     state: State<'_, AppState>,
 ) -> AppResult<CashSession> {
-    let employee = require_permission!(state.pool(), &input.employee_id, Permission::OpenCash);
+    let info = state.session.require_authenticated()?;
+    input.employee_id = info.employee_id.clone();
+    let employee_id = info.employee_id;
+    let employee = require_permission!(state.pool(), &employee_id, Permission::OpenCash);
     let repo = CashRepository::new(state.pool());
     let result = repo.open_session(input).await?;
 
@@ -78,13 +87,15 @@ pub async fn open_cash_session(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn close_cash_session(
     id: String,
     actual_balance: f64,
     notes: Option<String>,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<CashSession> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::CloseCash);
     let repo = CashRepository::new(state.pool());
     let result = repo.close_session(&id, actual_balance, notes).await?;
@@ -105,11 +116,14 @@ pub async fn close_cash_session(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn add_cash_movement(
-    input: CreateCashMovement,
-    employee_id: String,
+    mut input: CreateCashMovement,
     state: State<'_, AppState>,
 ) -> AppResult<CashMovement> {
+    let info = state.session.require_authenticated()?;
+    input.employee_id = info.employee_id.clone();
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCash);
     let repo = CashRepository::new(state.pool());
     let result = repo.add_movement(input.clone()).await?;
@@ -136,6 +150,7 @@ pub async fn add_cash_movement(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_cash_session_summary(
     session_id: String,
     state: State<'_, AppState>,

@@ -3,6 +3,7 @@
 //! Structs para marcas, modelos e anos de veículos (integração FIPE)
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use sqlx::FromRow;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -10,7 +11,7 @@ use sqlx::FromRow;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Categoria do veículo
-#[derive(Debug, Clone, Default, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, sqlx::Type, PartialEq, Eq, Type)]
 #[sqlx(type_name = "TEXT")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum VehicleCategory {
@@ -49,7 +50,7 @@ impl std::fmt::Display for VehicleCategory {
 }
 
 /// Tipo de combustível
-#[derive(Debug, Clone, Default, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, sqlx::Type, PartialEq, Eq, Type)]
 #[sqlx(type_name = "TEXT")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FuelType {
@@ -65,7 +66,7 @@ pub enum FuelType {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Marca de veículo
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VehicleBrand {
     pub id: String,
@@ -77,7 +78,7 @@ pub struct VehicleBrand {
 }
 
 /// Modelo de veículo
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VehicleModel {
     pub id: String,
@@ -91,7 +92,7 @@ pub struct VehicleModel {
 }
 
 /// Ano de veículo
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VehicleYear {
     pub id: String,
@@ -108,7 +109,7 @@ pub struct VehicleYear {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Veículo completo (marca + modelo + ano)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VehicleComplete {
     pub brand_id: String,
@@ -132,7 +133,7 @@ impl VehicleComplete {
 }
 
 /// Resultado de busca de veículos
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VehicleSearchResult {
     pub year_id: String,
@@ -172,7 +173,7 @@ impl From<VehicleSearchResult> for VehicleComplete {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Compatibilidade entre produto e veículo
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductCompatibility {
     pub id: String,
@@ -184,7 +185,7 @@ pub struct ProductCompatibility {
 }
 
 /// Compatibilidade com dados do veículo
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductCompatibilityWithVehicle {
     pub id: String,
@@ -201,7 +202,7 @@ pub struct ProductCompatibilityWithVehicle {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Para criar marca de veículo
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateVehicleBrand {
     pub name: String,
@@ -209,7 +210,7 @@ pub struct CreateVehicleBrand {
 }
 
 /// Para criar modelo de veículo
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateVehicleModel {
     pub brand_id: String,
@@ -219,7 +220,7 @@ pub struct CreateVehicleModel {
 }
 
 /// Para criar ano de veículo
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateVehicleYear {
     pub model_id: String,
@@ -228,7 +229,7 @@ pub struct CreateVehicleYear {
 }
 
 /// Para salvar compatibilidades de um produto
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveProductCompatibilities {
     pub product_id: String,
@@ -236,7 +237,7 @@ pub struct SaveProductCompatibilities {
 }
 
 /// Para adicionar/remover compatibilidade individual
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AddProductCompatibility {
     pub product_id: String,

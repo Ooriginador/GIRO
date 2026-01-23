@@ -10,7 +10,7 @@ use tauri::State;
 use tokio::sync::RwLock;
 
 /// Status do servidor mobile
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct MobileServerStatus {
     pub is_running: bool,
@@ -21,7 +21,7 @@ pub struct MobileServerStatus {
 }
 
 /// Dispositivo conectado
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ConnectedDevice {
     pub id: String,
@@ -32,7 +32,7 @@ pub struct ConnectedDevice {
 }
 
 /// Config para iniciar servidor
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StartServerConfig {
     pub port: u16,
@@ -49,9 +49,12 @@ pub struct MobileServerState {
 
 /// Obtém status do servidor mobile
 #[tauri::command]
+#[specta::specta]
 pub async fn get_mobile_server_status(
     mobile_state: State<'_, RwLock<MobileServerState>>,
+    app_state: State<'_, AppState>,
 ) -> AppResult<MobileServerStatus> {
+    app_state.session.require_authenticated()?;
     let state = mobile_state.read().await;
 
     let local_ip = crate::services::mdns_service::get_local_ip();
@@ -73,17 +76,22 @@ pub async fn get_mobile_server_status(
 
 /// Alias para compatibilidade com código antigo
 #[tauri::command]
+#[specta::specta]
 pub async fn get_mobile_server_info(
     mobile_state: State<'_, RwLock<MobileServerState>>,
+    app_state: State<'_, AppState>,
 ) -> AppResult<MobileServerStatus> {
-    get_mobile_server_status(mobile_state).await
+    get_mobile_server_status(mobile_state, app_state).await
 }
 
 /// Lista dispositivos conectados
 #[tauri::command]
+#[specta::specta]
 pub async fn get_connected_devices(
     mobile_state: State<'_, RwLock<MobileServerState>>,
+    app_state: State<'_, AppState>,
 ) -> AppResult<Vec<ConnectedDevice>> {
+    app_state.session.require_authenticated()?;
     let state = mobile_state.read().await;
 
     if let Some(ref server) = state.server {
@@ -106,11 +114,13 @@ pub async fn get_connected_devices(
 
 /// Inicia o servidor mobile
 #[tauri::command]
+#[specta::specta]
 pub async fn start_mobile_server(
     config: StartServerConfig,
     app_state: State<'_, AppState>,
     mobile_state: State<'_, RwLock<MobileServerState>>,
 ) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
     let mut state = mobile_state.write().await;
 
     if state.is_running {
@@ -178,9 +188,12 @@ pub async fn start_mobile_server(
 
 /// Para o servidor mobile
 #[tauri::command]
+#[specta::specta]
 pub async fn stop_mobile_server(
     mobile_state: State<'_, RwLock<MobileServerState>>,
+    app_state: State<'_, AppState>,
 ) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
     let mut state = mobile_state.write().await;
 
     if !state.is_running {
@@ -207,10 +220,13 @@ pub async fn stop_mobile_server(
 
 /// Desconecta um dispositivo específico
 #[tauri::command]
+#[specta::specta]
 pub async fn disconnect_mobile_device(
     device_id: String,
     mobile_state: State<'_, RwLock<MobileServerState>>,
+    app_state: State<'_, AppState>,
 ) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
     let state = mobile_state.read().await;
 
     if let Some(ref server) = state.server {

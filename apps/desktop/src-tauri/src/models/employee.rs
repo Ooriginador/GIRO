@@ -2,10 +2,11 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use sqlx::FromRow;
 
 /// Papel do funcionário
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default, Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[sqlx(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EmployeeRole {
@@ -30,7 +31,7 @@ impl std::fmt::Display for EmployeeRole {
 }
 
 /// Funcionário completo (interno, com hash da senha)
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Employee {
     pub id: String,
@@ -48,7 +49,7 @@ pub struct Employee {
 }
 
 /// Funcionário seguro (para retorno ao frontend, sem senhas)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SafeEmployee {
     pub id: String,
@@ -81,7 +82,7 @@ impl From<Employee> for SafeEmployee {
 }
 
 /// Para criar funcionário
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateEmployee {
     pub name: String,
@@ -95,7 +96,7 @@ pub struct CreateEmployee {
 }
 
 /// Para atualizar funcionário
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateEmployee {
     pub name: Option<String>,
@@ -110,7 +111,7 @@ pub struct UpdateEmployee {
 }
 
 /// Resultado de autenticação
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthResult {
     pub employee: SafeEmployee,
@@ -119,7 +120,7 @@ pub struct AuthResult {
 }
 
 /// Credenciais de login
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginCredentials {
     pub pin: Option<String>,

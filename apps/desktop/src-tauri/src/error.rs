@@ -1,10 +1,11 @@
 //! Tipos de Erro Unificados
 
 use serde::Serialize;
+use specta;
 use thiserror::Error;
 
 /// Erro principal da aplicação
-#[derive(Error, Debug)]
+#[derive(Error, Debug, specta::Type)]
 pub enum AppError {
     // ═══════════════════════════════════════════════════════════════════════
     // Erros de Banco de Dados
@@ -76,10 +77,18 @@ pub enum AppError {
     // Erros de Sistema
     // ═══════════════════════════════════════════════════════════════════════
     #[error("Erro de IO: {0}")]
-    Io(#[from] std::io::Error),
+    Io(
+        #[from]
+        #[specta(skip)]
+        std::io::Error,
+    ),
 
     #[error("Erro de serialização: {0}")]
-    Serialization(#[from] serde_json::Error),
+    Serialization(
+        #[from]
+        #[specta(skip)]
+        serde_json::Error,
+    ),
 
     #[error("Erro interno: {0}")]
     Internal(String),
@@ -88,7 +97,11 @@ pub enum AppError {
     System(String),
 
     #[error("Erro de banco de dados SQL: {0}")]
-    Sql(#[from] sqlx::Error),
+    Sql(
+        #[from]
+        #[specta(skip)]
+        sqlx::Error,
+    ),
 }
 
 /// Resultado padrão da aplicação

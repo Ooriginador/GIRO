@@ -1,10 +1,11 @@
 //! Modelo de Fornecedor
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use sqlx::FromRow;
 
 /// Fornecedor
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Supplier {
     pub id: String,
@@ -23,7 +24,7 @@ pub struct Supplier {
 }
 
 /// Para criar fornecedor
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSupplier {
     pub name: String,
@@ -38,7 +39,7 @@ pub struct CreateSupplier {
 }
 
 /// Para atualizar fornecedor
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSupplier {
     pub name: Option<String>,
