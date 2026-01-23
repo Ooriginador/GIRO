@@ -6,13 +6,13 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y   pkg-config   libssl-dev   && rm -rf /var/lib/apt/lists/*
 
 # Copy manifests
-COPY backend/Cargo.toml backend/Cargo.lock ./
+COPY Cargo.toml Cargo.lock ./
 
 # Copy migrations (required by sqlx at compile time)
-COPY backend/migrations ./migrations
+COPY migrations ./migrations
 
 # Copy SQLx cache BEFORE dummy build to ensure it exists
-COPY backend/.sqlx ./.sqlx
+COPY .sqlx ./.sqlx
 
 # Create dummy main to cache dependencies
 RUN mkdir src &&   echo "fn main() {}" > src/main.rs &&   echo "pub fn lib() {}" > src/lib.rs
@@ -24,7 +24,7 @@ ENV SQLX_OFFLINE=true
 RUN cargo build --release &&   rm -rf src target/release/deps/giro_license_server*
 
 # Copy source code
-COPY backend/src ./src
+COPY src ./src
 
 # Build application in offline mode (no DATABASE_URL needed)
 RUN cargo build --release
@@ -39,7 +39,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y   pkg-config   libssl-dev   && rm -rf /var/lib/apt/lists/* &&   cargo install cargo-watch --locked
 
 # Copy source from backend/
-COPY backend/. .
+COPY . .
 
 EXPOSE 3000
 
