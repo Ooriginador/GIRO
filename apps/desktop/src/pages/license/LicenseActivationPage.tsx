@@ -26,6 +26,7 @@ export function LicenseActivationPage() {
   const [hardwareId, setHardwareId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
+  const [step, setStep] = useState<'activate' | 'sync'>('activate');
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -266,6 +267,34 @@ export function LicenseActivationPage() {
     );
   }
 
+  if (step === 'sync') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Entrar com Conta GIRO</CardTitle>
+            <CardDescription>
+              Use suas credenciais do painel web para recuperar sua licença.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SyncLoginForm
+              onBack={() => setStep('activate')}
+              onSuccess={(key) => {
+                setLicenseKey(key);
+                setStep('activate');
+                toast({
+                  title: 'Licença Recuperada!',
+                  description: 'Sua chave foi preenchida. Clique em Ativar para concluir.',
+                });
+              }}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 p-4">
       <Card className="w-full max-w-lg">
@@ -345,6 +374,12 @@ export function LicenseActivationPage() {
 
           {/* Help Links */}
           <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+            <button
+              onClick={() => setStep('sync')}
+              className="text-primary font-medium hover:underline mb-2"
+            >
+              Já possui uma conta? Sincronizar agora
+            </button>
             <a
               href="https://giro-website-production.up.railway.app/#precos"
               target="_blank"
@@ -365,5 +400,80 @@ export function LicenseActivationPage() {
     </div>
   );
 }
+
+const SyncLoginForm: FC<{ onBack: () => void; onSuccess: (key: string) => void }> = ({
+  onBack,
+  onSuccess,
+}) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+
+    setLoading(true);
+    try {
+      const { recoverLicenseFromLogin } = await import('@/lib/tauri');
+      const info = await recoverLicenseFromLogin({ email, password });
+
+      if (info.key) {
+        onSuccess(info.key);
+      } else {
+        throw new Error('Nenhuma licença encontrada para esta conta.');
+      }
+    } catch (err) {
+      toast({
+        title: 'Erro na Sincronização',
+        description: (err as Error)?.message || String(err),
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="login-email">Email</Label>
+        <Input
+          id="login-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="login-pass">Senha</Label>
+        <Input
+          id="login-pass"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+      <div className="flex gap-2 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onBack}
+          disabled={loading}
+          className="w-full"
+        >
+          Voltar
+        </Button>
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Entrar e Sincronizar
+        </Button>
+      </div>
+    </form>
+  );
+};
 
 export default LicenseActivationPage;

@@ -103,7 +103,7 @@ const GlobalSetupGate: FC<{ children: React.ReactNode }> = ({ children }) => {
     (window as unknown as Record<string, unknown>).__E2E_HAS_ADMIN !== undefined &&
     (window as unknown as Record<string, unknown>).__E2E_HAS_ADMIN !== false;
 
-  const bypassRoutes = ['/', '/login', '/license', '/license-activation', '/setup'];
+  const bypassRoutes = ['/login', '/license', '/license-activation', '/setup'];
   const isBypass = bypassRoutes.includes(location.pathname);
 
   // Global monitoring
