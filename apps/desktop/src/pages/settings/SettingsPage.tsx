@@ -9,7 +9,9 @@ import {
   LicenseSettings,
   MobileServerSettings,
   NetworkSettings,
+  CloudLoginDialog,
 } from '@/components/settings';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -24,7 +26,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { invoke, seedDatabase, setSetting } from '@/lib/tauri';
+import { invoke, seedDatabase, setSetting, syncBackupToCloud } from '@/lib/tauri';
 import { useSettingsStore, useLicenseStore } from '@/stores';
 import {
   Bell,
@@ -45,6 +47,7 @@ import {
   Smartphone,
   Sun,
   Volume2,
+  Cloud,
 } from 'lucide-react';
 import type { TauriResponse } from '@/types';
 import { useCallback, useEffect, useState, type FC } from 'react';
@@ -123,6 +126,9 @@ export const SettingsPage: FC = () => {
   const [testQrValue, setTestQrValue] = useState<string>('');
 
   const [isSyncingLicense, setIsSyncingLicense] = useState(false);
+  const { cloudToken, setCloudToken } = useLicenseStore();
+  const [isCloudLoginOpen, setIsCloudLoginOpen] = useState(false);
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
 
   const fetchPorts = useCallback(async () => {
     setIsLoadingPorts(true);
@@ -437,6 +443,38 @@ export const SettingsPage: FC = () => {
     }
   };
 
+  const handleSyncCloud = async () => {
+    if (!cloudToken) {
+      setIsCloudLoginOpen(true);
+      return;
+    }
+
+    setIsSyncingCloud(true);
+    try {
+      const result = await syncBackupToCloud(cloudToken);
+      if (result) {
+        toast({
+          title: 'Sincronização em Nuvem Concluída',
+          description: `Backup enviado com sucesso: ${result.file_key}`,
+        });
+      }
+    } catch (error) {
+      // If unauthorized, clear token and prompt login
+      if (typeof error === 'string' && (error.includes('401') || error.includes('unauthorized'))) {
+        setCloudToken(null);
+        setIsCloudLoginOpen(true);
+      } else {
+        toast({
+          title: 'Erro na Sincronização em Nuvem',
+          description: typeof error === 'string' ? error : 'Falha ao sincronizar com GIRO Cloud.',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setIsSyncingCloud(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -665,9 +703,37 @@ export const SettingsPage: FC = () => {
                   <Database className="mr-2 h-4 w-4" />
                   Criar Backup Local
                 </Button>
+
+                <Button
+                  variant="default"
+                  onClick={handleSyncCloud}
+                  disabled={isSyncingCloud}
+                  className="w-full justify-start bg-primary/90 hover:bg-primary shadow-sm"
+                >
+                  {isSyncingCloud ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Cloud className="mr-2 h-4 w-4" />
+                  )}
+                  Sincronizar com GIRO Cloud
+                  {cloudToken && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-auto bg-green-100 text-green-800 border-green-200"
+                    >
+                      Conectado
+                    </Badge>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
+
+          <CloudLoginDialog
+            open={isCloudLoginOpen}
+            onOpenChange={setIsCloudLoginOpen}
+            onSuccess={handleSyncCloud}
+          />
         </TabsContent>
 
         {/* Hardware */}

@@ -509,6 +509,12 @@ export interface UpdateLicenseAdminRequest {
   pin: string;
 }
 
+export interface CloudBackupUploadResponse {
+  id: string;
+  file_key: string;
+  message: string;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // DASHBOARD & REPORTS (MOTOPEÇAS)
 // ────────────────────────────────────────────────────────────────────────────

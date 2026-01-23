@@ -37,6 +37,7 @@ import type {
   EmployeeRole,
 } from '@/types';
 import { invoke as tauriCoreInvoke } from '@tauri-apps/api/core';
+import { readFile } from '@tauri-apps/plugin-fs';
 
 export type { EmitNfceRequest, NfceItem } from '@/types/nfce';
 
@@ -1071,7 +1072,7 @@ export async function uploadBackupToCloud(
   }
   // Convert data to base64 and send to backend Tauri command which will forward to license server
   const buffer = backupData instanceof ArrayBuffer ? backupData : await backupData.arrayBuffer();
-  const base64 = arrayBufferToBase64(buffer);
+  const base64 = bytesToBase64(new Uint8Array(buffer));
 
   return tauriInvoke<CloudBackupUploadResponse>('upload_cloud_backup_cmd', {
     bearerToken: token,
@@ -1112,9 +1113,17 @@ export async function deleteCloudBackup(backupId: string): Promise<void> {
   return tauriInvoke<void>('delete_cloud_backup_cmd', { bearerToken: token, backupId });
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
+/**
+ * Login to GIRO License Server and get a bearer token
+ */
+export async function loginToCloud(email: string, password: string): Promise<string> {
+  return tauriInvoke<string>('license_server_login', {
+    payload: { email, password },
+  });
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
   let binary = '';
-  const bytes = new Uint8Array(buffer);
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) {
     binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
@@ -1126,9 +1135,11 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
  * Create local backup and upload to cloud
  * Combines createBackup() with uploadBackupToCloud()
  */
-export async function syncBackupToCloud(): Promise<CloudBackupUploadResponse | null> {
+export async function syncBackupToCloud(
+  bearerToken?: string
+): Promise<CloudBackupUploadResponse | null> {
   try {
-    // Create local backup first
+    // 1. Create local backup first
     const localResult = await createBackup();
 
     if (!localResult.success || !localResult.data) {
@@ -1136,14 +1147,31 @@ export async function syncBackupToCloud(): Promise<CloudBackupUploadResponse | n
       return null;
     }
 
-    // Read the backup file and upload to cloud
-    // Note: This requires file system access which Tauri handles
-    console.log('[Backup] Local backup created:', localResult.data);
+    const backupPath = localResult.data;
+    console.log('[Backup] Local backup created at:', backupPath);
 
-    // For now, we just return null - full implementation needs file reading
-    // In production, use Tauri's fs API to read the file and upload
-    console.log('[Backup] Cloud sync not yet fully implemented - local backup saved');
-    return null;
+    // 2. Read the backup file
+    const fileData = await readFile(backupPath);
+    console.log('[Backup] Read %d bytes', fileData.length);
+
+    // 3. Convert to Base64
+    const dataBase64 = bytesToBase64(fileData);
+
+    // 4. Upload to cloud
+    // If bearerToken is not provided, we should ideally fetch it from a store
+    // For now, we expect it to be passed or we'll need to implement a login flow
+    if (!bearerToken) {
+      console.warn('[Backup] No bearer token provided for cloud sync');
+      return null;
+    }
+
+    const result = await tauriInvoke<CloudBackupUploadResponse>('upload_cloud_backup_cmd', {
+      bearer_token: bearerToken,
+      data_base64: dataBase64,
+    });
+
+    console.log('[Backup] Cloud sync successful:', result);
+    return result;
   } catch (error) {
     console.error('[Backup] Sync failed:', (error as Error)?.message ?? String(error));
     throw error;

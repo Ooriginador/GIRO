@@ -151,7 +151,7 @@ async fn main() {
             // Log WebView2 version for diagnostics
             #[cfg(target_os = "windows")]
             {
-                match tauri::webview::webview_version() {
+                match tauri::webview_version() {
                     Ok(v) => tracing::info!("✅ WebView2 Version: {}", v),
                     Err(e) => tracing::error!("❌ WebView2 ERR: {:?}", e),
                 }
