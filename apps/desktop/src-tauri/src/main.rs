@@ -23,19 +23,49 @@ fn get_database_path() -> PathBuf {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "giro_lib=info,tauri=warn".into()),
-        )
+    let app_data = dirs::data_local_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("GIRO");
+    let log_dir = app_data.join("logs");
+    std::fs::create_dir_all(&log_dir).ok();
+
+    // 1. Setup File Logging
+    let file_appender = tracing_appender::rolling::daily(&log_dir, "giro.log");
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+
+    use tracing_subscriber::prelude::*;
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| "giro_lib=info,tauri=warn,giro_desktop=info".into());
+
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(tracing_subscriber::fmt::layer()) // Log to stdout
+        .with(tracing_subscriber::fmt::layer().with_writer(non_blocking)) // Log to file
         .init();
+
+    // 2. Setup Panic Hook for Windows
+    #[cfg(target_os = "windows")]
+    {
+        std::panic::set_hook(Box::new(|info| {
+            let message = format!("CRITICAL ERROR (Panic):\n\n{}", info);
+            tracing::error!("{}", message);
+
+            // Try to show a message box if possible
+            // Note: Since we are in a panic, we can't use complex Tauri calls easily
+            // but we can at least ensure it's in the log file above.
+            println!("{}", message);
+        }));
+    }
 
     // Load .env file if it exists
     dotenv::dotenv().ok();
 
-    tracing::info!("Iniciando GIRO Desktop v{}", env!("CARGO_PKG_VERSION"));
+    tracing::info!("====================================================");
+    tracing::info!("🚀 Iniciando GIRO Desktop v{}", env!("CARGO_PKG_VERSION"));
+    tracing::info!("📂 Logs salvos em: {:?}", log_dir);
+    tracing::info!("====================================================");
 
-    let db_path = get_database_path();
+    let db_path = app_data.join("giro.db");
     tracing::info!("DATABASE VERIFICATION PATH: {:?}", db_path);
 
     // CRITICAL: Verify write permissions
@@ -43,20 +73,19 @@ async fn main() {
         let test_file = parent.join(".perm_check");
         if let Err(e) = std::fs::write(&test_file, "ok") {
             tracing::error!("❌ FATAL: Write permission denied in AppData: {:?}", e);
-            eprintln!(
-                "CRITICAL: Cannot write to {:?}. Check user permissions.",
-                parent
-            );
-            // We continue, but the DB connection will likely fail next.
         } else {
             tracing::info!("✅ Write permission verified in AppData");
             let _ = std::fs::remove_file(test_file);
         }
     }
 
-    let db = DatabaseManager::new(db_path.to_str().unwrap())
-        .await
-        .expect("Falha ao conectar com banco de dados");
+    let db = match DatabaseManager::new(db_path.to_str().unwrap()).await {
+        Ok(db) => db,
+        Err(e) => {
+            tracing::error!("❌ FATAL: Falha ao conectar com banco de dados: {:?}", e);
+            panic!("Falha ao conectar com banco de dados: {}", e);
+        }
+    };
 
     let app_dir = db_path
         .parent()
@@ -118,6 +147,16 @@ async fn main() {
         .manage(RwLock::new(NetworkState::default()))
         .setup(|app| {
             let handle = app.handle().clone();
+
+            // Log WebView2 version for diagnostics
+            #[cfg(target_os = "windows")]
+            {
+                match tauri::webview::webview_version() {
+                    Ok(v) => tracing::info!("✅ WebView2 Version: {}", v),
+                    Err(e) => tracing::error!("❌ WebView2 ERR: {:?}", e),
+                }
+            }
+
             tauri::async_runtime::spawn(async move {
                 let state = handle.state::<AppState>();
                 let hw_state = handle.state::<HardwareState>();
@@ -431,11 +470,12 @@ fn get_cpu_id() -> String {
 
     #[cfg(target_os = "windows")]
     {
-        // 1. Try WMIC
-        if let Ok(output) = std::process::Command::new("wmic")
+        // 1. Try WMIC with timeout
+        let wmic_cmd = std::process::Command::new("wmic")
             .args(["cpu", "get", "ProcessorId"])
-            .output()
-        {
+            .output();
+
+        if let Ok(output) = wmic_cmd {
             if let Ok(stdout) = String::from_utf8(output.stdout) {
                 let lines: Vec<&str> = stdout.lines().filter(|l| !l.trim().is_empty()).collect();
                 if lines.len() > 1 {
@@ -445,11 +485,12 @@ fn get_cpu_id() -> String {
         }
 
         // 2. Try PowerShell (Fallback)
-        if let Ok(output) = std::process::Command::new("powershell")
+        let ps_cmd = std::process::Command::new("powershell")
             .args(["-Command", "Get-CimInstance -ClassName Win32_Processor | Select-Object -ExpandProperty ProcessorId"])
-            .output()
-        {
-             if let Ok(stdout) = String::from_utf8(output.stdout) {
+            .output();
+
+        if let Ok(output) = ps_cmd {
+            if let Ok(stdout) = String::from_utf8(output.stdout) {
                 let id = stdout.trim();
                 if !id.is_empty() {
                     return id.to_string();
@@ -494,10 +535,11 @@ fn get_motherboard_serial() -> String {
     #[cfg(target_os = "windows")]
     {
         // 1. WMIC
-        if let Ok(output) = std::process::Command::new("wmic")
+        let wmic_cmd = std::process::Command::new("wmic")
             .args(["baseboard", "get", "serialnumber"])
-            .output()
-        {
+            .output();
+
+        if let Ok(output) = wmic_cmd {
             if let Ok(stdout) = String::from_utf8(output.stdout) {
                 let lines: Vec<&str> = stdout.lines().filter(|l| !l.trim().is_empty()).collect();
                 if lines.len() > 1 {
@@ -510,11 +552,12 @@ fn get_motherboard_serial() -> String {
         }
 
         // 2. PowerShell
-        if let Ok(output) = std::process::Command::new("powershell")
+        let ps_cmd = std::process::Command::new("powershell")
             .args(["-Command", "Get-CimInstance -ClassName Win32_BaseBoard | Select-Object -ExpandProperty SerialNumber"])
-            .output()
-        {
-             if let Ok(stdout) = String::from_utf8(output.stdout) {
+            .output();
+
+        if let Ok(output) = ps_cmd {
+            if let Ok(stdout) = String::from_utf8(output.stdout) {
                 let serial = stdout.trim();
                 if !serial.is_empty() && serial != "To be filled by O.E.M." {
                     return serial.to_string();
@@ -601,10 +644,11 @@ fn get_disk_serial() -> String {
     #[cfg(target_os = "windows")]
     {
         // 1. WMIC
-        if let Ok(output) = std::process::Command::new("wmic")
+        let wmic_cmd = std::process::Command::new("wmic")
             .args(["diskdrive", "get", "serialnumber"])
-            .output()
-        {
+            .output();
+
+        if let Ok(output) = wmic_cmd {
             if let Ok(stdout) = String::from_utf8(output.stdout) {
                 let lines: Vec<&str> = stdout.lines().filter(|l| !l.trim().is_empty()).collect();
                 if lines.len() > 1 {
@@ -614,11 +658,12 @@ fn get_disk_serial() -> String {
         }
 
         // 2. PowerShell
-        if let Ok(output) = std::process::Command::new("powershell")
+        let ps_cmd = std::process::Command::new("powershell")
             .args(["-Command", "Get-CimInstance -ClassName Win32_DiskDrive | Select-Object -ExpandProperty SerialNumber | Select-Object -First 1"])
-            .output()
-        {
-             if let Ok(stdout) = String::from_utf8(output.stdout) {
+            .output();
+
+        if let Ok(output) = ps_cmd {
+            if let Ok(stdout) = String::from_utf8(output.stdout) {
                 let serial = stdout.trim();
                 if !serial.is_empty() {
                     return serial.to_string();
