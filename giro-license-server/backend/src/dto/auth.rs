@@ -40,7 +40,7 @@ pub struct RegisterResponse {
     pub id: Uuid,
     pub email: String,
     pub name: String,
-    pub role: crate::models::UserRole,
+    pub role: crate::models::admin::UserRole,
     pub company_name: Option<String>,
     pub created_at: DateTime<Utc>,
     pub message: String,

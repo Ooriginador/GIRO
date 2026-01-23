@@ -120,9 +120,9 @@ impl HardwareRepository {
                 l.license_key,
                 lh.hardware_id,
                 lh.machine_name as device_name,
-                lh.last_activated_at as activated_at,
+                COALESCE(lh.last_activated_at, NOW()) as activated_at,
                 h.last_seen as last_heartbeat,
-                h.is_active as is_active
+                COALESCE(h.is_active, TRUE) as is_active
             FROM license_hardware lh
             INNER JOIN licenses l ON l.id = lh.license_id
             LEFT JOIN hardware h ON h.fingerprint = lh.hardware_id

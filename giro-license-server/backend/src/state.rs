@@ -27,7 +27,7 @@ impl AppState {
 
     /// Create license service
     pub fn license_service(&self) -> LicenseService {
-        LicenseService::new(self.db.clone(), self.redis.clone())
+        LicenseService::new(self.db.clone(), self.redis.clone(), self.email_service())
     }
 
     /// Create hardware service

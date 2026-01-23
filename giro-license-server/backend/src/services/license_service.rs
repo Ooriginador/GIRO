@@ -7,6 +7,7 @@ use redis::aio::ConnectionManager;
 use sqlx::PgPool;
 use std::net::IpAddr;
 use uuid::Uuid;
+use crate::services::EmailService;
 
 use crate::dto::license::{
     ActivateLicenseResponse, AdminUserSyncData, LicenseDetailsResponse, RestoreLicenseResponse,
@@ -22,11 +23,12 @@ pub struct LicenseService {
     db: PgPool,
     #[allow(dead_code)]
     redis: ConnectionManager,
+    email: EmailService,
 }
 
 impl LicenseService {
-    pub fn new(db: PgPool, redis: ConnectionManager) -> Self {
-        Self { db, redis }
+    pub fn new(db: PgPool, redis: ConnectionManager, email: EmailService) -> Self {
+        Self { db, redis, email }
     }
 
     fn license_repo(&self) -> LicenseRepository {
@@ -569,6 +571,51 @@ impl LicenseService {
         admin_id: Uuid,
     ) -> AppResult<crate::repositories::license_repo::LicenseStats> {
         self.license_repo().get_stats(admin_id).await
+    }
+
+    /// Resend license email to admin
+    pub async fn resend_license_email(
+        &self,
+        license_key: &str,
+        admin_id: Uuid,
+    ) -> AppResult<()> {
+        let license_repo = self.license_repo();
+        let normalized_key = crate::utils::normalize_license_key(license_key);
+
+        let license = license_repo
+            .find_by_key(&normalized_key)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Licença não encontrada".to_string()))?;
+
+        // Verify ownership
+        if license.admin_id != admin_id {
+            return Err(AppError::NotFound("Licença não encontrada".to_string()));
+        }
+
+        // Get admin details
+        let admin = self
+            .admin_repo()
+            .find_by_id(license.admin_id)
+            .await?
+            .ok_or_else(|| AppError::Internal("Admin não encontrado".to_string()))?;
+
+        // Send email
+        self.email
+            .send_license_issued(&admin.email, &admin.name, &license.license_key)
+            .await?;
+
+        // Log resend
+        self.audit_repo()
+            .log(
+                AuditAction::LicenseCreated, // Reuse or create a new action if needed, but LicenseCreated is fine for "issued"
+                Some(admin_id),
+                Some(license.id),
+                None,
+                serde_json::json!({ "action": "email_resent" }),
+            )
+            .await?;
+
+        Ok(())
     }
 
     /// Update admin data for a license (Sync from Desktop)

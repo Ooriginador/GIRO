@@ -6,7 +6,7 @@ use axum::{
     body::Bytes,
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
     routing::{get, post},
     Router,
 };
@@ -69,7 +69,7 @@ async fn upload_backup(
     let file_size = body.len() as i64;
 
     // Upload to S3
-    state.s3_service().upload(&file_key, body.to_vec()).await?;
+    state.s3_service()?.upload(&file_key, body.to_vec()).await?;
 
     let backup_id: Uuid = sqlx::query_scalar(
         r#"
@@ -179,7 +179,7 @@ async fn delete_backup(
     let file_key = file_key.ok_or_else(|| AppError::NotFound("Backup not found".into()))?;
 
     // Delete from S3
-    state.s3_service().delete(&file_key).await?;
+    state.s3_service()?.delete(&file_key).await?;
 
     let result = sqlx::query(
         r#"
@@ -206,7 +206,7 @@ async fn download_backup(
     State(state): State<AppState>,
     auth: AuthAdmin,
     Path(backup_id): Path<Uuid>,
-) -> AppResult<impl IntoResponse> {
+) -> AppResult<(axum::http::HeaderMap, Vec<u8>)> {
     let backup: Option<BackupMeta> = sqlx::query_as(
         r#"
         SELECT 
@@ -230,7 +230,7 @@ async fn download_backup(
     let backup = backup.ok_or_else(|| AppError::NotFound("Backup not found".into()))?;
 
     // Download from S3
-    let data = state.s3_service().download(&backup.file_key).await?;
+    let data = state.s3_service()?.download(&backup.file_key).await?;
 
     let filename = format!("{}.db", backup.id);
 
