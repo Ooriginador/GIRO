@@ -12,12 +12,14 @@ use serde::Deserialize;
 use tauri::State;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_employees(state: State<'_, AppState>) -> AppResult<Vec<SafeEmployee>> {
     let repo = EmployeeRepository::new(state.pool());
     repo.find_all_safe().await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_employee_by_id(
     id: String,
     state: State<'_, AppState>,
@@ -27,6 +29,7 @@ pub async fn get_employee_by_id(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn authenticate_by_pin(
     pin: String,
     state: State<'_, AppState>,
@@ -43,6 +46,7 @@ pub async fn authenticate_by_pin(
 
 // Alias para compatibilidade com frontend
 #[tauri::command]
+#[specta::specta]
 pub async fn authenticate_employee(
     pin: String,
     state: State<'_, AppState>,
@@ -51,12 +55,13 @@ pub async fn authenticate_employee(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn has_admin(state: State<'_, AppState>) -> AppResult<bool> {
     let repo = EmployeeRepository::new(state.pool());
     repo.has_admin().await
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateFirstAdminInput {
     pub name: String,
@@ -65,6 +70,7 @@ pub struct CreateFirstAdminInput {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn create_first_admin(
     input: CreateFirstAdminInput,
     state: State<'_, AppState>,
@@ -108,17 +114,20 @@ pub async fn create_first_admin(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn has_any_employee(state: State<'_, AppState>) -> AppResult<bool> {
     let repo = EmployeeRepository::new(state.pool());
     repo.has_any_employee().await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn create_employee(
     input: CreateEmployee,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<SafeEmployee> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::CreateEmployees);
     let repo = EmployeeRepository::new(state.pool());
     let emp = repo.create(input).await?;
@@ -139,12 +148,14 @@ pub async fn create_employee(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn update_employee(
     id: String,
     input: UpdateEmployee,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<SafeEmployee> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateEmployees);
     let repo = EmployeeRepository::new(state.pool());
     let emp = repo.update(&id, input).await?;
@@ -164,11 +175,10 @@ pub async fn update_employee(
 }
 
 #[tauri::command]
-pub async fn deactivate_employee(
-    id: String,
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<()> {
+#[specta::specta]
+pub async fn deactivate_employee(id: String, state: State<'_, AppState>) -> AppResult<()> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::DeleteEmployees);
     let repo = EmployeeRepository::new(state.pool());
     repo.deactivate(&id).await?;
@@ -189,11 +199,13 @@ pub async fn deactivate_employee(
 
 /// Reativa um funcionário desativado
 #[tauri::command]
+#[specta::specta]
 pub async fn reactivate_employee(
     id: String,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<SafeEmployee> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::UpdateEmployees);
     let repo = EmployeeRepository::new(state.pool());
     let emp = repo.reactivate(&id).await?;
@@ -201,12 +213,14 @@ pub async fn reactivate_employee(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn logout(state: State<'_, AppState>) -> AppResult<()> {
     state.session.clear();
     Ok(())
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_current_user(state: State<'_, AppState>) -> AppResult<Option<SafeEmployee>> {
     let session = state.session.get_employee();
     if let Some(info) = session {
@@ -220,6 +234,7 @@ pub async fn get_current_user(state: State<'_, AppState>) -> AppResult<Option<Sa
 
 /// Lista apenas funcionários inativos
 #[tauri::command]
+#[specta::specta]
 pub async fn get_inactive_employees(state: State<'_, AppState>) -> AppResult<Vec<SafeEmployee>> {
     let repo = EmployeeRepository::new(state.pool());
     let employees = repo.find_inactive().await?;

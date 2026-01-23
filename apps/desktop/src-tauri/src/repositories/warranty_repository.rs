@@ -518,12 +518,12 @@ impl WarrantyRepository {
                 .await?;
 
         Ok(WarrantyStats {
-            total_claims: stats.0,
-            open_claims: stats.1,
-            in_progress_claims: stats.2,
-            approved_claims: stats.3,
-            denied_claims: stats.4,
-            closed_claims: stats.5,
+            total_claims: stats.0 as f64,
+            open_claims: stats.1 as f64,
+            in_progress_claims: stats.2 as f64,
+            approved_claims: stats.3 as f64,
+            denied_claims: stats.4 as f64,
+            closed_claims: stats.5 as f64,
             total_refund_amount: stats.6,
             total_replacement_cost: stats.7,
             avg_resolution_days: stats.8,

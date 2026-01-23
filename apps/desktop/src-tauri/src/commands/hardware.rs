@@ -64,12 +64,14 @@ impl Default for HardwareState {
 
 /// Lista portas seriais disponíveis
 #[tauri::command]
+#[specta::specta]
 pub fn list_serial_ports() -> Vec<String> {
     hardware::list_serial_ports()
 }
 
 /// Lista todas as portas de hardware relevantes (Serial + USB Printer no Linux)
 #[tauri::command]
+#[specta::specta]
 pub fn list_hardware_ports() -> Vec<String> {
     let mut ports = hardware::list_serial_ports();
 
@@ -94,17 +96,20 @@ pub fn list_hardware_ports() -> Vec<String> {
 
 /// Verifica se uma porta existe
 #[tauri::command]
+#[specta::specta]
 pub fn check_port_exists(port: String) -> bool {
     hardware::port_exists(&port)
 }
 
 /// Configura a impressora
 #[tauri::command]
+#[specta::specta]
 pub async fn configure_printer(
     config: PrinterConfig,
     state: State<'_, AppState>,
     hw_state: State<'_, HardwareState>,
 ) -> AppResult<()> {
+    state.session.require_authenticated()?;
     let mut printer_config = hw_state.printer_config.write().await;
     *printer_config = config.clone();
 
@@ -124,7 +129,13 @@ pub async fn configure_printer(
 
 /// Imprime cupom de venda
 #[tauri::command]
-pub async fn print_receipt(receipt: Receipt, state: State<'_, HardwareState>) -> AppResult<()> {
+#[specta::specta]
+pub async fn print_receipt(
+    receipt: Receipt,
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
     let config = state.printer_config.read().await;
 
     if !config.enabled {
@@ -151,11 +162,13 @@ pub async fn print_receipt(receipt: Receipt, state: State<'_, HardwareState>) ->
 
 /// Imprime cupom de venda buscando pelo ID
 #[tauri::command]
+#[specta::specta]
 pub async fn print_sale_by_id(
     sale_id: String,
     state: State<'_, AppState>,
     hw_state: State<'_, HardwareState>,
 ) -> AppResult<()> {
+    state.session.require_authenticated()?;
     // 1. Buscar Venda
     let sale_repo = crate::repositories::SaleRepository::new(state.pool());
     let sale = sale_repo
@@ -215,15 +228,18 @@ pub async fn print_sale_by_id(
     };
 
     // 4. Imprimir
-    print_receipt(receipt, hw_state).await
+    print_receipt(receipt, hw_state, state).await
 }
 
 /// Imprime ordem de serviço
 #[tauri::command]
+#[specta::specta]
 pub async fn print_service_order(
     os: crate::hardware::printer::ServiceOrderReceipt,
     state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
 ) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
     let config = state.printer_config.read().await;
 
     if !config.enabled {
@@ -250,7 +266,12 @@ pub async fn print_service_order(
 
 /// Testa impressão
 #[tauri::command]
-pub async fn test_printer(state: State<'_, HardwareState>) -> AppResult<()> {
+#[specta::specta]
+pub async fn test_printer(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
     let config = state.printer_config.read().await;
 
     if !config.enabled {
@@ -277,8 +298,12 @@ pub async fn test_printer(state: State<'_, HardwareState>) -> AppResult<()> {
 
 // Alias para compatibilidade com frontend
 #[tauri::command]
-pub async fn test_printer_connection(state: State<'_, HardwareState>) -> AppResult<bool> {
-    match test_printer(state).await {
+#[specta::specta]
+pub async fn test_printer_connection(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<bool> {
+    match test_printer(state, app_state).await {
         Ok(_) => Ok(true),
         Err(_) => Ok(false),
     }
@@ -286,7 +311,12 @@ pub async fn test_printer_connection(state: State<'_, HardwareState>) -> AppResu
 
 /// Imprime múltiplos documentos de teste (nota, ordem de serviço, relatório)
 #[tauri::command]
-pub async fn print_test_documents(state: State<'_, HardwareState>) -> AppResult<()> {
+#[specta::specta]
+pub async fn print_test_documents(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
     let config = state.printer_config.read().await;
 
     if !config.enabled {
@@ -395,7 +425,12 @@ pub async fn print_test_documents(state: State<'_, HardwareState>) -> AppResult<
 
 /// Retorna configuração atual da impressora
 #[tauri::command]
-pub async fn get_printer_config(state: State<'_, HardwareState>) -> AppResult<PrinterConfig> {
+#[specta::specta]
+pub async fn get_printer_config(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<PrinterConfig> {
+    app_state.session.require_authenticated()?;
     let config = state.printer_config.read().await;
     Ok(config.clone())
 }
@@ -406,11 +441,13 @@ pub async fn get_printer_config(state: State<'_, HardwareState>) -> AppResult<Pr
 
 /// Configura a balança
 #[tauri::command]
+#[specta::specta]
 pub async fn configure_scale(
     config: ScaleConfig,
     state: State<'_, AppState>,
     hw_state: State<'_, HardwareState>,
 ) -> AppResult<()> {
+    state.session.require_authenticated()?;
     let mut scale_config = hw_state.scale_config.write().await;
     *scale_config = config.clone();
 
@@ -430,7 +467,12 @@ pub async fn configure_scale(
 
 /// Lê peso da balança
 #[tauri::command]
-pub async fn read_weight(state: State<'_, HardwareState>) -> AppResult<ScaleReading> {
+#[specta::specta]
+pub async fn read_weight(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<ScaleReading> {
+    app_state.session.require_authenticated()?;
     let config = state.scale_config.read().await;
 
     if !config.enabled {
@@ -445,15 +487,23 @@ pub async fn read_weight(state: State<'_, HardwareState>) -> AppResult<ScaleRead
 
 // Alias para compatibilidade com frontend
 #[tauri::command]
-pub async fn read_scale_weight(state: State<'_, HardwareState>) -> AppResult<f64> {
-    let reading = read_weight(state).await?;
+#[specta::specta]
+pub async fn read_scale_weight(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<f64> {
+    let reading = read_weight(state, app_state).await?;
     Ok(reading.weight_kg)
 }
 
 // Alias para compatibilidade com frontend
 #[tauri::command]
-pub async fn test_scale_connection(state: State<'_, HardwareState>) -> AppResult<bool> {
-    match read_weight(state).await {
+#[specta::specta]
+pub async fn test_scale_connection(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<bool> {
+    match read_weight(state, app_state).await {
         Ok(_) => Ok(true),
         Err(_) => Ok(false),
     }
@@ -461,7 +511,9 @@ pub async fn test_scale_connection(state: State<'_, HardwareState>) -> AppResult
 
 /// Detecta automaticamente a balança
 #[tauri::command]
-pub async fn auto_detect_scale() -> AppResult<ScaleAutoDetectInfo> {
+#[specta::specta]
+pub async fn auto_detect_scale(state: State<'_, AppState>) -> AppResult<ScaleAutoDetectInfo> {
+    state.session.require_authenticated()?;
     // Calls the async detector and returns detected config plus failures
     let result = hardware::scale::auto_detect_scale_async().await;
 
@@ -471,7 +523,8 @@ pub async fn auto_detect_scale() -> AppResult<ScaleAutoDetectInfo> {
     })
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ScaleAutoDetectInfo {
     pub config: Option<ScaleConfig>,
     pub failures: Vec<String>,
@@ -479,7 +532,12 @@ pub struct ScaleAutoDetectInfo {
 
 /// Retorna configuração atual da balança
 #[tauri::command]
-pub async fn get_scale_config(state: State<'_, HardwareState>) -> AppResult<ScaleConfig> {
+#[specta::specta]
+pub async fn get_scale_config(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<ScaleConfig> {
+    app_state.session.require_authenticated()?;
     let config = state.scale_config.read().await;
     Ok(config.clone())
 }
@@ -490,11 +548,13 @@ pub async fn get_scale_config(state: State<'_, HardwareState>) -> AppResult<Scal
 
 /// Configura a gaveta
 #[tauri::command]
+#[specta::specta]
 pub async fn configure_drawer(
     config: DrawerConfig,
     state: State<'_, AppState>,
     hw_state: State<'_, HardwareState>,
 ) -> AppResult<()> {
+    state.session.require_authenticated()?;
     let mut drawer_config = hw_state.drawer_config.write().await;
     *drawer_config = config.clone();
 
@@ -514,7 +574,12 @@ pub async fn configure_drawer(
 
 /// Abre a gaveta
 #[tauri::command]
-pub async fn open_drawer(state: State<'_, HardwareState>) -> AppResult<()> {
+#[specta::specta]
+pub async fn open_drawer(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
     let config = state.drawer_config.read().await;
 
     if !config.enabled {
@@ -529,22 +594,34 @@ pub async fn open_drawer(state: State<'_, HardwareState>) -> AppResult<()> {
 
 // Alias para compatibilidade com frontend
 #[tauri::command]
-pub async fn open_cash_drawer(state: State<'_, HardwareState>) -> AppResult<()> {
-    open_drawer(state).await
+#[specta::specta]
+pub async fn open_cash_drawer(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<()> {
+    open_drawer(state, app_state).await
 }
 
 /// Retorna configuração atual da gaveta
 #[tauri::command]
-pub async fn get_drawer_config(state: State<'_, HardwareState>) -> AppResult<DrawerConfig> {
+#[specta::specta]
+pub async fn get_drawer_config(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<DrawerConfig> {
+    app_state.session.require_authenticated()?;
     let config = state.drawer_config.read().await;
     Ok(config.clone())
 }
 
 /// Health check agregado de hardware (impressora, balança, scanner)
 #[tauri::command]
+#[specta::specta]
 pub async fn hardware_health_check(
     state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
 ) -> AppResult<Vec<crate::hardware::HardwareStatus>> {
+    app_state.session.require_authenticated()?;
     let mut results: Vec<crate::hardware::HardwareStatus> = Vec::new();
 
     // Printer
@@ -618,11 +695,13 @@ pub async fn hardware_health_check(
 
 /// Inicia servidor WebSocket para scanner mobile
 #[tauri::command]
+#[specta::specta]
 pub async fn start_scanner_server(
     config: MobileScannerConfig,
     state: State<'_, HardwareState>,
     app_state: State<'_, crate::AppState>,
 ) -> AppResult<ScannerServerInfo> {
+    app_state.session.require_authenticated()?;
     let mut server = state.scanner_server.write().await;
 
     // Verifica se já está rodando
@@ -679,7 +758,12 @@ pub async fn start_scanner_server(
 
 /// Para servidor de scanner
 #[tauri::command]
-pub async fn stop_scanner_server(state: State<'_, HardwareState>) -> AppResult<()> {
+#[specta::specta]
+pub async fn stop_scanner_server(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
     // Abort task if running
     {
         let mut task_slot = state.scanner_task.write().await;
@@ -707,7 +791,12 @@ pub async fn stop_scanner_server(state: State<'_, HardwareState>) -> AppResult<(
 
 /// Lista dispositivos mobile conectados
 #[tauri::command]
-pub async fn list_scanner_devices(state: State<'_, HardwareState>) -> AppResult<Vec<MobileDevice>> {
+#[specta::specta]
+pub async fn list_scanner_devices(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<Vec<MobileDevice>> {
+    app_state.session.require_authenticated()?;
     let server = state.scanner_server.read().await;
 
     match server.as_ref() {
@@ -721,9 +810,12 @@ pub async fn list_scanner_devices(state: State<'_, HardwareState>) -> AppResult<
 
 /// Retorna informações do servidor de scanner
 #[tauri::command]
+#[specta::specta]
 pub async fn get_scanner_server_info(
     state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
 ) -> AppResult<Option<ScannerServerInfo>> {
+    app_state.session.require_authenticated()?;
     let server = state.scanner_server.read().await;
 
     match server.as_ref() {
@@ -749,7 +841,12 @@ pub async fn get_scanner_server_info(
 
 /// Gera QR Code para pareamento
 #[tauri::command]
-pub async fn generate_pairing_qr(state: State<'_, HardwareState>) -> AppResult<String> {
+#[specta::specta]
+pub async fn generate_pairing_qr(
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<String> {
+    app_state.session.require_authenticated()?;
     let server = state.scanner_server.read().await;
     match server.as_ref() {
         Some(scanner_state) => {
@@ -769,12 +866,14 @@ pub async fn generate_pairing_qr(state: State<'_, HardwareState>) -> AppResult<S
 
 /// Inicia leitor serial
 #[tauri::command]
+#[specta::specta]
 pub async fn start_serial_scanner(
     port: String,
     baud: u32,
     state: State<'_, HardwareState>,
     app_state: State<'_, crate::AppState>,
 ) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
     let mut scanner_server = state.scanner_server.write().await;
 
     // Se o estado não existir, inicializa um padrão (sem servidor WS)
@@ -797,6 +896,7 @@ pub async fn start_serial_scanner(
 
 /// Gera QR Code em SVG para exibir no frontend (teste de leitura)
 #[tauri::command]
+#[specta::specta]
 pub fn generate_qr_svg(data: String) -> AppResult<String> {
     let code = QrCode::new(data.as_bytes())
         .map_err(|e| HardwareError::ProtocolError(format!("Erro ao gerar QR Code: {}", e)))?;
@@ -816,7 +916,8 @@ pub fn generate_qr_svg(data: String) -> AppResult<String> {
 // ════════════════════════════════════════════════════════════════════════════
 
 /// Informações do servidor de scanner
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ScannerServerInfo {
     pub running: bool,
     pub ip: String,
@@ -872,10 +973,12 @@ macro_rules! hardware_commands {
 
 /// Carrega configurações de hardware do banco de dados
 #[tauri::command]
+#[specta::specta]
 pub async fn load_hardware_configs(
     state: State<'_, AppState>,
     hw_state: State<'_, HardwareState>,
 ) -> AppResult<()> {
+    state.session.require_authenticated()?;
     let repo = crate::repositories::SettingsRepository::new(state.pool());
 
     // Printer

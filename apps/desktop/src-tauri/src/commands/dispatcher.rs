@@ -204,7 +204,7 @@ pub async fn giro_invoke(
         }
 
         "stop_mobile_server" => {
-            match crate::commands::mobile::stop_mobile_server(mobile_state).await {
+            match crate::commands::mobile::stop_mobile_server(mobile_state, app_state).await {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -231,7 +231,13 @@ pub async fn giro_invoke(
                     ))
                 }
             };
-            match crate::commands::mobile::disconnect_mobile_device(device_id, mobile_state).await {
+            match crate::commands::mobile::disconnect_mobile_device(
+                device_id,
+                mobile_state,
+                app_state,
+            )
+            .await
+            {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -264,7 +270,7 @@ pub async fn giro_invoke(
         }
 
         "stop_network_client" => {
-            match crate::commands::network::stop_network_client(network_state).await {
+            match crate::commands::network::stop_network_client(network_state, app_state).await {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -301,12 +307,14 @@ pub async fn giro_invoke(
             }
         }
 
-        "test_printer" => match crate::commands::hardware::test_printer(hw_state).await {
-            Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
-            Err(e) => Ok(InvokeResult::err(None, e.to_string())),
-        },
+        "test_printer" => {
+            match crate::commands::hardware::test_printer(hw_state, app_state).await {
+                Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
 
-        "read_weight" => match crate::commands::hardware::read_weight(hw_state).await {
+        "read_weight" => match crate::commands::hardware::read_weight(hw_state, app_state).await {
             Ok(reading) => Ok(InvokeResult::ok(serde_json::to_value(reading).ok())),
             Err(e) => Ok(InvokeResult::err(None, e.to_string())),
         },
@@ -341,7 +349,7 @@ pub async fn giro_invoke(
         }
 
         "print_test_documents" => {
-            match crate::commands::hardware::print_test_documents(hw_state).await {
+            match crate::commands::hardware::print_test_documents(hw_state, app_state).await {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -389,7 +397,12 @@ pub async fn giro_invoke(
                 .unwrap_or_else(|| serde_json::from_value(val.clone()));
 
             match input {
-                Ok(sale_input) => {
+                Ok(mut sale_input) => {
+                    let info = app_state
+                        .session
+                        .require_authenticated()
+                        .map_err(|e| e.to_string())?;
+                    sale_input.employee_id = info.employee_id;
                     match crate::commands::sales::create_sale(sale_input, app_state).await {
                         Ok(sale) => Ok(InvokeResult::ok(serde_json::to_value(sale).ok())),
                         Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -409,19 +422,13 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing id".to_string())?;
-            let canceled_by = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
             let reason = val
                 .get("reason")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .unwrap_or_default();
 
-            match crate::commands::sales::cancel_sale(id, canceled_by, reason, app_state).await {
+            match crate::commands::sales::cancel_sale(id, reason, app_state).await {
                 Ok(sale) => Ok(InvokeResult::ok(serde_json::to_value(sale).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -443,7 +450,12 @@ pub async fn giro_invoke(
                 .unwrap_or_else(|| serde_json::from_value(val.clone()));
 
             match input {
-                Ok(session_input) => {
+                Ok(mut session_input) => {
+                    let info = app_state
+                        .session
+                        .require_authenticated()
+                        .map_err(|e| e.to_string())?;
+                    session_input.employee_id = info.employee_id;
                     match crate::commands::cash::open_cash_session(session_input, app_state).await {
                         Ok(sess) => Ok(InvokeResult::ok(serde_json::to_value(sess).ok())),
                         Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -461,13 +473,8 @@ pub async fn giro_invoke(
             let input: crate::models::CreateProduct =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::create_product(input, emp_id, app_state).await {
+            match crate::commands::create_product(input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -483,13 +490,8 @@ pub async fn giro_invoke(
             let input: crate::models::UpdateProduct =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::update_product(id, input, emp_id, app_state).await {
+            match crate::commands::update_product(id, input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -500,13 +502,8 @@ pub async fn giro_invoke(
             let input: crate::models::CreateCategory =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::create_category(input, emp_id, app_state).await {
+            match crate::commands::create_category(input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -522,13 +519,7 @@ pub async fn giro_invoke(
             let input: crate::models::UpdateCategory =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
-
-            match crate::commands::update_category(id, input, emp_id, app_state).await {
+            match crate::commands::update_category(id, input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -539,13 +530,7 @@ pub async fn giro_invoke(
             let input: crate::models::CreateEmployee =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
-
-            match crate::commands::create_employee(input, emp_id, app_state).await {
+            match crate::commands::create_employee(input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -561,13 +546,7 @@ pub async fn giro_invoke(
             let input: crate::models::UpdateEmployee =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
-
-            match crate::commands::update_employee(id, input, emp_id, app_state).await {
+            match crate::commands::update_employee(id, input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -580,13 +559,7 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing id".to_string())?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
-
-            match crate::commands::deactivate_employee(id, emp_id, app_state).await {
+            match crate::commands::deactivate_employee(id, app_state).await {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -608,20 +581,9 @@ pub async fn giro_invoke(
                 .get("notes")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::cash::close_cash_session(
-                id,
-                actual_balance,
-                notes,
-                emp_id,
-                app_state,
-            )
-            .await
+            match crate::commands::cash::close_cash_session(id, actual_balance, notes, app_state)
+                .await
             {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -633,13 +595,8 @@ pub async fn giro_invoke(
             let input: crate::models::CreateStockMovement =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::create_stock_movement(input, emp_id, app_state).await {
+            match crate::commands::create_stock_movement(input, app_state).await {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -664,15 +621,8 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing id".to_string())?;
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::service_orders::start_service_order(app_state, id, emp_id).await
-            {
+            match crate::commands::service_orders::start_service_order(app_state, id).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -689,17 +639,9 @@ pub async fn giro_invoke(
                 .get("diagnosis")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::service_orders::complete_service_order(
-                app_state, id, diagnosis, emp_id,
-            )
-            .await
+            match crate::commands::service_orders::complete_service_order(app_state, id, diagnosis)
+                .await
             {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -719,18 +661,11 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing payment_method".to_string())?;
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
             match crate::commands::service_orders::deliver_service_order(
                 app_state,
                 id,
                 payment_method,
-                emp_id,
             )
             .await
             {
@@ -750,17 +685,8 @@ pub async fn giro_invoke(
                 .get("notes")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::service_orders::cancel_service_order(
-                app_state, id, notes, emp_id,
-            )
-            .await
+            match crate::commands::service_orders::cancel_service_order(app_state, id, notes).await
             {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -777,17 +703,8 @@ pub async fn giro_invoke(
             let input: crate::models::UpdateServiceOrder =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::service_orders::update_service_order(
-                app_state, id, input, emp_id,
-            )
-            .await
+            match crate::commands::service_orders::update_service_order(app_state, id, input).await
             {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -815,18 +732,12 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing cash_session_id".to_string())?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
             match crate::commands::service_orders::finish_service_order(
                 app_state,
                 id,
                 payment_method,
                 amount_paid,
-                emp_id,
                 cash_session_id,
             )
             .await
@@ -848,7 +759,6 @@ pub async fn giro_invoke(
                 input.product_id,
                 input.item_type,
                 input.description,
-                input.employee_id,
                 input.quantity,
                 input.unit_price,
                 input.discount,
@@ -866,14 +776,8 @@ pub async fn giro_invoke(
             let input: crate::models::CreateService =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::service_orders::create_service(app_state, emp_id, input).await {
+            match crate::commands::service_orders::create_service(app_state, input).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -889,16 +793,8 @@ pub async fn giro_invoke(
             let input: crate::models::UpdateService =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::service_orders::update_service(app_state, id, input, emp_id)
-                .await
-            {
+            match crate::commands::service_orders::update_service(app_state, id, input).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -909,13 +805,8 @@ pub async fn giro_invoke(
             let input: crate::models::CreateCustomer =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::create_customer(input, emp_id, app_state).await {
+            match crate::commands::create_customer(input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -931,13 +822,8 @@ pub async fn giro_invoke(
             let input: crate::models::UpdateCustomer =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::update_customer(id, input, emp_id, app_state).await {
+            match crate::commands::update_customer(id, input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -948,13 +834,8 @@ pub async fn giro_invoke(
             let input: crate::models::CreateCustomerVehicle =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::create_customer_vehicle(input, emp_id, app_state).await {
+            match crate::commands::create_customer_vehicle(input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -965,14 +846,8 @@ pub async fn giro_invoke(
             let input: crate::models::CreateSupplier =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::suppliers::create_supplier(input, emp_id, app_state).await {
+            match crate::commands::suppliers::create_supplier(input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -988,14 +863,8 @@ pub async fn giro_invoke(
             let input: crate::models::UpdateSupplier =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::suppliers::update_supplier(id, input, emp_id, app_state).await {
+            match crate::commands::suppliers::update_supplier(id, input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -1008,14 +877,8 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing id".to_string())?;
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::suppliers::deactivate_supplier(id, emp_id, app_state).await {
+            match crate::commands::suppliers::deactivate_supplier(id, app_state).await {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -1028,14 +891,8 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing id".to_string())?;
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::suppliers::reactivate_supplier(id, emp_id, app_state).await {
+            match crate::commands::suppliers::reactivate_supplier(id, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -1055,16 +912,8 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing endDate".to_string())?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::reports::get_sales_report(
-                start_date, end_date, emp_id, app_state,
-            )
-            .await
+            match crate::commands::reports::get_sales_report(start_date, end_date, app_state).await
             {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -1080,33 +929,17 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_i64())
                 .map(|n| n as i32)
                 .unwrap_or(20);
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::reports::get_top_products(limit, emp_id, app_state).await {
+            match crate::commands::reports::get_top_products(limit, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
         }
 
-        "get_stock_report" => {
-            let val = payload
-                .as_ref()
-                .ok_or_else(|| "missing payload".to_string())?;
-            let emp_id = val
-                .get("employee_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
-
-            match crate::commands::reports::get_stock_report(emp_id, app_state).await {
-                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
-                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
-            }
-        }
+        "get_stock_report" => match crate::commands::reports::get_stock_report(app_state).await {
+            Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+            Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+        },
 
         "update_service_order_item" => {
             let val = payload.ok_or_else(|| "missing payload".to_string())?;
@@ -1126,14 +959,9 @@ pub async fn giro_invoke(
                 .get("notes")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
-            let emp_id = val
-                .get("employeeId")
-                .or_else(|| val.get("employee_id"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
 
             match crate::commands::service_orders::update_service_order_item(
-                app_state, item_id, quantity, unit_price, discount, notes, emp_id,
+                app_state, item_id, quantity, unit_price, discount, notes,
             )
             .await
             {
@@ -1150,17 +978,9 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing itemId".to_string())?;
-            let emp_id = val
-                .get("employeeId")
-                .or_else(|| val.get("employee_id"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employeeId".to_string())?;
 
-            match crate::commands::service_orders::remove_service_order_item(
-                app_state, item_id, emp_id,
-            )
-            .await
+            match crate::commands::service_orders::remove_service_order_item(app_state, item_id)
+                .await
             {
                 Ok(()) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -1187,6 +1007,7 @@ pub async fn giro_invoke(
                 .as_ref()
                 .and_then(|p| p.get("limit"))
                 .and_then(|v| v.as_i64())
+                .map(|n| n as i32)
                 .unwrap_or(10);
             match crate::commands::reports_motoparts::get_top_products_motoparts(limit, app_state)
                 .await
@@ -1210,19 +1031,14 @@ pub async fn giro_invoke(
                 .unwrap_or_else(|| serde_json::from_value(val.clone()));
 
             match input {
-                Ok(movement_input) => {
-                    let emp_id = val
-                        .get("employee_id")
-                        .and_then(|v| v.as_str())
-                        .map(|s| s.to_string())
-                        .unwrap_or_else(|| movement_input.employee_id.clone());
+                Ok(mut movement_input) => {
+                    let info = app_state
+                        .session
+                        .require_authenticated()
+                        .map_err(|e| e.to_string())?;
+                    movement_input.employee_id = info.employee_id.clone();
 
-                    match crate::commands::cash::add_cash_movement(
-                        movement_input,
-                        emp_id,
-                        app_state,
-                    )
-                    .await
+                    match crate::commands::cash::add_cash_movement(movement_input, app_state).await
                     {
                         Ok(mv) => Ok(InvokeResult::ok(serde_json::to_value(mv).ok())),
                         Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -1246,7 +1062,9 @@ pub async fn giro_invoke(
             let input: Result<crate::hardware::printer::Receipt, _> = serde_json::from_value(val);
             match input {
                 Ok(receipt) => {
-                    match crate::commands::hardware::print_receipt(receipt, hw_state).await {
+                    match crate::commands::hardware::print_receipt(receipt, hw_state, app_state)
+                        .await
+                    {
                         Ok(()) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                         Err(e) => Ok(InvokeResult::err(None, e.to_string())),
                     }
@@ -1263,14 +1081,8 @@ pub async fn giro_invoke(
             let input: crate::models::SetSetting =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::settings::set_setting(input, emp_id, app_state).await {
+            match crate::commands::settings::set_setting(input, app_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -1283,14 +1095,8 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing key".to_string())?;
-            let emp_id = val
-                .get("employee_id")
-                .or_else(|| val.get("employeeId"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing employee_id".to_string())?;
 
-            match crate::commands::settings::delete_setting(key, emp_id, app_state).await {
+            match crate::commands::settings::delete_setting(key, app_state).await {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }

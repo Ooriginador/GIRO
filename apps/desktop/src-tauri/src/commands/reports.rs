@@ -10,19 +10,19 @@ use sqlx::Row;
 use std::collections::HashMap;
 use tauri::State;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StockReport {
-    pub total_products: i64,
+    pub total_products: i32,
     pub total_value: f64,
-    pub low_stock_count: i64,
-    pub out_of_stock_count: i64,
-    pub expiring_count: i64,
-    pub excess_stock_count: i64,
+    pub low_stock_count: i32,
+    pub out_of_stock_count: i32,
+    pub expiring_count: i32,
+    pub excess_stock_count: i32,
     pub valuation_by_category: HashMap<String, f64>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct TopProduct {
     pub product: Product,
@@ -30,17 +30,17 @@ pub struct TopProduct {
     pub revenue: f64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SalesReport {
-    pub total_sales: i64,
+    pub total_sales: i32,
     pub total_revenue: f64,
     pub average_ticket: f64,
     pub sales_by_payment_method: HashMap<String, f64>,
     pub sales_by_hour: HashMap<String, f64>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FinancialReport {
     pub revenue: f64,
@@ -51,22 +51,21 @@ pub struct FinancialReport {
     pub margin: f64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct EmployeeRanking {
     pub employee_id: String,
     pub employee_name: String,
-    pub sales_count: i64,
+    pub sales_count: i32,
     pub total_amount: f64,
     pub total_commission: f64,
 }
 
 #[tauri::command]
-pub async fn get_stock_report(
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<StockReport> {
-    crate::require_permission!(state.pool(), &employee_id, Permission::ViewReports);
+#[specta::specta]
+pub async fn get_stock_report(state: State<'_, AppState>) -> AppResult<StockReport> {
+    let info = state.session.require_authenticated()?;
+    crate::require_permission!(state.pool(), &info.employee_id, Permission::ViewReports);
     let product_repo = ProductRepository::new(state.pool());
     let stock_repo = StockRepository::new(state.pool());
 
@@ -108,23 +107,24 @@ pub async fn get_stock_report(
     }
 
     Ok(StockReport {
-        total_products,
+        total_products: total_products as i32,
         total_value,
-        low_stock_count,
-        out_of_stock_count,
-        expiring_count,
-        excess_stock_count,
+        low_stock_count: low_stock_count as i32,
+        out_of_stock_count: out_of_stock_count as i32,
+        expiring_count: expiring_count as i32,
+        excess_stock_count: excess_stock_count as i32,
         valuation_by_category,
     })
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_top_products(
     limit: i32,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Vec<TopProduct>> {
-    crate::require_permission!(state.pool(), &employee_id, Permission::ViewReports);
+    let info = state.session.require_authenticated()?;
+    crate::require_permission!(state.pool(), &info.employee_id, Permission::ViewReports);
     let limit = if limit <= 0 { 20 } else { limit };
 
     // Agrupa itens por produto usando apenas vendas COMPLETED
@@ -168,13 +168,14 @@ pub async fn get_top_products(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_sales_report(
     start_date: String,
     end_date: String,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<SalesReport> {
-    crate::require_permission!(state.pool(), &employee_id, Permission::ViewReports);
+    let info = state.session.require_authenticated()?;
+    crate::require_permission!(state.pool(), &info.employee_id, Permission::ViewReports);
     // Totais
     let total_row = sqlx::query(
         r#"
@@ -252,7 +253,7 @@ pub async fn get_sales_report(
     }
 
     Ok(SalesReport {
-        total_sales,
+        total_sales: total_sales as i32,
         total_revenue,
         average_ticket,
         sales_by_payment_method,
@@ -261,13 +262,14 @@ pub async fn get_sales_report(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_financial_report(
     start_date: String,
     end_date: String,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<FinancialReport> {
-    crate::require_permission!(state.pool(), &employee_id, Permission::ViewReports);
+    let info = state.session.require_authenticated()?;
+    crate::require_permission!(state.pool(), &info.employee_id, Permission::ViewReports);
 
     // Receita Total
     let revenue_row = sqlx::query(
@@ -332,13 +334,14 @@ pub async fn get_financial_report(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_employee_performance(
     start_date: String,
     end_date: String,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Vec<EmployeeRanking>> {
-    crate::require_permission!(state.pool(), &employee_id, Permission::ViewReports);
+    let info = state.session.require_authenticated()?;
+    crate::require_permission!(state.pool(), &info.employee_id, Permission::ViewReports);
 
     let rows = sqlx::query(
         r#"
@@ -366,7 +369,7 @@ pub async fn get_employee_performance(
         ranking.push(EmployeeRanking {
             employee_id: row.try_get("employee_id")?,
             employee_name: row.try_get("employee_name")?,
-            sales_count: row.try_get("sales_count")?,
+            sales_count: row.try_get::<i64, _>("sales_count")? as i32,
             total_amount: row.try_get("total_amount")?,
             total_commission: row.try_get("total_commission")?,
         });

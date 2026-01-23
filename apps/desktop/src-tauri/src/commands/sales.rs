@@ -10,6 +10,7 @@ use crate::AppState;
 use tauri::State;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_sales(
     filter: Option<SaleFilters>,
     state: State<'_, AppState>,
@@ -19,6 +20,7 @@ pub async fn get_sales(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_sales_today(state: State<'_, AppState>) -> AppResult<Vec<Sale>> {
     let repo = SaleRepository::new(state.pool());
     repo.find_today().await
@@ -26,11 +28,13 @@ pub async fn get_sales_today(state: State<'_, AppState>) -> AppResult<Vec<Sale>>
 
 // Alias para compatibilidade com frontend
 #[tauri::command]
+#[specta::specta]
 pub async fn get_today_sales(state: State<'_, AppState>) -> AppResult<Vec<Sale>> {
     get_sales_today(state).await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_sale_by_id(
     id: String,
     state: State<'_, AppState>,
@@ -40,6 +44,7 @@ pub async fn get_sale_by_id(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_sales_by_session(
     session_id: String,
     state: State<'_, AppState>,
@@ -49,8 +54,12 @@ pub async fn get_sales_by_session(
 }
 
 #[tauri::command]
-pub async fn create_sale(input: CreateSale, state: State<'_, AppState>) -> AppResult<Sale> {
-    let employee = require_permission!(state.pool(), &input.employee_id, Permission::CreateSales);
+#[specta::specta]
+pub async fn create_sale(mut input: CreateSale, state: State<'_, AppState>) -> AppResult<Sale> {
+    let info = state.session.require_authenticated()?;
+    input.employee_id = info.employee_id.clone();
+    let employee_id = info.employee_id;
+    let employee = require_permission!(state.pool(), &employee_id, Permission::CreateSales);
     let repo = SaleRepository::new(state.pool());
     let result = repo.create(input.clone()).await?;
 
@@ -75,12 +84,14 @@ use crate::middleware::Permission;
 use crate::require_permission;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn cancel_sale(
     id: String,
-    canceled_by: String,
     reason: String,
     state: State<'_, AppState>,
 ) -> AppResult<Sale> {
+    let info = state.session.require_authenticated()?;
+    let canceled_by = info.employee_id;
     let employee = require_permission!(state.pool(), &canceled_by, Permission::CancelSales);
     let repo = SaleRepository::new(state.pool());
     let result = repo.cancel(&id, &canceled_by, &reason).await?;
@@ -101,6 +112,7 @@ pub async fn cancel_sale(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_daily_summary(
     date: String,
     state: State<'_, AppState>,
@@ -113,6 +125,7 @@ pub async fn get_daily_summary(
 ///
 /// Compatibilidade com o frontend (`get_daily_sales_total`).
 #[tauri::command]
+#[specta::specta]
 pub async fn get_daily_sales_total(state: State<'_, AppState>) -> AppResult<f64> {
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     let repo = SaleRepository::new(state.pool());
@@ -122,6 +135,7 @@ pub async fn get_daily_sales_total(state: State<'_, AppState>) -> AppResult<f64>
 
 /// Resumo de vendas do mês (YYYY-MM)
 #[tauri::command]
+#[specta::specta]
 pub async fn get_monthly_summary(
     year_month: String,
     state: State<'_, AppState>,

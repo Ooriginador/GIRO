@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 /// Resultado simples de verificação de saúde de um dispositivo de hardware
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct HardwareStatus {
     pub name: String,
     pub ok: bool,

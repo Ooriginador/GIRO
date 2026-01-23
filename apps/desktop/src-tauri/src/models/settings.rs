@@ -1,10 +1,11 @@
 //! Modelos de Configuração
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use sqlx::FromRow;
 
 /// Configuração
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Setting {
     pub id: String,
@@ -20,7 +21,7 @@ pub struct Setting {
 }
 
 /// Para definir configuração
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SetSetting {
     pub key: String,
@@ -31,7 +32,7 @@ pub struct SetSetting {
 }
 
 /// Tipos de configuração
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SettingType {
     #[default]

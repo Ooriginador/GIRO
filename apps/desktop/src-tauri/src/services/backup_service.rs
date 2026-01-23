@@ -21,7 +21,8 @@ use tokio::fs;
 // ════════════════════════════════════════════════════════════════════════════
 
 /// Configuração do backup
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct BackupConfig {
     pub enabled: bool,
     pub auto_backup: bool,
@@ -45,7 +46,8 @@ impl Default for BackupConfig {
 }
 
 /// Credenciais OAuth2 do Google
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct GoogleCredentials {
     pub client_id: String,
     pub client_secret: String,
@@ -55,7 +57,8 @@ pub struct GoogleCredentials {
 }
 
 /// Metadados do backup
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct BackupMetadata {
     pub id: String,
     pub filename: String,
@@ -67,7 +70,7 @@ pub struct BackupMetadata {
 }
 
 /// Status do backup
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum BackupStatus {
     Idle,
@@ -77,7 +80,8 @@ pub enum BackupStatus {
 }
 
 /// Resultado de operação de backup
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct BackupResult {
     pub success: bool,
     pub metadata: Option<BackupMetadata>,

@@ -11,12 +11,14 @@ use crate::AppState;
 use tauri::State;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_categories(state: State<'_, AppState>) -> AppResult<Vec<Category>> {
     let repo = CategoryRepository::new(state.pool());
     repo.find_all_active().await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_categories_with_count(
     state: State<'_, AppState>,
 ) -> AppResult<Vec<CategoryWithCount>> {
@@ -25,6 +27,7 @@ pub async fn get_categories_with_count(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_category_by_id(
     id: String,
     state: State<'_, AppState>,
@@ -34,11 +37,13 @@ pub async fn get_category_by_id(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn create_category(
     input: CreateCategory,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Category> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCategories);
     let repo = CategoryRepository::new(state.pool());
     let result = repo.create(input).await?;
@@ -59,12 +64,14 @@ pub async fn create_category(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn update_category(
     id: String,
     input: UpdateCategory,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Category> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCategories);
     let repo = CategoryRepository::new(state.pool());
     let result = repo.update(&id, input).await?;
@@ -85,11 +92,10 @@ pub async fn update_category(
 }
 
 #[tauri::command]
-pub async fn delete_category(
-    id: String,
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<()> {
+#[specta::specta]
+pub async fn delete_category(id: String, state: State<'_, AppState>) -> AppResult<()> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::ManageCategories);
     let repo = CategoryRepository::new(state.pool());
     repo.delete(&id).await
@@ -97,11 +103,10 @@ pub async fn delete_category(
 
 /// Desativa uma categoria (alias para delete)
 #[tauri::command]
-pub async fn deactivate_category(
-    id: String,
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<()> {
+#[specta::specta]
+pub async fn deactivate_category(id: String, state: State<'_, AppState>) -> AppResult<()> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::ManageCategories);
     let repo = CategoryRepository::new(state.pool());
     repo.delete(&id).await
@@ -109,11 +114,10 @@ pub async fn deactivate_category(
 
 /// Reativa uma categoria desativada
 #[tauri::command]
-pub async fn reactivate_category(
-    id: String,
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<Category> {
+#[specta::specta]
+pub async fn reactivate_category(id: String, state: State<'_, AppState>) -> AppResult<Category> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::ManageCategories);
     let repo = CategoryRepository::new(state.pool());
     repo.reactivate(&id).await
@@ -121,6 +125,7 @@ pub async fn reactivate_category(
 
 /// Lista todas as categorias (ativas e inativas)
 #[tauri::command]
+#[specta::specta]
 pub async fn get_all_categories(
     include_inactive: bool,
     state: State<'_, AppState>,
@@ -135,6 +140,7 @@ pub async fn get_all_categories(
 
 /// Lista apenas categorias inativas
 #[tauri::command]
+#[specta::specta]
 pub async fn get_inactive_categories(state: State<'_, AppState>) -> AppResult<Vec<Category>> {
     let repo = CategoryRepository::new(state.pool());
     repo.find_inactive().await

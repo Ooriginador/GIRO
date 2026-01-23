@@ -16,7 +16,7 @@ use tokio::sync::{broadcast, RwLock};
 // ════════════════════════════════════════════════════════════════════════════
 
 /// Formato de código de barras
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum BarcodeFormat {
     Ean13,
@@ -42,7 +42,8 @@ impl BarcodeFormat {
 }
 
 /// Evento de scan recebido
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ScanEvent {
     /// Código lido
     pub code: String,
@@ -57,7 +58,7 @@ pub struct ScanEvent {
 }
 
 /// Origem do scan
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
 #[serde(rename_all = "lowercase")]
 pub enum ScanSource {
     Usb,
@@ -66,7 +67,8 @@ pub enum ScanSource {
 }
 
 /// Configuração do scanner mobile
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct MobileScannerConfig {
     pub enabled: bool,
     pub port: u16,
@@ -86,7 +88,8 @@ impl Default for MobileScannerConfig {
 }
 
 /// Informações de dispositivo mobile conectado
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct MobileDevice {
     pub id: String,
     pub name: Option<String>,

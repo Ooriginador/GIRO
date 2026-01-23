@@ -49,11 +49,11 @@ impl<'a> AlertRepository<'a> {
         Ok(result)
     }
 
-    pub async fn count_unread(&self) -> AppResult<i64> {
+    pub async fn count_unread(&self) -> AppResult<i32> {
         let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM alerts WHERE is_read = 0")
             .fetch_one(self.pool)
             .await?;
-        Ok(result.0)
+        Ok(result.0 as i32)
     }
 
     pub async fn find_by_severity(&self, severity: &str) -> AppResult<Vec<Alert>> {

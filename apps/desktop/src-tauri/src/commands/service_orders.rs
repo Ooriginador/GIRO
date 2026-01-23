@@ -25,15 +25,18 @@ use crate::AppState;
 
 /// Lista ordens abertas (não entregues/canceladas)
 #[tauri::command]
+#[specta::specta]
 pub async fn get_open_service_orders(
     state: State<'_, AppState>,
 ) -> AppResult<Vec<ServiceOrderSummary>> {
+    state.session.require_authenticated()?;
     let repo = ServiceOrderRepository::new(state.pool().clone());
     repo.find_open_orders().await
 }
 
 /// Lista ordens com paginação e filtros
 #[tauri::command]
+#[specta::specta]
 #[allow(clippy::too_many_arguments)]
 pub async fn get_service_orders_paginated(
     state: State<'_, AppState>,
@@ -47,6 +50,7 @@ pub async fn get_service_orders_paginated(
     date_from: Option<String>,
     date_to: Option<String>,
 ) -> AppResult<PaginatedResult<ServiceOrderSummary>> {
+    state.session.require_authenticated()?;
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let pagination = Pagination::new(page.unwrap_or(1), per_page.unwrap_or(20));
@@ -66,43 +70,51 @@ pub async fn get_service_orders_paginated(
 
 /// Busca ordem por ID
 #[tauri::command]
+#[specta::specta]
 pub async fn get_service_order_by_id(
     state: State<'_, AppState>,
     id: String,
 ) -> AppResult<Option<ServiceOrder>> {
+    state.session.require_authenticated()?;
     let repo = ServiceOrderRepository::new(state.pool().clone());
     repo.find_by_id(&id).await
 }
 
 /// Busca ordem por número
 #[tauri::command]
+#[specta::specta]
 pub async fn get_service_order_by_number(
     state: State<'_, AppState>,
     order_number: i32,
 ) -> AppResult<Option<ServiceOrder>> {
+    state.session.require_authenticated()?;
     let repo = ServiceOrderRepository::new(state.pool().clone());
     repo.find_by_number(order_number).await
 }
 
 /// Busca ordem com detalhes completos
 #[tauri::command]
+#[specta::specta]
 pub async fn get_service_order_details(
     state: State<'_, AppState>,
     id: String,
 ) -> AppResult<Option<ServiceOrderWithDetails>> {
+    state.session.require_authenticated()?;
     let repo = ServiceOrderRepository::new(state.pool().clone());
     repo.find_by_id_with_details(&id).await
 }
 
 /// Cria nova ordem de serviço
 #[tauri::command]
+#[specta::specta]
 pub async fn create_service_order(
     state: State<'_, AppState>,
     input: CreateServiceOrder,
 ) -> AppResult<ServiceOrder> {
+    let info = state.session.require_authenticated()?;
     let employee = require_permission!(
         state.pool(),
-        &input.employee_id,
+        &info.employee_id,
         Permission::CreateServiceOrder
     );
     let repo = ServiceOrderRepository::new(state.pool().clone());
@@ -128,13 +140,18 @@ pub async fn create_service_order(
 
 /// Atualiza ordem de serviço
 #[tauri::command]
+#[specta::specta]
 pub async fn update_service_order(
     state: State<'_, AppState>,
     id: String,
     input: UpdateServiceOrder,
-    employee_id: String,
 ) -> AppResult<ServiceOrder> {
-    let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateServiceOrder);
+    let info = state.session.require_authenticated()?;
+    let employee = require_permission!(
+        state.pool(),
+        &info.employee_id,
+        Permission::UpdateServiceOrder
+    );
     let repo = ServiceOrderRepository::new(state.pool().clone());
     let result = repo.update(&id, input.clone()).await?;
 
@@ -155,12 +172,17 @@ pub async fn update_service_order(
 
 /// Inicia ordem (muda status para IN_PROGRESS)
 #[tauri::command]
+#[specta::specta]
 pub async fn start_service_order(
     state: State<'_, AppState>,
     id: String,
-    employee_id: String,
 ) -> AppResult<ServiceOrder> {
-    let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateServiceOrder);
+    let info = state.session.require_authenticated()?;
+    let employee = require_permission!(
+        state.pool(),
+        &info.employee_id,
+        Permission::UpdateServiceOrder
+    );
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = UpdateServiceOrder {
@@ -187,13 +209,18 @@ pub async fn start_service_order(
 
 /// Finaliza ordem (muda status para COMPLETED)
 #[tauri::command]
+#[specta::specta]
 pub async fn complete_service_order(
     state: State<'_, AppState>,
     id: String,
     diagnosis: Option<String>,
-    employee_id: String,
 ) -> AppResult<ServiceOrder> {
-    let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateServiceOrder);
+    let info = state.session.require_authenticated()?;
+    let employee = require_permission!(
+        state.pool(),
+        &info.employee_id,
+        Permission::UpdateServiceOrder
+    );
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = UpdateServiceOrder {
@@ -221,13 +248,18 @@ pub async fn complete_service_order(
 
 /// Marca como entregue (muda status para DELIVERED)
 #[tauri::command]
+#[specta::specta]
 pub async fn deliver_service_order(
     state: State<'_, AppState>,
     id: String,
     payment_method: String,
-    employee_id: String,
 ) -> AppResult<ServiceOrder> {
-    let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateServiceOrder);
+    let info = state.session.require_authenticated()?;
+    let employee = require_permission!(
+        state.pool(),
+        &info.employee_id,
+        Permission::UpdateServiceOrder
+    );
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let input = UpdateServiceOrder {
@@ -256,13 +288,18 @@ pub async fn deliver_service_order(
 
 /// Cancela ordem
 #[tauri::command]
+#[specta::specta]
 pub async fn cancel_service_order(
     state: State<'_, AppState>,
     id: String,
     notes: Option<String>,
-    employee_id: String,
 ) -> AppResult<ServiceOrder> {
-    let employee = require_permission!(state.pool(), &employee_id, Permission::CancelServiceOrder);
+    let info = state.session.require_authenticated()?;
+    let employee = require_permission!(
+        state.pool(),
+        &info.employee_id,
+        Permission::CancelServiceOrder
+    );
     let repo = ServiceOrderRepository::new(state.pool().clone());
     let result = repo
         .cancel_with_stock_restoration(&id, notes.clone())
@@ -285,22 +322,27 @@ pub async fn cancel_service_order(
 
 /// Finaliza ordem de serviço (Gera venda e financeiro)
 #[tauri::command]
+#[specta::specta]
 pub async fn finish_service_order(
     state: State<'_, AppState>,
     id: String,
     payment_method: String,
     amount_paid: f64,
-    employee_id: String,
     cash_session_id: String,
 ) -> AppResult<String> {
-    let employee = require_permission!(state.pool(), &employee_id, Permission::FinishServiceOrder);
+    let info = state.session.require_authenticated()?;
+    let employee = require_permission!(
+        state.pool(),
+        &info.employee_id,
+        Permission::FinishServiceOrder
+    );
     let repo = ServiceOrderRepository::new(state.pool().clone());
     let sale_id = repo
         .finish_order_transaction(
             &id,
             &payment_method,
             amount_paid,
-            &employee_id,
+            &info.employee_id,
             &cash_session_id,
         )
         .await?;
@@ -326,16 +368,19 @@ pub async fn finish_service_order(
 
 /// Lista itens de uma ordem
 #[tauri::command]
+#[specta::specta]
 pub async fn get_service_order_items(
     state: State<'_, AppState>,
     order_id: String,
 ) -> AppResult<Vec<ServiceOrderItem>> {
+    state.session.require_authenticated()?;
     let repo = ServiceOrderRepository::new(state.pool().clone());
     repo.find_order_items(&order_id).await
 }
 
 /// Adiciona item (peça ou serviço) à ordem
 #[tauri::command]
+#[specta::specta]
 #[allow(clippy::too_many_arguments)]
 pub async fn add_service_order_item(
     state: State<'_, AppState>,
@@ -343,18 +388,15 @@ pub async fn add_service_order_item(
     product_id: Option<String>,
     item_type: String,
     description: String,
-    employee_id: Option<String>,
     quantity: f64,
     unit_price: f64,
     discount: Option<f64>,
     notes: Option<String>,
 ) -> AppResult<ServiceOrderItem> {
-    let employee_id_val = employee_id
-        .clone()
-        .ok_or_else(|| crate::error::AppError::BadRequest("employee_id is required".into()))?;
+    let info = state.session.require_authenticated()?;
     let employee = require_permission!(
         state.pool(),
-        &employee_id_val,
+        &info.employee_id,
         Permission::UpdateServiceOrder
     );
     let repo = ServiceOrderRepository::new(state.pool().clone());
@@ -364,7 +406,7 @@ pub async fn add_service_order_item(
         product_id: product_id.clone(),
         item_type,
         description,
-        employee_id: employee_id.clone(),
+        employee_id: Some(info.employee_id.clone()),
         quantity,
         unit_price,
         discount,
@@ -390,12 +432,17 @@ pub async fn add_service_order_item(
 
 /// Remove item da ordem
 #[tauri::command]
+#[specta::specta]
 pub async fn remove_service_order_item(
     state: State<'_, AppState>,
     item_id: String,
-    employee_id: String,
 ) -> AppResult<()> {
-    let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateServiceOrder);
+    let info = state.session.require_authenticated()?;
+    let employee = require_permission!(
+        state.pool(),
+        &info.employee_id,
+        Permission::UpdateServiceOrder
+    );
     let repo = ServiceOrderRepository::new(state.pool().clone());
     repo.remove_item(&item_id).await?;
 
@@ -416,6 +463,7 @@ pub async fn remove_service_order_item(
 
 /// Atualiza item da ordem (com delta de estoque automático)
 #[tauri::command]
+#[specta::specta]
 #[allow(clippy::too_many_arguments)]
 pub async fn update_service_order_item(
     state: State<'_, AppState>,
@@ -424,14 +472,11 @@ pub async fn update_service_order_item(
     unit_price: Option<f64>,
     discount: Option<f64>,
     notes: Option<String>,
-    employee_id: Option<String>,
 ) -> AppResult<ServiceOrderItem> {
-    let employee_id_val = employee_id
-        .clone()
-        .ok_or_else(|| crate::error::AppError::BadRequest("employee_id is required".into()))?;
+    let info = state.session.require_authenticated()?;
     let employee = require_permission!(
         state.pool(),
-        &employee_id_val,
+        &info.employee_id,
         Permission::UpdateServiceOrder
     );
     let repo = ServiceOrderRepository::new(state.pool().clone());
@@ -441,7 +486,7 @@ pub async fn update_service_order_item(
         unit_price,
         discount,
         notes,
-        employee_id: employee_id.clone(),
+        employee_id: Some(info.employee_id.clone()),
     };
 
     let result = repo.update_item(&item_id, input).await?;
@@ -467,39 +512,46 @@ pub async fn update_service_order_item(
 
 /// Lista todos os serviços ativos
 #[tauri::command]
+#[specta::specta]
 pub async fn get_services(state: State<'_, AppState>) -> AppResult<Vec<Service>> {
+    state.session.require_authenticated()?;
     let repo = ServiceOrderRepository::new(state.pool().clone());
     repo.find_all_services().await
 }
 
 /// Busca serviço por ID
 #[tauri::command]
+#[specta::specta]
 pub async fn get_service_by_id(
     state: State<'_, AppState>,
     id: String,
 ) -> AppResult<Option<Service>> {
+    state.session.require_authenticated()?;
     let repo = ServiceOrderRepository::new(state.pool().clone());
     repo.find_service_by_id(&id).await
 }
 
 /// Busca serviço por código
 #[tauri::command]
+#[specta::specta]
 pub async fn get_service_by_code(
     state: State<'_, AppState>,
     code: String,
 ) -> AppResult<Option<Service>> {
+    state.session.require_authenticated()?;
     let repo = ServiceOrderRepository::new(state.pool().clone());
     repo.find_service_by_code(&code).await
 }
 
 /// Cria novo serviço
 #[tauri::command]
+#[specta::specta]
 pub async fn create_service(
     state: State<'_, AppState>,
-    employee_id: String,
     input: crate::models::CreateService,
 ) -> AppResult<Service> {
-    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageServices);
+    let info = state.session.require_authenticated()?;
+    let employee = require_permission!(state.pool(), &info.employee_id, Permission::ManageServices);
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let result = repo.create_service(input).await?;
@@ -521,13 +573,14 @@ pub async fn create_service(
 
 /// Atualiza serviço
 #[tauri::command]
+#[specta::specta]
 pub async fn update_service(
     state: State<'_, AppState>,
     id: String,
     input: crate::models::UpdateService,
-    employee_id: String,
 ) -> AppResult<Service> {
-    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageServices);
+    let info = state.session.require_authenticated()?;
+    let employee = require_permission!(state.pool(), &info.employee_id, Permission::ManageServices);
     let repo = ServiceOrderRepository::new(state.pool().clone());
 
     let result = repo.update_service(&id, input).await?;
@@ -549,10 +602,12 @@ pub async fn update_service(
 
 /// Busca o histórico de serviços de um veículo
 #[tauri::command]
+#[specta::specta]
 pub async fn get_vehicle_services_history(
     state: State<'_, AppState>,
     vehicle_id: String,
 ) -> AppResult<Vec<ServiceOrderSummary>> {
+    state.session.require_authenticated()?;
     let repo = ServiceOrderRepository::new(state.pool().clone());
     repo.find_by_vehicle(&vehicle_id).await
 }

@@ -3,6 +3,7 @@
 //! Structs para clientes e seus veículos
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use sqlx::FromRow;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -10,7 +11,7 @@ use sqlx::FromRow;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Cliente do estabelecimento
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Customer {
     pub id: String,
@@ -33,19 +34,21 @@ pub struct Customer {
 }
 
 /// Cliente com estatísticas
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomerWithStats {
     #[serde(flatten)]
     pub customer: Customer,
+    #[specta(type = i32)]
     pub vehicle_count: i64,
+    #[specta(type = i32)]
     pub order_count: i64,
     pub total_spent: f64,
     pub last_visit: Option<String>,
 }
 
 /// Para criar cliente
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateCustomer {
     pub name: String,
@@ -64,7 +67,7 @@ pub struct CreateCustomer {
 }
 
 /// Para atualizar cliente
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCustomer {
     pub name: Option<String>,
@@ -88,7 +91,7 @@ pub struct UpdateCustomer {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Veículo cadastrado para um cliente
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomerVehicle {
     pub id: String,
@@ -107,7 +110,7 @@ pub struct CustomerVehicle {
 }
 
 /// Veículo do cliente com informações completas do veículo
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomerVehicleWithDetails {
     pub id: String,
@@ -134,7 +137,7 @@ pub struct CustomerVehicleWithDetails {
 }
 
 /// Para criar veículo do cliente
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateCustomerVehicle {
     pub customer_id: String,
@@ -149,7 +152,7 @@ pub struct CreateCustomerVehicle {
 }
 
 /// Para atualizar veículo do cliente
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCustomerVehicle {
     pub vehicle_year_id: Option<String>,
@@ -168,7 +171,7 @@ pub struct UpdateCustomerVehicle {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Filtros para busca de clientes
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomerFilters {
     pub search: Option<String>,

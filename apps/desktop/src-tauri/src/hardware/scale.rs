@@ -17,7 +17,7 @@ use std::time::Duration;
 // ════════════════════════════════════════════════════════════════════════════
 
 /// Protocolo da balança
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
 #[serde(rename_all = "lowercase")]
 pub enum ScaleProtocol {
     Toledo,
@@ -27,7 +27,8 @@ pub enum ScaleProtocol {
     Generic,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ScaleConfig {
     pub enabled: bool,
     pub protocol: ScaleProtocol,
@@ -55,7 +56,8 @@ impl Default for ScaleConfig {
 }
 
 /// Resposta de leitura da balança
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ScaleReading {
     /// Peso em quilogramas
     pub weight_kg: f64,
@@ -482,7 +484,8 @@ pub async fn auto_detect_scale_async() -> AutoDetectResult {
 /// - PPPPP: Código do produto (5 dígitos)
 /// - KKKKK: Peso em gramas ou preço em centavos (5 dígitos)
 /// - C: Dígito verificador
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct WeightedBarcode {
     pub product_code: String,
     pub weight_grams: u32,

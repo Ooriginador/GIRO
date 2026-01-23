@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 /// Histórico de alteração de preço
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PriceHistory {
     pub id: String,
@@ -17,7 +17,7 @@ pub struct PriceHistory {
 }
 
 /// Para criar registro de histórico de preço
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePriceHistory {
     pub product_id: String,
@@ -28,7 +28,7 @@ pub struct CreatePriceHistory {
 }
 
 /// Histórico de preço com nome do produto (para listagens)
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PriceHistoryWithProduct {
     pub id: String,

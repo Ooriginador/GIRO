@@ -11,12 +11,14 @@ use crate::AppState;
 use tauri::State;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_products(state: State<'_, AppState>) -> AppResult<Vec<Product>> {
     let repo = ProductRepository::new(state.pool());
     repo.find_all_active().await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_product_by_id(
     id: String,
     state: State<'_, AppState>,
@@ -26,6 +28,7 @@ pub async fn get_product_by_id(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_product_by_barcode(
     barcode: String,
     state: State<'_, AppState>,
@@ -35,23 +38,28 @@ pub async fn get_product_by_barcode(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn search_products(query: String, state: State<'_, AppState>) -> AppResult<Vec<Product>> {
     let repo = ProductRepository::new(state.pool());
     repo.search(&query, 50).await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_low_stock_products(state: State<'_, AppState>) -> AppResult<Vec<Product>> {
     let repo = ProductRepository::new(state.pool());
     repo.find_low_stock().await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn create_product(
     input: CreateProduct,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Product> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
+
     tracing::debug!(
         "create_product called with input: {:?}, employee_id: {}",
         input,
@@ -87,12 +95,14 @@ pub async fn create_product(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn update_product(
     id: String,
     input: UpdateProduct,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Product> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateProducts);
     let repo = ProductRepository::new(state.pool());
     let result = repo.update(&id, input).await?;
@@ -113,11 +123,10 @@ pub async fn update_product(
 }
 
 #[tauri::command]
-pub async fn delete_product(
-    id: String,
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<()> {
+#[specta::specta]
+pub async fn delete_product(id: String, state: State<'_, AppState>) -> AppResult<()> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::DeleteProducts);
     let repo = ProductRepository::new(state.pool());
     repo.soft_delete(&id).await?;
@@ -138,11 +147,10 @@ pub async fn delete_product(
 
 /// Desativa um produto (soft delete) - alias para consistência com frontend
 #[tauri::command]
-pub async fn deactivate_product(
-    id: String,
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<()> {
+#[specta::specta]
+pub async fn deactivate_product(id: String, state: State<'_, AppState>) -> AppResult<()> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::UpdateProducts);
     let repo = ProductRepository::new(state.pool());
     repo.soft_delete(&id).await
@@ -150,11 +158,10 @@ pub async fn deactivate_product(
 
 /// Reativa um produto que foi desativado
 #[tauri::command]
-pub async fn reactivate_product(
-    id: String,
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<Product> {
+#[specta::specta]
+pub async fn reactivate_product(id: String, state: State<'_, AppState>) -> AppResult<Product> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::UpdateProducts);
     let repo = ProductRepository::new(state.pool());
     repo.reactivate(&id).await
@@ -162,6 +169,7 @@ pub async fn reactivate_product(
 
 /// Lista todos os produtos (ativos e inativos)
 #[tauri::command]
+#[specta::specta]
 pub async fn get_all_products(
     include_inactive: bool,
     state: State<'_, AppState>,
@@ -176,6 +184,7 @@ pub async fn get_all_products(
 
 /// Lista apenas produtos inativos
 #[tauri::command]
+#[specta::specta]
 pub async fn get_inactive_products(state: State<'_, AppState>) -> AppResult<Vec<Product>> {
     let repo = ProductRepository::new(state.pool());
     repo.find_inactive().await

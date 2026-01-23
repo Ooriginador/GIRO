@@ -1,10 +1,11 @@
 //! Modelos de Produto
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use sqlx::FromRow;
 
 /// Unidade de medida do produto
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default, Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[sqlx(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ProductUnit {
@@ -72,7 +73,7 @@ impl ProductUnit {
 }
 
 /// Produto do catálogo
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Product {
     pub id: String,
@@ -94,7 +95,7 @@ pub struct Product {
 }
 
 /// Produto com informações da categoria
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductWithCategory {
     #[serde(flatten)]
@@ -104,7 +105,7 @@ pub struct ProductWithCategory {
 }
 
 /// Para criar produto
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateProduct {
     pub barcode: Option<String>,
@@ -122,7 +123,7 @@ pub struct CreateProduct {
 }
 
 /// Para atualizar produto
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateProduct {
     pub barcode: Option<String>,
@@ -145,7 +146,7 @@ pub struct UpdateProduct {
 }
 
 /// Para atualizar estoque de produto (via movimentação)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateStockData {
     pub delta: f64,
@@ -157,7 +158,7 @@ pub struct UpdateStockData {
 }
 
 /// Filtros de busca de produtos
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductFilters {
     pub search: Option<String>, // Busca por nome, código ou barcode
@@ -171,7 +172,7 @@ pub struct ProductFilters {
 }
 
 /// Resumo de estoque
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StockSummary {
     pub product_id: String,

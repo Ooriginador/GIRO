@@ -21,6 +21,7 @@ use tauri::State;
 
 /// Lista todos os clientes ativos
 #[tauri::command]
+#[specta::specta]
 pub async fn get_customers(state: State<'_, AppState>) -> AppResult<Vec<Customer>> {
     let repo = CustomerRepository::new(state.pool());
     repo.find_all_active().await
@@ -28,6 +29,7 @@ pub async fn get_customers(state: State<'_, AppState>) -> AppResult<Vec<Customer
 
 /// Lista clientes com paginação e filtros
 #[tauri::command]
+#[specta::specta]
 pub async fn get_customers_paginated(
     page: Option<i32>,
     per_page: Option<i32>,
@@ -45,6 +47,7 @@ pub async fn get_customers_paginated(
 
 /// Busca cliente por ID
 #[tauri::command]
+#[specta::specta]
 pub async fn get_customer_by_id(
     id: String,
     state: State<'_, AppState>,
@@ -55,6 +58,7 @@ pub async fn get_customer_by_id(
 
 /// Busca cliente por CPF
 #[tauri::command]
+#[specta::specta]
 pub async fn get_customer_by_cpf(
     cpf: String,
     state: State<'_, AppState>,
@@ -65,6 +69,7 @@ pub async fn get_customer_by_cpf(
 
 /// Busca clientes por termo (nome, CPF, telefone)
 #[tauri::command]
+#[specta::specta]
 pub async fn search_customers(
     query: String,
     limit: Option<i32>,
@@ -76,11 +81,13 @@ pub async fn search_customers(
 
 /// Cria novo cliente
 #[tauri::command]
+#[specta::specta]
 pub async fn create_customer(
     input: CreateCustomer,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Customer> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     let result = repo.create(input).await?;
@@ -102,12 +109,14 @@ pub async fn create_customer(
 
 /// Atualiza cliente
 #[tauri::command]
+#[specta::specta]
 pub async fn update_customer(
     id: String,
     input: UpdateCustomer,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Customer> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     let result = repo.update(&id, input).await?;
@@ -129,11 +138,10 @@ pub async fn update_customer(
 
 /// Desativa cliente (soft delete)
 #[tauri::command]
-pub async fn deactivate_customer(
-    id: String,
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<()> {
+#[specta::specta]
+pub async fn deactivate_customer(id: String, state: State<'_, AppState>) -> AppResult<()> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.deactivate(&id).await
@@ -141,11 +149,10 @@ pub async fn deactivate_customer(
 
 /// Reativa cliente
 #[tauri::command]
-pub async fn reactivate_customer(
-    id: String,
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<Customer> {
+#[specta::specta]
+pub async fn reactivate_customer(id: String, state: State<'_, AppState>) -> AppResult<Customer> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.reactivate(&id).await
@@ -157,6 +164,7 @@ pub async fn reactivate_customer(
 
 /// Lista veículos de um cliente
 #[tauri::command]
+#[specta::specta]
 pub async fn get_customer_vehicles(
     customer_id: String,
     state: State<'_, AppState>,
@@ -167,6 +175,7 @@ pub async fn get_customer_vehicles(
 
 /// Busca veículo do cliente por ID
 #[tauri::command]
+#[specta::specta]
 pub async fn get_customer_vehicle_by_id(
     id: String,
     state: State<'_, AppState>,
@@ -177,11 +186,13 @@ pub async fn get_customer_vehicle_by_id(
 
 /// Cria veículo do cliente
 #[tauri::command]
+#[specta::specta]
 pub async fn create_customer_vehicle(
     input: CreateCustomerVehicle,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<CustomerVehicle> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.create_customer_vehicle(input).await
@@ -189,12 +200,14 @@ pub async fn create_customer_vehicle(
 
 /// Atualiza veículo do cliente
 #[tauri::command]
+#[specta::specta]
 pub async fn update_customer_vehicle(
     id: String,
     input: UpdateCustomerVehicle,
-    employee_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<CustomerVehicle> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.update_customer_vehicle(&id, input).await
@@ -202,11 +215,10 @@ pub async fn update_customer_vehicle(
 
 /// Desativa veículo do cliente
 #[tauri::command]
-pub async fn deactivate_customer_vehicle(
-    id: String,
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<()> {
+#[specta::specta]
+pub async fn deactivate_customer_vehicle(id: String, state: State<'_, AppState>) -> AppResult<()> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.deactivate_customer_vehicle(&id).await
@@ -214,12 +226,10 @@ pub async fn deactivate_customer_vehicle(
 
 /// Atualiza quilometragem do veículo
 #[tauri::command]
-pub async fn update_vehicle_km(
-    id: String,
-    km: i32,
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<()> {
+#[specta::specta]
+pub async fn update_vehicle_km(id: String, km: i32, state: State<'_, AppState>) -> AppResult<()> {
+    let info = state.session.require_authenticated()?;
+    let employee_id = info.employee_id;
     let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
     repo.update_vehicle_km(&id, km).await

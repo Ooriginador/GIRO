@@ -72,6 +72,10 @@ pub enum Permission {
 
     // Garantias
     ManageWarranties,
+
+    // Veículos (Motopeças)
+    ViewVehicles,
+    ManageVehicles,
 }
 
 impl Permission {
@@ -118,6 +122,8 @@ impl Permission {
                     Permission::ViewServices,
                     Permission::ManageServices,
                     Permission::ManageWarranties,
+                    Permission::ViewVehicles,
+                    Permission::ManageVehicles,
                 ]
             }
             EmployeeRole::Manager => {
@@ -156,6 +162,8 @@ impl Permission {
                     Permission::ViewServices,
                     Permission::ManageServices,
                     Permission::ManageWarranties,
+                    Permission::ViewVehicles,
+                    Permission::ManageVehicles,
                 ]
             }
             EmployeeRole::Cashier => {
@@ -207,6 +215,8 @@ impl Permission {
                     Permission::ManageSuppliers,
                     Permission::ViewCategories,
                     Permission::ManageCategories,
+                    Permission::ViewVehicles,
+                    Permission::ManageVehicles,
                 ]
             }
         }
