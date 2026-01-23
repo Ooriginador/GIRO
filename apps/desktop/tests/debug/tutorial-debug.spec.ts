@@ -27,8 +27,8 @@ test('capture tutorial UI snapshot', async ({ page, browserName }) => {
         cashSessionHistory: [],
       };
       window.localStorage.setItem('__giro_web_mock_db__', JSON.stringify(db));
-    } catch (e) {
-      // ignore
+    } catch {
+      /* ignore */
     }
   });
 
@@ -52,7 +52,7 @@ test('capture tutorial UI snapshot', async ({ page, browserName }) => {
   try {
     const hasSpotlight = !!(await page.$('.spotlight'));
     meta.spotlight = hasSpotlight;
-  } catch (e) {
+  } catch {
     meta.spotlight = false;
   }
 

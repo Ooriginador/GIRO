@@ -56,9 +56,13 @@ test('capture tutorial UI snapshot', async ({ page, browserName }) => {
       // E2E bypass for license guard: include TEST-LOCAL-KEY string
       // also set global bypass flag recognized by LicenseGuard
       try {
-        (globalThis as any).__E2E_BYPASS_LICENSE = true;
-      } catch (e) {}
-    } catch (e) {}
+        (globalThis as unknown as Record<string, unknown>).__E2E_BYPASS_LICENSE = true;
+      } catch {
+        /* ignore */
+      }
+    } catch {
+      /* ignore */
+    }
   });
 
   // navigate directly to tutorials page to force tutorial overlay
@@ -102,9 +106,13 @@ test('capture tutorial UI snapshot', async ({ page, browserName }) => {
       window.localStorage.setItem('auth-storage', JSON.stringify(auth));
       // ensure bypass flag remains
       try {
-        (globalThis as any).__E2E_BYPASS_LICENSE = true;
-      } catch {}
-    } catch (e) {}
+        (globalThis as unknown as Record<string, unknown>).__E2E_BYPASS_LICENSE = true;
+      } catch {
+        /* ignore */
+      }
+    } catch {
+      /* ignore */
+    }
   });
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
@@ -115,7 +123,9 @@ test('capture tutorial UI snapshot', async ({ page, browserName }) => {
       await startBtn.click();
       await page.waitForTimeout(500);
     }
-  } catch (e) {}
+  } catch {
+    /* ignore */
+  }
 
   const outDir = '/home/jhonslife/CICLOGIRO/GIRO/apps/desktop/test-results';
   fs.mkdirSync(outDir, { recursive: true });
@@ -128,7 +138,7 @@ test('capture tutorial UI snapshot', async ({ page, browserName }) => {
   try {
     const hasSpotlight = !!(await page.$('.spotlight'));
     meta.spotlight = hasSpotlight;
-  } catch (e) {
+  } catch {
     meta.spotlight = false;
   }
   try {

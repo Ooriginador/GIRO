@@ -391,7 +391,11 @@ function announceToScreenReader(message: string) {
 
 // Função auxiliar para som de conclusão
 function playCompletionSound() {
-  if (typeof window === 'undefined' || typeof (window as any).AudioContext === 'undefined') return;
+  if (
+    typeof window === 'undefined' ||
+    typeof (window as unknown as Record<string, unknown>).AudioContext === 'undefined'
+  )
+    return;
 
   try {
     const webkitWindow = window as unknown as Window & {

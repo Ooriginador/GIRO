@@ -8,7 +8,9 @@ describe('tutorial-store edge cases', () => {
     // clear localStorage to avoid persisted state interfering
     try {
       localStorage.clear();
-    } catch {}
+    } catch {
+      /* ignore */
+    }
   });
 
   it('getTotalProgress should return zeros when no tutorials are defined', async () => {
@@ -16,7 +18,6 @@ describe('tutorial-store edge cases', () => {
     vi.mock('../tutorials', () => ({ tutorials: {} }));
 
     // Import the store after mocking so it picks up the empty tutorials
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mod = await import('../tutorial-store');
     const { useTutorialStore } = mod;
 

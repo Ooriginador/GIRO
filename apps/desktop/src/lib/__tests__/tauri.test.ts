@@ -242,9 +242,7 @@ describe('tauri.ts', () => {
 
         if (!found) {
           // Debug info to help CI/local debugging
-          // eslint-disable-next-line no-console
           console.error('tauri.invoke calls:', JSON.stringify(calls));
-          // eslint-disable-next-line no-console
           console.error('Missing expected command:', cmd);
         }
         expect(found).toBe(true);

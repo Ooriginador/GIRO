@@ -100,8 +100,8 @@ const GlobalSetupGate: FC<{ children: React.ReactNode }> = ({ children }) => {
   // E2E Bypass: skip cleanup if in test mode
   const isE2E =
     typeof window !== 'undefined' &&
-    (window as any).__E2E_HAS_ADMIN !== undefined &&
-    (window as any).__E2E_HAS_ADMIN !== false;
+    (window as unknown as Record<string, unknown>).__E2E_HAS_ADMIN !== undefined &&
+    (window as unknown as Record<string, unknown>).__E2E_HAS_ADMIN !== false;
 
   const bypassRoutes = ['/', '/login', '/license', '/license-activation', '/setup'];
   const isBypass = bypassRoutes.includes(location.pathname);
