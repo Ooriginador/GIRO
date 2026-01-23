@@ -23,11 +23,15 @@ pub enum AuditAction {
     LicenseTransferred,
     LicenseSuspended,
     LicenseRevoked,
+    LicenseClaimed,
 
     // Hardware
     HardwareRegistered,
     HardwareConflict,
     HardwareCleared,
+
+    // Admin
+    AdminProfileUpdated,
 
     // Payments
     PaymentCreated,

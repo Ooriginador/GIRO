@@ -12,7 +12,7 @@ use axum::{
 use std::net::SocketAddr;
 use uuid::Uuid;
 
-use crate::errors::AppResult;
+use crate::errors::{AppError, AppResult};
 use crate::middleware::auth::AuthAdmin;
 use crate::models::HardwareInfo;
 use crate::AppState;
@@ -20,20 +20,21 @@ use crate::AppState;
 pub fn hardware_routes() -> Router<AppState> {
     Router::new()
         .route("/", get(list_hardware))
-        .route("/{id}", get(get_hardware).delete(clear_hardware))
-        .route("/{id}/deactivate", post(deactivate_hardware))
+        .route("/:id", get(get_hardware).delete(clear_hardware))
+        .route("/:id/deactivate", post(deactivate_hardware))
 }
 
 /// GET /hardware - List hardware for admin
 async fn list_hardware(
     State(state): State<AppState>,
     auth: AuthAdmin,
-) -> AppResult<Json<serde_json::Value>> {
+) -> AppResult<Json<Vec<crate::models::HardwareInfoWithLicense>>> {
     let hardware_service = state.hardware_service();
-    let hardware = hardware_service.list_for_admin(auth.admin_id).await?;
-    Ok(Json(serde_json::json!({
-        "devices": hardware
-    })))
+    let hardware = hardware_service.list_for_admin(auth.admin_id).await.map_err(|e| {
+        // TEMP: Expose error for debugging
+        AppError::Internal(format!("Failed to list hardware: {:?}", e))
+    })?;
+    Ok(Json(hardware))
 }
 
 /// GET /hardware/:id - Get hardware details

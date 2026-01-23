@@ -254,3 +254,20 @@ pub struct UpdateLicenseAdminResponse {
     pub success: bool,
     pub message: String,
 }
+
+// ============================================================================
+// Claim License (Admin operation)
+// ============================================================================
+
+#[derive(Debug, Clone, Deserialize, Validate)]
+pub struct ClaimLicenseRequest {
+    #[validate(length(min = 16, max = 20))]
+    pub license_key: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ClaimLicenseResponse {
+    pub success: bool,
+    pub license: LicenseSummary,
+    pub message: String,
+}

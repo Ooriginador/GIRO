@@ -62,9 +62,11 @@ impl From<Hardware> for HardwareInfo {
 pub struct HardwareInfoWithLicense {
     pub id: Uuid,
     pub license_key: String,
-    pub hardware_id: String,
-    pub device_name: Option<String>,
+    pub fingerprint: String,
+    pub machine_name: Option<String>,
+    pub os_version: Option<String>,
     pub activated_at: DateTime<Utc>,
-    pub last_heartbeat: Option<DateTime<Utc>>,
+    pub first_seen: Option<DateTime<Utc>>,
+    pub last_seen: Option<DateTime<Utc>>,
     pub is_active: bool,
 }

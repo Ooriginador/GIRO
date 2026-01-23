@@ -28,6 +28,7 @@ pub fn license_routes() -> Router<AppState> {
     Router::new()
         // Admin endpoints (JWT auth)
         .route("/", get(list_licenses).post(create_license))
+        .route("/claim", post(claim_license))
         .route("/:key", get(get_license).delete(revoke_license))
         .route("/:key/transfer", post(transfer_license))
         .route("/:key/resend-email", post(resend_license_email))
@@ -232,4 +233,24 @@ async fn resend_license_email(
         "success": true,
         "message": "Email de licença reenviado com sucesso"
     })))
+}
+
+/// POST /licenses/claim - Claim a pre-generated license
+async fn claim_license(
+    State(state): State<AppState>,
+    auth: AuthAdmin,
+    Json(payload): Json<crate::dto::license::ClaimLicenseRequest>,
+) -> AppResult<Json<crate::dto::license::ClaimLicenseResponse>> {
+    payload.validate().map_err(|e| AppError::BadRequest(e.to_string()))?;
+
+    let license_service = state.license_service();
+    let license = license_service
+        .claim_license(auth.admin_id, &payload.license_key)
+        .await?;
+
+    Ok(Json(crate::dto::license::ClaimLicenseResponse {
+        success: true,
+        license,
+        message: "Licença registrada com sucesso".to_string(),
+    }))
 }
