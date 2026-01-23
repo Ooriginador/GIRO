@@ -113,28 +113,36 @@ impl HardwareRepository {
 
     /// List hardware for an admin - uses license_hardware table for proper N:M relationship
     pub async fn list_for_admin(&self, admin_id: Uuid) -> AppResult<Vec<HardwareInfoWithLicense>> {
-        let hardware = sqlx::query_as::<_, HardwareInfoWithLicense>(
+        let result = sqlx::query_as::<_, HardwareInfoWithLicense>(
             r#"
-            SELECT DISTINCT
+            SELECT 
                 lh.id,
                 l.license_key,
-                lh.hardware_id,
-                lh.machine_name as device_name,
-                COALESCE(lh.last_activated_at, NOW()) as activated_at,
-                h.last_seen as last_heartbeat,
+                lh.hardware_id as fingerprint,
+                lh.machine_name,
+                lh.os_version,
+                COALESCE(lh.last_activated_at, NOW())::timestamptz as activated_at,
+                h.first_seen,
+                h.last_seen,
                 COALESCE(h.is_active, TRUE) as is_active
             FROM license_hardware lh
             INNER JOIN licenses l ON l.id = lh.license_id
             LEFT JOIN hardware h ON h.fingerprint = lh.hardware_id
             WHERE l.admin_id = $1
-            ORDER BY h.last_seen DESC NULLS LAST, lh.last_activated_at DESC
+            ORDER BY last_seen DESC NULLS LAST, activated_at DESC
             "#,
         )
         .bind(admin_id)
         .fetch_all(&self.pool)
-        .await?;
+        .await;
 
-        Ok(hardware)
+        match result {
+            Ok(hardware) => Ok(hardware),
+            Err(e) => {
+                tracing::error!("Database error in list_for_admin: {:?}", e);
+                Err(e.into())
+            }
+        }
     }
 
     /// Deactivate hardware

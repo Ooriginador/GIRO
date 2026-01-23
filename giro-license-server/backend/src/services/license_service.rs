@@ -695,4 +695,62 @@ impl LicenseService {
             message: "Dados do administrador sincronizados com sucesso".to_string(),
         })
     }
+    /// Claim a pre-generated license key
+    pub async fn claim_license(
+        &self,
+        admin_id: Uuid,
+        license_key: &str,
+    ) -> AppResult<LicenseSummary> {
+        let license_repo = self.license_repo();
+        let audit_repo = self.audit_repo();
+        let normalized_key = crate::utils::normalize_license_key(license_key);
+
+        // Find license
+        let license = license_repo
+            .find_by_key(&normalized_key)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Chave de licença inválida".to_string()))?;
+
+        // Check availability
+        // If it belongs to a specialized system admin or is unassigned, it can be claimed
+        // For now, let's assume if it belongs to the 'system' (placeholder or initial admin) or is pending
+        // but it must NOT already belong to the current admin or another customer.
+        if license.admin_id != Uuid::nil() && license.status != LicenseStatus::Pending {
+             // If it's already active, it cannot be claimed by another
+             if license.admin_id != admin_id {
+                 return Err(AppError::License("Esta licença já pertence a outro usuário".to_string()));
+             } else {
+                 return Err(AppError::License("Você já possui esta licença".to_string()));
+             }
+        }
+
+        // Update ownership
+        license_repo.assign_to_admin(license.id, admin_id).await?;
+
+        // Log claim
+        audit_repo
+            .log(
+                AuditAction::LicenseClaimed,
+                Some(admin_id),
+                Some(license.id),
+                None,
+                serde_json::json!({ "key": normalized_key }),
+            )
+            .await?;
+
+        Ok(LicenseSummary {
+            id: license.id,
+            license_key: license.license_key,
+            plan_type: license.plan_type,
+            status: license.status,
+            activated_at: license.activated_at,
+            expires_at: license.expires_at,
+            last_validated: license.last_validated,
+            support_expires_at: license.support_expires_at,
+            can_offline: license.can_offline,
+            created_at: license.created_at,
+            max_hardware: license.max_hardware,
+            active_hardware_count: Some(license.hardware.len() as i32),
+        })
+    }
 }
