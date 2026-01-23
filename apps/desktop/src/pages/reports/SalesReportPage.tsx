@@ -398,30 +398,40 @@ export const SalesReportPage: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(report?.periods || []).map((period, index) => (
-                  <TableRow key={index} className="hover:bg-muted/10 transition-colors">
-                    <TableCell className="pl-6 font-medium">{period.date}</TableCell>
-                    <TableCell className="text-center font-bold text-muted-foreground">
-                      {period.salesCount}
-                    </TableCell>
-                    <TableCell className="text-right font-black">
-                      {formatCurrency(period.revenue)}
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                      <div className="flex items-center justify-end gap-3">
-                        <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full bg-primary"
-                            style={{ width: `${period.percentage}%` }}
-                          />
+                {(report?.periods || []).map(
+                  (
+                    period: {
+                      date: string;
+                      salesCount: number;
+                      revenue: number;
+                      percentage: number;
+                    },
+                    index: number
+                  ) => (
+                    <TableRow key={index} className="hover:bg-muted/10 transition-colors">
+                      <TableCell className="pl-6 font-medium">{period.date}</TableCell>
+                      <TableCell className="text-center font-bold text-muted-foreground">
+                        {period.salesCount}
+                      </TableCell>
+                      <TableCell className="text-right font-black">
+                        {formatCurrency(period.revenue)}
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        <div className="flex items-center justify-end gap-3">
+                          <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full bg-primary"
+                              style={{ width: `${period.percentage}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold text-muted-foreground tabular-nums">
+                            {period.percentage.toFixed(1)}%
+                          </span>
                         </div>
-                        <span className="text-xs font-bold text-muted-foreground tabular-nums">
-                          {period.percentage.toFixed(1)}%
-                        </span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                    </TableRow>
+                  )
+                )}
               </TableBody>
             </Table>
           </CardContent>

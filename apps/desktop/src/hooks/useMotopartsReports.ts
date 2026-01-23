@@ -5,48 +5,17 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { invoke } from '@/lib/tauri';
+import {
+  getMotopartsDashboardStats,
+  getServiceOrderStats,
+  getTopProductsMotoparts,
+  type DashboardStats,
+  type ServiceOrderStats,
+  type TopItem,
+} from '@/lib/tauri';
 
 // ══════════════════════════════════════════════════════════════════════════════
-// TYPES
-// ══════════════════════════════════════════════════════════════════════════════
-
-export interface DailyRevenue {
-  date: string;
-  amount: number;
-}
-
-export interface DashboardStats {
-  total_sales_today: number;
-  count_sales_today: number;
-  open_service_orders: number;
-  active_warranties: number;
-  low_stock_products: number;
-  revenue_weekly: DailyRevenue[];
-}
-
-export interface StatusCount {
-  status: string;
-  count: number;
-}
-
-export interface ServiceOrderStats {
-  total_orders: number;
-  by_status: StatusCount[];
-  revenue_labor: number;
-  revenue_parts: number;
-  average_ticket: number;
-}
-
-export interface TopItem {
-  id: string;
-  name: string;
-  quantity: number;
-  total_value: number;
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// HOOK
+// HOOK: useMotopartsReports
 // ══════════════════════════════════════════════════════════════════════════════
 
 export function useMotopartsReports() {
@@ -54,30 +23,21 @@ export function useMotopartsReports() {
     data: dashboardStats,
     isLoading: isLoadingDashboard,
     refetch: refetchDashboard,
-  } = useQuery({
+  } = useQuery<DashboardStats>({
     queryKey: ['motoparts', 'dashboard'],
-    queryFn: async () => {
-      const result = await invoke<DashboardStats>('get_motoparts_dashboard_stats');
-      return result;
-    },
+    queryFn: getMotopartsDashboardStats,
     refetchInterval: 60000,
   });
 
-  const { data: serviceOrderStats, isLoading: isLoadingSO } = useQuery({
+  const { data: serviceOrderStats, isLoading: isLoadingSO } = useQuery<ServiceOrderStats>({
     queryKey: ['motoparts', 'so-stats'],
-    queryFn: async () => {
-      const result = await invoke<ServiceOrderStats>('get_service_order_stats');
-      return result;
-    },
+    queryFn: getServiceOrderStats,
     refetchInterval: 60000,
   });
 
-  const { data: topProducts, isLoading: isLoadingTop } = useQuery({
+  const { data: topProducts, isLoading: isLoadingTop } = useQuery<TopItem[]>({
     queryKey: ['motoparts', 'top-products'],
-    queryFn: async () => {
-      const result = await invoke<TopItem[]>('get_top_products_motoparts', { limit: 5 });
-      return result;
-    },
+    queryFn: () => getTopProductsMotoparts(5),
     refetchInterval: 60000,
   });
 

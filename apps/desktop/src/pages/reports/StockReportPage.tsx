@@ -30,7 +30,7 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899'
 
 export const StockReportPage: React.FC = () => {
   const { data: reportData, isLoading } = useStockReport();
-  const report = reportData as StockReport;
+  const report = reportData as StockReport | undefined;
 
   const pieData = report?.valuationByCategory
     ? Object.entries(report.valuationByCategory).map(([name, value]) => ({
@@ -217,7 +217,7 @@ export const StockReportPage: React.FC = () => {
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y">
-            {sortedPieData.map((item, index) => (
+            {sortedPieData.map((item: { name: string; value: number }, index: number) => (
               <div
                 key={index}
                 className="flex justify-between items-center p-4 hover:bg-muted/10 transition-colors"

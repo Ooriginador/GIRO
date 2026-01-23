@@ -19,15 +19,16 @@ import {
 } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  BarChart,
+  Bar,
   Cell,
 } from 'recharts';
+import type { EmployeeRanking } from '@/types';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#ef4444'];
 
@@ -50,7 +51,7 @@ export const EmployeePerformancePage: React.FC = () => {
   ];
 
   const chartData =
-    performance?.map((item) => ({
+    performance?.map((item: EmployeeRanking) => ({
       name: item.employeeName,
       total: item.totalAmount,
       sales: item.salesCount,
@@ -80,7 +81,12 @@ export const EmployeePerformancePage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-emerald-600">
-            {formatCurrency(performance?.reduce((acc, curr) => acc + curr.totalCommission, 0) ?? 0)}
+            {formatCurrency(
+              performance?.reduce(
+                (acc: number, curr: EmployeeRanking) => acc + curr.totalCommission,
+                0
+              ) ?? 0
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">Valor a ser pago</p>
         </CardContent>
@@ -95,7 +101,10 @@ export const EmployeePerformancePage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-violet-600">
-            {performance?.reduce((acc, curr) => acc + curr.salesCount, 0) ?? 0}
+            {performance?.reduce(
+              (acc: number, curr: EmployeeRanking) => acc + curr.salesCount,
+              0
+            ) ?? 0}
           </div>
           <p className="text-xs text-muted-foreground mt-1">Volume de transações</p>
         </CardContent>
@@ -111,8 +120,14 @@ export const EmployeePerformancePage: React.FC = () => {
         <CardContent>
           <div className="text-2xl font-bold text-amber-600">
             {formatCurrency(
-              (performance?.reduce((acc, curr) => acc + curr.totalAmount, 0) ?? 0) /
-                (performance?.reduce((acc, curr) => acc + curr.salesCount, 0) || 1)
+              (performance?.reduce(
+                (acc: number, curr: EmployeeRanking) => acc + curr.totalAmount,
+                0
+              ) ?? 0) /
+                (performance?.reduce(
+                  (acc: number, curr: EmployeeRanking) => acc + curr.salesCount,
+                  0
+                ) || 1)
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">Média por atendimento</p>
@@ -226,13 +241,15 @@ export const EmployeePerformancePage: React.FC = () => {
                   formatter={(val: number) => formatCurrency(val)}
                 />
                 <Bar dataKey="total" radius={[4, 4, 0, 0]}>
-                  {chartData.map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                      fillOpacity={0.8}
-                    />
-                  ))}
+                  {chartData.map(
+                    (_: { name: string; total: number; sales: number }, index: number) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                        fillOpacity={0.8}
+                      />
+                    )
+                  )}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -267,7 +284,7 @@ export const EmployeePerformancePage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y overflow-hidden">
-                {performance?.map((item) => (
+                {performance?.map((item: EmployeeRanking) => (
                   <tr key={item.employeeId} className="hover:bg-muted/10 transition-colors">
                     <td className="p-4 pl-8">
                       <div className="font-bold uppercase text-sm">{item.employeeName}</div>

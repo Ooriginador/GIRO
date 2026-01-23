@@ -121,10 +121,10 @@ export const ReportsPage: FC = () => {
     queryFn: () => getTopProducts(5),
   });
 
-  const todayRevenue = stats?.todayRevenue || 0;
+  const todayRevenue = stats?.totalSalesToday || 0;
   const averageTicket = stats?.averageTicket || 0;
-  const todayCount = stats?.todaySales || 0;
-  const lowStock = stats?.lowStockCount || 0;
+  const todayCount = stats?.countSalesToday || 0;
+  const lowStock = stats?.lowStockProducts || 0;
 
   const chartData =
     stats?.revenueWeekly?.map((d: DailyRevenue) => ({

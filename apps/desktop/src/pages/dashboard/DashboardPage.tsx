@@ -95,10 +95,10 @@ export const DashboardPage: FC = () => {
 
   // Fallback if data loading failed or is null
   const data = stats || {
-    todaySales: 0,
-    todayRevenue: 0,
+    countSalesToday: 0,
+    totalSalesToday: 0,
     averageTicket: 0,
-    lowStockCount: 0,
+    lowStockProducts: 0,
     expiringCount: 0,
     activeAlerts: 0,
     recentSales: [],
@@ -123,14 +123,14 @@ export const DashboardPage: FC = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Vendas Hoje"
-          value={data.todaySales}
+          value={data.countSalesToday}
           description="vendas realizadas"
           icon={ShoppingCart}
           variant="success"
         />
         <StatCard
           title="Faturamento"
-          value={formatCurrency(data.todayRevenue)}
+          value={formatCurrency(data.totalSalesToday)}
           description="receita do dia"
           icon={DollarSign}
           variant="success"
@@ -144,7 +144,7 @@ export const DashboardPage: FC = () => {
         <StatCard
           title="Alertas Ativos"
           value={data.activeAlerts}
-          description={`${data.lowStockCount} estoque baixo, ${data.expiringCount} vencendo`}
+          description={`${data.lowStockProducts} estoque baixo, ${data.expiringCount} vencendo`}
           icon={AlertTriangle}
           variant={data.activeAlerts > 0 ? 'warning' : 'default'}
         />

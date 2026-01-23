@@ -44,10 +44,10 @@ export function useDashboardStats() {
       );
 
       return {
-        todaySales: todaySalesCount,
-        todayRevenue: todaySalesTotal,
+        countSalesToday: todaySalesCount,
+        totalSalesToday: todaySalesTotal,
         averageTicket,
-        lowStockCount: stockReport.lowStockCount,
+        lowStockProducts: stockReport.lowStockCount,
         expiringCount: stockReport.expiringCount,
         activeAlerts: unreadAlerts,
         recentSales: recentSalesBase.map((sale, index) => {
@@ -70,6 +70,8 @@ export function useDashboardStats() {
           quantity: item.quantity,
           revenue: item.revenue,
         })),
+        openServiceOrders: motopartsStats.openServiceOrders,
+        activeWarranties: motopartsStats.activeWarranties,
       };
     },
     // Refresh every minute

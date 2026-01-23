@@ -26,8 +26,7 @@ export type ServiceOrderStatus =
   | 'WAITING_PARTS'
   | 'COMPLETED'
   | 'DELIVERED'
-  | 'CANCELED'
-  | 'QUOTE';
+  | 'CANCELED';
 
 export type ServiceItemType = 'PART' | 'SERVICE';
 
@@ -284,17 +283,20 @@ export function useServiceOrders() {
       paymentMethod,
       amountPaid,
       sessionId,
+      employeeId,
     }: {
       id: string;
       paymentMethod: string;
       amountPaid: number;
       sessionId: string;
+      employeeId?: string;
     }) => {
       const result = await invoke<string>('finish_service_order', {
         id,
         payment_method: paymentMethod,
         amount_paid: amountPaid,
         cash_session_id: sessionId,
+        employee_id: employeeId,
       });
       return result;
     },
