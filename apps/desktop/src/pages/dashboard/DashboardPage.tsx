@@ -4,8 +4,15 @@
  */
 
 import { StatCard } from '@/components/dashboard/StatCard';
-
-// StatCard interface moved to its own component file
+import { MotopartsDashboard } from '@/components/motoparts/MotopartsDashboard';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useBusinessProfile } from '@/hooks/useBusinessProfile';
+import { useDashboardStats } from '@/hooks/useDashboard';
+import { formatCurrency } from '@/lib/formatters';
+import { AlertTriangle, DollarSign, Package, ShoppingCart, TrendingUp } from 'lucide-react';
+import type { FC } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const DashboardPage: FC = () => {
   const { businessType } = useBusinessProfile();

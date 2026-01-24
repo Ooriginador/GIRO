@@ -527,10 +527,12 @@ export interface DailyRevenue {
 
 export interface DashboardStats {
   totalSalesToday: number;
+  totalSalesYesterday: number;
   countSalesToday: number;
   openServiceOrders: number;
   activeWarranties: number;
   lowStockProducts: number;
+  activeAlerts: number;
   revenueWeekly: DailyRevenue[];
 }
 

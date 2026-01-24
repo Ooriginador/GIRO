@@ -57,6 +57,7 @@ import {
 import { useState, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { cn } from '@/lib/utils';
 
 // Schema de validação com Zod
 const supplierFormSchema = z.object({
