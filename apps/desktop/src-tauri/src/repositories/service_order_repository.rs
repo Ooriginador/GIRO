@@ -405,7 +405,11 @@ impl ServiceOrderRepository {
 
         // Sincronização em tempo real (broadcast)
         if let Some(ref service) = self.event_service {
-            service.emit_service_order_updated(serde_json::to_value(&order).unwrap_or_default());
+            service.emit_sync_push(
+                "service_order",
+                serde_json::to_value(&order).unwrap_or_default(),
+            );
+            service.emit_service_order_updated(&order.id, &order.status);
         }
 
         Ok(order)

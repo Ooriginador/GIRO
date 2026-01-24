@@ -15,7 +15,7 @@ use tokio::sync::RwLock;
 #[tauri::command]
 #[specta::specta]
 pub async fn get_products(state: State<'_, AppState>) -> AppResult<Vec<Product>> {
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     repo.find_all_active().await
 }
 
@@ -29,7 +29,7 @@ pub async fn get_products_paginated(
     category_id: Option<String>,
     is_active: Option<bool>,
 ) -> AppResult<crate::models::PaginatedResult<Product>> {
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     let pagination =
         crate::repositories::Pagination::new(page.unwrap_or(1), per_page.unwrap_or(50));
     let filters = crate::models::ProductFilters {
@@ -47,7 +47,7 @@ pub async fn get_product_by_id(
     id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Option<Product>> {
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     repo.find_by_id(&id).await
 }
 
@@ -57,21 +57,21 @@ pub async fn get_product_by_barcode(
     barcode: String,
     state: State<'_, AppState>,
 ) -> AppResult<Option<Product>> {
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     repo.find_by_barcode(&barcode).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn search_products(query: String, state: State<'_, AppState>) -> AppResult<Vec<Product>> {
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     repo.search(&query, 50).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_low_stock_products(state: State<'_, AppState>) -> AppResult<Vec<Product>> {
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     repo.find_low_stock().await
 }
 
@@ -287,7 +287,7 @@ pub async fn get_all_products(
     include_inactive: bool,
     state: State<'_, AppState>,
 ) -> AppResult<Vec<Product>> {
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     if include_inactive {
         repo.find_all().await
     } else {
@@ -299,6 +299,6 @@ pub async fn get_all_products(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_inactive_products(state: State<'_, AppState>) -> AppResult<Vec<Product>> {
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     repo.find_inactive().await
 }

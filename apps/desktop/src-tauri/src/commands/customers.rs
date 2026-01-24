@@ -25,7 +25,7 @@ use tokio::sync::RwLock;
 #[tauri::command]
 #[specta::specta]
 pub async fn get_customers(state: State<'_, AppState>) -> AppResult<Vec<Customer>> {
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     repo.find_all_active().await
 }
 
@@ -38,7 +38,7 @@ pub async fn get_customers_paginated(
     filters: Option<CustomerFilters>,
     state: State<'_, AppState>,
 ) -> AppResult<PaginatedResult<CustomerWithStats>> {
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     let pagination = Pagination {
         page: page.unwrap_or(1),
         per_page: per_page.unwrap_or(20),
@@ -54,7 +54,7 @@ pub async fn get_customer_by_id(
     id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Option<Customer>> {
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     repo.find_by_id(&id).await
 }
 
@@ -65,7 +65,7 @@ pub async fn get_customer_by_cpf(
     cpf: String,
     state: State<'_, AppState>,
 ) -> AppResult<Option<Customer>> {
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     repo.find_by_cpf(&cpf).await
 }
 
@@ -77,7 +77,7 @@ pub async fn search_customers(
     limit: Option<i32>,
     state: State<'_, AppState>,
 ) -> AppResult<Vec<Customer>> {
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     repo.search(&query, limit.unwrap_or(20)).await
 }
 
@@ -92,7 +92,7 @@ pub async fn create_customer(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     let result = repo.create(input).await?;
 
     // Audit Log
@@ -132,7 +132,7 @@ pub async fn update_customer(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     let result = repo.update(&id, input).await?;
 
     // Audit Log
@@ -171,7 +171,7 @@ pub async fn deactivate_customer(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     repo.deactivate(&id).await?;
 
     // Audit Log
@@ -219,7 +219,7 @@ pub async fn reactivate_customer(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     let result = repo.reactivate(&id).await?;
 
     // Audit Log
@@ -258,7 +258,7 @@ pub async fn get_customer_vehicles(
     customer_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Vec<CustomerVehicleWithDetails>> {
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     repo.find_customer_vehicles(&customer_id).await
 }
 
@@ -269,7 +269,7 @@ pub async fn get_customer_vehicle_by_id(
     id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Option<CustomerVehicle>> {
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     repo.find_customer_vehicle_by_id(&id).await
 }
 
@@ -283,7 +283,7 @@ pub async fn create_customer_vehicle(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     repo.create_customer_vehicle(input).await
 }
 
@@ -298,7 +298,7 @@ pub async fn update_customer_vehicle(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     repo.update_customer_vehicle(&id, input).await
 }
 
@@ -309,7 +309,7 @@ pub async fn deactivate_customer_vehicle(id: String, state: State<'_, AppState>)
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     repo.deactivate_customer_vehicle(&id).await
 }
 
@@ -320,6 +320,6 @@ pub async fn update_vehicle_km(id: String, km: i32, state: State<'_, AppState>) 
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let _ = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
-    let repo = CustomerRepository::new(state.pool());
+    let repo = CustomerRepository::with_events(state.pool(), &state.event_service);
     repo.update_vehicle_km(&id, km).await
 }

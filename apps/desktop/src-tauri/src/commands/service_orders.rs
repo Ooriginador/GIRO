@@ -32,7 +32,8 @@ pub async fn get_open_service_orders(
     state: State<'_, AppState>,
 ) -> AppResult<Vec<ServiceOrderSummary>> {
     state.session.require_authenticated()?;
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     repo.find_open_orders().await
 }
 
@@ -53,7 +54,8 @@ pub async fn get_service_orders_paginated(
     date_to: Option<String>,
 ) -> AppResult<PaginatedResult<ServiceOrderSummary>> {
     state.session.require_authenticated()?;
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
 
     let pagination = Pagination::new(page.unwrap_or(1), per_page.unwrap_or(20));
 
@@ -78,7 +80,8 @@ pub async fn get_service_order_by_id(
     id: String,
 ) -> AppResult<Option<ServiceOrder>> {
     state.session.require_authenticated()?;
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     repo.find_by_id(&id).await
 }
 
@@ -90,7 +93,8 @@ pub async fn get_service_order_by_number(
     order_number: i32,
 ) -> AppResult<Option<ServiceOrder>> {
     state.session.require_authenticated()?;
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     repo.find_by_number(order_number).await
 }
 
@@ -102,7 +106,8 @@ pub async fn get_service_order_details(
     id: String,
 ) -> AppResult<Option<ServiceOrderWithDetails>> {
     state.session.require_authenticated()?;
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     repo.find_by_id_with_details(&id).await
 }
 
@@ -112,7 +117,7 @@ pub async fn get_service_order_details(
 pub async fn create_service_order(
     state: State<'_, AppState>,
     input: CreateServiceOrder,
-    network_state: State<'_, RwLock<NetworkState>>,
+    _network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<ServiceOrder> {
     let info = state.session.require_authenticated()?;
     let employee = require_permission!(
@@ -120,7 +125,8 @@ pub async fn create_service_order(
         &info.employee_id,
         Permission::CreateServiceOrder
     );
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     let result = repo.create(input.clone()).await?;
 
     // Audit Log
@@ -156,7 +162,8 @@ pub async fn update_service_order(
         &info.employee_id,
         Permission::UpdateServiceOrder
     );
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     let result = repo.update(&id, input.clone()).await?;
 
     // Audit Log
@@ -198,7 +205,8 @@ pub async fn start_service_order(
         &info.employee_id,
         Permission::UpdateServiceOrder
     );
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
 
     let input = UpdateServiceOrder {
         status: Some("IN_PROGRESS".to_string()),
@@ -247,7 +255,8 @@ pub async fn complete_service_order(
         &info.employee_id,
         Permission::UpdateServiceOrder
     );
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
 
     let input = UpdateServiceOrder {
         status: Some("COMPLETED".to_string()),
@@ -297,7 +306,8 @@ pub async fn deliver_service_order(
         &info.employee_id,
         Permission::UpdateServiceOrder
     );
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
 
     let input = UpdateServiceOrder {
         status: Some("DELIVERED".to_string()),
@@ -348,7 +358,8 @@ pub async fn cancel_service_order(
         &info.employee_id,
         Permission::CancelServiceOrder
     );
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     let result = repo
         .cancel_with_stock_restoration(&id, notes.clone())
         .await?;
@@ -395,7 +406,8 @@ pub async fn finish_service_order(
         &info.employee_id,
         Permission::FinishServiceOrder
     );
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     let sale_id = repo
         .finish_order_transaction(
             &id,
@@ -447,7 +459,8 @@ pub async fn get_service_order_items(
     order_id: String,
 ) -> AppResult<Vec<ServiceOrderItem>> {
     state.session.require_authenticated()?;
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     repo.find_order_items(&order_id).await
 }
 
@@ -472,7 +485,8 @@ pub async fn add_service_order_item(
         &info.employee_id,
         Permission::UpdateServiceOrder
     );
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
 
     let input = AddServiceOrderItem {
         order_id: order_id.clone(),
@@ -516,7 +530,8 @@ pub async fn remove_service_order_item(
         &info.employee_id,
         Permission::UpdateServiceOrder
     );
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     repo.remove_item(&item_id).await?;
 
     // Audit Log
@@ -552,7 +567,8 @@ pub async fn update_service_order_item(
         &info.employee_id,
         Permission::UpdateServiceOrder
     );
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
 
     let input = UpdateServiceOrderItem {
         quantity,
@@ -588,7 +604,8 @@ pub async fn update_service_order_item(
 #[specta::specta]
 pub async fn get_services(state: State<'_, AppState>) -> AppResult<Vec<Service>> {
     state.session.require_authenticated()?;
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     repo.find_all_services().await
 }
 
@@ -600,7 +617,8 @@ pub async fn get_service_by_id(
     id: String,
 ) -> AppResult<Option<Service>> {
     state.session.require_authenticated()?;
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     repo.find_service_by_id(&id).await
 }
 
@@ -612,7 +630,8 @@ pub async fn get_service_by_code(
     code: String,
 ) -> AppResult<Option<Service>> {
     state.session.require_authenticated()?;
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     repo.find_service_by_code(&code).await
 }
 
@@ -625,7 +644,8 @@ pub async fn create_service(
 ) -> AppResult<Service> {
     let info = state.session.require_authenticated()?;
     let employee = require_permission!(state.pool(), &info.employee_id, Permission::ManageServices);
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
 
     let result = repo.create_service(input).await?;
 
@@ -654,7 +674,8 @@ pub async fn update_service(
 ) -> AppResult<Service> {
     let info = state.session.require_authenticated()?;
     let employee = require_permission!(state.pool(), &info.employee_id, Permission::ManageServices);
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
 
     let result = repo.update_service(&id, input).await?;
 
@@ -681,6 +702,7 @@ pub async fn get_vehicle_services_history(
     vehicle_id: String,
 ) -> AppResult<Vec<ServiceOrderSummary>> {
     state.session.require_authenticated()?;
-    let repo = ServiceOrderRepository::new(state.pool().clone());
+    let repo =
+        ServiceOrderRepository::with_events(state.pool().clone(), state.event_service.clone());
     repo.find_by_vehicle(&vehicle_id).await
 }

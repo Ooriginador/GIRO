@@ -176,7 +176,8 @@ impl<'a> SettingsRepository<'a> {
 
         // Sincronização em tempo real (broadcast)
         if let Some(service) = self.event_service {
-            service.emit_setting_updated(serde_json::to_value(&result).unwrap_or_default());
+            service.emit_sync_push("setting", serde_json::to_value(&result).unwrap_or_default());
+            service.emit_setting_updated(&result.key, &result.value);
         }
 
         Ok(result)
