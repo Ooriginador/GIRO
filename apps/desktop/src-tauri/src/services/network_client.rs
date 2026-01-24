@@ -13,7 +13,7 @@ use mdns_sd::{ServiceDaemon, ServiceEvent};
 use sqlx::SqlitePool;
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use tokio::sync::{broadcast, mpsc, RwLock};
 use tokio::time::sleep;
 use tokio_tungstenite::connect_async;
@@ -262,7 +262,7 @@ impl NetworkClient {
         }
 
         // 4. Iniciar Heartbeat
-        let hb_tx = tx.clone();
+        let _hb_tx = tx.clone();
         tokio::spawn(async move {
             loop {
                 sleep(Duration::from_secs(10)).await;
@@ -273,7 +273,7 @@ impl NetworkClient {
                     token: None,
                     timestamp: chrono::Utc::now().timestamp_millis(),
                 };
-                if let Ok(msg) = serde_json::to_string(&ping) {
+                if let Ok(_msg) = serde_json::to_string(&ping) {
                     // This is a bit hacky because we need to send directly or via command
                     // Let's stick to simple sleep and if loop breaks it's enough.
                     // Real heartbeat would check for PONG response.

@@ -2028,13 +2028,14 @@ dependencies = [
 
 [[package]]
 name = "giro-desktop"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "aes-gcm",
  "anyhow",
  "argon2",
  "base64 0.22.1",
  "bigdecimal",
+ "cfg-if",
  "chrono",
  "dirs 5.0.1",
  "dotenv",

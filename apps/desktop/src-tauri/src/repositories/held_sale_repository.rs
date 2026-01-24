@@ -3,9 +3,9 @@
 //! Permite pausar e retomar vendas do PDV.
 
 use crate::error::AppResult;
-use crate::models::{CreateHeldSale, HeldSale, HeldSaleCartItem, HeldSaleItem};
+use crate::models::{CreateHeldSale, HeldSale, HeldSaleItem};
 use crate::repositories::new_id;
-use sqlx::{Row, SqlitePool};
+use sqlx::SqlitePool;
 
 pub struct HeldSaleRepository<'a> {
     pool: &'a SqlitePool,

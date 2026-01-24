@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Sqlite};
 
 /// Tipos de ações auditáveis
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum AuditAction {
     // Autenticação
@@ -85,7 +85,7 @@ impl std::fmt::Display for AuditAction {
 }
 
 /// Registro de auditoria
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, specta::Type)]
 pub struct AuditLog {
     pub id: String,
     pub action: String,
