@@ -11,6 +11,7 @@ use crate::HardwareState;
 pub async fn giro_invoke(
     cmd: String,
     payload: Option<Value>,
+    app_handle: tauri::AppHandle,
     app_state: State<'_, AppState>,
     hw_state: State<'_, HardwareState>,
     network_state: State<'_, tokio::sync::RwLock<crate::commands::network::NetworkState>>,
@@ -259,6 +260,7 @@ pub async fn giro_invoke(
                 .unwrap_or_default();
             match crate::commands::network::start_network_client(
                 terminal_name,
+                app_handle,
                 app_state,
                 network_state,
             )
