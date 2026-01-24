@@ -16,7 +16,7 @@ use tokio::sync::RwLock;
 #[specta::specta]
 pub async fn get_products(state: State<'_, AppState>) -> AppResult<Vec<Product>> {
     let repo = ProductRepository::with_events(state.pool(), &state.event_service);
-    repo.find_all_active().await
+    repo.find_all_active(None).await
 }
 
 #[tauri::command]
@@ -70,9 +70,12 @@ pub async fn search_products(query: String, state: State<'_, AppState>) -> AppRe
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_low_stock_products(state: State<'_, AppState>) -> AppResult<Vec<Product>> {
+pub async fn get_low_stock_products(
+    category_id: Option<String>,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<Product>> {
     let repo = ProductRepository::with_events(state.pool(), &state.event_service);
-    repo.find_low_stock().await
+    repo.find_low_stock(category_id).await
 }
 
 #[tauri::command]
@@ -291,7 +294,7 @@ pub async fn get_all_products(
     if include_inactive {
         repo.find_all().await
     } else {
-        repo.find_all_active().await
+        repo.find_all_active(None).await
     }
 }
 

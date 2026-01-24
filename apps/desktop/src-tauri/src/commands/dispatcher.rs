@@ -977,10 +977,18 @@ pub async fn giro_invoke(
             }
         }
 
-        "get_stock_report" => match crate::commands::reports::get_stock_report(app_state).await {
-            Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
-            Err(e) => Ok(InvokeResult::err(None, e.to_string())),
-        },
+        "get_stock_report" => {
+            let category_id = payload
+                .as_ref()
+                .and_then(|p| p.get("categoryId").or_else(|| p.get("category_id")))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            match crate::commands::reports::get_stock_report(category_id, app_state).await {
+                Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
+                Err(e) => Ok(InvokeResult::err(None, e.to_string())),
+            }
+        }
 
         "update_service_order_item" => {
             let val = payload.ok_or_else(|| "missing payload".to_string())?;

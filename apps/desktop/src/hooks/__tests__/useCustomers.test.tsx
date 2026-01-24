@@ -7,10 +7,18 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { useCustomers, useCustomerVehicles, useCustomerSearch } from '../useCustomers';
 
 // Mock tauri invoke
-const mockInvoke = vi.fn();
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+const { mockInvoke } = vi.hoisted(() => ({
+  mockInvoke: vi.fn(),
 }));
+
+vi.mock('@/lib/tauri', async () => {
+  const actual = await vi.importActual<any>('@/lib/tauri');
+  return {
+    ...actual,
+    invoke: mockInvoke,
+    tauriInvoke: mockInvoke,
+  };
+});
 
 // Mock toast
 const mockToast = vi.fn();

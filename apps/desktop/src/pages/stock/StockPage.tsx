@@ -8,6 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -15,19 +22,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useAuth } from '@/hooks/useAuth';
+import { useCategories } from '@/hooks/useCategories';
 import { useLowStockProducts, useStockReport } from '@/hooks/useStock';
 import { cn, formatCurrency } from '@/lib/utils';
 import {
   AlertTriangle,
   ArrowUpDown,
   Clock,
+  Filter,
   Package,
   PackageMinus,
   PackagePlus,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
-import { type FC } from 'react';
+import { type FC, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -35,29 +45,62 @@ import { Link } from 'react-router-dom';
 // ────────────────────────────────────────────────────────────────────────────
 
 export const StockPage: FC = () => {
-  const { data: report, isLoading } = useStockReport();
-  const { data: lowStockProducts = [] } = useLowStockProducts();
+  const [categoryId, setCategoryId] = useState<string>('all');
+  const { hasPermission } = useAuth();
+  const { data: categories = [] } = useCategories();
+
+  const filterId = categoryId === 'all' ? undefined : categoryId;
+  const { data: report, isLoading } = useStockReport(filterId);
+  const { data: lowStockProducts = [] } = useLowStockProducts(filterId);
+
+  const canViewValue = hasPermission('ViewStockValue');
 
   if (isLoading || !report) {
-    return <div>Carregando dashboard...</div>;
+    return (
+      <div className="flex items-center justify-center py-20" aria-live="polite">
+        Carregando dashboard de estoque...
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Estoque</h1>
           <p className="text-muted-foreground">Gerencie as entradas, saídas e inventário</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Category Filter */}
+          <div className="flex items-center gap-2 mr-2">
+            <Filter className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <Select value={categoryId} onValueChange={setCategoryId}>
+              <SelectTrigger className="w-[180px]" aria-label="Filtrar por categoria">
+                <SelectValue placeholder="Todas Categorias" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Categorias</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button variant="outline" asChild aria-label="Ver histórico de movimentações">
             <Link to="/stock/movements">
               <ArrowUpDown className="mr-2 h-4 w-4" />
               Movimentações
             </Link>
           </Button>
-          <Button asChild data-tutorial="stock-entry-button">
+          <Button
+            asChild
+            data-tutorial="stock-entry-button"
+            aria-label="Registrar nova entrada de estoque"
+          >
             <Link to="/stock/entry">
               <PackagePlus className="mr-2 h-4 w-4" />
               Nova Entrada
@@ -68,58 +111,98 @@ export const StockPage: FC = () => {
 
       {/* Cards de Resumo */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-tutorial="stock-indicators">
-        <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
+        <Card
+          className="border-none bg-card/50 backdrop-blur-sm shadow-md"
+          aria-labelledby="total-products-label"
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle id="total-products-label" className="text-sm font-medium">
+              Total de Produtos
+            </CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{report.totalProducts}</div>
-            <p className="text-xs text-muted-foreground">produtos cadastrados</p>
+            <div className="text-2xl font-bold" aria-live="polite">
+              {report.totalProducts}
+            </div>
+            <p className="text-xs text-muted-foreground">produtos filtrados</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Valor em Estoque</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(report.totalValue)}</div>
-            <p className="text-xs text-muted-foreground">a preço de custo</p>
-          </CardContent>
-        </Card>
+        {canViewValue && (
+          <Card aria-labelledby="stock-value-label">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle id="stock-value-label" className="text-sm font-medium">
+                Valor em Estoque
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold" aria-live="polite">
+                {formatCurrency(report.totalValue)}
+              </div>
+              <p className="text-xs text-muted-foreground">a preço de custo</p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className={cn(report.lowStockCount > 0 && 'border-warning')}>
+        <Card
+          className={cn(report.lowStockCount > 0 && 'border-warning')}
+          aria-labelledby="low-stock-label"
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Estoque Baixo</CardTitle>
-            <TrendingDown className="h-4 w-4 text-warning" />
+            <CardTitle id="low-stock-label" className="text-sm font-medium">
+              Estoque Baixo
+            </CardTitle>
+            <TrendingDown className="h-4 w-4 text-warning" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{report.lowStockCount}</div>
+            <div className="text-2xl font-bold text-warning" aria-live="polite">
+              {report.lowStockCount}
+            </div>
             <p className="text-xs text-muted-foreground">abaixo do mínimo</p>
           </CardContent>
         </Card>
 
-        <Card className={cn(report.outOfStockCount > 0 && 'border-destructive')}>
+        <Card
+          className={cn(report.outOfStockCount > 0 && 'border-destructive')}
+          aria-labelledby="out-of-stock-label"
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Sem Estoque</CardTitle>
-            <PackageMinus className="h-4 w-4 text-destructive" />
+            <CardTitle id="out-of-stock-label" className="text-sm font-medium">
+              Sem Estoque
+            </CardTitle>
+            <PackageMinus className="h-4 w-4 text-destructive" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{report.outOfStockCount}</div>
+            <div className="text-2xl font-bold text-destructive" aria-live="polite">
+              {report.outOfStockCount}
+            </div>
             <p className="text-xs text-muted-foreground">zerados</p>
           </CardContent>
         </Card>
 
-        <Card className={cn(report.excessStockCount > 0 && 'border-blue-500')}>
+        <Card
+          className={cn(
+            'border-none bg-blue-50/50 dark:bg-blue-900/10 shadow-sm',
+            report.excessStockCount > 0 && 'border-solid border-blue-200 dark:border-blue-800'
+          )}
+          aria-labelledby="excess-stock-label"
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Excesso de Estoque</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-500" />
+            <CardTitle
+              id="excess-stock-label"
+              className="text-sm font-medium text-blue-600 dark:text-blue-400"
+            >
+              Excesso de Estoque
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-500" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-500">{report.excessStockCount}</div>
-            <p className="text-xs text-muted-foreground">acima do máximo</p>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400" aria-live="polite">
+              {report.excessStockCount}
+            </div>
+            <p className="text-xs text-muted-foreground">acima do máximo permitido</p>
           </CardContent>
         </Card>
       </div>
@@ -130,12 +213,14 @@ export const StockPage: FC = () => {
         data-tutorial="stock-table"
       >
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-warning" />
+          <CardTitle className="flex items-center gap-2" id="low-stock-table-title">
+            <AlertTriangle className="h-5 w-5 text-warning" aria-hidden="true" />
             Produtos com Estoque Baixo
           </CardTitle>
           <CardDescription>
-            Produtos que atingiram ou estão abaixo do estoque mínimo
+            {categoryId === 'all'
+              ? 'Produtos que atingiram ou estão abaixo do estoque mínimo em todas as categorias'
+              : `Produtos que atingiram ou estão abaixo do estoque mínimo nesta categoria`}
           </CardDescription>
         </CardHeader>
         <CardContent>

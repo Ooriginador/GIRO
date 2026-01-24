@@ -95,7 +95,7 @@ describe('useServiceOrders', () => {
 
     await result.current.deliverOrder.mutateAsync({
       id: 'os-1',
-      paymentMethod: 'CASH',
+      payments: [{ method: 'CASH', amount: 150.0 }],
       amountPaid: 150.0,
       employeeId: 'emp-1',
       sessionId: 'sess-1',
@@ -103,10 +103,10 @@ describe('useServiceOrders', () => {
 
     expect(invoke).toHaveBeenCalledWith('finish_service_order', {
       id: 'os-1',
-      paymentMethod: 'CASH',
-      amountPaid: 150.0,
-      employeeId: 'emp-1',
-      cashSessionId: 'sess-1',
+      payments: [{ method: 'CASH', amount: 150.0 }],
+      amount_paid: 150.0,
+      employee_id: 'emp-1',
+      cash_session_id: 'sess-1',
     });
   });
 });

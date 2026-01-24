@@ -847,8 +847,8 @@ export async function adjustStock(
   });
 }
 
-export async function getLowStockProducts(): Promise<Product[]> {
-  return tauriInvoke<Product[]>('get_low_stock_products');
+export async function getLowStockProducts(categoryId?: string): Promise<Product[]> {
+  return tauriInvoke<Product[]>('get_low_stock_products', { category_id: categoryId });
 }
 
 export async function getExpiringLots(days: number): Promise<ProductLot[]> {
@@ -1312,8 +1312,8 @@ export async function getEmployeePerformance(
   return tauriInvoke<EmployeeRanking[]>('get_employee_performance', { startDate, endDate });
 }
 
-export async function getStockReport(): Promise<StockReport> {
-  return tauriInvoke<StockReport>('get_stock_report');
+export async function getStockReport(categoryId?: string): Promise<StockReport> {
+  return tauriInvoke<StockReport>('get_stock_report', { category_id: categoryId });
 }
 
 export async function getTopProducts(limit: number = 20): Promise<TopProduct[]> {

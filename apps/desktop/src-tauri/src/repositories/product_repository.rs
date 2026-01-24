@@ -105,11 +105,15 @@ impl<'a> ProductRepository<'a> {
         Ok(result)
     }
 
-    pub async fn find_all_active(&self) -> AppResult<Vec<Product>> {
-        let query = format!(
-            "SELECT {} FROM products WHERE is_active = 1 ORDER BY name",
+    pub async fn find_all_active(&self, category_id: Option<String>) -> AppResult<Vec<Product>> {
+        let mut query = format!(
+            "SELECT {} FROM products WHERE is_active = 1",
             self.product_columns_string()
         );
+        if let Some(cat_id) = category_id {
+            query.push_str(&format!(" AND category_id = '{}'", cat_id));
+        }
+        query.push_str(" ORDER BY name");
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -263,30 +267,42 @@ impl<'a> ProductRepository<'a> {
         Ok(result)
     }
 
-    pub async fn find_low_stock(&self) -> AppResult<Vec<Product>> {
-        let query = format!("SELECT {} FROM products WHERE is_active = 1 AND current_stock <= min_stock AND current_stock > 0 ORDER BY current_stock ASC", self.product_columns_string());
+    pub async fn find_low_stock(&self, category_id: Option<String>) -> AppResult<Vec<Product>> {
+        let mut query = format!("SELECT {} FROM products WHERE is_active = 1 AND current_stock <= min_stock AND current_stock > 0", self.product_columns_string());
+        if let Some(cat_id) = category_id {
+            query.push_str(&format!(" AND category_id = '{}'", cat_id));
+        }
+        query.push_str(" ORDER BY current_stock ASC");
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
         Ok(result)
     }
 
-    pub async fn find_out_of_stock(&self) -> AppResult<Vec<Product>> {
-        let query = format!(
-            "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= 0 ORDER BY name",
+    pub async fn find_out_of_stock(&self, category_id: Option<String>) -> AppResult<Vec<Product>> {
+        let mut query = format!(
+            "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= 0",
             self.product_columns_string()
         );
+        if let Some(cat_id) = category_id {
+            query.push_str(&format!(" AND category_id = '{}'", cat_id));
+        }
+        query.push_str(" ORDER BY name");
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
         Ok(result)
     }
 
-    pub async fn find_excess_stock(&self) -> AppResult<Vec<Product>> {
-        let query = format!(
-            "SELECT {} FROM products WHERE is_active = 1 AND max_stock IS NOT NULL AND current_stock > max_stock ORDER BY current_stock DESC",
+    pub async fn find_excess_stock(&self, category_id: Option<String>) -> AppResult<Vec<Product>> {
+        let mut query = format!(
+            "SELECT {} FROM products WHERE is_active = 1 AND max_stock IS NOT NULL AND current_stock > max_stock",
             self.product_columns_string()
         );
+        if let Some(cat_id) = category_id {
+            query.push_str(&format!(" AND category_id = '{}'", cat_id));
+        }
+        query.push_str(" ORDER BY current_stock DESC");
         let result = sqlx::query_as::<_, Product>(&query)
             .fetch_all(self.pool)
             .await?;
@@ -688,7 +704,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn get_stock_summary(&self) -> AppResult<Vec<StockSummary>> {
-        let products = self.find_all_active().await?;
+        let products = self.find_all_active(None).await?;
         let result: Vec<StockSummary> = products
             .into_iter()
             .map(|p| {

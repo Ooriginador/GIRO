@@ -337,7 +337,7 @@ mod tests {
 
         // Product created with current_stock=0, min_stock=20 → should appear in low stock
         // But need to verify if find_low_stock actually filters by current_stock <= min_stock
-        let result = repo.find_low_stock().await;
+        let result = repo.find_low_stock(None).await;
 
         assert!(result.is_ok());
         let products = result.unwrap();

@@ -63,28 +63,41 @@ pub struct EmployeeRanking {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_stock_report(state: State<'_, AppState>) -> AppResult<StockReport> {
+pub async fn get_stock_report(
+    category_id: Option<String>,
+    state: State<'_, AppState>,
+) -> AppResult<StockReport> {
     let info = state.session.require_authenticated()?;
     crate::require_permission!(state.pool(), &info.employee_id, Permission::ViewReports);
     let product_repo = ProductRepository::new(state.pool());
     let stock_repo = StockRepository::new(state.pool());
 
-    let products = product_repo.find_all_active().await?;
+    let products = product_repo.find_all_active(category_id.clone()).await?;
     let total_products = products.len() as i64;
     let total_value = products
         .iter()
         .map(|p| p.current_stock * p.cost_price)
         .sum::<f64>();
 
-    let low_stock_count = product_repo.find_low_stock().await?.len() as i64;
-    let out_of_stock_count = product_repo.find_out_of_stock().await?.len() as i64;
-    let excess_stock_count = product_repo.find_excess_stock().await?.len() as i64;
+    let low_stock_count = product_repo
+        .find_low_stock(category_id.clone())
+        .await?
+        .len() as i64;
+    let out_of_stock_count = product_repo
+        .find_out_of_stock(category_id.clone())
+        .await?
+        .len() as i64;
+    let excess_stock_count = product_repo
+        .find_excess_stock(category_id.clone())
+        .await?
+        .len() as i64;
 
     // "Expirando" em 30 dias (padrão simples)
+    // TODO: Filter lots by product category if needed
     let expiring_count = stock_repo.find_expiring_lots(30).await?.len() as i64;
 
     // Valuation por categoria
-    let category_rows = sqlx::query(
+    let mut category_query = String::from(
         r#"
         SELECT 
             COALESCE(c.name, 'Sem Categoria') as category_name,
@@ -92,12 +105,16 @@ pub async fn get_stock_report(state: State<'_, AppState>) -> AppResult<StockRepo
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.id
         WHERE p.is_active = 1
-        GROUP BY category_name
-        ORDER BY total_value DESC
-        "#,
-    )
-    .fetch_all(state.pool())
-    .await?;
+    "#,
+    );
+
+    if let Some(ref cat_id) = category_id {
+        category_query.push_str(&format!(" AND p.category_id = '{}'", cat_id));
+    }
+
+    category_query.push_str(" GROUP BY category_name ORDER BY total_value DESC");
+
+    let category_rows = sqlx::query(&category_query).fetch_all(state.pool()).await?;
 
     let mut valuation_by_category = HashMap::new();
     for row in category_rows {

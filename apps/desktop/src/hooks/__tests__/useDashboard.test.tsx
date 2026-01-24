@@ -18,6 +18,7 @@ vi.mock('@/lib/tauri', () => ({
   getUnreadAlertsCount: vi.fn(),
   getTopProducts: vi.fn(),
   getSaleById: vi.fn(),
+  getMotopartsDashboardStats: vi.fn(),
 }));
 
 const createWrapper = () => {
@@ -113,6 +114,17 @@ const mockTopProducts: { product: Product; quantity: number; revenue: number }[]
 describe('useDashboardStats', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default mock for motoparts stats
+    vi.mocked(tauriLib.getMotopartsDashboardStats).mockResolvedValue({
+      totalSalesToday: 0,
+      totalSalesYesterday: 0,
+      countSalesToday: 0,
+      openServiceOrders: 0,
+      activeWarranties: 0,
+      lowStockProducts: 0,
+      activeAlerts: 0,
+      revenueWeekly: [],
+    } as any);
   });
 
   it('should fetch dashboard stats successfully', async () => {
@@ -132,10 +144,10 @@ describe('useDashboardStats', () => {
     });
 
     expect(result.current.data).toBeDefined();
-    expect(result.current.data?.todaySales).toBe(1);
-    expect(result.current.data?.todayRevenue).toBe(1500);
+    expect(result.current.data?.countSalesToday).toBe(1);
+    expect(result.current.data?.totalSalesToday).toBe(1500);
     expect(result.current.data?.averageTicket).toBe(1500);
-    expect(result.current.data?.lowStockCount).toBe(12);
+    expect(result.current.data?.lowStockProducts).toBe(12);
     expect(result.current.data?.expiringCount).toBe(5);
     expect(result.current.data?.activeAlerts).toBe(3);
   });
@@ -162,7 +174,7 @@ describe('useDashboardStats', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data?.todaySales).toBe(3);
+    expect(result.current.data?.countSalesToday).toBe(3);
     expect(result.current.data?.averageTicket).toBe(200); // 600 / 3
   });
 
@@ -181,7 +193,7 @@ describe('useDashboardStats', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data?.todaySales).toBe(0);
+    expect(result.current.data?.countSalesToday).toBe(0);
     expect(result.current.data?.averageTicket).toBe(0);
   });
 

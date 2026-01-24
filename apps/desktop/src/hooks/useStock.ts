@@ -21,9 +21,9 @@ import { productKeys } from './use-products';
 export const stockKeys = {
   all: ['stock'] as const,
   movements: (productId?: string) => [...stockKeys.all, 'movements', productId] as const,
-  lowStock: () => [...stockKeys.all, 'lowStock'] as const,
+  lowStock: (categoryId?: string) => [...stockKeys.all, 'lowStock', categoryId] as const,
   expiringLots: (days: number) => [...stockKeys.all, 'expiringLots', days] as const,
-  report: () => [...stockKeys.all, 'report'] as const,
+  report: (categoryId?: string) => [...stockKeys.all, 'report', categoryId] as const,
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -44,10 +44,10 @@ export function useStockMovements(productId?: string) {
 /**
  * Produtos com estoque baixo
  */
-export function useLowStockProducts() {
+export function useLowStockProducts(categoryId?: string) {
   return useQuery({
-    queryKey: stockKeys.lowStock(),
-    queryFn: getLowStockProducts,
+    queryKey: stockKeys.lowStock(categoryId),
+    queryFn: () => getLowStockProducts(categoryId),
     staleTime: 5 * 60 * 1000,
     refetchInterval: 10 * 60 * 1000,
   });
@@ -69,10 +69,10 @@ export function useExpiringLots(days: number = 30) {
 /**
  * Relatório de estoque
  */
-export function useStockReport() {
+export function useStockReport(categoryId?: string) {
   return useQuery({
-    queryKey: stockKeys.report(),
-    queryFn: getStockReport,
+    queryKey: stockKeys.report(categoryId),
+    queryFn: () => getStockReport(categoryId),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -160,9 +160,9 @@ export function useAdjustStock() {
 /**
  * Dashboard de estoque
  */
-export function useStockDashboard() {
-  const { data: lowStock, isLoading: lowStockLoading } = useLowStockProducts();
-  const { data: report, isLoading: reportLoading } = useStockReport();
+export function useStockDashboard(categoryId?: string) {
+  const { data: lowStock, isLoading: lowStockLoading } = useLowStockProducts(categoryId);
+  const { data: report, isLoading: reportLoading } = useStockReport(categoryId);
 
   return {
     lowStockProducts: lowStock ?? [],

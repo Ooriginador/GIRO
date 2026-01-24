@@ -59,6 +59,13 @@ pub async fn create_stock_movement(
     let repo = StockRepository::new(state.pool());
     let result = repo.create_movement(input.clone(), allow_negative).await?;
 
+    // Fetch product name for better logging
+    let product_name: String = sqlx::query_scalar("SELECT name FROM products WHERE id = ?")
+        .bind(&input.product_id)
+        .fetch_one(state.pool())
+        .await
+        .unwrap_or_else(|_| "Produto Desconhecido".to_string());
+
     // Audit Log
     let audit_service = AuditService::new(state.pool().clone());
     let action = match input.movement_type.as_str() {
@@ -74,7 +81,10 @@ pub async fn create_stock_movement(
         &employee.name,
         "Product",
         &input.product_id,
-        format!("Quantidade: {}, Razão: {:?}", input.quantity, input.reason)
+        format!(
+            "Produto: {} | Quantidade: {} | Estoque: {} -> {} | Razão: {:?}",
+            product_name, result.quantity, result.previous_stock, result.new_stock, result.reason
+        )
     );
 
     Ok(result)
