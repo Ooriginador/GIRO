@@ -78,6 +78,17 @@ struct ActivateRequest {
     machine_name: Option<String>,
     os_version: Option<String>,
     cpu_info: Option<String>,
+    admin_data: Option<AdminRegistrationData>,
+}
+
+/// Admin registration data for inline registration during activation
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+pub struct AdminRegistrationData {
+    pub name: String,
+    pub email: String,
+    pub phone: String,
+    pub pin: String,
 }
 
 /// Admin update request
@@ -213,10 +224,14 @@ impl LicenseClient {
     }
 
     /// Activate license with hardware binding
+    ///
+    /// If `admin_data` is provided and the admin has no name set on the server,
+    /// the admin profile will be created with the provided data.
     pub async fn activate(
         &self,
         license_key: &str,
         hardware_id: &str,
+        admin_data: Option<AdminRegistrationData>,
     ) -> Result<LicenseInfo, String> {
         let url = format!(
             "{}/api/v1/licenses/{}/activate",
@@ -232,6 +247,7 @@ impl LicenseClient {
             machine_name: hostname::get().ok().and_then(|h| h.into_string().ok()),
             os_version: Some(format!("{} {}", system_info, arch_info)),
             cpu_info: None,
+            admin_data,
         };
 
         // Retry with exponential backoff on transient connection errors

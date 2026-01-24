@@ -90,7 +90,7 @@ export const ProductFormPage: FC = () => {
         maxStock: product.maxStock ?? undefined,
         initialStock: product.currentStock,
         isWeighted: product.isWeighted,
-        notes: product.notes || '',
+        notes: product.description || '',
       });
     }
   }, [product, reset]);

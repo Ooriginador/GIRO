@@ -37,7 +37,7 @@ pub async fn activate_license(
     // Normalize: Trim, uppercase, remove spaces
     let normalized_key = license_key.trim().to_uppercase().replace(" ", "");
 
-    let info = client.activate(&normalized_key, hardware_id).await?;
+    let info = client.activate(&normalized_key, hardware_id, None).await?;
 
     // Save license key and info to config
     let config_path = state
