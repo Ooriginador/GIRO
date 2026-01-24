@@ -502,40 +502,54 @@ pub fn start_serial_scanner(
     let port_path = port.to_string();
 
     std::thread::spawn(move || {
-        match serialport::new(&port_path, baud)
-            .timeout(std::time::Duration::from_millis(1000))
-            .open()
-        {
-            Ok(mut sp) => {
-                let mut buf: Vec<u8> = vec![0; 1024];
-                loop {
-                    match sp.read(buf.as_mut_slice()) {
-                        Ok(n) if n > 0 => {
-                            if let Some(code) = parse_serial_input(&buf[..n]) {
-                                let event = ScanEvent {
-                                    code: code.clone(),
-                                    format: BarcodeFormat::detect(&code),
-                                    timestamp: chrono::Utc::now().timestamp_millis(),
-                                    device_id: None,
-                                    source: ScanSource::Usb,
-                                };
-                                state.send_scan_event(event);
+        loop {
+            match serialport::new(&port_path, baud)
+                .timeout(std::time::Duration::from_millis(1000))
+                .open()
+            {
+                Ok(mut sp) => {
+                    tracing::info!("Serial scanner connected on {}", port_path);
+                    let mut buf: Vec<u8> = vec![0; 1024];
+                    loop {
+                        match sp.read(buf.as_mut_slice()) {
+                            Ok(n) if n > 0 => {
+                                if let Some(code) = parse_serial_input(&buf[..n]) {
+                                    let event = ScanEvent {
+                                        code: code.clone(),
+                                        format: BarcodeFormat::detect(&code),
+                                        timestamp: chrono::Utc::now().timestamp_millis(),
+                                        device_id: None,
+                                        source: ScanSource::Usb,
+                                    };
+                                    state.send_scan_event(event);
+                                }
                             }
-                        }
-                        Ok(_) => {
-                            // no data
-                        }
-                        Err(e) => {
-                            // read timeout or error - continue
-                            tracing::debug!("serial read error on {}: {}", port_path, e);
-                            std::thread::sleep(std::time::Duration::from_millis(200));
+                            Ok(_) => {
+                                // no data
+                            }
+                            Err(e) => {
+                                if e.kind() == std::io::ErrorKind::TimedOut {
+                                    std::thread::sleep(std::time::Duration::from_millis(100));
+                                    continue;
+                                }
+                                // read error - disconnect
+                                tracing::error!(
+                                    "Serial read error on {}: {}. Reconnecting...",
+                                    port_path,
+                                    e
+                                );
+                                break;
+                            }
                         }
                     }
                 }
+                Err(e) => {
+                    tracing::error!("Failed to open serial port {}: {}", port_path, e);
+                }
             }
-            Err(e) => {
-                tracing::error!("Failed to open serial port {}: {}", port_path, e);
-            }
+
+            // Wait before retrying
+            std::thread::sleep(std::time::Duration::from_secs(5));
         }
     });
 

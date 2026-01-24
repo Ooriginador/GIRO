@@ -458,41 +458,78 @@ impl ThermalPrinter {
     ///
     /// Observação: isso funciona tipicamente em Linux via `/dev/usb/lp0`.
     /// Em Windows, recomenda-se usar interface Serial/COM (driver virtual COM).
+    /// Envia para a impressora via dispositivo USB (raw)
+    /// e.g. Linux: `/dev/usb/lp0`
+    /// e.g. Windows: `\\localhost\printer` ou `LPT1`
     pub fn print_usb(&self) -> HardwareResult<()> {
         if self.config.mock_mode {
-            tracing::info!("[Printer] MOCK PRINT (USB)");
+            tracing::info!("[Printer] MOCK PRINT (USB/Raw)");
             return Ok(());
         }
         if !self.config.enabled {
             return Ok(());
         }
 
-        let candidates: Vec<String> = if !self.config.port.trim().is_empty() {
-            vec![self.config.port.clone()]
-        } else {
-            let mut c = vec!["/dev/lp0".to_string(), "/dev/lp1".to_string()];
-            for i in 0..10 {
-                c.push(format!("/dev/usb/lp{}", i));
+        #[cfg(target_os = "linux")]
+        {
+            let candidates: Vec<String> = if !self.config.port.trim().is_empty() {
+                vec![self.config.port.clone()]
+            } else {
+                let mut c = vec!["/dev/lp0".to_string(), "/dev/lp1".to_string()];
+                for i in 0..10 {
+                    c.push(format!("/dev/usb/lp{}", i));
+                }
+                c
+            };
+
+            let Some(device_path) = candidates.into_iter().find(|p| Path::new(p).exists()) else {
+                return Err(HardwareError::DeviceNotFound(
+                    "Dispositivo USB da impressora não encontrado (tente configurar a porta, ex: /dev/usb/lp0)".into(),
+                ));
+            };
+
+            let mut dev = OpenOptions::new()
+                .write(true)
+                .open(&device_path)
+                .map_err(HardwareError::IoError)?;
+
+            dev.write_all(&self.buffer)
+                .map_err(HardwareError::IoError)?;
+            dev.flush().map_err(HardwareError::IoError)?;
+
+            Ok(())
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            let port = self.config.port.trim();
+            if port.is_empty() {
+                return Err(HardwareError::NotConfigured(
+                    "Para Windows, a porta USB deve ser o caminho do compartilhamento (ex: \\\\localhost\\impressora) ou LPTx".into()
+                ));
             }
-            c
-        };
 
-        let Some(device_path) = candidates.into_iter().find(|p| Path::new(p).exists()) else {
-            return Err(HardwareError::DeviceNotFound(
-                "Dispositivo USB da impressora não encontrado (tente configurar a porta, ex: /dev/usb/lp0)".into(),
-            ));
-        };
+            // Tenta abrir como arquivo (funciona para LPT, COM mapeada, e UNC path)
+            let mut dev = OpenOptions::new().write(true).open(port).map_err(|e| {
+                HardwareError::ConnectionFailed(format!(
+                    "Falha ao abrir impressora windows '{}': {}",
+                    port, e
+                ))
+            })?;
 
-        let mut dev = OpenOptions::new()
-            .write(true)
-            .open(&device_path)
-            .map_err(HardwareError::IoError)?;
+            dev.write_all(&self.buffer)
+                .map_err(HardwareError::IoError)?;
+            dev.flush().map_err(HardwareError::IoError)?;
 
-        dev.write_all(&self.buffer)
-            .map_err(HardwareError::IoError)?;
-        dev.flush().map_err(HardwareError::IoError)?;
+            Ok(())
+        }
 
-        Ok(())
+        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+        {
+            Err(HardwareError::NotConfigured(
+                "Sistema operacional não suportado para impressão USB/Raw".into(),
+            ))
+        }
     }
 
     /// Envia para impressora via rede
@@ -529,8 +566,8 @@ impl ThermalPrinter {
         }
     }
 
-    /// Imprime página de teste
-    pub async fn test_print(&mut self) -> HardwareResult<()> {
+    /// Constrói página de teste no buffer
+    pub fn build_test_page(&mut self) -> &mut Self {
         self.init();
 
         self.align(TextAlign::Center);
@@ -576,6 +613,12 @@ impl ThermalPrinter {
             self.feed(4);
         }
 
+        self
+    }
+
+    /// Imprime página de teste
+    pub async fn test_print(&mut self) -> HardwareResult<()> {
+        self.build_test_page();
         self.print().await
     }
 }

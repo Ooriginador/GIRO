@@ -377,11 +377,14 @@ impl<'a> ProductRepository<'a> {
         // Validation Warning
         self.validate_product_logic(&data.name, data.sale_price, cost_price);
 
+        // Treat empty barcode as NULL to allow uniqueness constraint
+        let barcode = data.barcode.filter(|s| !s.trim().is_empty());
+
         sqlx::query(
             "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, max_stock, is_active, category_id, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, (datetime('now')), (datetime('now')))"
         )
         .bind(&id)
-        .bind(&data.barcode)
+        .bind(barcode)
         .bind(&internal_code)
         .bind(&data.name)
         .bind(&data.description)
@@ -461,7 +464,17 @@ impl<'a> ProductRepository<'a> {
         let now = chrono::Utc::now().to_rfc3339();
 
         let name = data.name.unwrap_or(existing.name);
-        let barcode = data.barcode.or(existing.barcode);
+
+        // Handle barcode update:
+        // if data.barcode is Some(""), set to None (NULL)
+        // if data.barcode is Some("val"), set to "val"
+        // if data.barcode is None, keep existing
+        let barcode = match data.barcode {
+            Some(s) if s.trim().is_empty() => None,
+            Some(s) => Some(s),
+            None => existing.barcode,
+        };
+
         let description = data.description.or(existing.description);
         let unit = data
             .unit
