@@ -314,11 +314,6 @@ impl NetworkClient {
         Ok(())
     }
 
-    async fn send_sync_full(&self, tx: &mpsc::Sender<ClientCommand>) {
-        // Envia comando interno para usar o writer do loop
-        let _ = tx.send(ClientCommand::SyncFull).await;
-    }
-
     async fn handle_event(&self, event: MobileEvent) {
         match event.event.as_str() {
             "product.updated" => {
