@@ -216,7 +216,7 @@ export const PDVPage: FC = () => {
         {/* Área de Itens (60%) */}
         <section role="region" aria-label="Área de itens" className="flex flex-[3] flex-col gap-4">
           {/* Barra de Busca */}
-          <Card className="p-4">
+          <Card className="p-4 border-none bg-card/50 backdrop-blur-sm shadow-md">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -243,7 +243,7 @@ export const PDVPage: FC = () => {
           </Card>
 
           {/* Seleção de Cliente */}
-          <Card className="p-4">
+          <Card className="p-4 border-none bg-card/50 backdrop-blur-sm shadow-md">
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <Label className="mb-2 block text-sm font-medium">Cliente (Opcional)</Label>
@@ -257,7 +257,7 @@ export const PDVPage: FC = () => {
           </Card>
 
           {/* Lista de Itens */}
-          <Card className="flex-1 overflow-hidden">
+          <Card className="flex-1 overflow-hidden border-none bg-card/50 backdrop-blur-sm shadow-md">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
@@ -309,7 +309,7 @@ export const PDVPage: FC = () => {
           className="flex w-80 flex-col gap-4"
         >
           {/* Resumo */}
-          <Card className="p-4">
+          <Card className="p-4 border-none bg-card/50 backdrop-blur-sm shadow-md">
             <div className="space-y-4">
               {/* Subtotal */}
               <div className="flex justify-between text-lg">
@@ -341,7 +341,7 @@ export const PDVPage: FC = () => {
           </Card>
 
           {/* Ações de Pagamento */}
-          <Card className="flex-1 p-4">
+          <Card className="flex-1 p-4 border-none bg-card/50 backdrop-blur-sm shadow-md">
             <div className="flex h-full flex-col gap-3">
               <h3 className="mb-2 text-lg font-semibold">Finalizar Venda</h3>
 
@@ -393,7 +393,7 @@ export const PDVPage: FC = () => {
           </Card>
 
           {/* Atalhos de Teclado */}
-          <Card className="p-3">
+          <Card className="p-3 border-none bg-card/50 backdrop-blur-sm shadow-md">
             <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <span className="kbd">F2</span>

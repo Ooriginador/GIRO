@@ -38,6 +38,7 @@ const productSchema = z.object({
   costPrice: z.number().min(0, 'Custo não pode ser negativo').optional(),
   minStock: z.number().min(0).default(0),
   maxStock: z.number().min(0).optional(),
+  initialStock: z.number().min(0).default(0),
   isWeighted: z.boolean().default(false),
 });
 
@@ -69,6 +70,7 @@ export const ProductFormPage: FC = () => {
     defaultValues: {
       unit: 'UNIT',
       minStock: 0,
+      initialStock: 0,
       isWeighted: false,
     },
   });
@@ -85,6 +87,7 @@ export const ProductFormPage: FC = () => {
         costPrice: product.costPrice,
         minStock: product.minStock,
         maxStock: product.maxStock ?? undefined,
+        initialStock: product.currentStock,
         isWeighted: product.isWeighted,
       });
     }
@@ -111,6 +114,7 @@ export const ProductFormPage: FC = () => {
         await createProduct.mutateAsync({
           ...data,
           costPrice: data.costPrice ?? 0,
+          currentStock: data.initialStock,
           unit: data.unit as unknown as ProductUnit,
         });
         toast({
@@ -231,6 +235,7 @@ export const ProductFormPage: FC = () => {
                           <SelectItem value="LITER">Litro (L)</SelectItem>
                           <SelectItem value="MILLILITER">Mililitro (ml)</SelectItem>
                           <SelectItem value="METER">Metro (m)</SelectItem>
+                          <SelectItem value="CENTIMETER">Centímetro (cm)</SelectItem>
                           <SelectItem value="BOX">Caixa (cx)</SelectItem>
                           <SelectItem value="PACK">Pacote (pct)</SelectItem>
                           <SelectItem value="DOZEN">Dúzia (dz)</SelectItem>
@@ -386,6 +391,22 @@ export const ProductFormPage: FC = () => {
                   Sugestão de compra quando o estoque estiver baixo
                 </p>
               </div>
+
+              {!isEditing && (
+                <div className="space-y-2">
+                  <Label htmlFor="initialStock">Estoque Inicial</Label>
+                  <Input
+                    id="initialStock"
+                    type="number"
+                    min="0"
+                    {...register('initialStock', { valueAsNumber: true })}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Quantidade em estoque no momento do cadastro
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

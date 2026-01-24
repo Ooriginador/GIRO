@@ -46,10 +46,11 @@ export function useDashboardStats() {
       return {
         countSalesToday: todaySalesCount,
         totalSalesToday: todaySalesTotal,
+        totalSalesYesterday: motopartsStats.totalSalesYesterday || 0,
         averageTicket,
         lowStockProducts: stockReport.lowStockCount,
         expiringCount: stockReport.expiringCount,
-        activeAlerts: unreadAlerts,
+        activeAlerts: motopartsStats.activeAlerts || unreadAlerts || 0,
         recentSales: recentSalesBase.map((sale, index) => {
           const details = recentSalesDetails[index] as unknown as { items?: unknown[] } | null;
           const itemsCount = Array.isArray(details?.items) ? details!.items.length : 0;

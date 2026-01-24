@@ -13,6 +13,7 @@ import {
   useMarkAlertAsRead,
   useRefreshAlerts,
 } from '@/hooks/useAlerts';
+import { cn } from '@/lib/utils';
 import type { Alert, AlertSeverity, AlertType } from '@/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -199,7 +200,12 @@ export const AlertsPage: FC = () => {
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className={lowStockAlerts.some((a: Alert) => !a.isRead) ? 'border-warning' : ''}>
+        <Card
+          className={cn(
+            'border-none bg-card/50 backdrop-blur-sm shadow-md',
+            lowStockAlerts.some((a: Alert) => !a.isRead) && 'border-l-4 border-l-warning'
+          )}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Estoque Baixo</CardTitle>
             <TrendingDown className="h-4 w-4 text-warning" />
@@ -213,7 +219,10 @@ export const AlertsPage: FC = () => {
         </Card>
 
         <Card
-          className={expirationAlerts.some((a: Alert) => !a.isRead) ? 'border-destructive' : ''}
+          className={cn(
+            'border-none bg-card/50 backdrop-blur-sm shadow-md',
+            expirationAlerts.some((a: Alert) => !a.isRead) && 'border-l-4 border-l-destructive'
+          )}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Vencimentos</CardTitle>
@@ -227,7 +236,7 @@ export const AlertsPage: FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Alertas</CardTitle>
             <Bell className="h-4 w-4 text-muted-foreground" />
@@ -240,7 +249,7 @@ export const AlertsPage: FC = () => {
       </div>
 
       {/* Alerts List */}
-      <Card>
+      <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>

@@ -136,7 +136,6 @@ export const useLicenseStore = create<LicenseStore>()(
       },
 
       hydrateFromDisk: async () => {
-        console.log('[LicenseStore] Hydrating from disk...');
         try {
           let data: {
             key?: string;
@@ -162,8 +161,6 @@ export const useLicenseStore = create<LicenseStore>()(
             return;
           }
 
-          console.log('[LicenseStore] Data from disk:', data);
-
           if (data && data.key) {
             const info = data.info || null;
             const lastVal = data.last_validated_at || data.activated_at || null;
@@ -175,13 +172,8 @@ export const useLicenseStore = create<LicenseStore>()(
               const now = Date.now();
               // Se validado nos últimos 7 dias, consideramos válido imediatamente para evitar bloqueios
               if (now - lastCheck < GRACE_PERIOD_MS) {
-                console.log('[LicenseStore] Within grace period, setting state to valid');
                 initialState = 'valid';
-              } else {
-                console.log('[LicenseStore] Outside grace period, setting state to loading');
               }
-            } else {
-              console.log('[LicenseStore] License info not active, setting state to loading');
             }
 
             set({
@@ -192,7 +184,6 @@ export const useLicenseStore = create<LicenseStore>()(
               isHydrated: true,
             });
           } else {
-            console.log('[LicenseStore] No key found on disk, setting unlicensed');
             set({
               licenseKey: null,
               licenseInfo: null,

@@ -221,7 +221,7 @@ export const StockEntryPage: FC = () => {
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Data de Fabricação */}
                 <div className="space-y-2">
-                  <Label>Data de Fabricação</Label>
+                  <Label className="text-muted-foreground">Data de Fabricação (Opcional)</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -251,7 +251,7 @@ export const StockEntryPage: FC = () => {
 
                 {/* Data de Validade */}
                 <div className="space-y-2">
-                  <Label>Data de Validade</Label>
+                  <Label className="text-muted-foreground">Data de Validade (Opcional)</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button

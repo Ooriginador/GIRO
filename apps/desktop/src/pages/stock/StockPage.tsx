@@ -68,7 +68,7 @@ export const StockPage: FC = () => {
 
       {/* Cards de Resumo */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
@@ -125,7 +125,7 @@ export const StockPage: FC = () => {
       </div>
 
       {/* Produtos com Estoque Baixo */}
-      <Card>
+      <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-warning" />

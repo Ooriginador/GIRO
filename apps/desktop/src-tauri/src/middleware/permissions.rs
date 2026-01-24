@@ -183,7 +183,9 @@ impl Permission {
                     Permission::ViewServiceOrders,
                     Permission::CreateServiceOrder,
                     Permission::UpdateServiceOrder,
+                    Permission::FinishServiceOrder,
                     Permission::ViewServices,
+                    Permission::ViewVehicles,
                 ]
             }
             EmployeeRole::Viewer => {

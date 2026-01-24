@@ -4,10 +4,12 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct DashboardStats {
     pub total_sales_today: f64,
+    pub total_sales_yesterday: f64,
     pub count_sales_today: i32,
     pub open_service_orders: i32,
     pub active_warranties: i32,
     pub low_stock_products: i32,
+    pub active_alerts: i32,
     pub revenue_weekly: Vec<DailyRevenue>,
 }
 

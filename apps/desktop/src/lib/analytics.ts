@@ -28,8 +28,6 @@ export function trackEvent(event: string, properties?: Record<string, unknown>):
     properties: sanitizeProperties(properties),
     timestamp: new Date().toISOString(),
   });
-
-  console.log('[Analytics]', event, properties);
 }
 
 /**

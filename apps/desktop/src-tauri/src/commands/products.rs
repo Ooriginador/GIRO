@@ -19,6 +19,28 @@ pub async fn get_products(state: State<'_, AppState>) -> AppResult<Vec<Product>>
 
 #[tauri::command]
 #[specta::specta]
+pub async fn get_products_paginated(
+    state: State<'_, AppState>,
+    page: Option<i32>,
+    per_page: Option<i32>,
+    search: Option<String>,
+    category_id: Option<String>,
+    is_active: Option<bool>,
+) -> AppResult<crate::models::PaginatedResult<Product>> {
+    let repo = ProductRepository::new(state.pool());
+    let pagination =
+        crate::repositories::Pagination::new(page.unwrap_or(1), per_page.unwrap_or(50));
+    let filters = crate::models::ProductFilters {
+        search,
+        category_id,
+        is_active,
+        ..Default::default()
+    };
+    repo.find_paginated(&pagination, &filters).await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn get_product_by_id(
     id: String,
     state: State<'_, AppState>,

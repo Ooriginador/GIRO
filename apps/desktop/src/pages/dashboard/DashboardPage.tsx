@@ -3,82 +3,9 @@
  * @description Dashboard com KPIs e resumo do dia
  */
 
-import { MotopartsDashboard } from '@/components/motoparts';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useDashboardStats } from '@/hooks/useDashboard';
-import { formatCurrency } from '@/lib/formatters';
-import { useBusinessProfile } from '@/stores/useBusinessProfile';
-import {
-  AlertTriangle,
-  ArrowDownRight,
-  ArrowUpRight,
-  DollarSign,
-  Package,
-  ShoppingCart,
-  TrendingUp,
-} from 'lucide-react';
-import { type FC } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { StatCard } from '@/components/dashboard/StatCard';
 
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  description?: string;
-  icon: typeof ShoppingCart;
-  trend?: {
-    value: number;
-    isPositive: boolean;
-  };
-  variant?: 'default' | 'success' | 'warning' | 'destructive';
-}
-
-export const StatCard: FC<StatCardProps> = ({
-  title,
-  value,
-  description,
-  icon: Icon,
-  trend,
-  variant = 'default',
-}) => {
-  const variantStyles = {
-    default: 'bg-primary/10 text-primary',
-    success: 'bg-success/10 text-success',
-    warning: 'bg-warning/10 text-warning',
-    destructive: 'bg-destructive/10 text-destructive',
-  };
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className={`rounded-full p-2 ${variantStyles[variant]}`}>
-          <Icon className="h-4 w-4" />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
-        {trend && (
-          <div className="flex items-center gap-1 mt-2">
-            {trend.isPositive ? (
-              <ArrowUpRight className="h-4 w-4 text-success" />
-            ) : (
-              <ArrowDownRight className="h-4 w-4 text-destructive" />
-            )}
-            <span
-              className={`text-xs font-medium ${
-                trend.isPositive ? 'text-success' : 'text-destructive'
-              }`}
-            >
-              {trend.value}% vs ontem
-            </span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
+// StatCard interface moved to its own component file
 
 export const DashboardPage: FC = () => {
   const { businessType } = useBusinessProfile();
@@ -131,7 +58,17 @@ export const DashboardPage: FC = () => {
         <StatCard
           title="Faturamento"
           value={formatCurrency(data.totalSalesToday)}
-          description="receita do dia"
+          trend={
+            data.totalSalesYesterday > 0
+              ? {
+                  value: Math.round(
+                    ((data.totalSalesToday - data.totalSalesYesterday) / data.totalSalesYesterday) *
+                      100
+                  ),
+                  isPositive: data.totalSalesToday >= data.totalSalesYesterday,
+                }
+              : undefined
+          }
           icon={DollarSign}
           variant="success"
         />
@@ -140,6 +77,7 @@ export const DashboardPage: FC = () => {
           value={formatCurrency(data.averageTicket)}
           description="por venda"
           icon={TrendingUp}
+          variant="blue"
         />
         <StatCard
           title="Alertas Ativos"
@@ -153,7 +91,7 @@ export const DashboardPage: FC = () => {
       {/* Content */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Vendas Recentes */}
-        <Card>
+        <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
           <CardHeader>
             <CardTitle>Vendas Recentes</CardTitle>
             <CardDescription>Últimas vendas realizadas</CardDescription>
@@ -189,7 +127,7 @@ export const DashboardPage: FC = () => {
         </Card>
 
         {/* Produtos Mais Vendidos */}
-        <Card>
+        <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
           <CardHeader>
             <CardTitle>Produtos Mais Vendidos</CardTitle>
             <CardDescription>Top 5 do dia</CardDescription>
@@ -226,7 +164,7 @@ export const DashboardPage: FC = () => {
       </div>
 
       {/* Quick Actions */}
-      <Card>
+      <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
         <CardHeader>
           <CardTitle>Ações Rápidas</CardTitle>
         </CardHeader>

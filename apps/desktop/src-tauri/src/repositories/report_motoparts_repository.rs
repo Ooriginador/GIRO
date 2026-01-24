@@ -21,7 +21,18 @@ impl ReportMotopartsRepository {
                 COALESCE(SUM(total), 0.0) as "total!: f64",
                 COUNT(id) as "count!: i64"
             FROM sales 
-            WHERE date(created_at) = date('now')
+            WHERE date(created_at) = date('now') AND status != 'CANCELED'
+            "#
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        // Vendas ontem (mesmo horário para comparação justa se desejar, mas aqui pegaremos o dia todo)
+        let sales_yesterday = sqlx::query!(
+            r#"
+            SELECT COALESCE(SUM(total), 0.0) as "total!: f64"
+            FROM sales 
+            WHERE date(created_at) = date('now', '-1 day') AND status != 'CANCELED'
             "#
         )
         .fetch_one(&self.pool)
@@ -38,17 +49,17 @@ impl ReportMotopartsRepository {
         .fetch_one(&self.pool)
         .await?;
 
-        // Garantias Ativas - DISABLED: warranty_claims table not created
-        let active_warranties_count = 0; // Hardcoded until table is created
-                                         // let active_warranties = sqlx::query!(
-                                         //     r#"
-                                         //     SELECT COUNT(id) as count
-                                         //     FROM warranty_claims
-                                         //     WHERE status IN ('OPEN', 'IN_PROGRESS', 'APPROVED')
-                                         //     "#
-                                         // )
-                                         // .fetch_one(&self.pool)
-                                         // .await?;
+        // Garantias Ativas - Tentando buscar da tabela
+        let active_warranties_count = sqlx::query_scalar!(
+            r#"
+            SELECT COUNT(id) as "count: i64"
+            FROM warranties
+            WHERE status IN ('ACTIVE', 'PENDING')
+            "#
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(0);
 
         // Estoque Baixo
         let low_stock = sqlx::query!(
@@ -61,8 +72,19 @@ impl ReportMotopartsRepository {
         .fetch_one(&self.pool)
         .await?;
 
+        // Alertas Ativos (Unread)
+        let active_alerts = sqlx::query_scalar!(
+            r#"
+            SELECT COUNT(id) as "count: i64"
+            FROM alerts
+            WHERE is_read = 0
+            "#
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(0);
+
         // Receita Semanal (Últimos 7 dias)
-        // Agregando Sales e ServiceOrders (Delivered)
         let revenue_weekly_rows = sqlx::query!(
             r#"
             WITH RECURSIVE dates(date) AS (
@@ -76,7 +98,7 @@ impl ReportMotopartsRepository {
                 dates.date as "date!: String",
                 (COALESCE(SUM(s.total), 0.0) + COALESCE(SUM(so.total), 0.0)) as "amount!: f64"
             FROM dates
-            LEFT JOIN sales s ON date(s.created_at) = dates.date
+            LEFT JOIN sales s ON date(s.created_at) = dates.date AND s.status != 'CANCELED'
             LEFT JOIN service_orders so ON date(so.completed_at) = dates.date AND so.status = 'DELIVERED'
             GROUP BY dates.date
             ORDER BY dates.date
@@ -95,10 +117,12 @@ impl ReportMotopartsRepository {
 
         Ok(DashboardStats {
             total_sales_today: sales_today.total,
+            total_sales_yesterday: sales_yesterday.total,
             count_sales_today: sales_today.count as i32,
             open_service_orders: open_os.count as i32,
-            active_warranties: active_warranties_count,
+            active_warranties: active_warranties_count as i32,
             low_stock_products: low_stock.count as i32,
+            active_alerts: active_alerts as i32,
             revenue_weekly,
         })
     }

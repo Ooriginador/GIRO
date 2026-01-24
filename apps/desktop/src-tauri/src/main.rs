@@ -23,6 +23,7 @@ async fn main() {
     {
         let builder = tauri_specta::Builder::<tauri::Wry>::new().commands(collect_commands![
             commands::get_products,
+            commands::get_products_paginated,
             commands::get_product_by_id,
             commands::get_product_by_barcode,
             commands::search_products,
@@ -415,6 +416,7 @@ async fn main() {
         .invoke_handler(tauri::generate_handler![
             // Produtos
             commands::get_products,
+            commands::get_products_paginated,
             commands::get_product_by_id,
             commands::get_product_by_barcode,
             commands::search_products,

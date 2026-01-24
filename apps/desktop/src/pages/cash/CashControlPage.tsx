@@ -268,7 +268,7 @@ export const CashControlPage: FC = () => {
 
       {/* Movimentações */}
       {isOpen && (
-        <Card>
+        <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
           <CardHeader>
             <CardTitle>Movimentações</CardTitle>
             <CardDescription>Entradas e saídas do caixa</CardDescription>
@@ -330,7 +330,7 @@ export const CashControlPage: FC = () => {
       {isOpen && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card>
+            <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">Vendas</CardTitle>
                 <ArrowUpRight className="h-4 w-4 text-green-600" />
@@ -382,7 +382,7 @@ export const CashControlPage: FC = () => {
           </div>
 
           {/* Formas de Pagamento */}
-          <Card>
+          <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
             <CardHeader>
               <CardTitle>Formas de Pagamento</CardTitle>
               <CardDescription>Resumo por método de pagamento</CardDescription>

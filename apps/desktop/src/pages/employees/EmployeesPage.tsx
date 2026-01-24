@@ -50,6 +50,7 @@ import {
 import { type Employee, type EmployeeRole } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  Check,
   Edit,
   Mail,
   MoreHorizontal,
@@ -315,7 +316,7 @@ export const EmployeesPage: FC = () => {
           </div>
         ) : (
           filteredEmployees.map((employee) => (
-            <Card key={employee.id}>
+            <Card key={employee.id} className="border-none bg-card/50 backdrop-blur-sm shadow-md">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{employee.name}</CardTitle>
                 <DropdownMenu>
@@ -389,7 +390,7 @@ export const EmployeesPage: FC = () => {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[580px]">
           <DialogHeader>
             <DialogTitle>{editingEmployee ? 'Editar Funcionário' : 'Novo Funcionário'}</DialogTitle>
             <DialogDescription>Preencha os dados abaixo.</DialogDescription>
@@ -444,21 +445,80 @@ export const EmployeesPage: FC = () => {
                 name="role"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cargo</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o cargo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="CASHIER">Operador de Caixa</SelectItem>
-                        <SelectItem value="STOCKER">Estoquista</SelectItem>
-                        <SelectItem value="MANAGER">Gerente</SelectItem>
-                        <SelectItem value="ADMIN">Administrador</SelectItem>
-                        <SelectItem value="VIEWER">Visualizador</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Perfil de Acesso</FormLabel>
+                    <FormDescription className="text-xs">
+                      Escolha o perfil que define as permissões do funcionário
+                    </FormDescription>
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      {[
+                        {
+                          value: 'ADMIN',
+                          label: 'Administrador',
+                          icon: '👑',
+                          color: 'border-purple-500 bg-purple-500/10',
+                          permissions: ['Acesso Total', 'Configurações', 'Funcionários'],
+                        },
+                        {
+                          value: 'MANAGER',
+                          label: 'Gerente',
+                          icon: '📊',
+                          color: 'border-blue-500 bg-blue-500/10',
+                          permissions: ['Vendas', 'Estoque', 'Relatórios', 'Caixa'],
+                        },
+                        {
+                          value: 'CASHIER',
+                          label: 'Operador de Caixa',
+                          icon: '💰',
+                          color: 'border-green-500 bg-green-500/10',
+                          permissions: ['PDV', 'Vendas', 'Caixa', 'Clientes'],
+                        },
+                        {
+                          value: 'STOCKER',
+                          label: 'Estoquista',
+                          icon: '📦',
+                          color: 'border-orange-500 bg-orange-500/10',
+                          permissions: ['Produtos', 'Estoque', 'Fornecedores'],
+                        },
+                        {
+                          value: 'VIEWER',
+                          label: 'Visualizador',
+                          icon: '👁️',
+                          color: 'border-gray-500 bg-gray-500/10',
+                          permissions: ['Somente Leitura'],
+                        },
+                      ].map((role) => (
+                        <button
+                          key={role.value}
+                          type="button"
+                          onClick={() => field.onChange(role.value)}
+                          className={`relative flex flex-col items-start p-3 rounded-lg border-2 transition-all text-left hover:shadow-md ${
+                            field.value === role.value
+                              ? `${role.color} ring-2 ring-offset-2 ring-primary`
+                              : 'border-muted bg-card hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">{role.icon}</span>
+                            <span className="font-semibold text-sm">{role.label}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {role.permissions.map((perm) => (
+                              <span
+                                key={perm}
+                                className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                              >
+                                {perm}
+                              </span>
+                            ))}
+                          </div>
+                          {field.value === role.value && (
+                            <div className="absolute top-1 right-1">
+                              <Check className="h-4 w-4 text-primary" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

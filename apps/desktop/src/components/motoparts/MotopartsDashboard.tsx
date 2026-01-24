@@ -1,15 +1,24 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { StatCard } from '@/components/dashboard/StatCard';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, DollarSign, Package, TrendingUp, Wrench } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import {
   getMotopartsDashboardStats,
   getServiceOrderStats,
   getTopProductsMotoparts,
 } from '@/lib/tauri';
 import { DashboardStats, ServiceOrderStats, TopItem } from '@/types';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 export function MotopartsDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -80,56 +89,53 @@ export function MotopartsDashboard() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vendas Hoje</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats?.totalSalesToday || 0)}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.countSalesToday} transações hoje
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Vendas Hoje"
+          value={formatCurrency(stats?.totalSalesToday || 0)}
+          trend={
+            stats?.totalSalesYesterday && stats.totalSalesYesterday > 0
+              ? {
+                  value: Math.round(
+                    ((stats.totalSalesToday - stats.totalSalesYesterday) /
+                      stats.totalSalesYesterday) *
+                      100
+                  ),
+                  isPositive: stats.totalSalesToday >= stats.totalSalesYesterday,
+                }
+              : undefined
+          }
+          icon={DollarSign}
+          variant="success"
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">OS em Aberto</CardTitle>
-            <Wrench className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.openServiceOrders}</div>
-            <p className="text-xs text-muted-foreground">Ordens de serviço ativas</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="OS em Aberto"
+          value={stats?.openServiceOrders || 0}
+          description="Ordens de serviço ativas"
+          icon={Wrench}
+          variant="default"
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ticket Médio (OS)</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(soStats?.averageTicket || 0)}</div>
-            <p className="text-xs text-muted-foreground">Baseado em OS finalizadas</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Ticket Médio (OS)"
+          value={formatCurrency(soStats?.averageTicket || 0)}
+          description="Baseado em OS finalizadas"
+          icon={TrendingUp}
+          variant="blue"
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Estoque Baixo</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats?.lowStockProducts}</div>
-            <p className="text-xs text-muted-foreground">Produtos precisam de reposição</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Estoque Baixo"
+          value={stats?.lowStockProducts || 0}
+          description="Produtos precisam de reposição"
+          icon={AlertTriangle}
+          variant={(stats?.lowStockProducts || 0) > 0 ? 'destructive' : 'default'}
+        />
       </div>
 
       {/* Charts Section */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+        <Card className="col-span-4 border-none bg-card/50 backdrop-blur-sm shadow-md">
           <CardHeader>
             <CardTitle>Receita Semanal</CardTitle>
             <CardDescription>Vendas + Serviços nos últimos 7 dias.</CardDescription>
@@ -137,8 +143,18 @@ export function MotopartsDashboard() {
           <CardContent className="pl-2">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats?.revenueWeekly || []}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <AreaChart data={stats?.revenueWeekly || []}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--muted))"
+                  />
                   <XAxis
                     dataKey="date"
                     tickFormatter={(value) =>
@@ -147,24 +163,26 @@ export function MotopartsDashboard() {
                         month: '2-digit',
                       })
                     }
-                    stroke="#888888"
+                    stroke="hsl(var(--muted-foreground))"
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
+                    dy={10}
                   />
                   <YAxis
-                    stroke="#888888"
+                    stroke="hsl(var(--muted-foreground))"
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(value) => `R$${value}`}
                   />
                   <Tooltip
-                    cursor={{ fill: 'transparent' }}
                     contentStyle={{
                       backgroundColor: 'hsl(var(--popover))',
                       borderColor: 'hsl(var(--border))',
                       borderRadius: 'var(--radius)',
+                      fontSize: '12px',
+                      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                     }}
                     formatter={(value: number) => [formatCurrency(value), 'Receita']}
                     labelFormatter={(label) =>
@@ -175,8 +193,15 @@ export function MotopartsDashboard() {
                       })
                     }
                   />
-                  <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                  <Area
+                    type="monotone"
+                    dataKey="amount"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorRevenue)"
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </CardContent>

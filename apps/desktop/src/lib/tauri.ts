@@ -452,8 +452,6 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
 
   try {
     if (isTauriRuntime()) {
-      console.log('[Tauri.invoke] %s %o', command, finalArgs);
-
       // Prefer dispatcher `giro_invoke` to provide a unified envelope and better error handling.
       // If dispatcher returns `not_found`, fallback to direct command invocation.
       const dispRaw = await withTimeout(
@@ -461,7 +459,6 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
         DEFAULT_INVOKE_TIMEOUT,
         `Timeout invoking dispatcher for ${command}`
       );
-      console.log('[Tauri.dispatcher.result] %s %o', command, dispRaw);
 
       if (dispRaw && typeof dispRaw === 'object' && 'ok' in (dispRaw as Record<string, unknown>)) {
         const wrapped = dispRaw as { ok: boolean; code?: string; error?: string; data?: unknown };
@@ -480,7 +477,6 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
             DEFAULT_INVOKE_TIMEOUT,
             `Timeout invoking ${command}`
           );
-          console.log('[Tauri.result] %s %o', command, raw);
 
           if (raw && typeof raw === 'object' && 'success' in (raw as Record<string, unknown>)) {
             const wrapped2 = raw as TauriResponse<unknown>;
@@ -506,7 +502,6 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
         DEFAULT_INVOKE_TIMEOUT,
         `Timeout invoking ${command}`
       );
-      console.log('[Tauri.result] %s %o', command, raw);
 
       if (raw && typeof raw === 'object' && 'success' in (raw as Record<string, unknown>)) {
         const wrapped2 = raw as TauriResponse<unknown>;
@@ -521,13 +516,11 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
       return raw as T;
     }
 
-    console.warn('[WebMock.invoke] %s %o (MOCK MODE)', command, finalArgs);
     const mock = await withTimeout(
       webMockInvoke<T>(command, finalArgs),
       DEFAULT_INVOKE_TIMEOUT,
       `Timeout (mock) invoking ${command}`
     );
-    console.log('[WebMock.result] %s %o', command, mock);
     return mock;
   } catch (err) {
     // Log the error and normalize to an Error instance before throwing.
@@ -616,6 +609,22 @@ export async function getAllProducts(includeInactive = false): Promise<Product[]
 
 export async function getInactiveProducts(): Promise<Product[]> {
   return tauriInvoke<Product[]>('get_inactive_products');
+}
+
+export async function getProductsPaginated(
+  page: number,
+  perPage: number,
+  search?: string,
+  categoryId?: string,
+  isActive?: boolean
+): Promise<PaginatedResult<Product>> {
+  return tauriInvoke<PaginatedResult<Product>>('get_products_paginated', {
+    page,
+    per_page: perPage,
+    search,
+    category_id: categoryId,
+    is_active: isActive,
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -813,7 +822,7 @@ export async function addStockEntry(
     input: {
       productId,
       quantity,
-      type: 'INPUT',
+      movementType: 'INPUT',
       reason: 'Entrada de Estoque',
       costPrice,
       lotNumber,
@@ -831,8 +840,8 @@ export async function adjustStock(
   return tauriInvoke<void>('create_stock_movement', {
     input: {
       productId,
-      quantity: newQuantity, // Dependendo de como a repo trata 'Adjust', se for delta ou absoluto
-      type: 'ADJUSTMENT',
+      quantity: newQuantity,
+      movementType: 'ADJUSTMENT',
       reason,
     },
   });

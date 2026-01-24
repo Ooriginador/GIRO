@@ -16,7 +16,7 @@ pub enum ProductUnit {
     Liter,
     Milliliter,
     Meter,
-    Centimeter, // Novo - compatibilidade com Mobile
+    Centimeter,
     Box,
     Pack,
     Dozen,

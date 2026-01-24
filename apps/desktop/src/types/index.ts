@@ -21,6 +21,7 @@ export type ProductUnit =
   | 'LITER'
   | 'MILLILITER'
   | 'METER'
+  | 'CENTIMETER'
   | 'PACK'
   | 'BOX'
   | 'DOZEN';

@@ -54,6 +54,9 @@ export const PERMISSIONS = {
   'settings.view': ['ADMIN', 'MANAGER'],
   'settings.edit': ['ADMIN'],
   'settings.backup': ['ADMIN'],
+
+  // Veículos (Motopeças)
+  'vehicles.view': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER', 'VIEWER'],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

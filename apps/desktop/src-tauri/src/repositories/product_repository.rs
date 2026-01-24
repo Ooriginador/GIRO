@@ -127,6 +127,74 @@ impl<'a> ProductRepository<'a> {
         Ok(result)
     }
 
+    pub async fn find_paginated(
+        &self,
+        pagination: &crate::repositories::Pagination,
+        filters: &ProductFilters,
+    ) -> AppResult<crate::repositories::PaginatedResult<Product>> {
+        let mut condition = "1=1".to_string();
+        let mut count_builder = QueryBuilder::new("SELECT COUNT(*) FROM products WHERE ");
+        let mut query_builder = QueryBuilder::new(format!(
+            "SELECT {} FROM products WHERE ",
+            self.product_columns_string()
+        ));
+
+        // Construir condições
+        count_builder.push(" 1=1 ");
+        query_builder.push(" 1=1 ");
+
+        if let Some(ref search) = filters.search {
+            let pattern = format!("%{}%", search);
+            let search_cond = " AND (name LIKE ? OR barcode LIKE ? OR internal_code LIKE ?)";
+
+            count_builder.push(search_cond);
+            query_builder.push(search_cond);
+
+            // Bind para count
+            count_builder.push_bind(pattern.clone());
+            count_builder.push_bind(pattern.clone());
+            count_builder.push_bind(pattern.clone());
+
+            // Bind para query principal
+            query_builder.push_bind(pattern.clone());
+            query_builder.push_bind(pattern.clone());
+            query_builder.push_bind(pattern.clone());
+        }
+
+        if let Some(ref cat_id) = filters.category_id {
+            let cat_cond = " AND category_id = ?";
+            count_builder.push(cat_cond);
+            query_builder.push(cat_cond);
+
+            count_builder.push_bind(cat_id);
+            query_builder.push_bind(cat_id);
+        }
+
+        if filters.is_active.unwrap_or(true) {
+            let active_cond = " AND is_active = 1";
+            count_builder.push(active_cond);
+            query_builder.push(active_cond);
+        }
+
+        // Ordenação e Paginação
+        query_builder.push(" ORDER BY name LIMIT ? OFFSET ?");
+        query_builder.push_bind(pagination.per_page);
+        query_builder.push_bind(pagination.offset());
+
+        // Executar Count
+        let total: (i64,) = count_builder.build_query_as().fetch_one(self.pool).await?;
+
+        // Executar Query Principal
+        let products = query_builder
+            .build_query_as::<Product>()
+            .fetch_all(self.pool)
+            .await?;
+
+        Ok(crate::repositories::PaginatedResult::new(
+            products, total.0, pagination,
+        ))
+    }
+
     pub async fn find_with_filters(&self, filters: &ProductFilters) -> AppResult<Vec<Product>> {
         let mut builder: QueryBuilder<Sqlite> = QueryBuilder::new(format!(
             "SELECT {} FROM products WHERE 1=1",
@@ -260,9 +328,25 @@ impl<'a> ProductRepository<'a> {
         .bind(max_stock)
         .bind(&data.category_id)
         .bind(&now)
-        .bind(&now)
         .execute(&mut *tx)
         .await?;
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Record Initial Stock Movement
+        // ═══════════════════════════════════════════════════════════════════════════
+        if current_stock > 0.001 {
+            let move_id = new_id();
+            sqlx::query(
+                "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, created_at) VALUES (?, ?, 'ADJUSTMENT', ?, 0, ?, 'Carga inicial de estoque', ?)"
+            )
+            .bind(&move_id)
+            .bind(&id)
+            .bind(current_stock)
+            .bind(current_stock)
+            .bind(&now)
+            .execute(&mut *tx)
+            .await?;
+        }
 
         // If decimal columns are enabled, populate them as well for parity
         if decimal_config::use_decimal_columns() {
@@ -338,7 +422,7 @@ impl<'a> ProductRepository<'a> {
             let move_type = "ADJUSTMENT";
 
             sqlx::query(
-                "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, employee_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_type, employee_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'MANUAL', ?, ?)"
             )
             .bind(&move_id)
             .bind(id)

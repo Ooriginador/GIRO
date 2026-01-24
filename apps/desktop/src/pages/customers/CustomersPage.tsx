@@ -86,7 +86,7 @@ export const CustomersPage: FC = () => {
         </Button>
       </div>
 
-      <Card>
+      <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
         <CardHeader>
           <CardTitle>Listagem de Clientes</CardTitle>
           <div className="relative mt-2">

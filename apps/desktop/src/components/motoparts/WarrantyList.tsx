@@ -72,7 +72,7 @@ export function WarrantyList({ onSelectWarranty, onCreateNew }: WarrantyListProp
   return (
     <div className="space-y-4">
       {/* Header com filtros */}
-      <Card>
+      <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -132,7 +132,7 @@ export function WarrantyList({ onSelectWarranty, onCreateNew }: WarrantyListProp
               transition={{ delay: index * 0.05 }}
             >
               <Card
-                className="cursor-pointer hover:shadow-md transition-shadow"
+                className="cursor-pointer hover:shadow-lg transition-all border-none bg-card/50 backdrop-blur-sm shadow-md"
                 {...(onSelectWarranty
                   ? clickableByKeyboard(() => onSelectWarranty?.(warranty.id))
                   : {})}

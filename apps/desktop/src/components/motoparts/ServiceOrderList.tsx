@@ -53,7 +53,7 @@ export function ServiceOrderList({ onSelectOrder, onCreateNew }: ServiceOrderLis
   return (
     <div className="space-y-4">
       {/* Header com filtros */}
-      <Card>
+      <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -104,7 +104,7 @@ export function ServiceOrderList({ onSelectOrder, onCreateNew }: ServiceOrderLis
           Carregando ordens...
         </div>
       ) : !filteredOrders || filteredOrders.length === 0 ? (
-        <Card>
+        <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
           <CardContent className="py-12 text-center text-muted-foreground">
             <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-lg font-medium">Nenhuma ordem encontrada</p>
@@ -161,7 +161,7 @@ function ServiceOrderCard({ order, onClick }: ServiceOrderCardProps) {
       whileTap={{ scale: 0.99 }}
     >
       <Card
-        className="cursor-pointer hover:shadow-md transition-shadow"
+        className="cursor-pointer hover:shadow-lg transition-all border-none bg-card/50 backdrop-blur-sm shadow-md"
         {...(onClick ? clickableByKeyboard(onClick) : {})}
       >
         <CardContent className="p-4">
@@ -306,7 +306,7 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, color }: StatCardProps) {
   return (
-    <Card>
+    <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div>

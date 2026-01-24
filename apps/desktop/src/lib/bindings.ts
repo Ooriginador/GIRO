@@ -5,10 +5,17 @@
 /** user-defined commands **/
 
 
-export const commands = {
 async getProducts() : Promise<Result<Product[], AppError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_products") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getProductsPaginated(page: number | null, perPage: number | null, search: string | null, categoryId: string | null, isActive: boolean | null) : Promise<Result<PaginatedResult<Product>, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_products_paginated", { page, perPage, search, categoryId, isActive }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

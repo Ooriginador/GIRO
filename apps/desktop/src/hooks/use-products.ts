@@ -12,6 +12,7 @@ import {
   getProductByBarcode,
   getProductById,
   getProducts,
+  getProductsPaginated,
   reactivateProduct,
   searchProducts,
   updateProduct,
@@ -38,11 +39,32 @@ export const productKeys = {
 /**
  * Busca todos os produtos com filtro opcional
  */
+/**
+ * Busca todos os produtos com filtro opcional
+ */
 export function useProducts(filter?: ProductFilter) {
   return useQuery({
     queryKey: ['products', filter],
     queryFn: () => getProducts(filter),
     staleTime: 1000 * 60 * 5, // 5 minutos
+  });
+}
+
+/**
+ * Busca produtos paginados
+ */
+export function useProductsPaginated(
+  page: number,
+  perPage: number,
+  search?: string,
+  categoryId?: string,
+  isActive?: boolean
+) {
+  return useQuery({
+    queryKey: ['products', 'paginated', { page, perPage, search, categoryId, isActive }],
+    queryFn: () => getProductsPaginated(page, perPage, search, categoryId, isActive),
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching new page
+    staleTime: 1000 * 60, // 1 minuto
   });
 }
 

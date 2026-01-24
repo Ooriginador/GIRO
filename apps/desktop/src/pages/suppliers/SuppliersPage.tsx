@@ -89,7 +89,12 @@ interface SupplierCardProps {
 
 const SupplierCard: FC<SupplierCardProps> = ({ supplier, onEdit, onDeactivate, onReactivate }) => {
   return (
-    <Card className={!supplier.isActive ? 'opacity-60' : ''}>
+    <Card
+      className={cn(
+        'border-none bg-card/50 backdrop-blur-sm shadow-md',
+        !supplier.isActive && 'opacity-60'
+      )}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
