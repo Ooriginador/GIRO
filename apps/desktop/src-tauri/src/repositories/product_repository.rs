@@ -47,6 +47,7 @@ impl<'a> ProductRepository<'a> {
         cols.extend(vec![
             "is_active".to_string(),
             "category_id".to_string(),
+            "notes".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
         ]);
@@ -186,11 +187,18 @@ impl<'a> ProductRepository<'a> {
         }
 
         // Filtro de status
-        if filters.is_active.unwrap_or(true) {
-            count_builder.push(" AND is_active = 1");
-            query_builder.push(" AND is_active = 1");
-        } else {
-            query_builder.push(" AND is_active = 0");
+        match filters.is_active {
+            Some(true) => {
+                count_builder.push(" AND is_active = 1");
+                query_builder.push(" AND is_active = 1");
+            }
+            Some(false) => {
+                count_builder.push(" AND is_active = 0");
+                query_builder.push(" AND is_active = 0");
+            }
+            None => {
+                // No filter - show all products (both active and inactive)
+            }
         }
 
         // Ordenação e Paginação
@@ -237,8 +245,16 @@ impl<'a> ProductRepository<'a> {
             builder.push_bind(cat_id);
         }
 
-        if filters.is_active.unwrap_or(true) {
-            builder.push(" AND is_active = 1");
+        match filters.is_active {
+            Some(true) => {
+                builder.push(" AND is_active = 1");
+            }
+            Some(false) => {
+                builder.push(" AND is_active = 0");
+            }
+            None => {
+                // No filter - show all products
+            }
         }
 
         if filters.low_stock.unwrap_or(false) {
@@ -362,7 +378,7 @@ impl<'a> ProductRepository<'a> {
         self.validate_product_logic(&data.name, data.sale_price, cost_price);
 
         sqlx::query(
-            "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, max_stock, is_active, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, (datetime('now')), (datetime('now')))"
+            "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, max_stock, is_active, category_id, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, (datetime('now')), (datetime('now')))"
         )
         .bind(&id)
         .bind(&data.barcode)
@@ -377,6 +393,7 @@ impl<'a> ProductRepository<'a> {
         .bind(min_stock)
         .bind(max_stock)
         .bind(&data.category_id)
+        .bind(&data.notes)
         .execute(&mut *tx)
         .await?;
 
@@ -459,6 +476,8 @@ impl<'a> ProductRepository<'a> {
         let is_active = data.is_active.unwrap_or(existing.is_active);
         let category_id = data.category_id.unwrap_or(existing.category_id);
 
+        let notes = data.notes.or(existing.notes);
+
         // Validation Warning
         self.validate_product_logic(&name, sale_price, cost_price);
 
@@ -502,7 +521,7 @@ impl<'a> ProductRepository<'a> {
         }
 
         sqlx::query(
-            "UPDATE products SET name = ?, barcode = ?, description = ?, unit = ?, is_weighted = ?, sale_price = ?, cost_price = ?, current_stock = ?, min_stock = ?, max_stock = ?, is_active = ?, category_id = ?, updated_at = (datetime('now')) WHERE id = ?"
+            "UPDATE products SET name = ?, barcode = ?, description = ?, unit = ?, is_weighted = ?, sale_price = ?, cost_price = ?, current_stock = ?, min_stock = ?, max_stock = ?, is_active = ?, category_id = ?, notes = ?, updated_at = (datetime('now')) WHERE id = ?"
         )
         .bind(&name)
         .bind(&barcode)
@@ -516,6 +535,7 @@ impl<'a> ProductRepository<'a> {
         .bind(max_stock)
         .bind(is_active)
         .bind(&category_id)
+        .bind(&notes)
         .bind(id)
         .execute(&mut *tx)
         .await?;

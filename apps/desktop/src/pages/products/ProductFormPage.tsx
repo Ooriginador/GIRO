@@ -40,6 +40,7 @@ const productSchema = z.object({
   maxStock: z.number().min(0).optional(),
   initialStock: z.number().min(0).default(0),
   isWeighted: z.boolean().default(false),
+  notes: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -89,6 +90,7 @@ export const ProductFormPage: FC = () => {
         maxStock: product.maxStock ?? undefined,
         initialStock: product.currentStock,
         isWeighted: product.isWeighted,
+        notes: product.notes || '',
       });
     }
   }, [product, reset]);
@@ -325,6 +327,27 @@ export const ProductFormPage: FC = () => {
                     <p className="text-sm text-destructive">{errors.costPrice.message}</p>
                   )}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Notas/Comentários */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Notas / Comentários</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Observações sobre o produto</Label>
+                <textarea
+                  id="notes"
+                  {...register('notes')}
+                  placeholder="Ex: Verificar validade com frequência, produto frágil..."
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Informações internas sobre o produto (não aparece no cupom)
+                </p>
               </div>
             </CardContent>
           </Card>

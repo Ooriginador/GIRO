@@ -235,6 +235,7 @@ pub async fn seed_database(employee_id: String, state: State<'_, AppState>) -> A
                     min_stock: Some(10.0),
                     max_stock: None,
                     category_id: cat_id,
+                    notes: None,
                 })
                 .await?
         };
