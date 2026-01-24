@@ -2,13 +2,14 @@
 //!
 //! Gerencia conexões, autenticação e roteamento de mensagens.
 
+use crate::services::mobile_events::MobileEventService;
 use crate::services::mobile_handlers::{
     AuthHandler, CategoriesHandler, ExpirationHandler, InventoryHandler, ProductsHandler,
-    StockHandler, SystemHandler, SyncHandler,
+    StockHandler, SyncHandler, SystemHandler,
 };
 use crate::services::mobile_protocol::{
     LegacyScannerMessage, LegacyScannerResponse, MobileAction, MobileErrorCode, MobileEvent,
-    MobileRequest, MobileResponse, SyncFullPayload, SyncDeltaPayload, SaleRemoteCreatePayload,
+    MobileRequest, MobileResponse, SaleRemoteCreatePayload, SyncDeltaPayload, SyncFullPayload,
 };
 use crate::services::mobile_session::SessionManager;
 
@@ -70,10 +71,10 @@ pub struct MobileServer {
     pool: SqlitePool,
     session_manager: Arc<SessionManager>,
     connections: Arc<RwLock<HashMap<String, MobileConnection>>>,
-    event_tx: broadcast::Sender<MobileEvent>,
     shutdown_tx: RwLock<Option<mpsc::Sender<()>>>,
     system_handler: Arc<SystemHandler>,
     sync_handler: Arc<SyncHandler>,
+    event_service: Arc<MobileEventService>,
 }
 
 impl MobileServer {
@@ -81,22 +82,18 @@ impl MobileServer {
     pub fn new(
         pool: SqlitePool,
         config: MobileServerConfig,
+        event_service: Arc<MobileEventService>,
         pdv_name: String,
         store_name: String,
         store_document: Option<String>,
     ) -> Self {
-        let (event_tx, _) = broadcast::channel(100);
-
         Self {
             config,
             pool: pool.clone(),
-            session_manager: SessionManager::new(
-                std::env::var("JWT_SECRET").expect(
-                    "Environment variable JWT_SECRET is required. Set JWT_SECRET in the environment.",
-                ),
-            ),
+            session_manager: SessionManager::new(std::env::var("JWT_SECRET").expect(
+                "Environment variable JWT_SECRET is required. Set JWT_SECRET in the environment.",
+            )),
             connections: Arc::new(RwLock::new(HashMap::new())),
-            event_tx,
             shutdown_tx: RwLock::new(None),
             system_handler: Arc::new(SystemHandler::new(
                 pool.clone(),
@@ -105,6 +102,7 @@ impl MobileServer {
                 store_document,
             )),
             sync_handler: Arc::new(SyncHandler::new(pool.clone())),
+            event_service,
         }
     }
 
@@ -167,7 +165,7 @@ impl MobileServer {
         let pool = self.pool.clone();
         let session_manager = self.session_manager.clone();
         let connections = self.connections.clone();
-        let mut event_rx = self.event_tx.subscribe();
+        let mut event_rx = self.event_service.subscribe();
         let system_handler = self.system_handler.clone();
         let sync_handler = self.sync_handler.clone();
         let timeout = self.config.connection_timeout_secs;
@@ -327,7 +325,7 @@ impl MobileServer {
 
     /// Envia evento para todos os clientes conectados
     pub fn broadcast_event(&self, event: MobileEvent) {
-        let _ = self.event_tx.send(event);
+        let _ = self.event_service.sender().send(event);
     }
 
     /// Retorna número de conexões ativas
@@ -385,7 +383,10 @@ async fn process_request(
     // Ações que não precisam de autenticação
     if matches!(
         action,
-        MobileAction::AuthLogin | MobileAction::SystemPing | MobileAction::SystemInfo
+        MobileAction::AuthLogin
+            | MobileAction::AuthSystem
+            | MobileAction::SystemPing
+            | MobileAction::SystemInfo
     ) {
         return match action {
             MobileAction::AuthLogin => {
@@ -401,6 +402,43 @@ async fn process_request(
                 };
 
                 let response = auth_handler.login(id, payload).await;
+
+                // Se login bem-sucedido, atualizar conexão
+                if response.success {
+                    if let Some(data) = &response.data {
+                        let mut conns = connections.write().await;
+                        if let Some(conn) = conns.get_mut(connection_id) {
+                            conn.employee_id = data
+                                .get("employeeId")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string());
+                            conn.employee_role = data
+                                .get("role")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string());
+                            conn.token = data
+                                .get("token")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string());
+                        }
+                    }
+                }
+
+                response
+            }
+            MobileAction::AuthSystem => {
+                let payload = match serde_json::from_value(request.payload.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return MobileResponse::error(
+                            id,
+                            MobileErrorCode::ValidationError,
+                            format!("Payload inválido: {}", e),
+                        );
+                    }
+                };
+
+                let response = auth_handler.system_login(id, payload).await;
 
                 // Se login bem-sucedido, atualizar conexão
                 if response.success {
@@ -666,7 +704,7 @@ async fn process_request(
 
         // Sincronização (Master <-> Satellite)
         MobileAction::SyncFull => {
-             let payload: SyncFullPayload = match serde_json::from_value(request.payload.clone()) {
+            let payload: SyncFullPayload = match serde_json::from_value(request.payload.clone()) {
                 Ok(p) => p,
                 Err(e) => {
                     return MobileResponse::error(
@@ -677,9 +715,9 @@ async fn process_request(
                 }
             };
             sync_handler.full(id, payload).await
-        },
+        }
         MobileAction::SyncDelta => {
-             let payload: SyncDeltaPayload = match serde_json::from_value(request.payload.clone()) {
+            let payload: SyncDeltaPayload = match serde_json::from_value(request.payload.clone()) {
                 Ok(p) => p,
                 Err(e) => {
                     return MobileResponse::error(
@@ -690,20 +728,21 @@ async fn process_request(
                 }
             };
             sync_handler.delta(id, payload).await
-        },
+        }
         MobileAction::SaleRemoteCreate => {
-             let payload: SaleRemoteCreatePayload = match serde_json::from_value(request.payload.clone()) {
-                Ok(p) => p,
-                Err(e) => {
-                    return MobileResponse::error(
-                        id,
-                        MobileErrorCode::ValidationError,
-                        format!("Payload inválido: {}", e),
-                    );
-                }
-            };
+            let payload: SaleRemoteCreatePayload =
+                match serde_json::from_value(request.payload.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return MobileResponse::error(
+                            id,
+                            MobileErrorCode::ValidationError,
+                            format!("Payload inválido: {}", e),
+                        );
+                    }
+                };
             sync_handler.remote_sale(id, payload).await
-        },
+        }
 
         // Ações não implementadas
         _ => MobileResponse::error(

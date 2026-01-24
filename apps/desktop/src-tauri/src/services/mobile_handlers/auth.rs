@@ -4,7 +4,8 @@
 
 use crate::repositories::EmployeeRepository;
 use crate::services::mobile_protocol::{
-    AuthLoginPayload, AuthLoginResponse, EmployeeInfo, MobileErrorCode, MobileResponse,
+    AuthLoginPayload, AuthLoginResponse, AuthSystemPayload, EmployeeInfo, MobileErrorCode,
+    MobileResponse,
 };
 use crate::services::mobile_session::SessionManager;
 use sqlx::SqlitePool;
@@ -150,6 +151,63 @@ impl AuthHandler {
                 "Token inválido ou expirado",
             ),
         }
+    }
+
+    /// Processa login de sistema (PC-to-PC)
+    pub async fn system_login(&self, id: u64, payload: AuthSystemPayload) -> MobileResponse {
+        // Buscar segredo da rede
+        let settings_repo = crate::repositories::SettingsRepository::new(&self.pool);
+        let expected_secret = settings_repo
+            .get_value("network.secret")
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| "giro-default-secret".to_string());
+
+        if payload.secret != expected_secret {
+            return MobileResponse::error(
+                id,
+                MobileErrorCode::AuthInvalid,
+                "Segredo de rede inválido",
+            );
+        }
+
+        // Criar sessão de sistema
+        let (token, expires_at) = match self
+            .session_manager
+            .create_session(
+                format!("system:{}", payload.terminal_id),
+                payload.terminal_name,
+                "ADMIN".to_string(), // Sistemas têm acesso total por enquanto
+                payload.terminal_id.clone(),
+                "PC-Satellite".to_string(),
+            )
+            .await
+        {
+            Ok((token, expires)) => (token, expires),
+            Err(e) => {
+                tracing::error!("Erro ao criar sessão de sistema: {}", e);
+                return MobileResponse::error(
+                    id,
+                    MobileErrorCode::InternalError,
+                    "Erro ao criar sessão de sistema",
+                );
+            }
+        };
+
+        let response = AuthLoginResponse {
+            token,
+            expires_at,
+            employee: EmployeeInfo {
+                id: "SYSTEM".into(),
+                name: "Sistema (Satélite)".into(),
+                role: "admin".into(),
+            },
+        };
+
+        tracing::info!("Login de sistema: terminal={}", payload.terminal_id);
+
+        MobileResponse::success(id, response)
     }
 }
 

@@ -979,6 +979,14 @@ pub async fn load_hardware_configs(
     hw_state: State<'_, HardwareState>,
 ) -> AppResult<()> {
     state.session.require_authenticated()?;
+    load_hardware_configs_internal(&state, &hw_state).await
+}
+
+/// Versão interna sem verificação de autenticação (usada no startup)
+pub async fn load_hardware_configs_internal(
+    state: &AppState,
+    hw_state: &HardwareState,
+) -> AppResult<()> {
     let repo = crate::repositories::SettingsRepository::new(state.pool());
 
     // Printer

@@ -290,6 +290,7 @@ pub enum MobileAction {
     AuthLogin,
     AuthLogout,
     AuthValidate,
+    AuthSystem,
     // Products
     ProductGet,
     ProductSearch,
@@ -327,6 +328,7 @@ impl MobileAction {
             "auth.login" => Some(Self::AuthLogin),
             "auth.logout" => Some(Self::AuthLogout),
             "auth.validate" => Some(Self::AuthValidate),
+            "auth.system" => Some(Self::AuthSystem),
             "product.get" => Some(Self::ProductGet),
             "product.search" => Some(Self::ProductSearch),
             "product.create" => Some(Self::ProductCreate),
@@ -353,7 +355,10 @@ impl MobileAction {
 
     /// Verifica se ação requer autenticação
     pub fn requires_auth(&self) -> bool {
-        !matches!(self, Self::AuthLogin | Self::SystemPing | Self::SystemInfo)
+        !matches!(
+            self,
+            Self::AuthLogin | Self::AuthSystem | Self::SystemPing | Self::SystemInfo
+        )
     }
 }
 
@@ -368,6 +373,15 @@ pub struct AuthLoginPayload {
     pub pin: String,
     pub device_id: String,
     pub device_name: String,
+}
+
+/// Payload de login de sistema (PC-to-PC)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthSystemPayload {
+    pub secret: String,
+    pub terminal_id: String,
+    pub terminal_name: String,
 }
 
 /// Resposta de login

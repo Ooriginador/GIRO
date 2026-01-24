@@ -43,6 +43,7 @@ pub struct AppState {
     pub license_client: LicenseClient,
     pub hardware_id: String,
     pub session: Arc<SessionState>,
+    pub event_service: Arc<crate::services::mobile_events::MobileEventService>,
 }
 
 impl AppState {
@@ -53,6 +54,7 @@ impl AppState {
         license_server_url: String,
         api_key: String,
         hardware_id: String,
+        event_service: Arc<crate::services::mobile_events::MobileEventService>,
     ) -> Self {
         let config = LicenseClientConfig {
             server_url: license_server_url,
@@ -67,6 +69,7 @@ impl AppState {
             license_client: LicenseClient::new(config),
             hardware_id,
             session: Arc::new(SessionState::default()),
+            event_service,
         }
     }
 

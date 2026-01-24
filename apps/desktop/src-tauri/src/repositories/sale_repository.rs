@@ -12,11 +12,25 @@ use sqlx::SqlitePool;
 
 pub struct SaleRepository<'a> {
     pool: &'a SqlitePool,
+    event_service: Option<&'a crate::services::mobile_events::MobileEventService>,
 }
 
 impl<'a> SaleRepository<'a> {
     pub fn new(pool: &'a SqlitePool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            event_service: None,
+        }
+    }
+
+    pub fn with_events(
+        pool: &'a SqlitePool,
+        event_service: &'a crate::services::mobile_events::MobileEventService,
+    ) -> Self {
+        Self {
+            pool,
+            event_service: Some(event_service),
+        }
     }
 
     const SALE_COLS: &'static str = "id, daily_number, subtotal, discount_type, discount_value, discount_reason, total, payment_method, amount_paid, change, status, canceled_at, canceled_by_id, cancel_reason, customer_id, employee_id, cash_session_id, created_at, updated_at";
@@ -275,6 +289,14 @@ impl<'a> SaleRepository<'a> {
         let payments = self.find_payments_by_sale(&id).await?;
         sale.payments = Some(payments);
 
+        // Sincronização em tempo real (broadcast)
+        if let Some(service) = self.event_service {
+            let items = self.find_items_by_sale(&id).await.unwrap_or_default();
+            for item in items {
+                service.emit_stock_updated(&item.product_id, &item.product_name, 0.0, 0.0, "SALE");
+            }
+        }
+
         Ok(sale)
     }
 
@@ -364,12 +386,13 @@ impl<'a> SaleRepository<'a> {
 
         // Deduct stock from product (only what we can consume)
         let new_stock = current_stock - consume_from_stock;
-        sqlx::query("UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?")
-            .bind(new_stock)
-            .bind(&now)
-            .bind(&item.product_id)
-            .execute(&mut **tx)
-            .await?;
+        sqlx::query(
+            "UPDATE products SET current_stock = ?, updated_at = (datetime('now')) WHERE id = ?",
+        )
+        .bind(new_stock)
+        .bind(&item.product_id)
+        .execute(&mut **tx)
+        .await?;
 
         // Consume from lots (FIFO) up to the consumed amount
         let mut remaining_to_consume = consume_from_stock;
@@ -388,9 +411,8 @@ impl<'a> SaleRepository<'a> {
             }
 
             let consume = lot_qty.min(remaining_to_consume);
-            sqlx::query("UPDATE product_lots SET current_quantity = current_quantity - ?, updated_at = ? WHERE id = ?")
+            sqlx::query("UPDATE product_lots SET current_quantity = current_quantity - ?, updated_at = (datetime('now')) WHERE id = ?")
                 .bind(consume)
-                .bind(&now)
                 .bind(&lot_id)
                 .execute(&mut **tx)
                 .await?;
@@ -448,18 +470,16 @@ impl<'a> SaleRepository<'a> {
 
         for item in items {
             // Revert product stock
-            sqlx::query("UPDATE products SET current_stock = current_stock + ?, updated_at = ? WHERE id = ?")
+            sqlx::query("UPDATE products SET current_stock = current_stock + ?, updated_at = (datetime('now')) WHERE id = ?")
                 .bind(item.quantity)
-                .bind(&now)
                 .bind(&item.product_id)
                 .execute(&mut *tx)
                 .await?;
 
             // Revert lot stock if applicable
             if let Some(lot_id) = item.lot_id {
-                sqlx::query("UPDATE product_lots SET current_quantity = current_quantity + ?, updated_at = ? WHERE id = ?")
+                sqlx::query("UPDATE product_lots SET current_quantity = current_quantity + ?, updated_at = (datetime('now')) WHERE id = ?")
                     .bind(item.quantity)
-                    .bind(&now)
                     .bind(&lot_id)
                     .execute(&mut *tx)
                     .await?;
@@ -506,12 +526,21 @@ impl<'a> SaleRepository<'a> {
 
         tx.commit().await?;
 
-        self.find_by_id(id)
+        let sale = self
+            .find_by_id(id)
             .await?
             .ok_or_else(|| crate::error::AppError::NotFound {
                 entity: "Sale".into(),
                 id: id.into(),
-            })
+            })?;
+
+        // Sincronização em tempo real (broadcast)
+        if let Some(service) = self.event_service {
+            // Emite evento de sincronização necessária para simplificar
+            service.emit_sync_required("Venda cancelada");
+        }
+
+        Ok(sale)
     }
 
     pub async fn find_payments_by_sale(

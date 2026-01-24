@@ -2,12 +2,12 @@
 //!
 //! Gerencia conexão com o Master, sincronização e envio de vendas remotas.
 
+use crate::models::{Customer, Product, Setting};
+use crate::repositories::{CustomerRepository, ProductRepository, SettingsRepository};
 use crate::services::mobile_protocol::{
-    MobileEvent, MobileRequest, MobileResponse, SaleRemoteCreatePayload,
-    SyncFullPayload,
+    AuthSystemPayload, MobileEvent, MobileRequest, MobileResponse, SaleRemoteCreatePayload,
+    SyncDeltaPayload, SyncFullPayload,
 };
-use crate::models::{Product, Customer, Setting};
-use crate::repositories::{ProductRepository, CustomerRepository, SettingsRepository};
 use futures_util::{SinkExt, StreamExt};
 use mdns_sd::{ServiceDaemon, ServiceEvent};
 use sqlx::SqlitePool;
@@ -17,8 +17,6 @@ use tokio::sync::{broadcast, mpsc, RwLock};
 use tokio::time::sleep;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
-
-
 
 /// Configuração do Cliente de Rede
 #[derive(Debug, Clone)]
@@ -42,13 +40,16 @@ pub struct NetworkClient {
     _config: NetworkClientConfig,
     state: Arc<RwLock<ConnectionState>>,
     tx: RwLock<Option<mpsc::Sender<ClientCommand>>>,
+    token: RwLock<Option<String>>,
     event_tx: broadcast::Sender<ClientEvent>,
+    last_sync: RwLock<i64>,
 }
 
 #[derive(Debug)]
 enum ClientCommand {
     SendSale(serde_json::Value),
     SyncFull,
+    SyncDelta,
     Disconnect,
 }
 
@@ -64,13 +65,15 @@ pub enum ClientEvent {
 impl NetworkClient {
     pub fn new(pool: SqlitePool, terminal_name: String) -> Arc<Self> {
         let (event_tx, _) = broadcast::channel(100);
-        
+
         Arc::new(Self {
             pool,
             _config: NetworkClientConfig { terminal_name },
             state: Arc::new(RwLock::new(ConnectionState::Disconnected)),
             tx: RwLock::new(None),
+            token: RwLock::new(None),
             event_tx,
+            last_sync: RwLock::new(0),
         })
     }
 
@@ -119,21 +122,22 @@ impl NetworkClient {
             // 1. Busca mDNS
             self.set_state(ConnectionState::Searching).await;
             let target = self.discover_master().await;
-            
+
             if let Some((ip, port)) = target {
-                 let addr = format!("{}:{}", ip, port);
-                 self.set_state(ConnectionState::Connecting(addr.clone())).await;
-                 
-                 // 2. Tenta conectar
-                 match self.connect_and_handle(&addr).await {
-                     Ok(_) => {
-                         tracing::info!("Conexão com Master encerrada limpa");
-                     },
-                     Err(e) => {
-                         tracing::error!("Erro na conexão com Master: {}", e);
-                         self.broadcast(ClientEvent::Error(e.to_string()));
-                     }
-                 }
+                let addr = format!("{}:{}", ip, port);
+                self.set_state(ConnectionState::Connecting(addr.clone()))
+                    .await;
+
+                // 2. Tenta conectar
+                match self.connect_and_handle(&addr).await {
+                    Ok(_) => {
+                        tracing::info!("Conexão com Master encerrada limpa");
+                    }
+                    Err(e) => {
+                        tracing::error!("Erro na conexão com Master: {}", e);
+                        self.broadcast(ClientEvent::Error(e.to_string()));
+                    }
+                }
             }
 
             // Wait before retry
@@ -144,7 +148,7 @@ impl NetworkClient {
     async fn discover_master(&self) -> Option<(String, u16)> {
         let mdns = ServiceDaemon::new().ok()?;
         let receiver = mdns.browse("_giro._tcp.local.").ok()?;
-        
+
         // Timeout de 10s para achar
         let timeout = sleep(Duration::from_secs(10));
         tokio::pin!(timeout);
@@ -172,32 +176,85 @@ impl NetworkClient {
     async fn connect_and_handle(&self, addr: &str) -> anyhow::Result<()> {
         let url = format!("ws://{}/ws", addr);
         let (ws_stream, _) = connect_async(&url).await?;
-        
-        self.set_state(ConnectionState::Connected(addr.to_string())).await;
+
+        self.set_state(ConnectionState::Connected(addr.to_string()))
+            .await;
         tracing::info!("Conectado ao Master: {}", addr);
 
         let (mut write, mut read) = ws_stream.split();
         let (tx, mut rx) = mpsc::channel::<ClientCommand>(10);
-        
+
         {
             let mut tx_lock = self.tx.write().await;
             *tx_lock = Some(tx.clone());
         }
 
-        // Enviar Sync Full inicial
-        self.send_sync_full(&tx).await;
+        // 1. Autenticar com o Master
+        let settings_repo = SettingsRepository::new(&self.pool);
+        let secret = settings_repo
+            .get_value("network.secret")
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| "giro-default-secret".to_string());
+
+        // Obter HW ID ou usar o terminal_name como ID único por enquanto
+        let terminal_id = self._config.terminal_name.clone();
+
+        let auth_req = MobileRequest {
+            id: 1, // ID fixo para o primeiro passo
+            action: "auth.system".into(),
+            payload: serde_json::to_value(AuthSystemPayload {
+                secret,
+                terminal_id,
+                terminal_name: self._config.terminal_name.clone(),
+            })
+            .unwrap(),
+            token: None,
+            timestamp: chrono::Utc::now().timestamp_millis(),
+        };
+
+        let auth_msg = serde_json::to_string(&auth_req)?;
+        write.send(Message::Text(auth_msg)).await?;
+
+        // 2. Aguardar resposta de autenticação
+        if let Some(Ok(Message::Text(resp_text))) = read.next().await {
+            if let Ok(resp) = serde_json::from_str::<MobileResponse>(&resp_text) {
+                if resp.success {
+                    if let Some(data) = resp.data {
+                        if let Some(token) = data.get("token").and_then(|v| v.as_str()) {
+                            let mut token_lock = self.token.write().await;
+                            *token_lock = Some(token.to_string());
+                            tracing::info!("Autenticado com sucesso no Master");
+                        }
+                    }
+                } else {
+                    tracing::error!("Falha na autenticação com Master: {:?}", resp.error);
+                    return Err(anyhow::anyhow!("Falha na autenticação"));
+                }
+            }
+        }
+
+        // 3. Iniciar sincronização
+        let last_sync_val = *self.last_sync.read().await;
+        if last_sync_val > 0 {
+            let _ = tx.send(ClientCommand::SyncDelta).await;
+        } else {
+            let _ = tx.send(ClientCommand::SyncFull).await;
+        }
 
         loop {
             tokio::select! {
                 // Comandos locais (enviar venda, etc)
                 cmd = rx.recv() => {
+                    let current_token = self.token.read().await.clone();
                     match cmd {
                         Some(ClientCommand::SendSale(sale)) => {
                             let req = MobileRequest {
                                 id: chrono::Utc::now().timestamp_millis() as u64,
                                 action: "sale.remote_create".into(),
                                 payload: serde_json::to_value(SaleRemoteCreatePayload { sale }).unwrap(),
-                                token: None,
+                                token: current_token,
                                 timestamp: chrono::Utc::now().timestamp_millis(),
                             };
                             let msg = serde_json::to_string(&req)?;
@@ -210,7 +267,21 @@ impl NetworkClient {
                                 payload: serde_json::to_value(SyncFullPayload {
                                     tables: vec!["products".into(), "customers".into(), "settings".into()]
                                 }).unwrap(),
-                                token: None,
+                                token: current_token,
+                                timestamp: chrono::Utc::now().timestamp_millis(),
+                            };
+                            let msg = serde_json::to_string(&req)?;
+                            write.send(Message::Text(msg)).await?;
+                        },
+                        Some(ClientCommand::SyncDelta) => {
+                            let last_sync_val = *self.last_sync.read().await;
+                            let req = MobileRequest {
+                                id: chrono::Utc::now().timestamp_millis() as u64,
+                                action: "sync.delta".into(),
+                                payload: serde_json::to_value(SyncDeltaPayload {
+                                    last_sync: last_sync_val,
+                                }).unwrap(),
+                                token: current_token,
                                 timestamp: chrono::Utc::now().timestamp_millis(),
                             };
                             let msg = serde_json::to_string(&req)?;
@@ -249,31 +320,31 @@ impl NetworkClient {
     }
 
     async fn handle_event(&self, event: MobileEvent) {
-         match event.event.as_str() {
-             "product.updated" => {
-                 if let Ok(product) = serde_json::from_value::<Product>(event.data) {
-                     let repo = ProductRepository::new(&self.pool);
-                     if let Err(e) = repo.upsert_from_sync(product).await {
-                         tracing::error!("Erro ao atualizar produto via evento: {:?}", e);
-                     } else {
-                         tracing::info!("Produto atualizado via evento de rede");
-                         self.broadcast(ClientEvent::StockUpdated); // Notificar UI
-                     }
-                 }
-             },
-             "stock.updated" => {
-                 self.broadcast(ClientEvent::StockUpdated);
-             },
-             "customer.updated" => {
-                 if let Ok(customer) = serde_json::from_value::<Customer>(event.data) {
-                     let repo = CustomerRepository::new(&self.pool);
-                     if let Err(e) = repo.upsert_from_sync(customer).await {
-                         tracing::error!("Erro ao atualizar cliente via evento: {:?}", e);
-                     }
-                 }
-             }
-             _ => {}
-         }
+        match event.event.as_str() {
+            "product.updated" => {
+                if let Ok(product) = serde_json::from_value::<Product>(event.data) {
+                    let repo = ProductRepository::new(&self.pool);
+                    if let Err(e) = repo.upsert_from_sync(product).await {
+                        tracing::error!("Erro ao atualizar produto via evento: {:?}", e);
+                    } else {
+                        tracing::info!("Produto atualizado via evento de rede");
+                        self.broadcast(ClientEvent::StockUpdated); // Notificar UI
+                    }
+                }
+            }
+            "stock.updated" => {
+                self.broadcast(ClientEvent::StockUpdated);
+            }
+            "customer.updated" => {
+                if let Ok(customer) = serde_json::from_value::<Customer>(event.data) {
+                    let repo = CustomerRepository::new(&self.pool);
+                    if let Err(e) = repo.upsert_from_sync(customer).await {
+                        tracing::error!("Erro ao atualizar cliente via evento: {:?}", e);
+                    }
+                }
+            }
+            _ => {}
+        }
     }
 
     async fn handle_response(&self, resp: MobileResponse) {
@@ -281,12 +352,17 @@ impl NetworkClient {
             if let Some(payload) = resp.data {
                 if let Some(obj) = payload.as_object() {
                     // Processar sincronização completa
-                    if obj.contains_key("products") || obj.contains_key("customers") || obj.contains_key("settings") {
+                    if obj.contains_key("products")
+                        || obj.contains_key("customers")
+                        || obj.contains_key("settings")
+                    {
                         tracing::info!("Recebendo dados de sincronização...");
-                        
+
                         // Produtos
                         if let Some(products_val) = obj.get("products") {
-                            if let Ok(products) = serde_json::from_value::<Vec<Product>>(products_val.clone()) {
+                            if let Ok(products) =
+                                serde_json::from_value::<Vec<Product>>(products_val.clone())
+                            {
                                 let repo = ProductRepository::new(&self.pool);
                                 let total = products.len();
                                 let mut count = 0;
@@ -303,7 +379,9 @@ impl NetworkClient {
 
                         // Clientes
                         if let Some(customers_val) = obj.get("customers") {
-                            if let Ok(customers) = serde_json::from_value::<Vec<Customer>>(customers_val.clone()) {
+                            if let Ok(customers) =
+                                serde_json::from_value::<Vec<Customer>>(customers_val.clone())
+                            {
                                 let repo = CustomerRepository::new(&self.pool);
                                 let total = customers.len();
                                 let mut count = 0;
@@ -320,13 +398,18 @@ impl NetworkClient {
 
                         // Configurações
                         if let Some(settings_val) = obj.get("settings") {
-                            if let Ok(settings) = serde_json::from_value::<Vec<Setting>>(settings_val.clone()) {
+                            if let Ok(settings) =
+                                serde_json::from_value::<Vec<Setting>>(settings_val.clone())
+                            {
                                 let repo = SettingsRepository::new(&self.pool);
                                 let total = settings.len();
                                 let mut count = 0;
                                 for s in settings {
                                     if let Err(e) = repo.upsert_from_sync(s).await {
-                                        tracing::error!("Erro ao sincronizar configuração: {:?}", e);
+                                        tracing::error!(
+                                            "Erro ao sincronizar configuração: {:?}",
+                                            e
+                                        );
                                     } else {
                                         count += 1;
                                     }
@@ -336,6 +419,9 @@ impl NetworkClient {
                         }
 
                         self.broadcast(ClientEvent::SyncCompleted);
+
+                        // Atualizar timestamp do último sync
+                        *self.last_sync.write().await = chrono::Utc::now().timestamp();
                     }
                 }
             }

@@ -66,9 +66,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useState } from 'react';
 import { ServiceOrderStatusBadge } from './ServiceOrderList';
 import { ServiceOrderItemDialog } from './ServiceOrderItemDialog';
-import { PaymentModal } from '../pdv/PaymentModal';
+import { PaymentModal, type SplitPayment } from '../pdv/PaymentModal';
 import { VehicleHistoryPopover } from './VehicleHistoryPopover';
 import { PaymentMethod } from '@/stores/pdv-store';
+import type { CreateSalePayment } from '@/types';
 
 interface ServiceOrderDetailsProps {
   orderId: string;
@@ -156,7 +157,11 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     }
   };
 
-  const handleDeliverOrder = async (data: { paymentMethod: PaymentMethod; amountPaid: number }) => {
+  const handleDeliverOrder = async (data: {
+    paymentMethod: PaymentMethod;
+    amountPaid: number;
+    splitPayments?: SplitPayment[];
+  }) => {
     if (!employee || !currentSession) {
       toast({
         title: 'Erro de sessão',
@@ -166,10 +171,16 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
       return;
     }
 
+    // Preparar array de pagamentos
+    const payments: CreateSalePayment[] =
+      data.splitPayments && data.splitPayments.length > 0
+        ? data.splitPayments.map((p) => ({ method: p.method, amount: p.amount }))
+        : [{ method: data.paymentMethod, amount: data.amountPaid }];
+
     try {
       await deliverOrder.mutateAsync({
         id: orderId,
-        paymentMethod: data.paymentMethod,
+        payments,
         amountPaid: data.amountPaid,
         sessionId: currentSession.id,
       });
