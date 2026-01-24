@@ -102,16 +102,13 @@ export function LabeledShortcut({ label, shortcut, className }: LabeledShortcutP
  * Lista de atalhos comuns do PDV
  */
 export const pdvShortcuts = [
-  { label: 'Nova venda', shortcut: 'F2' },
-  { label: 'Buscar produto', shortcut: 'F3' },
-  { label: 'Quantidade', shortcut: 'F4' },
-  { label: 'Desconto', shortcut: 'F5' },
-  { label: 'Pagamento', shortcut: 'F6' },
-  { label: 'Cancelar item', shortcut: 'F7' },
-  { label: 'Cancelar venda', shortcut: 'F8' },
-  { label: 'Gaveta', shortcut: 'F9' },
-  { label: 'Trocar usuário', shortcut: 'F11' },
-  { label: 'Fechar caixa', shortcut: 'Ctrl+F4' },
+  { label: 'Ajuda', shortcut: 'F1' },
+  { label: 'Buscar produto', shortcut: 'F2' },
+  { label: 'Alterar quantidade', shortcut: 'F4' },
+  { label: 'Aplicar desconto', shortcut: 'F6' },
+  { label: 'Finalizar venda', shortcut: 'F10' },
+  { label: 'Remover último item', shortcut: 'F12' },
+  { label: 'Limpar carrinho', shortcut: 'Esc' },
 ] as const;
 
 export default KeyboardShortcut;

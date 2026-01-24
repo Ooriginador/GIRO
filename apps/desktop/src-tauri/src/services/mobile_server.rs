@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{broadcast, mpsc, RwLock};
+use tokio::sync::{mpsc, RwLock};
 use tokio_tungstenite::tungstenite::Message;
 
 /// Configuração do servidor mobile

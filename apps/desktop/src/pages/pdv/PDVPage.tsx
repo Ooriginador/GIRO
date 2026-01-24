@@ -40,6 +40,8 @@ import {
 } from 'lucide-react';
 import { type FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LabeledShortcut, pdvShortcuts } from '@/components/pdv/KeyboardShortcut';
+import { HelpCircle } from 'lucide-react';
 
 export const PDVPage: FC = () => {
   const navigate = useNavigate();
@@ -48,6 +50,7 @@ export const PDVPage: FC = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [quantityInput, setQuantityInput] = useState('');
   const [discountInput, setDiscountInput] = useState('');
@@ -91,6 +94,11 @@ export const PDVPage: FC = () => {
   // Atalhos de teclado
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // F1 - Ajuda
+      if (e.key === 'F1') {
+        e.preventDefault();
+        setShowHelpModal(true);
+      }
       // F2 - Buscar produto
       if (e.key === 'F2') {
         e.preventDefault();
@@ -142,6 +150,7 @@ export const PDVPage: FC = () => {
         setShowPaymentModal(false);
         setShowQuantityModal(false);
         setShowDiscountModal(false);
+        setShowHelpModal(false);
       }
     };
 
@@ -230,7 +239,18 @@ export const PDVPage: FC = () => {
                 autoFocus
                 data-tutorial="product-search"
               />
-              <span className="kbd absolute right-3 top-1/2 -translate-y-1/2">F2</span>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground"
+                  onClick={() => setShowHelpModal(true)}
+                  title="Ajuda (F1)"
+                >
+                  <HelpCircle className="h-5 w-5" />
+                </Button>
+                <span className="kbd text-xs">F2</span>
+              </div>
             </div>
 
             {/* Resultados da busca de produtos */}
@@ -512,6 +532,29 @@ export const PDVPage: FC = () => {
               Cancelar
             </Button>
             <Button onClick={handleDiscountConfirm}>Aplicar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Ajuda (F1) */}
+      <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5 text-primary" />
+              Atalhos do Teclado
+            </DialogTitle>
+            <DialogDescription>
+              Comandos rápidos para operar o PDV com eficiência.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {pdvShortcuts.map((item) => (
+              <LabeledShortcut key={item.shortcut} label={item.label} shortcut={item.shortcut} />
+            ))}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowHelpModal(false)}>Entendi</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

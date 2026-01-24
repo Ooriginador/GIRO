@@ -15,77 +15,78 @@ impl ReportMotopartsRepository {
 
     pub async fn get_dashboard_stats(&self) -> AppResult<DashboardStats> {
         // Vendas hoje
-        let sales_today = sqlx::query!(
+        let sales_today_row: (f64, i64) = sqlx::query_as(
             r#"
             SELECT 
-                COALESCE(SUM(total), 0.0) as "total!: f64",
-                COUNT(id) as "count!: i64"
+                COALESCE(SUM(total), 0.0) as total,
+                COUNT(id) as count
             FROM sales 
             WHERE date(created_at) = date('now') AND status != 'CANCELED'
-            "#
+            "#,
         )
         .fetch_one(&self.pool)
         .await?;
 
-        // Vendas ontem (mesmo horário para comparação justa se desejar, mas aqui pegaremos o dia todo)
-        let sales_yesterday = sqlx::query!(
+        // Vendas ontem
+        let sales_yesterday_total: f64 = sqlx::query_scalar(
             r#"
-            SELECT COALESCE(SUM(total), 0.0) as "total!: f64"
+            SELECT COALESCE(SUM(total), 0.0) as total
             FROM sales 
             WHERE date(created_at) = date('now', '-1 day') AND status != 'CANCELED'
-            "#
+            "#,
         )
         .fetch_one(&self.pool)
         .await?;
 
         // OS Abertas
-        let open_os = sqlx::query!(
+        let open_os_count: i64 = sqlx::query_scalar(
             r#"
-            SELECT COUNT(id) as "count!: i64"
+            SELECT COUNT(id) as count
             FROM service_orders 
             WHERE status NOT IN ('COMPLETED', 'DELIVERED', 'CANCELED')
-            "#
+            "#,
         )
         .fetch_one(&self.pool)
         .await?;
 
-        // Garantias Ativas - Tentando buscar da tabela
-        let active_warranties_count = sqlx::query_scalar!(
+        // Garantias Ativas
+        let active_warranties_count: i64 = sqlx::query_scalar(
             r#"
-            SELECT COUNT(id) as "count: i64"
+            SELECT COUNT(id) as count
             FROM warranty_claims
             WHERE status IN ('ACTIVE', 'PENDING')
-            "#
+            "#,
         )
         .fetch_one(&self.pool)
         .await
         .unwrap_or(0);
 
         // Estoque Baixo
-        let low_stock = sqlx::query!(
+        let low_stock_count: i64 = sqlx::query_scalar(
             r#"
-            SELECT COUNT(id) as "count!: i64"
+            SELECT COUNT(id) as count
             FROM products
             WHERE current_stock <= min_stock AND is_active = 1
-            "#
+            "#,
         )
         .fetch_one(&self.pool)
         .await?;
 
         // Alertas Ativos (Unread)
-        let active_alerts = sqlx::query_scalar!(
+        let active_alerts_count: i64 = sqlx::query_scalar(
             r#"
-            SELECT COUNT(id) as "count: i64"
+            SELECT COUNT(id) as count
             FROM alerts
             WHERE is_read = 0
-            "#
+            "#,
         )
         .fetch_one(&self.pool)
         .await
         .unwrap_or(0);
 
         // Receita Semanal (Últimos 7 dias)
-        let revenue_weekly_rows = sqlx::query!(
+        // Receita Semanal (Últimos 7 dias)
+        let revenue_rows: Vec<(String, f64)> = sqlx::query_as(
             r#"
             WITH RECURSIVE dates(date) AS (
                 VALUES(date('now', '-6 days'))
@@ -95,79 +96,78 @@ impl ReportMotopartsRepository {
                 WHERE date < date('now')
             )
             SELECT 
-                dates.date as "date!: String",
-                COALESCE(SUM(s.total), 0.0) as "amount!: f64"
-            FROM dates
-            LEFT JOIN sales s ON date(s.created_at) = dates.date AND s.status != 'CANCELED'
-            GROUP BY dates.date
-            ORDER BY dates.date
-            "#
+                d.date,
+                COALESCE((
+                    SELECT SUM(total)
+                    FROM sales
+                    WHERE date(created_at) = d.date AND status != 'CANCELED'
+                ), 0.0) as amount
+            FROM dates d
+            ORDER BY d.date
+            "#,
         )
         .fetch_all(&self.pool)
         .await?;
 
-        let revenue_weekly = revenue_weekly_rows
+        let revenue_weekly = revenue_rows
             .into_iter()
-            .map(|r| DailyRevenue {
-                date: r.date,
-                amount: r.amount,
-            })
+            .map(|(date, amount)| DailyRevenue { date, amount })
             .collect();
 
         Ok(DashboardStats {
-            total_sales_today: sales_today.total,
-            total_sales_yesterday: sales_yesterday.total,
-            count_sales_today: sales_today.count as i32,
-            open_service_orders: open_os.count as i32,
+            total_sales_today: sales_today_row.0,
+            total_sales_yesterday: sales_yesterday_total,
+            count_sales_today: sales_today_row.1 as i32,
+            open_service_orders: open_os_count as i32,
             active_warranties: active_warranties_count as i32,
-            low_stock_products: low_stock.count as i32,
-            active_alerts: active_alerts as i32,
+            low_stock_products: low_stock_count as i32,
+            active_alerts: active_alerts_count as i32,
             revenue_weekly,
         })
     }
 
     pub async fn get_service_order_stats(&self) -> AppResult<ServiceOrderStats> {
-        let total = sqlx::query!(r#"SELECT COUNT(id) as count FROM service_orders"#)
+        let total_count: i64 = sqlx::query_scalar("SELECT COUNT(id) FROM service_orders")
             .fetch_one(&self.pool)
             .await?;
 
-        let by_status_rows = sqlx::query!(
+        let by_status_rows: Vec<(String, i64)> = sqlx::query_as(
             r#"
             SELECT status, COUNT(id) as count
             FROM service_orders
             GROUP BY status
-            "#
+            "#,
         )
         .fetch_all(&self.pool)
         .await?;
 
-        let revenue = sqlx::query!(
+        let revenue_row: (f64, f64) = sqlx::query_as(
             r#"
             SELECT 
-                COALESCE(SUM(labor_cost), 0) as labor,
-                COALESCE(SUM(parts_cost), 0) as parts
+                COALESCE(SUM(labor_cost), 0.0) as labor,
+                COALESCE(SUM(parts_cost), 0.0) as parts
             FROM service_orders
             WHERE status IN ('COMPLETED', 'DELIVERED')
-            "#
+            "#,
         )
         .fetch_one(&self.pool)
         .await?;
 
         let count_completed = by_status_rows
             .iter()
-            .filter(|r| r.status == "COMPLETED" || r.status == "DELIVERED")
-            .map(|r| r.count)
+            .filter(|(status, _)| status == "COMPLETED" || status == "DELIVERED")
+            .map(|(_, count)| count)
             .sum::<i64>();
 
         let by_status = by_status_rows
             .into_iter()
-            .map(|r| StatusCount {
-                status: r.status,
-                count: r.count as i32,
+            .map(|(status, count)| StatusCount {
+                status,
+                count: count as i32,
             })
             .collect();
 
-        let total_revenue = revenue.labor as f64 + revenue.parts as f64;
+        let total_revenue = revenue_row.0 + revenue_row.1;
 
         let average_ticket = if count_completed > 0 {
             total_revenue / count_completed as f64
@@ -176,39 +176,39 @@ impl ReportMotopartsRepository {
         };
 
         Ok(ServiceOrderStats {
-            total_orders: total.count as i32,
+            total_orders: total_count as i32,
             by_status,
-            revenue_labor: revenue.labor as f64,
-            revenue_parts: revenue.parts as f64,
+            revenue_labor: revenue_row.0,
+            revenue_parts: revenue_row.1,
             average_ticket,
         })
     }
 
     pub async fn get_top_products_motoparts(&self, limit: i64) -> AppResult<Vec<TopItem>> {
-        let rows = sqlx::query!(
+        let rows: Vec<(String, String, f64, f64)> = sqlx::query_as(
             r#"
             SELECT 
                 p.id, p.name,
-                COALESCE(SUM(si.quantity), 0.0) as "quantity!: f64",
-                COALESCE(SUM(si.total), 0.0) as "total!: f64"
+                COALESCE(SUM(si.quantity), 0.0) as quantity,
+                COALESCE(SUM(si.total), 0.0) as total
             FROM sale_items si
             JOIN products p ON p.id = si.product_id
             GROUP BY p.id
             ORDER BY quantity DESC
             LIMIT ?
             "#,
-            limit
         )
+        .bind(limit)
         .fetch_all(&self.pool)
         .await?;
 
         let items = rows
             .into_iter()
-            .map(|r| TopItem {
-                id: r.id,
-                name: r.name,
-                quantity: r.quantity,
-                total_value: r.total,
+            .map(|(id, name, quantity, total)| TopItem {
+                id,
+                name,
+                quantity,
+                total_value: total,
             })
             .collect();
 

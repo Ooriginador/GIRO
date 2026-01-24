@@ -124,4 +124,55 @@ impl<'a> AlertRepository<'a> {
             .await?;
         Ok(result.rows_affected() as i64)
     }
+
+    pub async fn check_os_warranties(&self) -> AppResult<i32> {
+        use sqlx::Row;
+
+        // Buscar OS que expiram em breve (próximos 7 dias) e ainda não têm alerta
+        let query = r#"
+            SELECT 
+                so.id, 
+                so.order_number, 
+                so.warranty_until,
+                c.name as customer_name
+            FROM service_orders so
+            JOIN customers c ON c.id = so.customer_id
+            WHERE so.status = 'DELIVERED' 
+              AND so.is_paid = 1
+              AND so.warranty_until IS NOT NULL
+              AND date(so.warranty_until) >= date('now')
+              AND date(so.warranty_until) <= date('now', '+7 days')
+              AND NOT EXISTS (
+                  SELECT 1 FROM alerts a 
+                  WHERE a.type = 'WARRANTY_EXPIRATION' 
+                    AND a.message LIKE '%' || so.id || '%'
+              )
+        "#;
+
+        let rows = sqlx::query(query).fetch_all(self.pool).await?;
+
+        let mut created = 0;
+        for row in rows {
+            let id: String = row.get("id");
+            let number: i32 = row.get("order_number");
+            let until: String = row.get("warranty_until");
+            let customer: String = row.get("customer_name");
+
+            self.create(CreateAlert {
+                alert_type: "WARRANTY_EXPIRATION".to_string(),
+                severity: "INFO".to_string(),
+                title: format!("Garantia Expirando: OS #{}", number),
+                message: format!(
+                    "A garantia da OS #{} (Cliente: {}) expira em {}. ID OS: {}",
+                    number, customer, until, id
+                ),
+                product_id: None,
+                lot_id: None,
+            })
+            .await?;
+            created += 1;
+        }
+
+        Ok(created)
+    }
 }

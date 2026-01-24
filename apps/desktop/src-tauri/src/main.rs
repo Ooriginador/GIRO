@@ -443,6 +443,14 @@ async fn main() {
                     },
                     _ => tracing::info!("Auto-start: Modo STANDALONE (Nenhum serviço de rede iniciado)"),
                 }
+
+                // 3. Verificar Garantias de OS expirando
+                let alert_repo = giro_lib::repositories::AlertRepository::new(state.pool());
+                match alert_repo.check_os_warranties().await {
+                    Ok(count) if count > 0 => tracing::info!("✅ Alertas de Garantia: {} novos alertas gerados", count),
+                    Ok(_) => tracing::info!("✅ Alertas de Garantia: Nenhuma garantia expirando em breve"),
+                    Err(e) => tracing::error!("❌ Erro ao verificar garantias de OS: {:?}", e),
+                }
             });
             tracing::info!("Aplicação inicializada com sucesso");
             Ok(())
