@@ -53,7 +53,7 @@ export const StockPage: FC = () => {
   const { data: report, isLoading } = useStockReport(filterId);
   const { data: lowStockProducts = [] } = useLowStockProducts(filterId);
 
-  const canViewValue = hasPermission('ViewStockValue');
+  const canViewValue = hasPermission('stock.view_value');
 
   if (isLoading || !report) {
     return (

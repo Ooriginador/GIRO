@@ -41,10 +41,10 @@ export function useEmployeePerformance(startDate?: string, endDate?: string) {
 /**
  * Hook para relatório de estoque
  */
-export function useStockReport() {
+export function useStockReport(categoryId?: string) {
   return useQuery({
-    queryKey: reportKeys.stock(),
-    queryFn: getStockReport,
+    queryKey: [...reportKeys.stock(), categoryId],
+    queryFn: () => getStockReport(categoryId),
     staleTime: 10 * 60 * 1000,
   });
 }
