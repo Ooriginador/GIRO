@@ -168,10 +168,7 @@ mod tests {
                 repo.deactivate(&emp.id).await.unwrap();
                 // Verify deactivation
                 let deactivated = repo.find_by_id(&emp.id).await.unwrap().unwrap();
-                assert!(
-                    !deactivated.is_active,
-                    "Employee 4 should be deactivated"
-                );
+                assert!(!deactivated.is_active, "Employee 4 should be deactivated");
             }
         }
 

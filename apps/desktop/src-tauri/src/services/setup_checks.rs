@@ -1,6 +1,5 @@
 use tracing::{info, warn};
 
-
 /// Verifica e tenta corrigir as configurações de rede/firewall
 pub async fn check_network_setup() {
     verify_firewall_rules().await;
@@ -20,11 +19,11 @@ async fn verify_firewall_rules() {
     } else {
         info!("✅ Regra de firewall 'GIRO Mobile Sync' encontrada.");
     }
-    
+
     // Verifica regra do executável
     let app_rule_exists = check_rule_exists("GIRO Desktop App");
     if !app_rule_exists {
-         warn!("⚠️ Regra de firewall 'GIRO Desktop App' NÃO encontrada.");
+        warn!("⚠️ Regra de firewall 'GIRO Desktop App' NÃO encontrada.");
     } else {
         info!("✅ Regra de firewall 'GIRO Desktop App' encontrada.");
     }
@@ -34,7 +33,13 @@ async fn verify_firewall_rules() {
 fn check_rule_exists(rule_name: &str) -> bool {
     use std::process::Command;
     let output = Command::new("netsh")
-        .args(&["advfirewall", "firewall", "show", "rule", &format!("name=\"{}\"", rule_name)])
+        .args(&[
+            "advfirewall",
+            "firewall",
+            "show",
+            "rule",
+            &format!("name=\"{}\"", rule_name),
+        ])
         .output();
 
     match output {
@@ -55,16 +60,16 @@ async fn verify_firewall_rules() {
     // We can check if port 3847 is bindable.
     match std::net::TcpListener::bind("0.0.0.0:3847") {
         Ok(_) => {
-             info!("✅ Porta 3847 está livre para uso (Teste de bind bem sucedido).");
-             // Drop listener immidiately
-        },
+            info!("✅ Porta 3847 está livre para uso (Teste de bind bem sucedido).");
+            // Drop listener immidiately
+        }
         Err(e) => {
             if e.kind() == std::io::ErrorKind::AddrInUse {
-                 // Pode ser que o próprio app já esteja rodando (se isso rodar depois do start do server)
-                 // Como check_network_setup é chamado no main, antes ou paralelo ao server?
-                 warn!("⚠️ Porta 3847 parece estar em uso. Verifique se outra instância não está rodando.");
+                // Pode ser que o próprio app já esteja rodando (se isso rodar depois do start do server)
+                // Como check_network_setup é chamado no main, antes ou paralelo ao server?
+                warn!("⚠️ Porta 3847 parece estar em uso. Verifique se outra instância não está rodando.");
             } else {
-                 warn!("⚠️ Erro ao testar porta 3847: {}", e);
+                warn!("⚠️ Erro ao testar porta 3847: {}", e);
             }
         }
     }
