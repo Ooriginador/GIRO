@@ -58,6 +58,8 @@ pub struct LicenseInfo {
     pub can_offline: Option<bool>,
     pub has_admin: Option<bool>,
     pub admin_user: Option<AdminUserSyncData>,
+    /// Grace period in days for offline validation (default: 7)
+    pub grace_period_days: Option<i32>,
 }
 
 /// Admin user sync data
@@ -345,6 +347,7 @@ impl LicenseClient {
             can_offline: Some(api_resp.can_offline),
             has_admin: Some(api_resp.has_admin),
             admin_user: api_resp.admin_user,
+            grace_period_days: None, // Activation response doesn't include this
         })
     }
 
@@ -434,6 +437,7 @@ impl LicenseClient {
             message: String,
             has_admin: bool,
             admin_user: Option<AdminUserSyncData>,
+            grace_period_days: Option<i32>,
         }
 
         let api_resp = response
@@ -461,6 +465,7 @@ impl LicenseClient {
             can_offline: Some(api_resp.can_offline),
             has_admin: Some(api_resp.has_admin),
             admin_user: api_resp.admin_user,
+            grace_period_days: api_resp.grace_period_days,
         })
     }
 

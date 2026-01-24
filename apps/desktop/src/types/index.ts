@@ -512,6 +512,8 @@ export interface LicenseInfo {
     email?: string;
     phone?: string;
   };
+  /** Grace period in days for offline validation (default: 7) */
+  grace_period_days?: number;
 }
 
 export interface UpdateLicenseAdminRequest {

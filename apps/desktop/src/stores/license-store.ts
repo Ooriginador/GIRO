@@ -34,8 +34,8 @@ interface LicenseStore {
 
 // Validade da cache de licença (1 hora)
 const VALIDATION_CACHE_MS = 1 * 60 * 60 * 1000;
-// Período de graça offline (7 dias)
-const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
+// Período de graça offline (7 dias) - Fallback
+// const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const useLicenseStore = create<LicenseStore>()(
   persist(
@@ -119,7 +119,7 @@ export const useLicenseStore = create<LicenseStore>()(
       },
 
       isWithinGracePeriod: () => {
-        const { lastValidation, licenseKey, state, isHydrated } = get();
+        const { lastValidation, licenseKey, state, isHydrated, licenseInfo } = get();
         if (!isHydrated) return false; // Wait for hydration truth
         if (!licenseKey) return false;
 
@@ -132,7 +132,10 @@ export const useLicenseStore = create<LicenseStore>()(
         const now = Date.now();
         const diff = now - lastCheck;
 
-        return diff < GRACE_PERIOD_MS;
+        const gracePeriodDays = licenseInfo?.grace_period_days ?? 7;
+        const gracePeriodMs = gracePeriodDays * 24 * 60 * 60 * 1000;
+
+        return diff < gracePeriodMs;
       },
 
       hydrateFromDisk: async () => {
@@ -170,8 +173,11 @@ export const useLicenseStore = create<LicenseStore>()(
             if (info?.status === 'active') {
               const lastCheck = lastVal ? new Date(lastVal).getTime() : 0;
               const now = Date.now();
-              // Se validado nos últimos 7 dias, consideramos válido imediatamente para evitar bloqueios
-              if (now - lastCheck < GRACE_PERIOD_MS) {
+              // Se validado nos últimos X dias (grace period), consideramos válido imediatamente
+              const gracePeriodDays = info.grace_period_days ?? 7;
+              const gracePeriodMs = gracePeriodDays * 24 * 60 * 60 * 1000;
+
+              if (now - lastCheck < gracePeriodMs) {
                 initialState = 'valid';
               }
             }
