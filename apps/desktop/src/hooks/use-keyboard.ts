@@ -66,7 +66,10 @@ export const PDV_SHORTCUTS = {
   SEARCH: 'F2',
   QUANTITY: 'F4',
   DISCOUNT: 'F6',
+  HOLD: 'F8',
+  RESUME: 'F9',
   FINALIZE: 'F10',
+  DRAWER: 'F11',
   CANCEL_ITEM: 'F12',
   CANCEL: 'Escape',
 };
@@ -79,7 +82,10 @@ export function usePDVKeyboard(handlers: {
   onSearch?: () => void;
   onQuantity?: () => void;
   onDiscount?: () => void;
+  onHold?: () => void;
+  onResume?: () => void;
   onFinalize?: () => void;
+  onDrawer?: () => void;
   onCancelItem?: () => void;
   onCancel?: () => void;
 }) {
@@ -105,9 +111,24 @@ export function usePDVKeyboard(handlers: {
       description: 'Aplicar desconto',
     },
     {
+      key: PDV_SHORTCUTS.HOLD,
+      action: () => handlers.onHold?.(),
+      description: 'Pausar venda',
+    },
+    {
+      key: PDV_SHORTCUTS.RESUME,
+      action: () => handlers.onResume?.(),
+      description: 'Recuperar venda',
+    },
+    {
       key: PDV_SHORTCUTS.FINALIZE,
       action: () => handlers.onFinalize?.(),
       description: 'Finalizar venda',
+    },
+    {
+      key: PDV_SHORTCUTS.DRAWER,
+      action: () => handlers.onDrawer?.(),
+      description: 'Abrir gaveta',
     },
     {
       key: PDV_SHORTCUTS.CANCEL_ITEM,

@@ -43,6 +43,7 @@ import { useNavigate } from 'react-router-dom';
 import { LabeledShortcut, pdvShortcuts } from '@/components/pdv/KeyboardShortcut';
 import { HelpCircle } from 'lucide-react';
 import { commands } from '@/lib/bindings';
+import { usePDVKeyboard } from '@/hooks/use-keyboard';
 
 export const PDVPage: FC = () => {
   const navigate = useNavigate();
@@ -101,117 +102,75 @@ export const PDVPage: FC = () => {
   const total = getTotal();
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Atalhos de teclado
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // F1 - Ajuda
-      if (e.key === 'F1') {
-        e.preventDefault();
-        setShowHelpModal(true);
+  // Atalhos de teclado usando o hook centralizado
+  usePDVKeyboard({
+    onHelp: () => setShowHelpModal(true),
+    onSearch: () => {
+      searchInputRef.current?.focus();
+      setShowSearch(true);
+    },
+    onQuantity: () => {
+      if (items.length > 0) {
+        const lastItem = items[items.length - 1];
+        if (lastItem) {
+          setSelectedItemId(lastItem.id);
+          setQuantityInput(lastItem.quantity.toString());
+          setShowQuantityModal(true);
+          setTimeout(() => quantityInputRef.current?.select(), 100);
+        }
       }
-      // F2 - Buscar produto
-      if (e.key === 'F2') {
-        e.preventDefault();
+    },
+    onDiscount: () => {
+      if (items.length > 0) {
+        setDiscountInput(discount.toFixed(2));
+        setShowDiscountModal(true);
+        setTimeout(() => discountInputRef.current?.select(), 100);
+      }
+    },
+    onHold: () => {
+      if (items.length > 0) {
+        holdSale();
+      }
+    },
+    onResume: () => setShowRecoverModal(true),
+    onFinalize: () => {
+      if (items.length > 0 && currentSession) {
+        setShowPaymentModal(true);
+      }
+    },
+    onDrawer: () => commands.openCashDrawer(),
+    onCancelItem: () => {
+      if (items.length > 0) {
+        const lastItem = items[items.length - 1];
+        if (lastItem) {
+          removeItem(lastItem.id);
+        }
+      }
+    },
+    onCancel: () => {
+      const anyModalOpen =
+        showSearch ||
+        showPaymentModal ||
+        showQuantityModal ||
+        showDiscountModal ||
+        showHelpModal ||
+        showClearConfirm ||
+        showRecoverModal;
+
+      if (anyModalOpen) {
+        setShowSearch(false);
+        setShowPaymentModal(false);
+        setShowQuantityModal(false);
+        setShowDiscountModal(false);
+        setShowHelpModal(false);
+        setShowClearConfirm(false);
+        setShowRecoverModal(false);
         searchInputRef.current?.focus();
-        setShowSearch(true);
+      } else if (items.length > 0) {
+        setShowClearConfirm(true);
       }
-      // F4 - Alterar quantidade do último item
-      if (e.key === 'F4') {
-        e.preventDefault();
-        if (items.length > 0) {
-          const lastItem = items[items.length - 1];
-          if (lastItem) {
-            setSelectedItemId(lastItem.id);
-            setQuantityInput(lastItem.quantity.toString());
-            setShowQuantityModal(true);
-            setTimeout(() => quantityInputRef.current?.select(), 100);
-          }
-        }
-      }
-      // F6 - Aplicar desconto geral
-      if (e.key === 'F6') {
-        e.preventDefault();
-        if (items.length > 0) {
-          setDiscountInput(discount.toFixed(2));
-          setShowDiscountModal(true);
-          setTimeout(() => discountInputRef.current?.select(), 100);
-        }
-      }
-      // F8 - Pausar venda (Hold)
-      if (e.key === 'F8') {
-        e.preventDefault();
-        if (items.length > 0) {
-          holdSale();
-        }
-      }
-      // F9 - Recuperar venda (Resume)
-      if (e.key === 'F9') {
-        e.preventDefault();
-        setShowRecoverModal(true);
-      }
-      // F11 - Abrir gaveta
-      if (e.key === 'F11') {
-        e.preventDefault();
-        commands.openCashDrawer();
-      }
-      // F10 - Finalizar venda
-      if (e.key === 'F10') {
-        e.preventDefault();
-        if (items.length > 0 && currentSession) {
-          setShowPaymentModal(true);
-        }
-      }
-      // F12 - Remover último item
-      if (e.key === 'F12') {
-        e.preventDefault();
-        if (items.length > 0) {
-          const lastItem = items[items.length - 1];
-          if (lastItem) {
-            removeItem(lastItem.id);
-          }
-        }
-      }
-      // Escape - Cancelar venda (ou fechar modais)
-      if (e.key === 'Escape') {
-        const anyModalOpen =
-          showSearch ||
-          showPaymentModal ||
-          showQuantityModal ||
-          showDiscountModal ||
-          showHelpModal ||
-          showClearConfirm ||
-          showRecoverModal;
-
-        if (anyModalOpen) {
-          setShowSearch(false);
-          setShowPaymentModal(false);
-          setShowQuantityModal(false);
-          setShowDiscountModal(false);
-          setShowHelpModal(false);
-          setShowClearConfirm(false);
-          setShowRecoverModal(false);
-        } else if (items.length > 0) {
-          setShowClearConfirm(true);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    items,
-    currentSession,
-    discount,
-    removeItem,
-    holdSale,
-    showSearch,
-    showPaymentModal,
-    showQuantityModal,
-    showDiscountModal,
-    showHelpModal,
-    showClearConfirm,
-    showRecoverModal,
-  ]);
+    },
+  });
 
   const handleQuantityConfirm = () => {
     if (selectedItemId && quantityInput) {
@@ -249,14 +208,32 @@ export const PDVPage: FC = () => {
         productId: product.id,
         productName: product.name,
         barcode: product.barcode,
-        quantity: product.isWeighted ? 1 : 1,
+        quantity: 1,
         unitPrice: product.salePrice,
         unit: product.unit,
         isWeighted: product.isWeighted,
       });
+
       setSearchQuery('');
       setShowSearch(false);
-      searchInputRef.current?.focus();
+
+      if (product.isWeighted) {
+        // Como o addItem no store gera seu próprio ID e é síncrono (zustand),
+        // precisamos encontrar o item recém adicionado.
+        // Uma alternativa melhor seria o addItem aceitar um ID opcional.
+        // Por agora, vamos abrir o modal para o último item se ele coincidir.
+        setTimeout(() => {
+          const lastItem = usePDVStore.getState().items.slice(-1)[0];
+          if (lastItem && lastItem.productId === product.id) {
+            setSelectedItemId(lastItem.id);
+            setQuantityInput('');
+            setShowQuantityModal(true);
+            setTimeout(() => quantityInputRef.current?.focus(), 100);
+          }
+        }, 10);
+      } else {
+        searchInputRef.current?.focus();
+      }
     },
     [addItem]
   );
@@ -280,7 +257,7 @@ export const PDVPage: FC = () => {
         {/* Área de Itens (60%) */}
         <section role="region" aria-label="Área de itens" className="flex flex-[3] flex-col gap-4">
           {/* Barra de Busca */}
-          <Card className="p-4 border-none bg-card/50 backdrop-blur-sm shadow-md">
+          <Card className="relative z-20 p-4 border-none bg-card/50 backdrop-blur-sm shadow-md">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
               <Input
