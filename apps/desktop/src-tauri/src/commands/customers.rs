@@ -3,6 +3,7 @@
 //! Expõe funcionalidades de clientes e seus veículos para o frontend
 
 use crate::audit_log;
+use crate::commands::network::NetworkState;
 use crate::error::AppResult;
 use crate::middleware::audit::{AuditAction, AuditService};
 use crate::middleware::Permission;
@@ -14,6 +15,7 @@ use crate::repositories::{CustomerRepository, PaginatedResult, Pagination};
 use crate::require_permission;
 use crate::AppState;
 use tauri::State;
+use tokio::sync::RwLock;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLIENTES
@@ -85,6 +87,7 @@ pub async fn search_customers(
 pub async fn create_customer(
     input: CreateCustomer,
     state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<Customer> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
@@ -104,6 +107,16 @@ pub async fn create_customer(
         format!("Nome: {}", result.name)
     );
 
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "customer",
+                serde_json::to_value(&result).unwrap_or_default(),
+            )
+            .await;
+    }
+
     Ok(result)
 }
 
@@ -114,6 +127,7 @@ pub async fn update_customer(
     id: String,
     input: UpdateCustomer,
     state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<Customer> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
@@ -133,13 +147,27 @@ pub async fn update_customer(
         format!("Nome: {}", result.name)
     );
 
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "customer",
+                serde_json::to_value(&result).unwrap_or_default(),
+            )
+            .await;
+    }
+
     Ok(result)
 }
 
 /// Desativa cliente (soft delete)
 #[tauri::command]
 #[specta::specta]
-pub async fn deactivate_customer(id: String, state: State<'_, AppState>) -> AppResult<()> {
+pub async fn deactivate_customer(
+    id: String,
+    state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
+) -> AppResult<()> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
@@ -157,13 +185,37 @@ pub async fn deactivate_customer(id: String, state: State<'_, AppState>) -> AppR
         &id
     );
 
+    // Push Update (Fetch updated entity to send correct status)
+    let updated = repo.find_by_id(&id).await?;
+    if let Some(c) = updated {
+        if let Some(client) = network_state.read().await.client.as_ref() {
+            let _ = client
+                .push_update("customer", serde_json::to_value(&c).unwrap_or_default())
+                .await;
+        }
+    }
+
+    // Push Update (Fetch updated entity to send correct status)
+    let updated = repo.find_by_id(&id).await?;
+    if let Some(c) = updated {
+        if let Some(client) = network_state.read().await.client.as_ref() {
+            let _ = client
+                .push_update("customer", serde_json::to_value(&c).unwrap_or_default())
+                .await;
+        }
+    }
+
     Ok(())
 }
 
 /// Reativa cliente
 #[tauri::command]
 #[specta::specta]
-pub async fn reactivate_customer(id: String, state: State<'_, AppState>) -> AppResult<Customer> {
+pub async fn reactivate_customer(
+    id: String,
+    state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
+) -> AppResult<Customer> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
@@ -181,6 +233,16 @@ pub async fn reactivate_customer(id: String, state: State<'_, AppState>) -> AppR
         &id,
         "Reativado"
     );
+
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "customer",
+                serde_json::to_value(&result).unwrap_or_default(),
+            )
+            .await;
+    }
 
     Ok(result)
 }

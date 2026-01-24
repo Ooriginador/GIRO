@@ -476,7 +476,7 @@ pub async fn giro_invoke(
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
 
-            match crate::commands::create_product(input, app_state).await {
+            match crate::commands::create_product(input, app_state, network_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -493,7 +493,7 @@ pub async fn giro_invoke(
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
 
-            match crate::commands::update_product(id, input, app_state).await {
+            match crate::commands::update_product(id, input, app_state, network_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -505,7 +505,7 @@ pub async fn giro_invoke(
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
 
-            match crate::commands::create_category(input, app_state).await {
+            match crate::commands::create_category(input, app_state, network_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -521,7 +521,7 @@ pub async fn giro_invoke(
             let input: crate::models::UpdateCategory =
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
-            match crate::commands::update_category(id, input, app_state).await {
+            match crate::commands::update_category(id, input, app_state, network_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -610,7 +610,13 @@ pub async fn giro_invoke(
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
 
-            match crate::commands::service_orders::create_service_order(app_state, input).await {
+            match crate::commands::service_orders::create_service_order(
+                app_state,
+                input,
+                network_state,
+            )
+            .await
+            {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -624,7 +630,9 @@ pub async fn giro_invoke(
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing id".to_string())?;
 
-            match crate::commands::service_orders::start_service_order(app_state, id).await {
+            match crate::commands::service_orders::start_service_order(app_state, id, network_state)
+                .await
+            {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -642,8 +650,13 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
 
-            match crate::commands::service_orders::complete_service_order(app_state, id, diagnosis)
-                .await
+            match crate::commands::service_orders::complete_service_order(
+                app_state,
+                id,
+                diagnosis,
+                network_state,
+            )
+            .await
             {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -668,6 +681,7 @@ pub async fn giro_invoke(
                 app_state,
                 id,
                 payment_method,
+                network_state,
             )
             .await
             {
@@ -688,7 +702,13 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
 
-            match crate::commands::service_orders::cancel_service_order(app_state, id, notes).await
+            match crate::commands::service_orders::cancel_service_order(
+                app_state,
+                id,
+                notes,
+                network_state,
+            )
+            .await
             {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -706,7 +726,13 @@ pub async fn giro_invoke(
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
 
-            match crate::commands::service_orders::update_service_order(app_state, id, input).await
+            match crate::commands::service_orders::update_service_order(
+                app_state,
+                id,
+                input,
+                network_state,
+            )
+            .await
             {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
@@ -746,6 +772,7 @@ pub async fn giro_invoke(
                 payments,
                 amount_paid,
                 cash_session_id,
+                network_state,
             )
             .await
             {
@@ -813,7 +840,7 @@ pub async fn giro_invoke(
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
 
-            match crate::commands::create_customer(input, app_state).await {
+            match crate::commands::create_customer(input, app_state, network_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -830,7 +857,7 @@ pub async fn giro_invoke(
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
 
-            match crate::commands::update_customer(id, input, app_state).await {
+            match crate::commands::update_customer(id, input, app_state, network_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -854,7 +881,8 @@ pub async fn giro_invoke(
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
 
-            match crate::commands::suppliers::create_supplier(input, app_state).await {
+            match crate::commands::suppliers::create_supplier(input, app_state, network_state).await
+            {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -871,7 +899,9 @@ pub async fn giro_invoke(
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
 
-            match crate::commands::suppliers::update_supplier(id, input, app_state).await {
+            match crate::commands::suppliers::update_supplier(id, input, app_state, network_state)
+                .await
+            {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -885,7 +915,9 @@ pub async fn giro_invoke(
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing id".to_string())?;
 
-            match crate::commands::suppliers::deactivate_supplier(id, app_state).await {
+            match crate::commands::suppliers::deactivate_supplier(id, app_state, network_state)
+                .await
+            {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -899,7 +931,9 @@ pub async fn giro_invoke(
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing id".to_string())?;
 
-            match crate::commands::suppliers::reactivate_supplier(id, app_state).await {
+            match crate::commands::suppliers::reactivate_supplier(id, app_state, network_state)
+                .await
+            {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -1089,7 +1123,7 @@ pub async fn giro_invoke(
                 serde_json::from_value(val.get("input").cloned().unwrap_or_else(|| val.clone()))
                     .map_err(|e| format!("Invalid input: {}", e))?;
 
-            match crate::commands::settings::set_setting(input, app_state).await {
+            match crate::commands::settings::set_setting(input, app_state, network_state).await {
                 Ok(res) => Ok(InvokeResult::ok(serde_json::to_value(res).ok())),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }
@@ -1103,7 +1137,7 @@ pub async fn giro_invoke(
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing key".to_string())?;
 
-            match crate::commands::settings::delete_setting(key, app_state).await {
+            match crate::commands::settings::delete_setting(key, app_state, network_state).await {
                 Ok(_) => Ok(InvokeResult::ok(Some(serde_json::json!({})))),
                 Err(e) => Ok(InvokeResult::err(None, e.to_string())),
             }

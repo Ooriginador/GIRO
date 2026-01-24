@@ -160,6 +160,13 @@ pub enum MobileEventType {
     SessionClosed,
     SessionExpired,
     SyncRequired,
+    // New Sync Events
+    CustomerUpdated,
+    SettingUpdated,
+    ServiceOrderUpdated,
+    CategoryUpdated,
+    SupplierUpdated,
+    SyncPush,
 }
 
 impl std::fmt::Display for MobileEventType {
@@ -180,6 +187,12 @@ impl std::fmt::Display for MobileEventType {
             Self::SessionClosed => write!(f, "session.closed"),
             Self::SessionExpired => write!(f, "session.expired"),
             Self::SyncRequired => write!(f, "sync.required"),
+            Self::CustomerUpdated => write!(f, "customer.updated"),
+            Self::SettingUpdated => write!(f, "setting.updated"),
+            Self::ServiceOrderUpdated => write!(f, "service_order.updated"),
+            Self::CategoryUpdated => write!(f, "category.updated"),
+            Self::SupplierUpdated => write!(f, "supplier.updated"),
+            Self::SyncPush => write!(f, "sync.push"),
         }
     }
 }

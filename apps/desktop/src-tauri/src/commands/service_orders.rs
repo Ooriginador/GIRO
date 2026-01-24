@@ -2,7 +2,9 @@
 //!
 //! Exposição de operações de ordens de serviço para o frontend
 
+use crate::commands::network::NetworkState;
 use tauri::State;
+use tokio::sync::RwLock;
 
 use crate::audit_log;
 use crate::error::AppResult;
@@ -110,6 +112,7 @@ pub async fn get_service_order_details(
 pub async fn create_service_order(
     state: State<'_, AppState>,
     input: CreateServiceOrder,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<ServiceOrder> {
     let info = state.session.require_authenticated()?;
     let employee = require_permission!(
@@ -145,6 +148,7 @@ pub async fn update_service_order(
     state: State<'_, AppState>,
     id: String,
     input: UpdateServiceOrder,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<ServiceOrder> {
     let info = state.session.require_authenticated()?;
     let employee = require_permission!(
@@ -167,6 +171,16 @@ pub async fn update_service_order(
         format!("Status: {:?}", input.status)
     );
 
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "service_order",
+                serde_json::to_value(&result).unwrap_or_default(),
+            )
+            .await;
+    }
+
     Ok(result)
 }
 
@@ -176,6 +190,7 @@ pub async fn update_service_order(
 pub async fn start_service_order(
     state: State<'_, AppState>,
     id: String,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<ServiceOrder> {
     let info = state.session.require_authenticated()?;
     let employee = require_permission!(
@@ -204,6 +219,16 @@ pub async fn start_service_order(
         "Status: IN_PROGRESS"
     );
 
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "service_order",
+                serde_json::to_value(&result).unwrap_or_default(),
+            )
+            .await;
+    }
+
     Ok(result)
 }
 
@@ -214,6 +239,7 @@ pub async fn complete_service_order(
     state: State<'_, AppState>,
     id: String,
     diagnosis: Option<String>,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<ServiceOrder> {
     let info = state.session.require_authenticated()?;
     let employee = require_permission!(
@@ -243,6 +269,16 @@ pub async fn complete_service_order(
         "Status: COMPLETED"
     );
 
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "service_order",
+                serde_json::to_value(&result).unwrap_or_default(),
+            )
+            .await;
+    }
+
     Ok(result)
 }
 
@@ -253,6 +289,7 @@ pub async fn deliver_service_order(
     state: State<'_, AppState>,
     id: String,
     payment_method: String,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<ServiceOrder> {
     let info = state.session.require_authenticated()?;
     let employee = require_permission!(
@@ -283,6 +320,16 @@ pub async fn deliver_service_order(
         "Status: DELIVERED"
     );
 
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "service_order",
+                serde_json::to_value(&result).unwrap_or_default(),
+            )
+            .await;
+    }
+
     Ok(result)
 }
 
@@ -293,6 +340,7 @@ pub async fn cancel_service_order(
     state: State<'_, AppState>,
     id: String,
     notes: Option<String>,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<ServiceOrder> {
     let info = state.session.require_authenticated()?;
     let employee = require_permission!(
@@ -317,6 +365,16 @@ pub async fn cancel_service_order(
         format!("Motivo: {:?}", notes)
     );
 
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "service_order",
+                serde_json::to_value(&result).unwrap_or_default(),
+            )
+            .await;
+    }
+
     Ok(result)
 }
 
@@ -329,6 +387,7 @@ pub async fn finish_service_order(
     payments: Vec<crate::models::CreateSalePayment>,
     amount_paid: f64,
     cash_session_id: String,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<String> {
     let info = state.session.require_authenticated()?;
     let employee = require_permission!(
@@ -358,6 +417,20 @@ pub async fn finish_service_order(
         &id,
         format!("Venda Gerada: {}", sale_id)
     );
+
+    // Push to Network (We should push the OS update because status might have changed to FINISHED/PAID if that logic exists, though finish_order_transaction does complex things)
+    // finish_order_transaction updates OS status to DELIVERED usually or PAID.
+    // Ideally we fetch the updated OS.
+    if let Ok(Some(os)) = repo.find_by_id(&id).await {
+        if let Some(client) = network_state.read().await.client.as_ref() {
+            let _ = client
+                .push_update(
+                    "service_order",
+                    serde_json::to_value(&os).unwrap_or_default(),
+                )
+                .await;
+        }
+    }
 
     Ok(sale_id)
 }

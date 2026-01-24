@@ -164,20 +164,83 @@ impl MobileEventService {
         tracing::info!("📢 Evento InventoryFinished emitido: {}", name);
     }
 
-    /// Envia evento de produto atualizado
-    pub fn emit_product_updated(&self, product_id: &str, product_name: &str, changes: &str) {
+    /// Envia evento de cliente atualizado (Broadcast Sync)
+    pub fn emit_customer_updated(&self, data: serde_json::Value) {
         let event = MobileEvent::from_type(
-            MobileEventType::ProductUpdated,
+            MobileEventType::SyncPush,
             serde_json::json!({
-                "productId": product_id,
-                "productName": product_name,
-                "changes": changes,
-                "updatedAt": chrono::Utc::now()
+                "entity": "customer",
+                "data": data
+            }),
+        );
+        let _ = self.tx.send(event);
+        tracing::debug!("📢 Evento SyncPush (customer) emitido");
+    }
+
+    /// Envia evento de configuração atualizada (Broadcast Sync)
+    pub fn emit_setting_updated(&self, data: serde_json::Value) {
+        let event = MobileEvent::from_type(
+            MobileEventType::SyncPush,
+            serde_json::json!({
+                "entity": "setting",
+                "data": data
+            }),
+        );
+        let _ = self.tx.send(event);
+        tracing::debug!("📢 Evento SyncPush (setting) emitido");
+    }
+
+    /// Envia evento de ordem de serviço atualizada (Broadcast Sync)
+    pub fn emit_service_order_updated(&self, data: serde_json::Value) {
+        let event = MobileEvent::from_type(
+            MobileEventType::SyncPush,
+            serde_json::json!({
+                "entity": "service_order",
+                "data": data
+            }),
+        );
+        let _ = self.tx.send(event);
+        tracing::debug!("📢 Evento SyncPush (service_order) emitido");
+    }
+
+    /// Envia evento de categoria atualizada (Broadcast Sync)
+    pub fn emit_category_updated(&self, data: serde_json::Value) {
+        let event = MobileEvent::from_type(
+            MobileEventType::SyncPush,
+            serde_json::json!({
+                "entity": "category",
+                "data": data
+            }),
+        );
+        let _ = self.tx.send(event);
+        tracing::debug!("📢 Evento SyncPush (category) emitido");
+    }
+
+    /// Envia evento de fornecedor atualizado (Broadcast Sync)
+    pub fn emit_supplier_updated(&self, data: serde_json::Value) {
+        let event = MobileEvent::from_type(
+            MobileEventType::SyncPush,
+            serde_json::json!({
+                "entity": "supplier",
+                "data": data
+            }),
+        );
+        let _ = self.tx.send(event);
+        tracing::debug!("📢 Evento SyncPush (supplier) emitido");
+    }
+
+    /// Envia evento de produto atualizado (Broadcast Sync)
+    pub fn emit_product_updated(&self, data: serde_json::Value) {
+        let event = MobileEvent::from_type(
+            MobileEventType::SyncPush,
+            serde_json::json!({
+                "entity": "product",
+                "data": data
             }),
         );
 
         let _ = self.tx.send(event);
-        tracing::debug!("📢 Evento ProductUpdated emitido: {}", product_name);
+        tracing::debug!("📢 Evento SyncPush (product) emitido");
     }
 
     /// Envia evento de estoque atualizado

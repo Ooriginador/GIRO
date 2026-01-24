@@ -101,7 +101,7 @@ impl MobileServer {
                 store_name,
                 store_document,
             )),
-            sync_handler: Arc::new(SyncHandler::new(pool.clone())),
+            sync_handler: Arc::new(SyncHandler::new(pool.clone(), Some(event_service))),
             event_service,
         }
     }

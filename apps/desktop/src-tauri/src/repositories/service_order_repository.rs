@@ -14,11 +14,25 @@ use crate::repositories::{new_id, PaginatedResult, Pagination, SaleRepository};
 
 pub struct ServiceOrderRepository {
     pool: Pool<Sqlite>,
+    event_service: Option<std::sync::Arc<crate::services::mobile_events::MobileEventService>>,
 }
 
 impl ServiceOrderRepository {
     pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            event_service: None,
+        }
+    }
+
+    pub fn with_events(
+        pool: Pool<Sqlite>,
+        event_service: std::sync::Arc<crate::services::mobile_events::MobileEventService>,
+    ) -> Self {
+        Self {
+            pool,
+            event_service: Some(event_service),
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -381,12 +395,20 @@ impl ServiceOrderRepository {
 
         tx.commit().await?;
 
-        self.find_by_id(&id)
+        let order = self
+            .find_by_id(&id)
             .await?
             .ok_or_else(|| AppError::NotFound {
                 entity: "ServiceOrder".to_string(),
                 id: id.clone(),
-            })
+            })?;
+
+        // Sincronização em tempo real (broadcast)
+        if let Some(ref service) = self.event_service {
+            service.emit_service_order_updated(serde_json::to_value(&order).unwrap_or_default());
+        }
+
+        Ok(order)
     }
 
     /// Atualiza ordem de serviço

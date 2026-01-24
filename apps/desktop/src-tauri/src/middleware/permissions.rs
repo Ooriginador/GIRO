@@ -28,6 +28,7 @@ pub enum Permission {
     ViewStock,
     ManageStock,
     AdjustStock,
+    AllowNegativeStock,
 
     // Caixa
     OpenCash,
@@ -217,7 +218,9 @@ impl Permission {
                     Permission::UpdateProducts,
                     Permission::ViewStock,
                     Permission::ManageStock,
+                    Permission::ManageStock,
                     Permission::AdjustStock,
+                    Permission::AllowNegativeStock,
                     Permission::ViewSuppliers,
                     Permission::ManageSuppliers,
                     Permission::ViewCategories,

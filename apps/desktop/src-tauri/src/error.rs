@@ -64,8 +64,17 @@ pub enum AppError {
     #[error("Desconto excede limite permitido: máximo {max}%")]
     DiscountExceedsLimit { max: f64 },
 
+    #[error("Estoque ficaria negativo: {current} -> {new}")]
+    StockNegative { current: f64, new: f64 },
+
+    #[error("Preço de custo maior que preço de venda")]
+    PriceInversion,
+
     #[error("Permissão negada")]
     PermissionDenied,
+
+    #[error("Aviso: {0}")]
+    Warning(String),
 
     // ═══════════════════════════════════════════════════════════════════════
     // Erros de Hardware
@@ -149,6 +158,9 @@ impl Serialize for AppError {
             Self::PermissionDenied => "PERMISSION_DENIED",
             Self::System(_) => "SYSTEM_ERROR",
             Self::Sql(_) => "SQL_ERROR",
+            Self::StockNegative { .. } => "STOCK_NEGATIVE",
+            Self::PriceInversion => "PRICE_INVERSION",
+            Self::Warning(_) => "WARNING",
         };
 
         state.serialize_field("code", code)?;
@@ -170,6 +182,10 @@ impl Serialize for AppError {
             } => Some(serde_json::json!({
                 "available": available,
                 "requested": requested
+            })),
+            Self::StockNegative { current, new } => Some(serde_json::json!({
+                "current": current,
+                "new": new
             })),
             Self::DiscountExceedsLimit { max } => Some(serde_json::json!({
                 "max": max

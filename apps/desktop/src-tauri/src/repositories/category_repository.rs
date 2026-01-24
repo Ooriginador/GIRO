@@ -7,11 +7,25 @@ use sqlx::SqlitePool;
 
 pub struct CategoryRepository<'a> {
     pool: &'a SqlitePool,
+    event_service: Option<&'a crate::services::mobile_events::MobileEventService>,
 }
 
 impl<'a> CategoryRepository<'a> {
     pub fn new(pool: &'a SqlitePool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            event_service: None,
+        }
+    }
+
+    pub fn with_events(
+        pool: &'a SqlitePool,
+        event_service: &'a crate::services::mobile_events::MobileEventService,
+    ) -> Self {
+        Self {
+            pool,
+            event_service: Some(event_service),
+        }
     }
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Category>> {
@@ -109,12 +123,20 @@ impl<'a> CategoryRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(&id)
-            .await?
-            .ok_or_else(|| crate::error::AppError::NotFound {
-                entity: "Category".into(),
-                id,
-            })
+        let result =
+            self.find_by_id(&id)
+                .await?
+                .ok_or_else(|| crate::error::AppError::NotFound {
+                    entity: "Category".into(),
+                    id,
+                })?;
+
+        // Sincronização em tempo real (broadcast)
+        if let Some(service) = self.event_service {
+            service.emit_category_updated(serde_json::to_value(&result).unwrap_or_default());
+        }
+
+        Ok(result)
     }
 
     pub async fn update(&self, id: &str, data: UpdateCategory) -> AppResult<Category> {

@@ -21,6 +21,7 @@ pub mod models;
 pub mod nfce;
 pub mod repositories;
 pub mod services;
+pub mod utils;
 
 // Re-exports for commands and main
 pub use commands::hardware::HardwareState;

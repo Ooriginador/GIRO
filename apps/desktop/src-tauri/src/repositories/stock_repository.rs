@@ -58,19 +58,34 @@ impl<'a> StockRepository<'a> {
         Ok(result)
     }
 
-    pub async fn create_movement(&self, data: CreateStockMovement) -> AppResult<StockMovementRow> {
+    pub async fn create_movement(
+        &self,
+        data: CreateStockMovement,
+        allow_negative: bool,
+    ) -> AppResult<StockMovementRow> {
         let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
 
-        // Get current stock
-        let current: (f64,) = sqlx::query_as("SELECT current_stock FROM products WHERE id = ?")
-            .bind(&data.product_id)
-            .fetch_one(&mut *tx)
-            .await?;
+        // Get current stock and details for validation
+        let current: (f64, f64, String) =
+            sqlx::query_as("SELECT current_stock, sale_price, name FROM products WHERE id = ?")
+                .bind(&data.product_id)
+                .fetch_one(&mut *tx)
+                .await?;
 
         let previous_stock = current.0;
+        let sale_price = current.1;
+        let product_name = current.2;
         let new_stock = previous_stock + data.quantity;
+
+        // Check for negative stock
+        if new_stock < 0.0 && !allow_negative {
+            return Err(crate::error::AppError::StockNegative {
+                current: previous_stock,
+                new: new_stock,
+            });
+        }
 
         // Lot handling for ENTRY/INPUT
         let mut lot_id: Option<String> = None;
@@ -98,6 +113,14 @@ impl<'a> StockRepository<'a> {
 
             // Update product cost price if provided
             if cost > 0.0 {
+                // Validation Warning (matches ProductRepository behavior)
+                if !crate::utils::validation::validate_prices(sale_price, cost) {
+                    tracing::warn!(
+                        "⚠️ [StockValidation] Preço de custo ({}) maior que preço de venda ({}) para produto '{}'",
+                        cost, sale_price, product_name
+                    );
+                }
+
                 sqlx::query("UPDATE products SET cost_price = ?, updated_at = (datetime('now')) WHERE id = ?")
                     .bind(cost)
                     .bind(&data.product_id)
@@ -387,7 +410,7 @@ mod tests {
             manufacturing_date: None,
         };
 
-        let result = repo.create_movement(input).await;
+        let result = repo.create_movement(input, false).await;
         assert!(result.is_ok());
 
         let movement = result.unwrap();
@@ -416,7 +439,7 @@ mod tests {
             manufacturing_date: None,
         };
 
-        let result = repo.create_movement(input).await;
+        let result = repo.create_movement(input, false).await;
         assert!(result.is_ok());
 
         let movement = result.unwrap();
@@ -444,7 +467,7 @@ mod tests {
             manufacturing_date: None,
         };
 
-        let created = repo.create_movement(input).await.unwrap();
+        let created = repo.create_movement(input, false).await.unwrap();
         let found = repo.find_movement_by_id(&created.id).await.unwrap();
 
         assert!(found.is_some());
@@ -471,7 +494,7 @@ mod tests {
                 expiration_date: None,
                 manufacturing_date: None,
             };
-            repo.create_movement(input).await.unwrap();
+            repo.create_movement(input, false).await.unwrap();
         }
 
         let movements = repo
@@ -501,7 +524,7 @@ mod tests {
                 expiration_date: None,
                 manufacturing_date: None,
             };
-            repo.create_movement(input).await.unwrap();
+            repo.create_movement(input, false).await.unwrap();
         }
 
         let recent = repo.find_recent_movements(3).await.unwrap();

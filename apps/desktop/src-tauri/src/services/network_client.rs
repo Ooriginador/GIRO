@@ -6,7 +6,7 @@ use crate::models::{Customer, Product, Setting};
 use crate::repositories::{CustomerRepository, ProductRepository, SettingsRepository};
 use crate::services::mobile_protocol::{
     AuthSystemPayload, MobileEvent, MobileRequest, MobileResponse, SaleRemoteCreatePayload,
-    SyncDeltaPayload, SyncFullPayload,
+    SyncDeltaPayload, SyncFullPayload, SyncPushPayload,
 };
 use futures_util::{SinkExt, StreamExt};
 use mdns_sd::{ServiceDaemon, ServiceEvent};
@@ -51,6 +51,7 @@ pub struct NetworkClient {
 #[derive(Debug)]
 enum ClientCommand {
     SendSale(serde_json::Value),
+    PushUpdate(String, serde_json::Value),
     SyncFull,
     SyncDelta,
     Disconnect,
@@ -122,6 +123,18 @@ impl NetworkClient {
     pub async fn send_sale(&self, sale: serde_json::Value) -> Result<(), String> {
         if let Some(tx) = self.tx.read().await.as_ref() {
             tx.send(ClientCommand::SendSale(sale))
+                .await
+                .map_err(|e| e.to_string())?;
+            Ok(())
+        } else {
+            Err("Cliente desconectado".to_string())
+        }
+    }
+
+    /// Envia atualização de entidade para o Master (Sync Push)
+    pub async fn push_update(&self, entity: &str, data: serde_json::Value) -> Result<(), String> {
+        if let Some(tx) = self.tx.read().await.as_ref() {
+            tx.send(ClientCommand::PushUpdate(entity.to_string(), data))
                 .await
                 .map_err(|e| e.to_string())?;
             Ok(())
@@ -295,6 +308,17 @@ impl NetworkClient {
                                 id: chrono::Utc::now().timestamp_millis() as u64,
                                 action: "sale.remote_create".into(),
                                 payload: serde_json::to_value(SaleRemoteCreatePayload { sale }).unwrap(),
+                                token: current_token,
+                                timestamp: chrono::Utc::now().timestamp_millis(),
+                            };
+                            let msg = serde_json::to_string(&req)?;
+                            write.send(Message::Text(msg)).await?;
+                        },
+                        Some(ClientCommand::PushUpdate(entity, data)) => {
+                            let req = MobileRequest {
+                                id: chrono::Utc::now().timestamp_millis() as u64,
+                                action: "sync.push".into(),
+                                payload: serde_json::to_value(SyncPushPayload { entity, data }).unwrap(),
                                 token: current_token,
                                 timestamp: chrono::Utc::now().timestamp_millis(),
                             };

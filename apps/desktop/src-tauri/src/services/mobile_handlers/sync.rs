@@ -18,12 +18,19 @@ use std::collections::HashMap;
 /// Handler de sincronização
 pub struct SyncHandler {
     pool: SqlitePool,
+    event_service: Option<std::sync::Arc<crate::services::mobile_events::MobileEventService>>,
 }
 
 impl SyncHandler {
     /// Cria novo handler
-    pub fn new(pool: SqlitePool) -> Self {
-        Self { pool }
+    pub fn new(
+        pool: SqlitePool,
+        event_service: Option<std::sync::Arc<crate::services::mobile_events::MobileEventService>>,
+    ) -> Self {
+        Self {
+            pool,
+            event_service,
+        }
     }
 
     /// Processa sincronização completa
@@ -241,7 +248,40 @@ impl SyncHandler {
         };
 
         match result {
-            Ok(_) => MobileResponse::success(id, serde_json::json!({ "status": "ok" })),
+            Ok(_) => {
+                // Notificar todos os clientes (Master -> Satélites) sobre a mudança vinda de outro Satélite
+                if let Some(event_service) = self.event_service.as_ref() {
+                    let _ = match payload.entity.as_str() {
+                        "customer" => {
+                            event_service.emit_customer_updated(payload.data.clone());
+                            Ok(())
+                        }
+                        "product" => {
+                            event_service.emit_product_updated(payload.data.clone());
+                            Ok(())
+                        }
+                        "setting" => {
+                            event_service.emit_setting_updated(payload.data.clone());
+                            Ok(())
+                        }
+                        "service_order" => {
+                            event_service.emit_service_order_updated(payload.data.clone());
+                            Ok(())
+                        }
+                        "category" => {
+                            event_service.emit_category_updated(payload.data.clone());
+                            Ok(())
+                        }
+                        "supplier" => {
+                            event_service.emit_supplier_updated(payload.data.clone());
+                            Ok(())
+                        }
+                        _ => Ok(()),
+                    };
+                }
+
+                MobileResponse::success(id, serde_json::json!({ "status": "ok" }))
+            }
             Err(e) => {
                 tracing::error!("Erro ao processar sync push: {}", e);
                 MobileResponse::error(id, MobileErrorCode::InternalError, e.to_string())

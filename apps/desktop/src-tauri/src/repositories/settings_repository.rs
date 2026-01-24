@@ -7,11 +7,25 @@ use sqlx::SqlitePool;
 
 pub struct SettingsRepository<'a> {
     pool: &'a SqlitePool,
+    event_service: Option<&'a crate::services::mobile_events::MobileEventService>,
 }
 
 impl<'a> SettingsRepository<'a> {
     pub fn new(pool: &'a SqlitePool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            event_service: None,
+        }
+    }
+
+    pub fn with_events(
+        pool: &'a SqlitePool,
+        event_service: &'a crate::services::mobile_events::MobileEventService,
+    ) -> Self {
+        Self {
+            pool,
+            event_service: Some(event_service),
+        }
     }
 
     const COLS: &'static str =
@@ -152,12 +166,20 @@ impl<'a> SettingsRepository<'a> {
             return Err(e.into());
         }
 
-        self.find_by_key_conn(&mut *conn, &data.key)
+        let result = self
+            .find_by_key_conn(&mut *conn, &data.key)
             .await?
             .ok_or_else(|| crate::error::AppError::NotFound {
                 entity: "Setting".into(),
                 id: data.key,
-            })
+            })?;
+
+        // Sincronização em tempo real (broadcast)
+        if let Some(service) = self.event_service {
+            service.emit_setting_updated(serde_json::to_value(&result).unwrap_or_default());
+        }
+
+        Ok(result)
     }
 
     pub async fn delete(&self, key: &str) -> AppResult<()> {

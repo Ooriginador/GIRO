@@ -78,7 +78,7 @@ async fn test_create_stock_movement_entry() {
         manufacturing_date: None,
     };
 
-    let result = repo.create_movement(input).await;
+    let result = repo.create_movement(input, false).await;
     assert!(result.is_ok());
 
     let movement = result.unwrap();
@@ -107,7 +107,7 @@ async fn test_create_stock_movement_exit() {
         manufacturing_date: None,
     };
 
-    let result = repo.create_movement(input).await;
+    let result = repo.create_movement(input, false).await;
     assert!(result.is_ok());
 
     let movement = result.unwrap();
@@ -134,7 +134,7 @@ async fn test_find_movement_by_id() {
         manufacturing_date: None,
     };
 
-    let created = repo.create_movement(input).await.unwrap();
+    let created = repo.create_movement(input, false).await.unwrap();
     let found = repo.find_movement_by_id(&created.id).await.unwrap();
 
     assert!(found.is_some());
@@ -170,7 +170,7 @@ async fn test_find_movements_by_product() {
             expiration_date: None,
             manufacturing_date: None,
         };
-        repo.create_movement(input).await.unwrap();
+        repo.create_movement(input, false).await.unwrap();
     }
 
     // Create one for prod-002
@@ -187,7 +187,7 @@ async fn test_find_movements_by_product() {
         expiration_date: None,
         manufacturing_date: None,
     };
-    repo.create_movement(input).await.unwrap();
+    repo.create_movement(input, false).await.unwrap();
 
     // Query for prod-001 only
     let movements = repo
@@ -222,7 +222,7 @@ async fn test_find_recent_movements() {
             expiration_date: None,
             manufacturing_date: None,
         };
-        repo.create_movement(input).await.unwrap();
+        repo.create_movement(input, false).await.unwrap();
     }
 
     // Get recent 3
@@ -260,7 +260,7 @@ async fn test_stock_update_after_movement() {
         expiration_date: None,
         manufacturing_date: None,
     };
-    repo.create_movement(input).await.unwrap();
+    repo.create_movement(input, false).await.unwrap();
 
     // Check updated stock
     let updated: (f64,) = sqlx::query_as("SELECT current_stock FROM products WHERE id = ?")

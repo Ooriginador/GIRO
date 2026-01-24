@@ -1,6 +1,7 @@
 //! Comandos Tauri para Produtos
 
 use crate::audit_log;
+use crate::commands::network::NetworkState;
 use crate::error::AppResult;
 use crate::middleware::audit::{AuditAction, AuditService};
 use crate::middleware::Permission;
@@ -9,6 +10,7 @@ use crate::repositories::ProductRepository;
 use crate::require_permission;
 use crate::AppState;
 use tauri::State;
+use tokio::sync::RwLock;
 
 #[tauri::command]
 #[specta::specta]
@@ -78,6 +80,7 @@ pub async fn get_low_stock_products(state: State<'_, AppState>) -> AppResult<Vec
 pub async fn create_product(
     input: CreateProduct,
     state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<Product> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
@@ -113,6 +116,13 @@ pub async fn create_product(
         format!("Nome: {}, Preço: {}", result.name, result.sale_price)
     );
 
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update("product", serde_json::to_value(&result).unwrap_or_default())
+            .await;
+    }
+
     Ok(result)
 }
 
@@ -122,6 +132,7 @@ pub async fn update_product(
     id: String,
     input: UpdateProduct,
     state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<Product> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
@@ -141,12 +152,23 @@ pub async fn update_product(
         format!("Alterações: {:?}", result) // Simplificado
     );
 
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update("product", serde_json::to_value(&result).unwrap_or_default())
+            .await;
+    }
+
     Ok(result)
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn delete_product(id: String, state: State<'_, AppState>) -> AppResult<()> {
+pub async fn delete_product(
+    id: String,
+    state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
+) -> AppResult<()> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::DeleteProducts);
@@ -164,29 +186,98 @@ pub async fn delete_product(id: String, state: State<'_, AppState>) -> AppResult
         &id
     );
 
+    // Push Update
+    let updated = repo.find_by_id(&id).await?;
+    if let Some(p) = updated {
+        if let Some(client) = network_state.read().await.client.as_ref() {
+            let _ = client
+                .push_update("product", serde_json::to_value(&p).unwrap_or_default())
+                .await;
+        }
+    }
+
     Ok(())
 }
 
 /// Desativa um produto (soft delete) - alias para consistência com frontend
 #[tauri::command]
 #[specta::specta]
-pub async fn deactivate_product(id: String, state: State<'_, AppState>) -> AppResult<()> {
+pub async fn deactivate_product(
+    id: String,
+    state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
+) -> AppResult<()> {
     let info = state.session.require_authenticated()?;
-    let employee_id = info.employee_id;
-    require_permission!(state.pool(), &employee_id, Permission::UpdateProducts);
+    require_permission!(state.pool(), &info.employee_id, Permission::UpdateProducts);
     let repo = ProductRepository::with_events(state.pool(), &state.event_service);
-    repo.soft_delete(&id).await
+
+    // Get product name for audit
+    let name = repo
+        .find_by_id(&id)
+        .await?
+        .map(|p| p.name)
+        .unwrap_or_else(|| "Produto".to_string());
+
+    repo.soft_delete(&id).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ProductDeleted,
+        &info.employee_id,
+        &info.employee_name,
+        "Product",
+        &id,
+        format!("Produto desativado (soft delete): {}", name)
+    );
+
+    // Push Update
+    let updated = repo.find_by_id(&id).await?;
+    if let Some(p) = updated {
+        if let Some(client) = network_state.read().await.client.as_ref() {
+            let _ = client
+                .push_update("product", serde_json::to_value(&p).unwrap_or_default())
+                .await;
+        }
+    }
+
+    Ok(())
 }
 
 /// Reativa um produto que foi desativado
 #[tauri::command]
 #[specta::specta]
-pub async fn reactivate_product(id: String, state: State<'_, AppState>) -> AppResult<Product> {
+pub async fn reactivate_product(
+    id: String,
+    state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
+) -> AppResult<Product> {
     let info = state.session.require_authenticated()?;
-    let employee_id = info.employee_id;
-    require_permission!(state.pool(), &employee_id, Permission::UpdateProducts);
+    require_permission!(state.pool(), &info.employee_id, Permission::UpdateProducts);
     let repo = ProductRepository::with_events(state.pool(), &state.event_service);
-    repo.reactivate(&id).await
+    let result = repo.reactivate(&id).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::ProductUpdated,
+        &info.employee_id,
+        &info.employee_name,
+        "Product",
+        &id,
+        "Produto reativado"
+    );
+
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update("product", serde_json::to_value(&result).unwrap_or_default())
+            .await;
+    }
+
+    Ok(result)
 }
 
 /// Lista todos os produtos (ativos e inativos)

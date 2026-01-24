@@ -13,11 +13,25 @@ use crate::repositories::{new_id, PaginatedResult, Pagination};
 
 pub struct CustomerRepository<'a> {
     pool: &'a SqlitePool,
+    event_service: Option<&'a crate::services::mobile_events::MobileEventService>,
 }
 
 impl<'a> CustomerRepository<'a> {
     pub fn new(pool: &'a SqlitePool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            event_service: None,
+        }
+    }
+
+    pub fn with_events(
+        pool: &'a SqlitePool,
+        event_service: &'a crate::services::mobile_events::MobileEventService,
+    ) -> Self {
+        Self {
+            pool,
+            event_service: Some(event_service),
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -379,12 +393,20 @@ impl<'a> CustomerRepository<'a> {
 
         tx.commit().await?;
 
-        self.find_by_id(&id)
+        let customer = self
+            .find_by_id(&id)
             .await?
             .ok_or_else(|| AppError::NotFound {
                 entity: "Customer".to_string(),
                 id: id.clone(),
-            })
+            })?;
+
+        // Sincronização em tempo real (broadcast)
+        if let Some(service) = self.event_service {
+            service.emit_customer_updated(serde_json::to_value(&customer).unwrap_or_default());
+        }
+
+        Ok(customer)
     }
 
     /// Atualiza cliente
@@ -451,12 +473,20 @@ impl<'a> CustomerRepository<'a> {
 
         tx.commit().await?;
 
-        self.find_by_id(id)
+        let customer = self
+            .find_by_id(id)
             .await?
             .ok_or_else(|| AppError::NotFound {
                 entity: "Customer".to_string(),
                 id: id.to_string(),
-            })
+            })?;
+
+        // Sincronização em tempo real (broadcast)
+        if let Some(service) = self.event_service {
+            service.emit_customer_updated(serde_json::to_value(&customer).unwrap_or_default());
+        }
+
+        Ok(customer)
     }
 
     /// Desativa cliente (soft delete)

@@ -20,6 +20,9 @@ pub enum AuditAction {
     // Vendas
     SaleCreated,
     SaleCanceled,
+    HeldSaleCreated,
+    HeldSaleResumed,
+    HeldSaleDeleted,
     DiscountApplied,
 
     // Caixa

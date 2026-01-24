@@ -1,6 +1,7 @@
 //! Comandos Tauri para Fornecedores
 
 use crate::audit_log;
+use crate::commands::network::NetworkState;
 use crate::error::AppResult;
 use crate::middleware::audit::{AuditAction, AuditService};
 use crate::middleware::Permission;
@@ -9,6 +10,7 @@ use crate::repositories::SupplierRepository;
 use crate::require_permission;
 use crate::AppState;
 use tauri::State;
+use tokio::sync::RwLock;
 
 #[tauri::command]
 #[specta::specta]
@@ -42,6 +44,7 @@ pub async fn search_suppliers(
 pub async fn create_supplier(
     input: CreateSupplier,
     state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<Supplier> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
@@ -61,6 +64,16 @@ pub async fn create_supplier(
         format!("Fornecedor Criado: {}", result.name)
     );
 
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "supplier",
+                serde_json::to_value(&result).unwrap_or_default(),
+            )
+            .await;
+    }
+
     Ok(result)
 }
 
@@ -70,6 +83,7 @@ pub async fn update_supplier(
     id: String,
     input: UpdateSupplier,
     state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<Supplier> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
@@ -89,12 +103,26 @@ pub async fn update_supplier(
         format!("Fornecedor Atualizado: {}", result.name)
     );
 
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "supplier",
+                serde_json::to_value(&result).unwrap_or_default(),
+            )
+            .await;
+    }
+
     Ok(result)
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn delete_supplier(id: String, state: State<'_, AppState>) -> AppResult<()> {
+pub async fn delete_supplier(
+    id: String,
+    state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
+) -> AppResult<()> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
@@ -112,29 +140,71 @@ pub async fn delete_supplier(id: String, state: State<'_, AppState>) -> AppResul
         &id
     );
 
+    // Push Update (Fetch updated entity to send correct status)
+    let updated = repo.find_by_id(&id).await?;
+    if let Some(c) = updated {
+        if let Some(client) = network_state.read().await.client.as_ref() {
+            let _ = client
+                .push_update("supplier", serde_json::to_value(&c).unwrap_or_default())
+                .await;
+        }
+    }
+
     Ok(())
 }
 
 /// Desativa um fornecedor (alias para delete)
 #[tauri::command]
 #[specta::specta]
-pub async fn deactivate_supplier(id: String, state: State<'_, AppState>) -> AppResult<()> {
+pub async fn deactivate_supplier(
+    id: String,
+    state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
+) -> AppResult<()> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
     let repo = SupplierRepository::new(state.pool());
-    repo.delete(&id).await
+    repo.delete(&id).await?;
+
+    // Push Update
+    let updated = repo.find_by_id(&id).await?;
+    if let Some(c) = updated {
+        if let Some(client) = network_state.read().await.client.as_ref() {
+            let _ = client
+                .push_update("supplier", serde_json::to_value(&c).unwrap_or_default())
+                .await;
+        }
+    }
+
+    Ok(())
 }
 
 /// Reativa um fornecedor desativado
 #[tauri::command]
 #[specta::specta]
-pub async fn reactivate_supplier(id: String, state: State<'_, AppState>) -> AppResult<Supplier> {
+pub async fn reactivate_supplier(
+    id: String,
+    state: State<'_, AppState>,
+    network_state: State<'_, RwLock<NetworkState>>,
+) -> AppResult<Supplier> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
     let repo = SupplierRepository::new(state.pool());
-    repo.reactivate(&id).await
+    let result = repo.reactivate(&id).await?;
+
+    // Push to Network
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "supplier",
+                serde_json::to_value(&result).unwrap_or_default(),
+            )
+            .await;
+    }
+
+    Ok(result)
 }
 
 /// Lista todos os fornecedores (ativos e inativos)

@@ -146,54 +146,54 @@ impl<'a> ProductRepository<'a> {
         pagination: &crate::repositories::Pagination,
         filters: &ProductFilters,
     ) -> AppResult<crate::repositories::PaginatedResult<Product>> {
-        let _condition = "1=1".to_string();
-        let mut count_builder = QueryBuilder::new("SELECT COUNT(*) FROM products WHERE ");
+        let mut count_builder = QueryBuilder::new("SELECT COUNT(*) FROM products WHERE 1=1");
         let mut query_builder = QueryBuilder::new(format!(
-            "SELECT {} FROM products WHERE ",
+            "SELECT {} FROM products WHERE 1=1",
             self.product_columns_string()
         ));
 
-        // Construir condições
-        count_builder.push(" 1=1 ");
-        query_builder.push(" 1=1 ");
-
+        // Filtro de busca
         if let Some(ref search) = filters.search {
             let pattern = format!("%{}%", search);
-            let search_cond = " AND (name LIKE ? OR barcode LIKE ? OR internal_code LIKE ?)";
-
-            count_builder.push(search_cond);
-            query_builder.push(search_cond);
-
-            // Bind para count
+            count_builder.push(" AND (name LIKE ");
             count_builder.push_bind(pattern.clone());
+            count_builder.push(" OR barcode LIKE ");
             count_builder.push_bind(pattern.clone());
+            count_builder.push(" OR internal_code LIKE ");
             count_builder.push_bind(pattern.clone());
+            count_builder.push(")");
 
-            // Bind para query principal
+            query_builder.push(" AND (name LIKE ");
             query_builder.push_bind(pattern.clone());
+            query_builder.push(" OR barcode LIKE ");
             query_builder.push_bind(pattern.clone());
+            query_builder.push(" OR internal_code LIKE ");
             query_builder.push_bind(pattern.clone());
+            query_builder.push(")");
         }
 
+        // Filtro de categoria
         if let Some(ref cat_id) = filters.category_id {
-            let cat_cond = " AND category_id = ?";
-            count_builder.push(cat_cond);
-            query_builder.push(cat_cond);
+            count_builder.push(" AND category_id = ");
+            count_builder.push_bind(cat_id.clone());
 
-            count_builder.push_bind(cat_id);
-            query_builder.push_bind(cat_id);
+            query_builder.push(" AND category_id = ");
+            query_builder.push_bind(cat_id.clone());
         }
 
+        // Filtro de status
         if filters.is_active.unwrap_or(true) {
-            let active_cond = " AND is_active = 1";
-            count_builder.push(active_cond);
-            query_builder.push(active_cond);
+            count_builder.push(" AND is_active = 1");
+            query_builder.push(" AND is_active = 1");
+        } else {
+            query_builder.push(" AND is_active = 0");
         }
 
         // Ordenação e Paginação
-        query_builder.push(" ORDER BY name LIMIT ? OFFSET ?");
-        query_builder.push_bind(pagination.per_page);
-        query_builder.push_bind(pagination.offset());
+        query_builder.push(" ORDER BY name LIMIT ");
+        query_builder.push_bind(pagination.per_page as i64);
+        query_builder.push(" OFFSET ");
+        query_builder.push_bind(pagination.offset() as i64);
 
         // Executar Count
         let total: (i64,) = count_builder.build_query_as().fetch_one(self.pool).await?;
@@ -300,6 +300,20 @@ impl<'a> ProductRepository<'a> {
         Ok(format!("MRC-{:05}", result.0 + 1))
     }
 
+    /*
+     * -------------------------------------------------------------------------
+     * Auxiliary Validation
+     * -------------------------------------------------------------------------
+     */
+    fn validate_product_logic(&self, name: &str, sale_price: f64, cost_price: f64) {
+        if !crate::utils::validation::validate_prices(sale_price, cost_price) {
+            tracing::warn!(
+                "⚠️ [ProductValidation] Preço de custo ({}) maior que preço de venda ({}) para produto '{}'",
+                cost_price, sale_price, name
+            );
+        }
+    }
+
     pub async fn get_next_internal_code_tx(
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
@@ -327,6 +341,9 @@ impl<'a> ProductRepository<'a> {
         let current_stock = data.current_stock.unwrap_or(0.0);
         let min_stock = data.min_stock.unwrap_or(0.0);
         let max_stock = data.max_stock;
+
+        // Validation Warning
+        self.validate_product_logic(&data.name, data.sale_price, cost_price);
 
         sqlx::query(
             "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, max_stock, is_active, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, (datetime('now')), (datetime('now')))"
@@ -389,8 +406,7 @@ impl<'a> ProductRepository<'a> {
 
         // Sincronização em tempo real (broadcast)
         if let Some(service) = self.event_service {
-            // Emite evento de produto atualizado para Satélites
-            service.emit_product_updated(&product.id, &product.name, "Produto criado");
+            service.emit_product_updated(serde_json::to_value(&product).unwrap_or_default());
         }
 
         Ok(product)
@@ -422,6 +438,9 @@ impl<'a> ProductRepository<'a> {
         let max_stock = data.max_stock.or(existing.max_stock);
         let is_active = data.is_active.unwrap_or(existing.is_active);
         let category_id = data.category_id.unwrap_or(existing.category_id);
+
+        // Validation Warning
+        self.validate_product_logic(&name, sale_price, cost_price);
 
         // Registrar histórico de preço se o preço de venda mudou
         if (sale_price - existing.sale_price).abs() > 0.001 {
@@ -505,7 +524,7 @@ impl<'a> ProductRepository<'a> {
 
         // Sincronização em tempo real (broadcast)
         if let Some(service) = self.event_service {
-            service.emit_product_updated(&product.id, &product.name, "Produto atualizado");
+            service.emit_product_updated(serde_json::to_value(&product).unwrap_or_default());
             // Se houve mudança de estoque, notificar também
             if (product.current_stock - existing.current_stock).abs() > 0.001 {
                 service.emit_stock_updated(
@@ -612,7 +631,9 @@ impl<'a> ProductRepository<'a> {
         .await?;
 
         if let Some(service) = self.event_service {
-            service.emit_product_updated(id, &name, "Produto desativado");
+            if let Ok(Some(product)) = self.find_by_id(id).await {
+                service.emit_product_updated(serde_json::to_value(&product).unwrap_or_default());
+            }
         }
 
         Ok(())
@@ -649,7 +670,7 @@ impl<'a> ProductRepository<'a> {
     /// Retorna apenas produtos inativos
     pub async fn find_inactive(&self) -> AppResult<Vec<Product>> {
         let query = format!(
-            "SELECT {} FROM products WHERE is_active = 1 ORDER BY name",
+            "SELECT {} FROM products WHERE is_active = 0 ORDER BY name",
             self.product_columns_string()
         );
         let result = sqlx::query_as::<_, Product>(&query)

@@ -39,10 +39,25 @@ pub async fn create_stock_movement(
 ) -> AppResult<StockMovementRow> {
     let info = state.session.require_authenticated()?;
     input.employee_id = Some(info.employee_id.clone());
-    let employee_id = info.employee_id;
-    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageStock);
+    let employee = require_permission!(state.pool(), &info.employee_id, Permission::ManageStock);
+
+    // Parse role string to EmployeeRole
+    let role_str = info.role.as_str();
+    let role_enum = match role_str {
+        "ADMIN" => crate::models::EmployeeRole::Admin,
+        "MANAGER" => crate::models::EmployeeRole::Manager,
+        "CASHIER" => crate::models::EmployeeRole::Cashier,
+        "VIEWER" => crate::models::EmployeeRole::Viewer,
+        "STOCKER" => crate::models::EmployeeRole::Stocker,
+        _ => crate::models::EmployeeRole::Viewer,
+    };
+
+    // Check if user has permission to allow negative stock
+    let allow_negative =
+        crate::middleware::Permission::has_permission(role_enum, Permission::AllowNegativeStock);
+
     let repo = StockRepository::new(state.pool());
-    let result = repo.create_movement(input.clone()).await?;
+    let result = repo.create_movement(input.clone(), allow_negative).await?;
 
     // Audit Log
     let audit_service = AuditService::new(state.pool().clone());
