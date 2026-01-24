@@ -4,10 +4,8 @@
  */
 
 import { StatCard } from '@/components/dashboard/StatCard';
-import { MotopartsDashboard } from '@/components/motoparts/MotopartsDashboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useBusinessProfile } from '@/hooks/useBusinessProfile';
 import { useDashboardStats } from '@/hooks/useDashboard';
 import { formatCurrency } from '@/lib/formatters';
 import { AlertTriangle, DollarSign, Package, ShoppingCart, TrendingUp } from 'lucide-react';
@@ -15,13 +13,8 @@ import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const DashboardPage: FC = () => {
-  const { businessType } = useBusinessProfile();
   const navigate = useNavigate();
   const { data: stats, isLoading } = useDashboardStats();
-
-  if (businessType === 'MOTOPARTS') {
-    return <MotopartsDashboard />;
-  }
 
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground">Carregando dashboard...</div>;
@@ -31,6 +24,7 @@ export const DashboardPage: FC = () => {
   const data = stats || {
     countSalesToday: 0,
     totalSalesToday: 0,
+    totalSalesYesterday: 0,
     averageTicket: 0,
     lowStockProducts: 0,
     expiringCount: 0,
