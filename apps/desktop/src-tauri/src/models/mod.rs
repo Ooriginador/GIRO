@@ -39,6 +39,12 @@ pub use vehicle::*;
 pub use warranty::*;
 pub mod report_motoparts;
 
+// Re-export Pagination types if needed or define them here?
+// Ideally Pagination struct should also be in models or shared.
+// For now, let's look at repositories/mod.rs again. Pagination implies specific behavior.
+// Let's assume Pagination stays in repositories but we implementation uses it.
+// Actually, Pagination is in repositories. Let's make sure we can access it.
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PaginatedResult<T> {
@@ -48,4 +54,17 @@ pub struct PaginatedResult<T> {
     pub page: i32,
     pub limit: i32,
     pub total_pages: i32,
+}
+
+impl<T> PaginatedResult<T> {
+    pub fn new(data: Vec<T>, total: i64, page: i32, per_page: i32) -> Self {
+        let total_pages = ((total as f64) / (per_page as f64)).ceil() as i32;
+        Self {
+            data,
+            total,
+            page,
+            limit: per_page,
+            total_pages,
+        }
+    }
 }

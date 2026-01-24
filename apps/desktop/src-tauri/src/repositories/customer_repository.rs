@@ -189,7 +189,12 @@ impl<'a> CustomerRepository<'a> {
             })
             .collect();
 
-        Ok(PaginatedResult::new(data, total, pagination))
+        Ok(PaginatedResult::new(
+            data,
+            total,
+            pagination.page,
+            pagination.per_page,
+        ))
     }
 
     /// Busca cliente por ID

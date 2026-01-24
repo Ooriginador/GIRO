@@ -74,28 +74,6 @@ impl Pagination {
     }
 }
 
-/// Resultado paginado
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Type)]
-pub struct PaginatedResult<T> {
-    pub data: Vec<T>,
-    #[specta(type = i32)]
-    pub total: i64,
-    pub page: i32,
-    pub per_page: i32,
-    pub total_pages: i32,
-}
-
-impl<T> PaginatedResult<T> {
-    pub fn new(data: Vec<T>, total: i64, pagination: &Pagination) -> Self {
-        let total_pages = ((total as f64) / (pagination.per_page as f64)).ceil() as i32;
-        Self {
-            data,
-            total,
-            page: pagination.page,
-            per_page: pagination.per_page,
-            total_pages,
-        }
-    }
-}
+pub use crate::models::PaginatedResult;
 pub mod report_motoparts_repository;
 pub use report_motoparts_repository::ReportMotopartsRepository;

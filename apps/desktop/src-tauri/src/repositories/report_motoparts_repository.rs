@@ -53,7 +53,7 @@ impl ReportMotopartsRepository {
         let active_warranties_count = sqlx::query_scalar!(
             r#"
             SELECT COUNT(id) as "count: i64"
-            FROM warranties
+            FROM warranty_claims
             WHERE status IN ('ACTIVE', 'PENDING')
             "#
         )

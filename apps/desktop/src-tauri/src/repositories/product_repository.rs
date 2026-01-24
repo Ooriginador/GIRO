@@ -132,7 +132,7 @@ impl<'a> ProductRepository<'a> {
         pagination: &crate::repositories::Pagination,
         filters: &ProductFilters,
     ) -> AppResult<crate::repositories::PaginatedResult<Product>> {
-        let mut condition = "1=1".to_string();
+        let _condition = "1=1".to_string();
         let mut count_builder = QueryBuilder::new("SELECT COUNT(*) FROM products WHERE ");
         let mut query_builder = QueryBuilder::new(format!(
             "SELECT {} FROM products WHERE ",
@@ -191,7 +191,10 @@ impl<'a> ProductRepository<'a> {
             .await?;
 
         Ok(crate::repositories::PaginatedResult::new(
-            products, total.0, pagination,
+            products,
+            total.0,
+            pagination.page,
+            pagination.per_page,
         ))
     }
 

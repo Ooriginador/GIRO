@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT \n                COALESCE(SUM(total), 0.0) as \"total!: f64\",\n                COUNT(id) as \"count!: i64\"\n            FROM sales \n            WHERE date(created_at) = date('now')\n            ",
+  "query": "\n            SELECT \n                COALESCE(SUM(total), 0.0) as \"total!: f64\",\n                COUNT(id) as \"count!: i64\"\n            FROM sales \n            WHERE date(created_at) = date('now') AND status != 'CANCELED'\n            ",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "0dae7ee643d2d7f310aa4efd0c6b60e7736e4859c00ec8d37f12040b0b74111e"
+  "hash": "f0ecf3d32ca4ba8e5f4292a1a9a521fe8066caaff6d666f4dee8cec19a1d82f3"
 }

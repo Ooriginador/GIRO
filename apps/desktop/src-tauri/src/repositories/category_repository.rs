@@ -69,7 +69,12 @@ impl<'a> CategoryRepository<'a> {
         .fetch_all(self.pool)
         .await?;
 
-        Ok(PaginatedResult::new(data, total.0, pagination))
+        Ok(PaginatedResult::new(
+            data,
+            total.0,
+            pagination.page,
+            pagination.per_page,
+        ))
     }
 
     pub async fn find_children(&self, parent_id: &str) -> AppResult<Vec<Category>> {
