@@ -136,7 +136,10 @@ pub async fn print_receipt(
     app_state: State<'_, AppState>,
 ) -> AppResult<()> {
     app_state.session.require_authenticated()?;
-    let config = state.printer_config.read().await;
+    let config = {
+        let guard = state.printer_config.read().await;
+        (*guard).clone()
+    };
 
     if !config.enabled {
         return Err(HardwareError::NotConfigured("Impressora não habilitada".into()).into());
@@ -144,17 +147,27 @@ pub async fn print_receipt(
 
     let mut printer = ThermalPrinter::new(config.clone());
     printer.print_receipt(&receipt);
+    // Clone config to owned value for the thread
+    let printer_config = config.clone();
 
-    match config.connection {
-        crate::hardware::printer::PrinterConnection::Usb => {
-            printer.print_usb()?;
-        }
-        crate::hardware::printer::PrinterConnection::Serial => {
-            printer.print_serial()?;
-        }
-        crate::hardware::printer::PrinterConnection::Network => {
-            printer.print_network().await?;
-        }
+    if printer_config.connection == crate::hardware::printer::PrinterConnection::Network {
+        printer.print_network().await?;
+    } else {
+        // Run blocking IO in a separate thread
+        tokio::task::spawn_blocking(move || -> AppResult<()> {
+            match printer_config.connection {
+                crate::hardware::printer::PrinterConnection::Usb => {
+                    printer.print_usb()?;
+                }
+                crate::hardware::printer::PrinterConnection::Serial => {
+                    printer.print_serial()?;
+                }
+                _ => {}
+            }
+            Ok(())
+        })
+        .await
+        .map_err(|e| HardwareError::CommunicationError(format!("Task error: {}", e)))??;
     }
 
     Ok(())
@@ -240,7 +253,10 @@ pub async fn print_service_order(
     app_state: State<'_, AppState>,
 ) -> AppResult<()> {
     app_state.session.require_authenticated()?;
-    let config = state.printer_config.read().await;
+    let config = {
+        let guard = state.printer_config.read().await;
+        (*guard).clone()
+    };
 
     if !config.enabled {
         return Err(HardwareError::NotConfigured("Impressora não habilitada".into()).into());
@@ -248,17 +264,25 @@ pub async fn print_service_order(
 
     let mut printer = ThermalPrinter::new(config.clone());
     printer.print_service_order(&os);
+    let printer_config = config.clone();
 
-    match config.connection {
-        crate::hardware::printer::PrinterConnection::Usb => {
-            printer.print_usb()?;
-        }
-        crate::hardware::printer::PrinterConnection::Serial => {
-            printer.print_serial()?;
-        }
-        crate::hardware::printer::PrinterConnection::Network => {
-            printer.print_network().await?;
-        }
+    if printer_config.connection == crate::hardware::printer::PrinterConnection::Network {
+        printer.print_network().await?;
+    } else {
+        tokio::task::spawn_blocking(move || -> AppResult<()> {
+            match printer_config.connection {
+                crate::hardware::printer::PrinterConnection::Usb => {
+                    printer.print_usb()?;
+                }
+                crate::hardware::printer::PrinterConnection::Serial => {
+                    printer.print_serial()?;
+                }
+                _ => {}
+            }
+            Ok(())
+        })
+        .await
+        .map_err(|e| HardwareError::CommunicationError(format!("Task error: {}", e)))??;
     }
 
     Ok(())
@@ -272,25 +296,36 @@ pub async fn test_printer(
     app_state: State<'_, AppState>,
 ) -> AppResult<()> {
     app_state.session.require_authenticated()?;
-    let config = state.printer_config.read().await;
+    let config = {
+        let guard = state.printer_config.read().await;
+        (*guard).clone()
+    };
 
     if !config.enabled {
         return Err(HardwareError::NotConfigured("Impressora não habilitada".into()).into());
     }
 
     let mut printer = ThermalPrinter::new(config.clone());
-    printer.test_print().await?;
+    printer.build_test_page();
+    let printer_config = config.clone();
 
-    match config.connection {
-        crate::hardware::printer::PrinterConnection::Usb => {
-            printer.print_usb()?;
-        }
-        crate::hardware::printer::PrinterConnection::Serial => {
-            printer.print_serial()?;
-        }
-        crate::hardware::printer::PrinterConnection::Network => {
-            printer.print_network().await?;
-        }
+    if printer_config.connection == crate::hardware::printer::PrinterConnection::Network {
+        printer.print_network().await?;
+    } else {
+        tokio::task::spawn_blocking(move || -> AppResult<()> {
+            match printer_config.connection {
+                crate::hardware::printer::PrinterConnection::Usb => {
+                    printer.print_usb()?;
+                }
+                crate::hardware::printer::PrinterConnection::Serial => {
+                    printer.print_serial()?;
+                }
+                _ => {}
+            }
+            Ok(())
+        })
+        .await
+        .map_err(|e| HardwareError::CommunicationError(format!("Task error: {}", e)))??;
     }
 
     Ok(())
@@ -317,7 +352,10 @@ pub async fn print_test_documents(
     app_state: State<'_, AppState>,
 ) -> AppResult<()> {
     app_state.session.require_authenticated()?;
-    let config = state.printer_config.read().await;
+    let config = {
+        let guard = state.printer_config.read().await;
+        (*guard).clone()
+    };
 
     if !config.enabled {
         return Err(HardwareError::NotConfigured("Impressora não habilitada".into()).into());
@@ -408,16 +446,23 @@ pub async fn print_test_documents(
         printer.feed(4);
     }
 
-    match config.connection {
-        crate::hardware::printer::PrinterConnection::Usb => {
-            printer.print_usb()?;
-        }
-        crate::hardware::printer::PrinterConnection::Serial => {
-            printer.print_serial()?;
-        }
-        crate::hardware::printer::PrinterConnection::Network => {
-            printer.print_network().await?;
-        }
+    if config.connection == crate::hardware::printer::PrinterConnection::Network {
+        printer.print_network().await?;
+    } else {
+        tokio::task::spawn_blocking(move || -> AppResult<()> {
+            match config.connection {
+                crate::hardware::printer::PrinterConnection::Usb => {
+                    printer.print_usb()?;
+                }
+                crate::hardware::printer::PrinterConnection::Serial => {
+                    printer.print_serial()?;
+                }
+                _ => {}
+            }
+            Ok(())
+        })
+        .await
+        .map_err(|e| HardwareError::CommunicationError(format!("Task error: {}", e)))??;
     }
 
     Ok(())
@@ -473,14 +518,23 @@ pub async fn read_weight(
     app_state: State<'_, AppState>,
 ) -> AppResult<ScaleReading> {
     app_state.session.require_authenticated()?;
-    let config = state.scale_config.read().await;
+    let config = {
+        let guard = state.scale_config.read().await;
+        (*guard).clone()
+    };
 
     if !config.enabled {
         return Err(HardwareError::NotConfigured("Balança não habilitada".into()).into());
     }
 
     let scale = Scale::new(config.clone())?;
-    let reading = scale.read_weight()?;
+
+    // Scale read is blocking, wrap in spawn_blocking
+    let reading = tokio::task::spawn_blocking(move || -> AppResult<ScaleReading> {
+        Ok(scale.read_weight()?)
+    })
+    .await
+    .map_err(|e| HardwareError::CommunicationError(format!("Task error: {}", e)))??;
 
     Ok(reading)
 }
@@ -580,14 +634,30 @@ pub async fn open_drawer(
     app_state: State<'_, AppState>,
 ) -> AppResult<()> {
     app_state.session.require_authenticated()?;
-    let config = state.drawer_config.read().await;
+    let config = {
+        let guard = state.drawer_config.read().await;
+        (*guard).clone()
+    };
 
     if !config.enabled {
         return Err(HardwareError::NotConfigured("Gaveta não habilitada".into()).into());
     }
 
     let drawer = CashDrawer::new(config.clone());
-    drawer.open()?;
+
+    // Drawer open can be blocking depending on connection (Serial/USB)
+    // Network is async but currently CashDrawer::open_network is not used here?
+    // Wait, let's check if we need to split network.
+    // CashDrawer::open handles its own logic, but let's assume valid config.
+    // If it's a printer-driven drawer, it shares printer connection logic.
+    // `drawer.open()` is sync.
+
+    tokio::task::spawn_blocking(move || -> AppResult<()> {
+        drawer.open()?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| HardwareError::CommunicationError(format!("Task error: {}", e)))??;
 
     Ok(())
 }

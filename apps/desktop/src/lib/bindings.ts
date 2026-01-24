@@ -2297,7 +2297,7 @@ export type CreateFirstAdminInput = { name: string; email: string | null; pin: s
 /**
  * Para criar produto
  */
-export type CreateProduct = { barcode: string | null; internalCode: string | null; name: string; description: string | null; unit: ProductUnit | null; isWeighted: boolean | null; salePrice: number; costPrice: number | null; currentStock: number | null; minStock: number | null; maxStock: number | null; categoryId: string }
+export type CreateProduct = { barcode: string | null; internalCode: string | null; name: string; description: string | null; unit: ProductUnit | null; isWeighted: boolean | null; salePrice: number; costPrice: number | null; currentStock: number | null; minStock: number | null; maxStock: number | null; categoryId: string; notes: string | null }
 /**
  * Para criar venda
  */
@@ -2404,7 +2404,11 @@ export type JsonValue = null | boolean | number | string | JsonValue[] | { [key 
 /**
  * License information
  */
-export type LicenseInfo = { key: string | null; status: LicenseStatus; message: string | null; valid: boolean | null; expires_at: string | null; days_remaining: number | null; company_name: string; company_cnpj: string | null; company_address: string | null; company_city: string | null; company_state: string | null; max_users: number; features: string[]; plan_type: string | null; support_expires_at: string | null; is_lifetime: boolean | null; can_offline: boolean | null; has_admin: boolean | null; admin_user: AdminUserSyncData | null }
+export type LicenseInfo = { key: string | null; status: LicenseStatus; message: string | null; valid: boolean | null; expires_at: string | null; days_remaining: number | null; company_name: string; company_cnpj: string | null; company_address: string | null; company_city: string | null; company_state: string | null; max_users: number; features: string[]; plan_type: string | null; support_expires_at: string | null; is_lifetime: boolean | null; can_offline: boolean | null; has_admin: boolean | null; admin_user: AdminUserSyncData | null; 
+/**
+ * Grace period in days for offline validation (default: 7)
+ */
+grace_period_days: number | null }
 /**
  * License status from server
  */
@@ -2473,7 +2477,7 @@ export type PrinterModel = "epson" | "elgin" | "bematech" | "daruma" | "c3tech" 
 /**
  * Produto do catálogo
  */
-export type Product = { id: string; barcode: string | null; internalCode: string; name: string; description: string | null; unit: string; isWeighted: boolean; salePrice: number; costPrice: number; currentStock: number; minStock: number; maxStock: number | null; isActive: boolean; categoryId: string; createdAt: string; updatedAt: string }
+export type Product = { id: string; barcode: string | null; internalCode: string; name: string; description: string | null; unit: string; isWeighted: boolean; salePrice: number; costPrice: number; currentStock: number; minStock: number; maxStock: number | null; isActive: boolean; categoryId: string; notes: string | null; createdAt: string; updatedAt: string }
 /**
  * Compatibilidade com dados do veículo
  */
@@ -2633,7 +2637,7 @@ export type UpdateEmployee = { name: string | null; cpf: string | null; phone: s
 /**
  * Para atualizar produto
  */
-export type UpdateProduct = { barcode: string | null; name: string | null; description: string | null; unit: ProductUnit | null; isWeighted: boolean | null; salePrice: number | null; costPrice: number | null; currentStock: number | null; minStock: number | null; maxStock: number | null; isActive: boolean | null; categoryId: string | null; reason: string | null; 
+export type UpdateProduct = { barcode: string | null; name: string | null; description: string | null; unit: ProductUnit | null; isWeighted: boolean | null; salePrice: number | null; costPrice: number | null; currentStock: number | null; minStock: number | null; maxStock: number | null; isActive: boolean | null; categoryId: string | null; notes: string | null; reason: string | null; 
 /**
  * ID do funcionário que está fazendo a alteração (para auditoria)
  * ID do funcionário que está fazendo a alteração (para auditoria)

@@ -58,9 +58,10 @@ import {
   Search,
   Trash2,
 } from 'lucide-react';
-import { type FC, useEffect, useState, useRef } from 'react';
+import { type FC, useEffect, useState, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useKeyboard } from '@/hooks/use-keyboard';
+import { useCategories } from '@/hooks/useCategories';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 
@@ -69,9 +70,20 @@ export const ProductsPage: FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+  const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [productToDeactivate, setProductToDeactivate] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Categories Data
+  const { data: categories = [] } = useCategories();
+
+  // Create map for fast lookup
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach((cat) => map.set(cat.id, cat.name));
+    return map;
+  }, [categories]);
 
   // Keyboard Shortcuts
   useKeyboard([
@@ -123,7 +135,7 @@ export const ProductsPage: FC = () => {
     page,
     perPage,
     debouncedSearch || undefined,
-    undefined, // categoryId
+    categoryId, // categoryId
     statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined
   );
 
@@ -258,6 +270,28 @@ export const ProductsPage: FC = () => {
                 data-tutorial="products-search"
               />
             </div>
+
+            {/* Filtro de Categoria */}
+            <Select
+              value={categoryId || 'all'}
+              onValueChange={(v) => {
+                setCategoryId(v === 'all' ? undefined : v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Categorias</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Select
               value={statusFilter}
               onValueChange={(v) => {
@@ -316,98 +350,101 @@ export const ProductsPage: FC = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  products?.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <div className="font-mono text-sm">{product.internalCode}</div>
-                        {product.barcode && (
-                          <div className="text-xs text-muted-foreground">{product.barcode}</div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.category?.name || 'Sem Categoria'}</TableCell>
-                      <TableCell className="text-right text-money">
-                        {formatCurrency(product.salePrice)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span
-                          className={cn(
-                            product.currentStock <= 0 && 'text-destructive font-medium',
-                            product.currentStock > 0 &&
-                              product.currentStock <= product.minStock &&
-                              'text-warning font-medium',
-                            product.maxStock &&
-                              product.currentStock > product.maxStock &&
-                              'text-blue-500 font-medium'
+                  products?.map((product) => {
+                    const categoryName = categoryMap.get(product.categoryId) || 'Sem Categoria';
+                    return (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <div className="font-mono text-sm">{product.internalCode}</div>
+                          {product.barcode && (
+                            <div className="text-xs text-muted-foreground">{product.barcode}</div>
                           )}
-                        >
-                          {product.currentStock}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {product.maxStock || '-'}
-                      </TableCell>
-                      <TableCell>
-                        {product.isActive ? (
-                          <Badge variant="success">Ativo</Badge>
-                        ) : (
-                          <Badge variant="secondary">Inativo</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              data-testid={`product-menu-${product.id}`}
-                              data-tutorial="product-edit"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(product)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDuplicate(product)}>
-                              <Copy className="mr-2 h-4 w-4" />
-                              Duplicar
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {product.isActive ? (
+                        </TableCell>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>{categoryName}</TableCell>
+                        <TableCell className="text-right text-money">
+                          {formatCurrency(product.salePrice)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={cn(
+                              product.currentStock <= 0 && 'text-destructive font-medium',
+                              product.currentStock > 0 &&
+                                product.currentStock <= product.minStock &&
+                                'text-warning font-medium',
+                              product.maxStock &&
+                                product.currentStock > product.maxStock &&
+                                'text-blue-500 font-medium'
+                            )}
+                          >
+                            {product.currentStock}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {product.maxStock || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {product.isActive ? (
+                            <Badge variant="success">Ativo</Badge>
+                          ) : (
+                            <Badge variant="secondary">Inativo</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                data-testid={`product-menu-${product.id}`}
+                                data-tutorial="product-edit"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(product)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDuplicate(product)}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Duplicar
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              {product.isActive ? (
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => setProductToDeactivate(product)}
+                                  data-tutorial="product-status"
+                                >
+                                  <PowerOff className="mr-2 h-4 w-4" />
+                                  Desativar
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  className="text-success"
+                                  onClick={() => handleReactivate(product)}
+                                  data-tutorial="product-status"
+                                >
+                                  <Power className="mr-2 h-4 w-4" />
+                                  Reativar
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => setProductToDeactivate(product)}
-                                data-tutorial="product-status"
+                                onClick={() => setProductToDelete(product)}
                               >
-                                <PowerOff className="mr-2 h-4 w-4" />
-                                Desativar
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
                               </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem
-                                className="text-success"
-                                onClick={() => handleReactivate(product)}
-                                data-tutorial="product-status"
-                              >
-                                <Power className="mr-2 h-4 w-4" />
-                                Reativar
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => setProductToDelete(product)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -429,7 +466,6 @@ export const ProductsPage: FC = () => {
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let p = i + 1;
-                    // Lógica simples para mostrar páginas próximas à atual se houver muitas páginas
                     if (totalPages > 5 && page > 3) {
                       p = page - 2 + i;
                     }
