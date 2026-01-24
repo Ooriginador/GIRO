@@ -635,6 +635,10 @@ export async function getCategories(): Promise<Category[]> {
   return tauriInvoke<Category[]>('get_categories');
 }
 
+export async function getCategoryById(id: string): Promise<Category | null> {
+  return tauriInvoke<Category | null>('get_category_by_id', { id });
+}
+
 export async function createCategory(input: {
   name: string;
   color?: string;

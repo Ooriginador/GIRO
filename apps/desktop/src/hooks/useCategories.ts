@@ -10,6 +10,7 @@ import {
   deleteCategory,
   getAllCategories,
   getCategories,
+  getCategoryById,
   getInactiveCategories,
   reactivateCategory,
   updateCategory,
@@ -71,27 +72,77 @@ export function useInactiveCategories() {
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * Cria uma nova categoria
+ * Busca uma categoria por ID
+ */
+export function useCategory(id?: string) {
+  return useQuery({
+    queryKey: categoryKeys.detail(id || ''),
+    queryFn: () => (id ? getCategoryById(id) : Promise.resolve(null)),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Cria uma nova categoria com atualização otimista
  */
 export function useCreateCategory() {
   const queryClient = useQueryClient();
   const { success, error } = useToast();
 
   return useMutation({
-    mutationFn: (input: { name: string; color?: string; icon?: string; parentId?: string }) =>
-      createCategory(input),
-    onSuccess: (category) => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
-      success('Categoria criada', `${category.name} foi cadastrada`);
+    mutationFn: (input: {
+      name: string;
+      color?: string;
+      icon?: string;
+      parentId?: string;
+      description?: string;
+    }) => createCategory(input),
+    onMutate: async (newCategory) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: categoryKeys.all });
+
+      // Snapshot previous value
+      const previousCategories = queryClient.getQueryData<Category[]>(categoryKeys.lists());
+
+      // Optimistically add new category with temp ID
+      const tempCategory: Category = {
+        id: `temp-${Date.now()}`,
+        name: newCategory.name,
+        color: newCategory.color,
+        description: newCategory.description,
+        parentId: newCategory.parentId,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        productCount: 0,
+      };
+
+      queryClient.setQueryData<Category[]>(categoryKeys.lists(), (old) =>
+        old ? [...old, tempCategory] : [tempCategory]
+      );
+
+      return { previousCategories };
     },
-    onError: (err) => {
+    onError: (err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousCategories) {
+        queryClient.setQueryData(categoryKeys.lists(), context.previousCategories);
+      }
       error('Erro ao criar categoria', err.message);
+    },
+    onSuccess: (category) => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+      success('Categoria criada', `${category.name} foi cadastrada com sucesso.`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
     },
   });
 }
 
 /**
- * Atualiza uma categoria
+ * Atualiza uma categoria com atualização otimista
  */
 export function useUpdateCategory() {
   const queryClient = useQueryClient();
@@ -99,18 +150,37 @@ export function useUpdateCategory() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Category> }) => updateCategory(id, data),
-    onSuccess: (category) => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
-      success('Categoria atualizada', `${category.name} foi atualizada`);
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: categoryKeys.all });
+
+      const previousCategories = queryClient.getQueryData<Category[]>(categoryKeys.lists());
+
+      // Optimistic update
+      queryClient.setQueryData<Category[]>(categoryKeys.lists(), (old) =>
+        old?.map((cat) =>
+          cat.id === id ? { ...cat, ...data, updatedAt: new Date().toISOString() } : cat
+        )
+      );
+
+      return { previousCategories };
     },
-    onError: (err) => {
+    onError: (err, _variables, context) => {
+      if (context?.previousCategories) {
+        queryClient.setQueryData(categoryKeys.lists(), context.previousCategories);
+      }
       error('Erro ao atualizar categoria', err.message);
+    },
+    onSuccess: (category) => {
+      success('Categoria atualizada', `${category.name} foi atualizada com sucesso.`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
     },
   });
 }
 
 /**
- * Remove uma categoria (hard delete)
+ * Remove uma categoria (hard delete) com atualização otimista
  */
 export function useDeleteCategory() {
   const queryClient = useQueryClient();
@@ -118,18 +188,35 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: (id: string) => deleteCategory(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: categoryKeys.all });
+
+      const previousCategories = queryClient.getQueryData<Category[]>(categoryKeys.lists());
+
+      // Optimistic removal
+      queryClient.setQueryData<Category[]>(categoryKeys.lists(), (old) =>
+        old?.filter((cat) => cat.id !== id)
+      );
+
+      return { previousCategories };
+    },
+    onError: (err, _variables, context) => {
+      if (context?.previousCategories) {
+        queryClient.setQueryData(categoryKeys.lists(), context.previousCategories);
+      }
+      error('Erro ao remover categoria', err.message);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
       success('Categoria removida', 'Categoria excluída com sucesso');
     },
-    onError: (err) => {
-      error('Erro ao remover categoria', err.message);
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
     },
   });
 }
 
 /**
- * Desativa uma categoria (soft delete)
+ * Desativa uma categoria (soft delete) com atualização otimista
  */
 export function useDeactivateCategory() {
   const queryClient = useQueryClient();
@@ -137,18 +224,35 @@ export function useDeactivateCategory() {
 
   return useMutation({
     mutationFn: (id: string) => deactivateCategory(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: categoryKeys.all });
+
+      const previousCategories = queryClient.getQueryData<Category[]>(categoryKeys.lists());
+
+      // Optimistic update - mark as inactive
+      queryClient.setQueryData<Category[]>(categoryKeys.lists(), (old) =>
+        old?.map((cat) => (cat.id === id ? { ...cat, isActive: false } : cat))
+      );
+
+      return { previousCategories };
+    },
+    onError: (err, _variables, context) => {
+      if (context?.previousCategories) {
+        queryClient.setQueryData(categoryKeys.lists(), context.previousCategories);
+      }
+      error('Erro ao desativar categoria', err.message);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
       success('Categoria desativada', 'Categoria desativada com sucesso');
     },
-    onError: (err) => {
-      error('Erro ao desativar categoria', err.message);
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
     },
   });
 }
 
 /**
- * Reativa uma categoria
+ * Reativa uma categoria com atualização otimista
  */
 export function useReactivateCategory() {
   const queryClient = useQueryClient();
@@ -156,12 +260,71 @@ export function useReactivateCategory() {
 
   return useMutation({
     mutationFn: (id: string) => reactivateCategory(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: categoryKeys.all });
+
+      const previousInactive = queryClient.getQueryData<Category[]>(categoryKeys.listInactive());
+
+      // Optimistic update - mark as active
+      queryClient.setQueryData<Category[]>(categoryKeys.listInactive(), (old) =>
+        old?.map((cat) => (cat.id === id ? { ...cat, isActive: true } : cat))
+      );
+
+      return { previousInactive };
+    },
+    onError: (err, _variables, context) => {
+      if (context?.previousInactive) {
+        queryClient.setQueryData(categoryKeys.listInactive(), context.previousInactive);
+      }
+      error('Erro ao reativar categoria', err.message);
+    },
     onSuccess: (category) => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
       success('Categoria reativada', `${category.name} foi reativada`);
     },
-    onError: (err) => {
-      error('Erro ao reativar categoria', err.message);
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+    },
+  });
+}
+
+/**
+ * Desativa múltiplas categorias de uma vez (batch operation)
+ */
+export function useBatchDeactivateCategories() {
+  const queryClient = useQueryClient();
+  const { success, error } = useToast();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      // Execute deactivations sequentially to avoid overwhelming the backend
+      for (const id of ids) {
+        await deactivateCategory(id);
+      }
+      return ids;
+    },
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: categoryKeys.all });
+
+      const previousCategories = queryClient.getQueryData<Category[]>(categoryKeys.lists());
+
+      // Optimistic batch deactivation
+      queryClient.setQueryData<Category[]>(categoryKeys.lists(), (old) =>
+        old?.map((cat) => (ids.includes(cat.id) ? { ...cat, isActive: false } : cat))
+      );
+
+      return { previousCategories };
+    },
+    onError: (err, _variables, context) => {
+      if (context?.previousCategories) {
+        queryClient.setQueryData(categoryKeys.lists(), context.previousCategories);
+      }
+      error('Erro na operação em lote', err.message);
+    },
+    onSuccess: (ids) => {
+      success('Categorias desativadas', `${ids.length} categorias desativadas com sucesso`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
     },
   });
 }

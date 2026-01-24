@@ -1,6 +1,6 @@
 /**
  * @file CategoriesPage - Gerenciamento de categorias
- * @description Listagem e edição de categorias de produtos
+ * @description Listagem, busca e edição completa de categorias de produtos
  */
 
 import { Badge } from '@/components/ui/badge';
@@ -10,13 +10,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -24,317 +21,433 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
-  CATEGORY_COLORS,
   useAllCategories,
+  useBatchDeactivateCategories,
   useCategories,
   useCreateCategory,
   useDeactivateCategory,
+  useDeleteCategory,
   useInactiveCategories,
   useReactivateCategory,
+  useUpdateCategory,
 } from '@/hooks/useCategories';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Edit, FolderTree, Plus, Power, PowerOff } from 'lucide-react';
-import { useState, type FC } from 'react';
+import type { Category } from '@/types';
+import {
+  ArrowLeft,
+  CheckSquare,
+  ChevronRight,
+  Edit2,
+  FolderTree,
+  MoreVertical,
+  Plus,
+  Power,
+  PowerOff,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CategoryForm } from './components/CategoryForm';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type StatusFilter = 'active' | 'inactive' | 'all';
-
-// ────────────────────────────────────────────────────────────────────────────
-// COMPONENT
-// ────────────────────────────────────────────────────────────────────────────
 
 export const CategoriesPage: FC = () => {
   const navigate = useNavigate();
 
-  // Status filter
+  // Estados de UI
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
-  // Queries based on filter
+  // Multi-select mode
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Queries
   const { data: activeCategories = [], isLoading: loadingActive } = useCategories();
   const { data: inactiveCategories = [], isLoading: loadingInactive } = useInactiveCategories();
   const { data: allCategories = [], isLoading: loadingAll } = useAllCategories();
 
-  // Get categories based on filter
-  const categories =
-    statusFilter === 'active'
-      ? activeCategories
-      : statusFilter === 'inactive'
-      ? inactiveCategories
-      : allCategories;
-  const isLoading =
-    statusFilter === 'active'
-      ? loadingActive
-      : statusFilter === 'inactive'
-      ? loadingInactive
-      : loadingAll;
-
   // Mutations
   const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
   const deactivateCategory = useDeactivateCategory();
   const reactivateCategory = useReactivateCategory();
+  const deleteCategory = useDeleteCategory();
+  const batchDeactivate = useBatchDeactivateCategories();
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [selectedColor, setSelectedColor] = useState(CATEGORY_COLORS[0]!.value);
+  // Filtragem local
+  const filteredCategories = useMemo(() => {
+    const list =
+      statusFilter === 'active'
+        ? activeCategories
+        : statusFilter === 'inactive'
+        ? inactiveCategories
+        : allCategories;
 
-  // Confirmation dialog
-  const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean;
-    type: 'deactivate' | 'reactivate';
-    categoryId: string;
-    categoryName: string;
-  }>({ open: false, type: 'deactivate', categoryId: '', categoryName: '' });
+    return list.filter((cat) => cat.name.toLowerCase().includes(search.toLowerCase()));
+  }, [statusFilter, search, activeCategories, inactiveCategories, allCategories]);
 
-  const handleCreate = async () => {
-    if (!newCategoryName.trim()) return;
+  // Build parent name map for hierarchy display
+  const parentNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    allCategories.forEach((cat) => map.set(cat.id, cat.name));
+    return map;
+  }, [allCategories]);
 
-    try {
-      await createCategory.mutateAsync({
-        name: newCategoryName,
-        color: selectedColor,
-      });
+  const isLoading = loadingActive || loadingInactive || loadingAll;
 
-      setNewCategoryName('');
-      setSelectedColor(CATEGORY_COLORS[0]!.value);
-      setIsDialogOpen(false);
-    } catch (error) {
-      console.error('Erro ao criar categoria:', (error as Error)?.message ?? String(error));
-      // O erro é tratado pelo toast no hook, mas capturamos aqui para evitar unhandled rejection
-    }
+  // Handlers
+  const handleOpenCreate = () => {
+    setEditingCategory(null);
+    setIsFormOpen(true);
   };
 
-  const handleConfirmAction = async () => {
+  const handleOpenEdit = (category: Category) => {
+    setEditingCategory(category);
+    setIsFormOpen(true);
+  };
+
+  const handleSubmitForm = async (data: {
+    name: string;
+    description?: string;
+    color: string;
+    parentId?: string | null;
+  }) => {
+    // Convert null to undefined for mutation compatibility
+    const mutationData = {
+      ...data,
+      parentId: data.parentId ?? undefined,
+    };
+
     try {
-      if (confirmDialog.type === 'deactivate') {
-        await deactivateCategory.mutateAsync(confirmDialog.categoryId);
+      if (editingCategory) {
+        await updateCategory.mutateAsync({ id: editingCategory.id, data: mutationData });
       } else {
-        await reactivateCategory.mutateAsync(confirmDialog.categoryId);
+        await createCategory.mutateAsync(mutationData);
       }
-      setConfirmDialog({ ...confirmDialog, open: false });
-    } catch (error) {
-      console.error(
-        'Erro ao processar ação na categoria:',
-        (error as Error)?.message ?? String(error)
-      );
-      // Capturamos para evitar unhandled rejection, o toast já é exibido pelo hook
+      setIsFormOpen(false);
+    } catch {
+      // Erro tratado pelo hook/toast
     }
   };
+
+  const toggleStatus = async (category: Category) => {
+    if (category.isActive) {
+      await deactivateCategory.mutateAsync(category.id);
+    } else {
+      await reactivateCategory.mutateAsync(category.id);
+    }
+  };
+
+  const handleDelete = async (category: Category) => {
+    if (
+      window.confirm(
+        `Tem certeza que deseja excluir permanentemente a categoria "${category.name}"?`
+      )
+    ) {
+      await deleteCategory.mutateAsync(category.id);
+    }
+  };
+
+  // Multi-select handlers
+  const toggleSelectMode = useCallback(() => {
+    setIsSelectMode((prev) => !prev);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    setSelectedIds(new Set(filteredCategories.filter((c) => c.isActive).map((c) => c.id)));
+  }, [filteredCategories]);
+
+  const handleBatchDeactivate = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    await batchDeactivate.mutateAsync(Array.from(selectedIds));
+    setSelectedIds(new Set());
+    setIsSelectMode(false);
+  }, [selectedIds, batchDeactivate]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isSelectMode) return;
+
+      if (e.key === 'Escape') {
+        toggleSelectMode();
+      } else if (e.key === 'Delete' && selectedIds.size > 0) {
+        handleBatchDeactivate();
+      } else if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        selectAll();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSelectMode, selectedIds, toggleSelectMode, handleBatchDeactivate, selectAll]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} data-testid="back-button">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight">Categorias</h1>
-          <p className="text-muted-foreground">Organize seus produtos em categorias</p>
+    <div className="flex flex-col gap-6 p-1">
+      {/* Selection Toolbar */}
+      {isSelectMode && (
+        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20 animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <CheckSquare className="h-5 w-5 text-primary" />
+            <span className="font-medium">
+              {selectedIds.size} categoria{selectedIds.size !== 1 ? 's' : ''} selecionada
+              {selectedIds.size !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={selectAll}>
+              Selecionar todas
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBatchDeactivate}
+              disabled={selectedIds.size === 0 || batchDeactivate.isPending}
+            >
+              <PowerOff className="h-4 w-4 mr-2" />
+              Desativar selecionadas
+            </Button>
+            <Button variant="ghost" size="icon" onClick={toggleSelectMode}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Header & Controls */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Categorias</h1>
+            <p className="text-muted-foreground flex items-center gap-2">
+              <FolderTree className="h-4 w-4" />
+              Organize seus produtos em grupos lógicos
+            </p>
+          </div>
         </div>
 
-        {/* Status Filter */}
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filtrar por status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Ativas</SelectItem>
-            <SelectItem value="inactive">Inativas</SelectItem>
-            <SelectItem value="all">Todas</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar categoria..."
+              className="pl-9 bg-background"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Ativas</SelectItem>
+              <SelectItem value="inactive">Inativas</SelectItem>
+              <SelectItem value="all">Todas</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button variant="outline" size="icon" onClick={toggleSelectMode} title="Modo seleção">
+            <CheckSquare className={cn('h-4 w-4', isSelectMode && 'text-primary')} />
+          </Button>
+
+          <Button onClick={handleOpenCreate} className="shadow-md">
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Categoria
+          </Button>
+        </div>
+      </div>
+
+      {/* Categories Grid */}
+      {isLoading ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-40 w-full rounded-xl" />
+          ))}
+        </div>
+      ) : filteredCategories.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center py-24 text-center border-dashed">
+          <div className="p-4 rounded-full bg-muted mb-4 text-muted-foreground/50">
+            <FolderTree className="h-12 w-12" />
+          </div>
+          <h3 className="text-xl font-semibold">Nenhuma categoria encontrada</h3>
+          <p className="text-muted-foreground max-w-sm px-4">
+            {search
+              ? `Não encontramos resultados para "${search}" com o filtro atual.`
+              : 'Comece criando uma categoria para organizar seu catálogo.'}
+          </p>
+          {search && (
+            <Button variant="link" onClick={() => setSearch('')}>
+              Limpar busca
+            </Button>
+          )}
+          {!search && (
+            <Button className="mt-6" onClick={handleOpenCreate}>
               <Plus className="mr-2 h-4 w-4" />
               Nova Categoria
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Nova Categoria</DialogTitle>
-              <DialogDescription>
-                Crie uma nova categoria para organizar seus produtos
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome da Categoria</Label>
-                <Input
-                  id="name"
-                  placeholder="Ex: Bebidas"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Cor</Label>
-                <div className="flex flex-wrap gap-2">
-                  {CATEGORY_COLORS.map((color) => (
-                    <button
-                      key={color.value}
-                      type="button"
-                      className={cn(
-                        'h-8 w-8 rounded-full transition-transform hover:scale-110',
-                        selectedColor === color.value && 'ring-2 ring-ring ring-offset-2'
-                      )}
-                      style={{ backgroundColor: color.value }}
-                      onClick={() => setSelectedColor(color.value)}
-                      title={color.name}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleCreate} disabled={!newCategoryName.trim()}>
-                Criar Categoria
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Lista de Categorias */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {isLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-6 w-32 rounded bg-muted" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-4 w-20 rounded bg-muted" />
-              </CardContent>
-            </Card>
-          ))
-        ) : categories.length === 0 ? (
-          <div className="col-span-full">
-            <Card className="flex flex-col items-center justify-center py-12">
-              <FolderTree className="h-12 w-12 text-muted-foreground/50" />
-              <h3 className="mt-4 text-lg font-medium">Nenhuma categoria</h3>
-              <p className="text-sm text-muted-foreground">
-                Crie sua primeira categoria para organizar os produtos
-              </p>
-              <Button className="mt-4" onClick={() => setIsDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Criar Categoria
-              </Button>
-            </Card>
-          </div>
-        ) : (
-          categories.map((category) => (
+          )}
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredCategories.map((category) => (
             <Card
               key={category.id}
-              className={cn('group relative', !category.isActive && 'opacity-60')}
+              onClick={() => isSelectMode && category.isActive && toggleSelection(category.id)}
+              className={cn(
+                'group relative border-l-[6px] transition-all hover:shadow-lg hover:-translate-y-1 overflow-hidden cursor-pointer',
+                !category.isActive && 'opacity-60 grayscale-[0.5] cursor-default',
+                isSelectMode && selectedIds.has(category.id) && 'ring-2 ring-primary ring-offset-2'
+              )}
+              style={{ borderLeftColor: category.color || '#64748b' }}
             >
-              <div
-                className="absolute inset-x-0 top-0 h-1 rounded-t-lg"
-                style={{ backgroundColor: category.color || '#6b7280' }}
-              />
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: category.color || '#6b7280' }}
-                    />
-                    {category.name}
+              {/* Selection indicator */}
+              {isSelectMode && category.isActive && (
+                <div className="absolute top-3 left-3 z-10">
+                  <div
+                    className={cn(
+                      'h-5 w-5 rounded border-2 flex items-center justify-center transition-colors',
+                      selectedIds.has(category.id)
+                        ? 'bg-primary border-primary text-primary-foreground'
+                        : 'bg-background border-muted-foreground/40'
+                    )}
+                  >
+                    {selectedIds.has(category.id) && <CheckSquare className="h-3 w-3" />}
+                  </div>
+                </div>
+              )}
+              <CardHeader
+                className={cn(
+                  'pb-3 flex flex-row items-center justify-between space-y-0',
+                  isSelectMode && 'pl-10'
+                )}
+              >
+                <CardTitle className="text-lg font-bold truncate leading-tight pr-8">
+                  {category.name}
+                  {category.parentId && (
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center mt-0.5">
+                      <ChevronRight className="h-2 w-2 mr-0.5" />
+                      {parentNameMap.get(category.parentId) || 'Sub-categoria'}
+                    </div>
+                  )}
+                </CardTitle>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 absolute right-2 top-4">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => handleOpenEdit(category)}>
+                      <Edit2 className="h-4 w-4 mr-2" /> Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toggleStatus(category)}>
+                      {category.isActive ? (
+                        <>
+                          <PowerOff className="h-4 w-4 mr-2 text-destructive" /> Desativar
+                        </>
+                      ) : (
+                        <>
+                          <Power className="h-4 w-4 mr-2 text-green-600" /> Reativar
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleDelete(category)}
+                      className="text-destructive focus:bg-destructive/10"
+                      disabled={(category.productCount ?? 0) > 0}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" /> Excluir permanentemente
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-3">
+                  {category.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 min-h-[32px]">
+                      {category.description}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between mt-auto">
+                    <Badge variant="secondary" className="font-semibold px-2 py-0">
+                      {category.productCount ?? 0} produtos
+                    </Badge>
                     {!category.isActive && (
-                      <Badge variant="secondary" className="ml-2 text-xs">
+                      <Badge
+                        variant="outline"
+                        className="text-destructive border-destructive/20 bg-destructive/5 uppercase text-[9px]"
+                      >
                         Inativa
                       </Badge>
                     )}
-                  </CardTitle>
-                  <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Button variant="ghost" size="icon-sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    {category.isActive ? (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-destructive"
-                        onClick={() =>
-                          setConfirmDialog({
-                            open: true,
-                            type: 'deactivate',
-                            categoryId: category.id,
-                            categoryName: category.name,
-                          })
-                        }
-                      >
-                        <PowerOff className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-green-600"
-                        onClick={() =>
-                          setConfirmDialog({
-                            open: true,
-                            type: 'reactivate',
-                            categoryId: category.id,
-                            categoryName: category.name,
-                          })
-                        }
-                      >
-                        <Power className="h-4 w-4" />
-                      </Button>
-                    )}
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <Badge variant="secondary">{category.productCount ?? 0} produtos</Badge>
-                {category.description && (
-                  <p className="mt-2 text-sm text-muted-foreground">{category.description}</p>
-                )}
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Confirmation Dialog */}
-      <Dialog
-        open={confirmDialog.open}
-        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {confirmDialog.type === 'deactivate' ? 'Desativar Categoria' : 'Reativar Categoria'}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmDialog.type === 'deactivate'
-                ? `Tem certeza que deseja desativar a categoria "${confirmDialog.categoryName}"? Os produtos desta categoria não serão afetados.`
-                : `Tem certeza que deseja reativar a categoria "${confirmDialog.categoryName}"?`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant={confirmDialog.type === 'deactivate' ? 'destructive' : 'default'}
-              onClick={handleConfirmAction}
-            >
-              {confirmDialog.type === 'deactivate' ? 'Desativar' : 'Reativar'}
-            </Button>
-          </DialogFooter>
+      {/* Dialog Unificado de Form (Criar/Editar) */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="max-w-2xl overflow-hidden p-0 gap-0">
+          <div
+            className="h-2 w-full"
+            style={{ backgroundColor: editingCategory?.color || '#3b82f6' }}
+          />
+          <div className="p-6">
+            <DialogHeader className="mb-4">
+              <DialogTitle className="text-2xl">
+                {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingCategory
+                  ? 'Atualize as informações visuais e organizacionais da categoria.'
+                  : 'Defina o nome, cor e opcionalmente uma hierarquia para a nova categoria.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <CategoryForm
+              initialData={editingCategory}
+              onSubmit={handleSubmitForm}
+              onCancel={() => setIsFormOpen(false)}
+              isLoading={createCategory.isPending || updateCategory.isPending}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
