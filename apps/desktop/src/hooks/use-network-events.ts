@@ -10,7 +10,7 @@ import { useToast } from './use-toast';
  */
 export function useNetworkEvents() {
   const queryClient = useQueryClient();
-  const { info } = useToast();
+  const { success } = useToast();
 
   useEffect(() => {
     let unlistenSync: () => void;
@@ -21,7 +21,7 @@ export function useNetworkEvents() {
       unlistenSync = await listen('network:sync-completed', () => {
         console.log('🔄 Network Sync Completed. Invaliding all queries.');
         queryClient.invalidateQueries();
-        info('Sincronização', 'Dados atualizados via rede');
+        success('Sincronização', 'Dados atualizados via rede');
       });
 
       // Atualização de estoque pontual
@@ -39,5 +39,5 @@ export function useNetworkEvents() {
       if (unlistenSync) unlistenSync();
       if (unlistenStock) unlistenStock();
     };
-  }, [queryClient, info]);
+  }, [queryClient, success]);
 }
