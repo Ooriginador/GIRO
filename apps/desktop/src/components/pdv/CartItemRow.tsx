@@ -67,7 +67,7 @@ export const CartItemRow: FC<CartItemRowProps> = ({ item, index }) => {
       </div>
 
       {/* Controles de quantidade */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1" data-tutorial="cart-item-quantity">
         <Button
           variant="outline"
           size="icon-sm"
@@ -99,6 +99,7 @@ export const CartItemRow: FC<CartItemRowProps> = ({ item, index }) => {
           size="icon-sm"
           className="text-destructive hover:text-destructive hover:bg-destructive/10"
           onClick={handleRemove}
+          data-tutorial="cart-item-remove"
         >
           <Trash2 className="h-4 w-4" />
         </Button>

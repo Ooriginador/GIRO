@@ -31,7 +31,7 @@ export default function LoginScreen() {
   const { hapticSelection, hapticSuccess, hapticError } = useHaptics();
 
   const { login, isConnected } = useWebSocket();
-  const { selectedDesktop, connectionState } = useConnectionStore();
+  const { selectedDesktop, connectionState: _connectionState } = useConnectionStore();
 
   const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);

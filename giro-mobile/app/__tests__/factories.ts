@@ -4,7 +4,7 @@
  */
 
 import type { DiscoveredDesktop, Operator } from '@/types/connection';
-import type { InventoryItem, InventorySession, InventorySummary } from '@/types/inventory';
+import type { InventoryItem, InventorySummary } from '@/types/inventory';
 import type { Product, ProductLot } from '@/types/product';
 
 // =============================================================================
@@ -25,11 +25,8 @@ export function createProduct(overrides: Partial<Product> = {}): Product {
     costPrice: 5.0,
     currentStock: 100,
     minStock: 10,
-    maxStock: 500,
-    category: 'Geral',
-    categoryId: 'cat-1',
     unit: 'UN',
-    active: true,
+    isActive: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,
@@ -51,10 +48,11 @@ export function createProductLot(overrides: Partial<ProductLot> = {}): ProductLo
   return {
     id: '1',
     productId: '1',
-    lotNumber: 'LOT-001',
+    batchNumber: 'LOT-001',
     quantity: 50,
     expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 dias
-    manufacturingDate: new Date().toISOString(),
+    status: 'AVAILABLE',
+    createdAt: new Date().toISOString(),
     ...overrides,
   };
 }
@@ -66,14 +64,15 @@ export function createProductLot(overrides: Partial<ProductLot> = {}): ProductLo
 export function createInventoryItem(overrides: Partial<InventoryItem> = {}): InventoryItem {
   return {
     id: '1',
+    inventoryId: '1',
     productId: '1',
+    productBarcode: '7890000000001',
     productName: 'Produto Teste',
-    barcode: '7890000000001',
-    expectedQuantity: 100,
-    countedQuantity: undefined,
+    expectedStock: 100,
+    countedQuantity: null,
+    difference: 0,
+    status: 'pending',
     unit: 'UN',
-    category: 'Geral',
-    location: 'A1',
     ...overrides,
   };
 }
@@ -84,7 +83,7 @@ export function createInventoryItems(count: number): InventoryItem[] {
       id: String(i + 1),
       productId: String(i + 1),
       productName: `Produto ${i + 1}`,
-      barcode: `789${String(i + 1).padStart(10, '0')}`,
+      productBarcode: `789${String(i + 1).padStart(10, '0')}`,
     })
   );
 }
@@ -93,30 +92,33 @@ export function createInventorySummary(
   overrides: Partial<InventorySummary> = {}
 ): InventorySummary {
   return {
-    total: 100,
-    counted: 50,
-    pending: 50,
-    divergent: 5,
-    progress: 50,
-    positiveAdjustments: 3,
-    negativeAdjustments: 2,
+    totalProducts: 100,
+    countedProducts: 50,
+    pendingProducts: 50,
+    productsWithDifference: 5,
+    totalPositiveDiff: 3,
+    totalNegativeDiff: 2,
+    netDifference: 1,
+    completionPercentage: 50,
     ...overrides,
   };
 }
 
-export function createInventorySession(
-  overrides: Partial<InventorySession> = {}
-): InventorySession {
+// Note: InventorySession type might not exist, using Inventory instead
+import type { Inventory as InventoryType } from '@/types/inventory';
+
+export function createInventorySession(overrides: Partial<InventoryType> = {}): InventoryType {
   return {
     id: '1',
     name: 'Inventário Geral',
     scope: 'full',
     status: 'in_progress',
     startedAt: new Date().toISOString(),
-    operatorId: '1',
-    operatorName: 'Operador Teste',
-    items: createInventoryItems(10),
-    summary: createInventorySummary(),
+    employeeId: '1',
+    employeeName: 'Operador Teste',
+    expectedProducts: 10,
+    countedProducts: 0,
+    productsWithDifference: 0,
     ...overrides,
   };
 }
@@ -130,7 +132,6 @@ export function createOperator(overrides: Partial<Operator> = {}): Operator {
     id: '1',
     name: 'João Silva',
     role: 'caixa',
-    pin: '8899',
     ...overrides,
   };
 }
@@ -139,11 +140,13 @@ export function createDiscoveredDesktop(
   overrides: Partial<DiscoveredDesktop> = {}
 ): DiscoveredDesktop {
   return {
+    id: '1',
     name: 'GIRO-DESKTOP-001',
+    host: 'desktop-001',
     ip: '192.168.1.100',
     port: 3847,
-    storeName: 'Mercado Central',
     version: '1.0.0',
+    lastSeen: Date.now(),
     ...overrides,
   };
 }

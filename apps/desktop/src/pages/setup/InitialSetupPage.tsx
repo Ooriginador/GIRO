@@ -17,7 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { recoverLicenseFromLogin } from '@/lib/tauri';
 
 interface FormData {
   name: string;
@@ -505,16 +504,23 @@ const LoginRecoveryForm: FC<{ onBack: () => void; onSuccess: () => void }> = ({
 
     setLoading(true);
     try {
+      const { recoverLicenseFromLogin, setSetting } = await import('@/lib/tauri');
       const info = await recoverLicenseFromLogin({ email, password });
 
-      useLicenseStore.getState().setLicenseKey(info.key || '');
+      if (info.key) {
+        useLicenseStore.getState().setLicenseKey(info.key);
+        // Persistir no banco local para página de configurações
+        await setSetting('system.license_key', info.key, 'string');
 
-      toast({
-        title: 'Licença Recuperada!',
-        description: `Empresa: ${info.company_name}`,
-      });
+        toast({
+          title: 'Licença Recuperada!',
+          description: `Empresa: ${info.company_name}`,
+        });
 
-      onSuccess();
+        onSuccess();
+      } else {
+        throw new Error('Nenhuma licença encontrada para esta conta.');
+      }
     } catch (err) {
       toast({
         title: 'Erro no Login',

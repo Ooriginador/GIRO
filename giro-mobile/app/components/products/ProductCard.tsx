@@ -29,7 +29,6 @@ export function ProductCard({
   compact = false,
 }: ProductCardProps) {
   const hasLowStock = product.currentStock <= product.minStock;
-  const hasExpiringLots = product.expiringLots && product.expiringLots.length > 0;
 
   if (compact) {
     return (
@@ -92,7 +91,7 @@ export function ProductCard({
               {showStock && (
                 <StockBadge current={product.currentStock} minimum={product.minStock} />
               )}
-              {showExpiration && hasExpiringLots && (
+              {showExpiration && product.expiringLots && product.expiringLots.length > 0 && (
                 <ExpirationBadge expirationDate={product.expiringLots[0].expirationDate} />
               )}
             </View>

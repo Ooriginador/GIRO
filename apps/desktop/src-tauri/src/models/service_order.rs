@@ -277,6 +277,14 @@ pub struct UpdateService {
     pub is_active: Option<bool>,
 }
 
+/// Para finalizar ordem de serviço (Gera venda)
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FinishServiceOrderInput {
+    pub payments: Vec<crate::models::CreateSalePayment>,
+    pub amount_paid: f64,
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // FILTROS
 // ═══════════════════════════════════════════════════════════════════════════

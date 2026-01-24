@@ -53,7 +53,6 @@ export function useInventory(): UseInventoryResult {
     setItemStatus,
     setIsLoading,
     getSummary,
-    getItemByProductId,
     getPendingItems,
     reset,
   } = useInventoryStore();

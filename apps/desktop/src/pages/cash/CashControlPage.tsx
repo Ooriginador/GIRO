@@ -195,7 +195,11 @@ export const CashControlPage: FC = () => {
         </div>
         <div className="flex gap-2">
           {!isOpen ? (
-            <Button data-testid="open-cash" onClick={() => setIsOpenDialogOpen(true)}>
+            <Button
+              data-testid="open-cash"
+              onClick={() => setIsOpenDialogOpen(true)}
+              data-tutorial="cash-open-button"
+            >
               <DollarSign className="mr-2 h-4 w-4" />
               Abrir Caixa
             </Button>
@@ -209,6 +213,7 @@ export const CashControlPage: FC = () => {
                 data-testid="cash-supply"
                 className="ml-2"
                 onClick={() => setIsSupplyOpen(true)}
+                data-tutorial="cash-supply-button"
               >
                 <ArrowUpRight className="mr-2 h-4 w-4" />
                 Suprimento
@@ -217,6 +222,7 @@ export const CashControlPage: FC = () => {
                 data-testid="cash-withdrawal"
                 className="ml-2"
                 onClick={() => setIsWithdrawOpen(true)}
+                data-tutorial="cash-withdrawal-button"
               >
                 <ArrowDownRight className="mr-2 h-4 w-4" />
                 Sangria
@@ -225,6 +231,7 @@ export const CashControlPage: FC = () => {
                 variant="destructive"
                 onClick={() => setIsCloseDialogOpen(true)}
                 disabled={!hasPermission('cash.close')}
+                data-tutorial="cash-close-button"
               >
                 <Clock className="mr-2 h-4 w-4" />
                 <span data-testid="close-cash">Fechar Caixa</span>
@@ -239,6 +246,7 @@ export const CashControlPage: FC = () => {
         className={cn(
           isOpen ? 'border-green-500 bg-green-50/50' : 'border-yellow-500 bg-yellow-50/50'
         )}
+        data-tutorial="cash-status"
       >
         <CardContent className="flex items-center gap-4 py-4">
           {isOpen ? (
@@ -273,7 +281,7 @@ export const CashControlPage: FC = () => {
             <CardTitle>Movimentações</CardTitle>
             <CardDescription>Entradas e saídas do caixa</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent data-tutorial="cash-movements">
             <div className="overflow-auto">
               <table data-testid="movements-list" className="w-full table-auto">
                 <thead>
@@ -437,6 +445,7 @@ export const CashControlPage: FC = () => {
             <Input
               id="openingBalance"
               data-testid="opening-balance-input"
+              data-tutorial="cash-initial-value"
               type="text"
               inputMode="decimal"
               value={openingBalance}
@@ -451,7 +460,9 @@ export const CashControlPage: FC = () => {
             <Button variant="outline" onClick={() => setIsOpenDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleOpenSession}>Abrir Caixa</Button>
+            <Button onClick={handleOpenSession} data-tutorial="cash-confirm-open">
+              Abrir Caixa
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -576,6 +587,7 @@ export const CashControlPage: FC = () => {
                 onChange={(e) => setClosingBalance(e.target.value)}
                 placeholder="0,00"
                 className="text-2xl h-14 text-center"
+                data-tutorial="cash-counted-value"
               />
             </div>
 
@@ -609,6 +621,7 @@ export const CashControlPage: FC = () => {
             <Button
               variant="destructive"
               data-testid="confirm-close-cash"
+              data-tutorial="cash-confirm-close"
               onClick={handleCloseSession}
               disabled={!closingBalance}
             >

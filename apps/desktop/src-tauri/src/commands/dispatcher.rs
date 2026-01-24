@@ -718,17 +718,22 @@ pub async fn giro_invoke(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing id".to_string())?;
-            let payment_method = val
-                .get("payment_method")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "missing payment_method".to_string())?;
+
+            // Try wrapping 'payments' or use empty vec
+            let payments: Vec<crate::models::CreateSalePayment> = val
+                .get("payments")
+                .map(|v| serde_json::from_value(v.clone()))
+                .unwrap_or_else(|| Ok(Vec::new()))
+                .map_err(|e| format!("Invalid payments: {}", e))?;
+
             let amount_paid = val
                 .get("amount_paid")
+                .or_else(|| val.get("amountPaid"))
                 .and_then(|v| v.as_f64())
                 .ok_or_else(|| "missing amount_paid".to_string())?;
             let cash_session_id = val
                 .get("cash_session_id")
+                .or_else(|| val.get("cashSessionId"))
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .ok_or_else(|| "missing cash_session_id".to_string())?;
@@ -736,7 +741,7 @@ pub async fn giro_invoke(
             match crate::commands::service_orders::finish_service_order(
                 app_state,
                 id,
-                payment_method,
+                payments,
                 amount_paid,
                 cash_session_id,
             )

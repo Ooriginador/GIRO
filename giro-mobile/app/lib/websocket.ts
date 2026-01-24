@@ -17,7 +17,7 @@ const DEFAULT_RECONNECT_DELAY = 1000;
 const DEFAULT_HEARTBEAT_INTERVAL = 30000;
 const DEFAULT_TIMEOUT = 10000;
 
-type MessageHandler<T = unknown> = (data: T) => void;
+// type MessageHandler<T = unknown> = (data: T) => void;
 type EventHandler<T = unknown> = (event: WSEvent<T>) => void;
 type StateChangeHandler = (state: ConnectionState) => void;
 

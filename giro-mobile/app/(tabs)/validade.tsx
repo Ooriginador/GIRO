@@ -115,7 +115,8 @@ export default function ValidadeScreen() {
   // Render product item
   const renderProductItem = ({ item }: { item: ExpiringProduct }) => {
     const daysLeft = Math.ceil(
-      (new Date(item.expirationDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      (new Date(item.lot.expirationDate || new Date()).getTime() - Date.now()) /
+        (1000 * 60 * 60 * 24)
     );
     const isExpired = daysLeft <= 0;
 

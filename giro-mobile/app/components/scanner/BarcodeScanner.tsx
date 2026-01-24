@@ -40,7 +40,7 @@ export function BarcodeScanner({
   const [canScan, setCanScan] = useState(true);
 
   const { hapticSelection } = useHaptics();
-  const { autoFlash, continuousScan, vibrationEnabled, soundEnabled } = useSettingsStore();
+  const { continuousScan, vibrationEnabled } = useSettingsStore();
 
   // Scan line animation
   const scanLineY = useSharedValue(0);

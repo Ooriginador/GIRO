@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act } from '@testing-library/react-native';
 import { installTokenSync } from '@/lib/tokenSync';
 import { useConnectionStore } from '@/stores/connectionStore';
-import { STORAGE_KEYS } from '@/lib/constants';
+import { STORAGE_KEYS as _STORAGE_KEYS } from '@/lib/constants';
 
 describe('tokenSync', () => {
   beforeEach(async () => {
@@ -15,16 +15,16 @@ describe('tokenSync', () => {
 
   it('persists token to AsyncStorage when store token changes and removes on null', async () => {
     const setSpy = jest.spyOn(AsyncStorage, 'setItem');
-    const removeSpy = jest.spyOn(AsyncStorage, 'removeItem');
+    jest.spyOn(AsyncStorage, 'removeItem');
 
     const unsubscribe = installTokenSync();
 
     // Verify subscription actually receives token changes
-    let observed: string | null = 'init';
+    // Verify subscription actually receives token changes
     const unsub2 = useConnectionStore.subscribe(
       (s) => s.token,
-      (t) => {
-        observed = t;
+      (_t) => {
+        // Handle token change
       }
     );
 

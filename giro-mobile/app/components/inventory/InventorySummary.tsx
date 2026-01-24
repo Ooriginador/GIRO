@@ -30,13 +30,14 @@ export function InventorySummary({ summary, showDetails = true }: InventorySumma
         <CardContent className="py-4">
           <View className="flex-row items-center justify-between mb-3">
             <Text className="font-semibold text-foreground">Progresso</Text>
-            <Badge variant={summary.progress === 100 ? 'success' : 'secondary'}>
+            <Badge variant={(summary.progress || 0) === 100 ? 'success' : 'secondary'}>
               <Text
                 className={`text-xs ${
-                  summary.progress === 100 ? 'text-primary' : 'text-muted-foreground'
+                  (summary.progress || 0) === 100 ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >
-                {summary.counted}/{summary.total}
+                {summary.counted ?? summary.countedProducts}/
+                {summary.total ?? summary.totalProducts}
               </Text>
             </Badge>
           </View>
@@ -45,12 +46,12 @@ export function InventorySummary({ summary, showDetails = true }: InventorySumma
           <View className="h-3 bg-muted rounded-full overflow-hidden">
             <View
               className="h-full bg-primary rounded-full transition-all"
-              style={{ width: `${summary.progress}%` }}
+              style={{ width: `${summary.progress || 0}%` as any }}
             />
           </View>
 
           <Text className="text-sm text-muted-foreground text-center mt-2">
-            {summary.progress.toFixed(0)}% concluído
+            {(summary.progress || 0).toFixed(0)}% concluído
           </Text>
         </CardContent>
       </Card>
@@ -61,26 +62,26 @@ export function InventorySummary({ summary, showDetails = true }: InventorySumma
           <StatCard
             icon={<Check size={20} className="text-primary" />}
             label="Contados"
-            value={summary.counted}
+            value={summary.counted ?? summary.countedProducts}
             color="primary"
           />
           <StatCard
             icon={<Clock size={20} className="text-muted-foreground" />}
             label="Pendentes"
-            value={summary.pending}
+            value={summary.pending ?? summary.pendingProducts}
             color="muted"
           />
           <StatCard
             icon={<AlertTriangle size={20} className="text-warning" />}
             label="Divergentes"
-            value={summary.divergent}
+            value={summary.divergent ?? summary.productsWithDifference}
             color="warning"
           />
         </View>
       )}
 
       {/* Divergence Details */}
-      {showDetails && summary.divergent > 0 && (
+      {showDetails && (summary.divergent ?? summary.productsWithDifference) > 0 && (
         <Card className="border-warning/50">
           <CardHeader>
             <View className="flex-row items-center">
@@ -166,7 +167,7 @@ export function InventoryHeader({ summary }: InventoryHeaderProps) {
         </View>
         <Badge variant="secondary">
           <Text className="text-secondary-foreground text-xs">
-            {summary.counted}/{summary.total}
+            {summary.counted ?? summary.countedProducts}/{summary.total ?? summary.totalProducts}
           </Text>
         </Badge>
       </View>
@@ -175,22 +176,28 @@ export function InventoryHeader({ summary }: InventoryHeaderProps) {
       <View className="h-2 bg-muted rounded-full overflow-hidden">
         <View
           className="h-full bg-primary rounded-full"
-          style={{ width: `${summary.progress}%` }}
+          style={{ width: `${summary.progress || 0}%` as any }}
         />
       </View>
 
       {/* Quick Stats */}
       <View className="flex-row justify-around mt-3">
         <View className="items-center">
-          <Text className="text-lg font-bold text-foreground">{summary.counted}</Text>
+          <Text className="text-lg font-bold text-foreground">
+            {summary.counted ?? summary.countedProducts}
+          </Text>
           <Text className="text-xs text-muted-foreground">Contados</Text>
         </View>
         <View className="items-center">
-          <Text className="text-lg font-bold text-foreground">{summary.pending}</Text>
+          <Text className="text-lg font-bold text-foreground">
+            {summary.pending ?? summary.pendingProducts}
+          </Text>
           <Text className="text-xs text-muted-foreground">Pendentes</Text>
         </View>
         <View className="items-center">
-          <Text className="text-lg font-bold text-warning">{summary.divergent}</Text>
+          <Text className="text-lg font-bold text-warning">
+            {summary.divergent ?? summary.productsWithDifference}
+          </Text>
           <Text className="text-xs text-muted-foreground">Divergentes</Text>
         </View>
       </View>

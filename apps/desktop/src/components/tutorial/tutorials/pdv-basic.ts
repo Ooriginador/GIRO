@@ -55,15 +55,17 @@ export const pdvBasicTutorial: Tutorial = {
         'Com um leitor USB conectado, basta apontar e "bipar" o produto - ele é adicionado automaticamente ao carrinho! Super rápido para atendimentos.',
       target: '[data-tutorial="product-search"]',
       placement: 'bottom',
+      route: '/pdv',
     },
     {
       id: 'pdv-add-product',
       title: '➕ Adicionar ao Carrinho',
       description:
         'Clique no produto desejado ou pressione Enter para adicionar. A quantidade inicial é 1 unidade. Para adicionar múltiplos, use * (asterisco) + quantidade.',
-      target: '[data-tutorial="search-results"]',
+      target: '[data-tutorial="product-search"]', // Fix: target search to keep focus
       placement: 'bottom',
       action: 'click',
+      route: '/pdv',
     },
     {
       id: 'pdv-cart',
@@ -72,6 +74,7 @@ export const pdvBasicTutorial: Tutorial = {
         'Aqui você vê todos os produtos da venda atual: nome, quantidade, preço unitário e subtotal de cada item. O contador no topo mostra quantos itens tem no carrinho.',
       target: '[data-tutorial="cart-items"]',
       placement: 'left',
+      route: '/pdv',
     },
     {
       id: 'pdv-quantity',
@@ -81,6 +84,7 @@ export const pdvBasicTutorial: Tutorial = {
       target: '[data-tutorial="cart-item-quantity"]',
       placement: 'left',
       hotkey: 'F4',
+      route: '/pdv',
     },
     {
       id: 'pdv-remove-item',
@@ -90,6 +94,7 @@ export const pdvBasicTutorial: Tutorial = {
       target: '[data-tutorial="cart-item-remove"]',
       placement: 'left',
       hotkey: 'F12',
+      route: '/pdv',
     },
     {
       id: 'pdv-totals',
@@ -98,15 +103,17 @@ export const pdvBasicTutorial: Tutorial = {
         'Acompanhe em tempo real: Subtotal (soma dos itens), Desconto aplicado (se houver) e Total final da venda. Tudo atualizado automaticamente!',
       target: '[data-tutorial="cart-totals"]',
       placement: 'left',
+      route: '/pdv',
     },
     {
       id: 'pdv-discount',
       title: 'Aplicar Desconto',
       description:
         'Pressione F6 para aplicar desconto na venda. Você pode dar desconto em % ou em R$. Informe o motivo do desconto.',
-      target: '[data-tutorial="discount-button"]',
+      target: '[data-tutorial="cart-totals"]', // Target totals if no specific button
       placement: 'top',
       hotkey: 'F6',
+      route: '/pdv',
     },
     {
       id: 'pdv-finalize',
@@ -117,6 +124,7 @@ export const pdvBasicTutorial: Tutorial = {
       placement: 'top',
       action: 'click',
       hotkey: 'F10',
+      route: '/pdv',
     },
     {
       id: 'pdv-payment',
@@ -125,6 +133,7 @@ export const pdvBasicTutorial: Tutorial = {
         'Escolha entre: Dinheiro (informe o valor recebido para calcular troco), PIX (aguarde confirmação) ou Cartão (crédito/débito).',
       target: '[data-tutorial="payment-modal"]',
       placement: 'center',
+      route: '/pdv',
     },
     {
       id: 'pdv-cash-payment',
@@ -133,6 +142,7 @@ export const pdvBasicTutorial: Tutorial = {
         'Digite o valor que o cliente entregou, ou use os atalhos rápidos (+R$10, +R$20, +R$50, +R$100). O sistema calcula o troco automaticamente!',
       target: '[data-tutorial="cash-amount-input"]',
       placement: 'bottom',
+      route: '/pdv',
     },
     {
       id: 'pdv-confirm',
@@ -142,6 +152,7 @@ export const pdvBasicTutorial: Tutorial = {
       target: '[data-tutorial="confirm-sale-button"]',
       placement: 'bottom',
       action: 'click',
+      route: '/pdv',
     },
     {
       id: 'pdv-success',
@@ -149,6 +160,7 @@ export const pdvBasicTutorial: Tutorial = {
       description:
         'Você completou sua primeira venda! O estoque foi atualizado automaticamente e tudo ficou registrado no controle de caixa. Pronto para o próximo cliente!',
       placement: 'center',
+      route: '/pdv',
     },
   ],
 };

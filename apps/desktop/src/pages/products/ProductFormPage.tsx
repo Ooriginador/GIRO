@@ -180,13 +180,19 @@ export const ProductFormPage: FC = () => {
                     placeholder="Ex: Arroz Tio João 5kg"
                     aria-invalid={!!errors.name}
                     autoComplete="off"
+                    data-tutorial="product-name"
                   />
                   {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="barcode">Código de Barras</Label>
-                  <Input id="barcode" {...register('barcode')} placeholder="Ex: 7891234567890" />
+                  <Input
+                    id="barcode"
+                    {...register('barcode')}
+                    placeholder="Ex: 7891234567890"
+                    data-tutorial="product-barcode"
+                  />
                 </div>
               </div>
 
@@ -198,7 +204,7 @@ export const ProductFormPage: FC = () => {
                     control={control}
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger>
+                        <SelectTrigger data-tutorial="product-category">
                           <SelectValue
                             placeholder={isLoadingCategories ? 'Carregando...' : 'Selecione...'}
                           />
@@ -225,7 +231,7 @@ export const ProductFormPage: FC = () => {
                     control={control}
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger>
+                        <SelectTrigger data-tutorial="product-unit">
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -260,7 +266,9 @@ export const ProductFormPage: FC = () => {
                       />
                     )}
                   />
-                  <Label htmlFor="isWeighted">Produto pesável (balança)</Label>
+                  <Label htmlFor="isWeighted" data-tutorial="product-weighted">
+                    Produto pesável (balança)
+                  </Label>
                 </div>
               )}
             </CardContent>
@@ -268,7 +276,7 @@ export const ProductFormPage: FC = () => {
 
           {/* Preços */}
           <Card>
-            <CardHeader>
+            <CardHeader data-tutorial="product-prices">
               <CardTitle className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5" />
                 Preços
@@ -344,7 +352,10 @@ export const ProductFormPage: FC = () => {
               <div className="h-px bg-border" />
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Margem de Lucro</span>
-                <span className={`font-medium ${margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <span
+                  className={`font-medium ${margin >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                  data-tutorial="product-margin"
+                >
                   {margin.toFixed(1)}%
                 </span>
               </div>
@@ -359,7 +370,7 @@ export const ProductFormPage: FC = () => {
           </Card>
 
           {/* Estoque */}
-          <Card>
+          <Card data-tutorial="product-stock">
             <CardHeader>
               <CardTitle>Controle de Estoque</CardTitle>
             </CardHeader>
@@ -412,7 +423,7 @@ export const ProductFormPage: FC = () => {
 
           {/* Ações */}
           <div className="flex flex-col gap-2">
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} data-tutorial="product-save">
               <Save className="h-4 w-4 mr-2" />
               {isSubmitting ? 'Salvando...' : 'Salvar Produto'}
             </Button>

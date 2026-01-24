@@ -4,19 +4,16 @@
  */
 
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useProductSearch } from '@/hooks';
 import { useAddStockEntry } from '@/hooks/useStock';
-import { cn, formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import type { Product } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, CalendarIcon, PackagePlus, Save, Search } from 'lucide-react';
+import { ArrowLeft, PackagePlus, Save, Search } from 'lucide-react';
 import { useState, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -63,8 +60,6 @@ export const StockEntryPage: FC = () => {
       costPrice: 0,
     },
   });
-
-  const expirationDate = watch('expirationDate');
 
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
@@ -116,6 +111,7 @@ export const StockEntryPage: FC = () => {
                 placeholder="Buscar por nome ou código..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                data-tutorial="stock-entry-product"
               />
 
               {/* Resultados */}
@@ -171,7 +167,7 @@ export const StockEntryPage: FC = () => {
         </Card>
 
         {/* Formulário de Entrada */}
-        <Card>
+        <Card data-tutorial="stock-entry-form">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PackagePlus className="h-5 w-5" />
@@ -188,6 +184,7 @@ export const StockEntryPage: FC = () => {
                   type="number"
                   {...register('quantity', { valueAsNumber: true })}
                   error={!!errors.quantity}
+                  data-tutorial="stock-entry-quantity"
                 />
                 {errors.quantity && (
                   <p className="text-sm text-destructive">{errors.quantity.message}</p>
@@ -207,6 +204,7 @@ export const StockEntryPage: FC = () => {
                     step="0.01"
                     className="pl-10"
                     {...register('costPrice', { valueAsNumber: true })}
+                    data-tutorial="stock-entry-cost"
                   />
                 </div>
               </div>
@@ -222,61 +220,21 @@ export const StockEntryPage: FC = () => {
                 {/* Data de Fabricação */}
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Data de Fabricação (Opcional)</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !watch('manufacturingDate') && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {watch('manufacturingDate')
-                          ? format(watch('manufacturingDate')!, 'PPP', { locale: ptBR })
-                          : 'Selecionar data'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={watch('manufacturingDate')}
-                        onSelect={(date) => setValue('manufacturingDate', date || undefined)}
-                        initialFocus
-                        disabled={(date) => date > new Date()}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <DatePicker
+                    value={watch('manufacturingDate')}
+                    onChange={(date) => setValue('manufacturingDate', date)}
+                    disabledDates={(date) => date > new Date()}
+                  />
                 </div>
 
                 {/* Data de Validade */}
-                <div className="space-y-2">
+                <div className="space-y-2" data-tutorial="stock-entry-expiration">
                   <Label className="text-muted-foreground">Data de Validade (Opcional)</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !expirationDate && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {expirationDate
-                          ? format(expirationDate, 'PPP', { locale: ptBR })
-                          : 'Selecionar data'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={expirationDate}
-                        onSelect={(date) => setValue('expirationDate', date || undefined)}
-                        initialFocus
-                        disabled={(date) => date < (watch('manufacturingDate') || new Date())}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <DatePicker
+                    value={watch('expirationDate')}
+                    onChange={(date) => setValue('expirationDate', date)}
+                    disabledDates={(date) => date < (watch('manufacturingDate') || new Date())}
+                  />
                 </div>
               </div>
 
@@ -294,6 +252,7 @@ export const StockEntryPage: FC = () => {
                   type="submit"
                   className="flex-1"
                   disabled={!selectedProduct || isSubmitting}
+                  data-tutorial="stock-entry-save"
                 >
                   <Save className="mr-2 h-4 w-4" />
                   Registrar Entrada

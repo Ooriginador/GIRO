@@ -17,7 +17,7 @@ export class MockZeroconf extends EventEmitter {
     this.mockDesktops = [createDiscoveredDesktop()];
   }
 
-  scan(type: string = '_giro._tcp', protocol: string = 'local.'): void {
+  scan(_type: string = '_giro._tcp', _protocol: string = 'local.'): void {
     this.isScanning = true;
     this.emit('start');
 
@@ -29,7 +29,7 @@ export class MockZeroconf extends EventEmitter {
           host: desktop.ip,
           port: desktop.port,
           txt: {
-            storeName: desktop.storeName,
+            storeName: (desktop as any).storeName || desktop.name,
             version: desktop.version,
           },
         });
@@ -61,7 +61,7 @@ export class MockZeroconf extends EventEmitter {
       host: desktop.ip,
       port: desktop.port,
       txt: {
-        storeName: desktop.storeName,
+        storeName: (desktop as any).storeName || desktop.name,
         version: desktop.version,
       },
     });

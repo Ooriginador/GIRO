@@ -326,7 +326,7 @@ pub async fn cancel_service_order(
 pub async fn finish_service_order(
     state: State<'_, AppState>,
     id: String,
-    payment_method: String,
+    payments: Vec<crate::models::CreateSalePayment>,
     amount_paid: f64,
     cash_session_id: String,
 ) -> AppResult<String> {
@@ -340,7 +340,7 @@ pub async fn finish_service_order(
     let sale_id = repo
         .finish_order_transaction(
             &id,
-            &payment_method,
+            payments,
             amount_paid,
             &info.employee_id,
             &cash_session_id,

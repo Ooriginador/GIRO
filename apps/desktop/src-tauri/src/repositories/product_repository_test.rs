@@ -272,7 +272,10 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(count, 1, "Should create 1 stock movement");
+        assert_eq!(
+            count, 2,
+            "Should have 2 movements: 1 initial load + 1 update"
+        );
 
         // Verify new stock
         let updated = result.unwrap();

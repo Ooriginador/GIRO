@@ -96,10 +96,9 @@ impl ReportMotopartsRepository {
             )
             SELECT 
                 dates.date as "date!: String",
-                (COALESCE(SUM(s.total), 0.0) + COALESCE(SUM(so.total), 0.0)) as "amount!: f64"
+                COALESCE(SUM(s.total), 0.0) as "amount!: f64"
             FROM dates
             LEFT JOIN sales s ON date(s.created_at) = dates.date AND s.status != 'CANCELED'
-            LEFT JOIN service_orders so ON date(so.completed_at) = dates.date AND so.status = 'DELIVERED'
             GROUP BY dates.date
             ORDER BY dates.date
             "#

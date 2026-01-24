@@ -30,7 +30,7 @@ describe('Inventory Integration', () => {
 
     // Clear inventory
     act(() => {
-      useInventoryStore.getState().clearSession?.();
+      useInventoryStore.getState().reset();
     });
   });
 
@@ -69,24 +69,26 @@ describe('Inventory Integration', () => {
       });
 
       const state = useInventoryStore.getState();
-      expect(state.currentSession).toBeDefined();
-      expect(state.currentSession?.status).toBe('in_progress');
+      expect(state.currentInventory).toBeDefined();
+      expect(state.currentInventory?.status).toBe('in_progress');
     });
 
     it('should resume an existing inventory session', async () => {
       const session = createInventorySession({
-        items: [
-          createInventoryItem({ id: '1', countedQuantity: 100 }),
-          createInventoryItem({ id: '2', countedQuantity: undefined }),
-        ],
+        status: 'in_progress',
       });
+      const items = [
+        createInventoryItem({ id: '1', countedQuantity: 100, status: 'counted' }),
+        createInventoryItem({ id: '2', countedQuantity: null, status: 'pending' }),
+      ];
 
       act(() => {
         useInventoryStore.getState().setCurrentInventory(session);
+        useInventoryStore.getState().setItems(items);
       });
 
       const state = useInventoryStore.getState();
-      expect(state.currentSession?.items.some((i) => i.countedQuantity !== undefined)).toBe(true);
+      expect(state.items.some((i) => i.countedQuantity !== null)).toBe(true);
     });
 
     it('should finish inventory and apply adjustments', async () => {
@@ -101,7 +103,7 @@ describe('Inventory Integration', () => {
         JSON.stringify({
           action: 'inventory.finish',
           payload: {
-            sessionId: session.id,
+            inventoryId: session.id,
             applyAdjustments: true,
           },
         })
@@ -112,92 +114,107 @@ describe('Inventory Integration', () => {
   });
 
   describe('counting items', () => {
-    let session: ReturnType<typeof createInventorySession>;
-
     beforeEach(() => {
-      session = createInventorySession({
-        items: [
-          createInventoryItem({ id: '1', productName: 'Produto A', expectedQuantity: 100 }),
-          createInventoryItem({ id: '2', productName: 'Produto B', expectedQuantity: 50 }),
-          createInventoryItem({ id: '3', productName: 'Produto C', expectedQuantity: 75 }),
-        ],
+      const session = createInventorySession({
+        id: '1',
       });
+      const items = [
+        createInventoryItem({
+          id: '1',
+          productId: 'p1',
+          productName: 'Produto A',
+          expectedStock: 100,
+        }),
+        createInventoryItem({
+          id: '2',
+          productId: 'p2',
+          productName: 'Produto B',
+          expectedStock: 50,
+        }),
+        createInventoryItem({
+          id: '3',
+          productId: 'p3',
+          productName: 'Produto C',
+          expectedStock: 75,
+        }),
+      ];
 
       act(() => {
         useInventoryStore.getState().setCurrentInventory(session);
+        useInventoryStore.getState().setItems(items);
       });
     });
 
     it('should count item with exact quantity', () => {
       act(() => {
-        useInventoryStore.getState().countItem('1', 100);
+        useInventoryStore.getState().updateItem('p1', 100);
       });
 
       const state = useInventoryStore.getState();
-      const item = state.currentSession?.items.find((i) => i.id === '1');
+      const item = state.items.find((i) => i.productId === 'p1');
       expect(item?.countedQuantity).toBe(100);
     });
 
     it('should detect positive divergence', () => {
       act(() => {
-        useInventoryStore.getState().countItem('1', 110); // 10 a mais
+        useInventoryStore.getState().updateItem('p1', 110); // 10 a mais
       });
 
       const state = useInventoryStore.getState();
-      const item = state.currentSession?.items.find((i) => i.id === '1');
+      const item = state.items.find((i) => i.productId === 'p1');
       expect(item?.countedQuantity).toBe(110);
-      expect((item?.countedQuantity ?? 0) - (item?.expectedQuantity ?? 0)).toBe(10);
+      expect((item?.countedQuantity ?? 0) - (item?.expectedStock ?? 0)).toBe(10);
     });
 
     it('should detect negative divergence', () => {
       act(() => {
-        useInventoryStore.getState().countItem('1', 90); // 10 a menos
+        useInventoryStore.getState().updateItem('p1', 90); // 10 a menos
       });
 
       const state = useInventoryStore.getState();
-      const item = state.currentSession?.items.find((i) => i.id === '1');
+      const item = state.items.find((i) => i.productId === 'p1');
       expect(item?.countedQuantity).toBe(90);
-      expect((item?.countedQuantity ?? 0) - (item?.expectedQuantity ?? 0)).toBe(-10);
+      expect((item?.countedQuantity ?? 0) - (item?.expectedStock ?? 0)).toBe(-10);
     });
 
     it('should update progress as items are counted', () => {
       act(() => {
-        useInventoryStore.getState().countItem('1', 100);
-        useInventoryStore.getState().countItem('2', 50);
+        useInventoryStore.getState().updateItem('p1', 100);
+        useInventoryStore.getState().updateItem('p2', 50);
       });
 
-      const state = useInventoryStore.getState();
-      expect(state.currentSession?.summary.counted).toBe(2);
+      const summary = useInventoryStore.getState().getSummary();
+      expect(summary.countedProducts).toBe(2);
     });
   });
 
   describe('scanning during inventory', () => {
     it('should find item by barcode and allow counting', () => {
-      const session = createInventorySession({
-        items: [createInventoryItem({ id: '1', barcode: '7891234567890' })],
-      });
+      const session = createInventorySession({ id: '1' });
+      const items = [createInventoryItem({ id: '1', productBarcode: '7891234567890' })];
 
       act(() => {
         useInventoryStore.getState().setCurrentInventory(session);
+        useInventoryStore.getState().setItems(items);
       });
 
       const state = useInventoryStore.getState();
-      const item = state.currentSession?.items.find((i) => i.barcode === '7891234567890');
+      const item = state.items.find((i) => i.productBarcode === '7891234567890');
       expect(item).toBeDefined();
     });
 
     it('should handle item not in inventory list', () => {
-      const session = createInventorySession({
-        items: [createInventoryItem({ id: '1', barcode: '7891234567890' })],
-      });
+      const session = createInventorySession({ id: '1' });
+      const items = [createInventoryItem({ id: '1', productBarcode: '7891234567890' })];
 
       act(() => {
         useInventoryStore.getState().setCurrentInventory(session);
+        useInventoryStore.getState().setItems(items);
       });
 
       // Try to find item not in list
       const state = useInventoryStore.getState();
-      const item = state.currentSession?.items.find((i) => i.barcode === '9999999999999');
+      const item = state.items.find((i) => i.productBarcode === '9999999999999');
       expect(item).toBeUndefined();
     });
   });
@@ -206,16 +223,18 @@ describe('Inventory Integration', () => {
     it('should queue counts when offline', () => {
       mockWs.close();
 
-      const session = createInventorySession();
+      const session = createInventorySession({ id: '1' });
+      const items = [createInventoryItem({ id: '1', productId: 'p1' })];
 
       act(() => {
         useInventoryStore.getState().setCurrentInventory(session);
-        useInventoryStore.getState().countItem('1', 100);
+        useInventoryStore.getState().setItems(items);
+        useInventoryStore.getState().updateItem('p1', 100);
       });
 
       // Count should be stored locally
       const state = useInventoryStore.getState();
-      expect(state.currentSession?.items.find((i) => i.id === '1')?.countedQuantity).toBe(100);
+      expect(state.items.find((i) => i.productId === 'p1')?.countedQuantity).toBe(100);
     });
 
     it('should sync counts when reconnected', () => {

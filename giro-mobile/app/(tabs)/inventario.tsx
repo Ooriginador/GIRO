@@ -188,7 +188,7 @@ export default function InventarioScreen() {
               <Text className="font-medium text-foreground" numberOfLines={1}>
                 {item.productName}
               </Text>
-              <Text className="text-sm text-muted-foreground">{item.barcode}</Text>
+              <Text className="text-sm text-muted-foreground">{item.productBarcode}</Text>
             </View>
 
             {/* Count Info */}
@@ -196,22 +196,31 @@ export default function InventarioScreen() {
               {isCounted ? (
                 <>
                   <Text className="text-lg font-bold text-foreground">
-                    {formatQuantity(countedValue!, item.unit)}
+                    {formatQuantity(countedValue! || 0, item.unit || 'UN')}
                   </Text>
                   {hasDifference && (
                     <Text
                       className={`text-xs ${
-                        countedValue! > item.expectedQuantity ? 'text-primary' : 'text-destructive'
+                        countedValue! > (item.expectedQuantity || 0)
+                          ? 'text-primary'
+                          : 'text-destructive'
                       }`}
                     >
-                      {countedValue! > item.expectedQuantity ? '+' : ''}
-                      {formatQuantity(countedValue! - item.expectedQuantity, item.unit)}
+                      {countedValue! > (item.expectedQuantity || 0) ? '+' : ''}
+                      {formatQuantity(
+                        countedValue! - (item.expectedQuantity || 0),
+                        item.unit || 'UN'
+                      )}
                     </Text>
                   )}
                 </>
               ) : (
                 <Text className="text-muted-foreground text-sm">
-                  Esperado: {formatQuantity(item.expectedQuantity, item.unit)}
+                  Esperado:{' '}
+                  {formatQuantity(
+                    item.expectedQuantity || item.expectedStock || 0,
+                    item.unit || 'UN'
+                  )}
                 </Text>
               )}
             </View>
@@ -301,7 +310,7 @@ export default function InventarioScreen() {
         <View className="h-2 bg-muted rounded-full overflow-hidden">
           <View
             className="h-full bg-primary rounded-full"
-            style={{ width: `${summary.progress}%` }}
+            style={{ width: `${summary.progress || 0}%` as any }}
           />
         </View>
 
@@ -316,7 +325,7 @@ export default function InventarioScreen() {
             <Text className="text-xs text-muted-foreground">Pendentes</Text>
           </View>
           <View className="items-center">
-            <Text className="text-lg font-bold text-warning">{summary.divergent}</Text>
+            <Text className="text-lg font-bold text-warning">{summary.divergent || 0}</Text>
             <Text className="text-xs text-muted-foreground">Divergentes</Text>
           </View>
         </View>
@@ -352,7 +361,7 @@ export default function InventarioScreen() {
         <Button
           className="flex-1"
           onPress={() => setShowFinishModal(true)}
-          disabled={summary.progress < 100}
+          disabled={(summary.progress || 0) < 100}
         >
           <Save size={18} className="mr-2 text-primary-foreground" />
           <Text className="text-primary-foreground">Finalizar</Text>
@@ -374,7 +383,8 @@ export default function InventarioScreen() {
               {selectedItem.productName}
             </Text>
             <Text className="text-muted-foreground mb-4">
-              Esperado: {formatQuantity(selectedItem.expectedQuantity, selectedItem.unit)}
+              Esperado:{' '}
+              {formatQuantity(selectedItem.expectedQuantity || 0, selectedItem.unit || 'UN')}
             </Text>
 
             <Input
@@ -407,7 +417,9 @@ export default function InventarioScreen() {
         visible={showFinishModal}
         onClose={() => setShowFinishModal(false)}
         title="Finalizar Inventário"
-        message={`Foram encontradas ${summary.divergent} divergência(s). Deseja aplicar os ajustes de estoque?`}
+        message={`Foram encontradas ${
+          summary.divergent || 0
+        } divergência(s). Deseja aplicar os ajustes de estoque?`}
         confirmText="Aplicar Ajustes"
         cancelText="Apenas Salvar"
         onConfirm={() => handleFinishInventory(true)}

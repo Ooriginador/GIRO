@@ -27,8 +27,14 @@ describe('inventoryStore', () => {
       const mockInventory = {
         id: '1',
         name: 'Inventory Test',
+        scope: 'full' as const,
         status: 'in_progress' as const,
-        createdAt: new Date().toISOString(),
+        startedAt: new Date().toISOString(),
+        employeeId: 'e1',
+        employeeName: 'Admin',
+        expectedProducts: 10,
+        countedProducts: 0,
+        productsWithDifference: 0,
       };
 
       act(() => {
@@ -43,8 +49,14 @@ describe('inventoryStore', () => {
       const mockInventory = {
         id: '1',
         name: 'Inventory Test',
+        scope: 'full' as const,
         status: 'in_progress' as const,
-        createdAt: new Date().toISOString(),
+        startedAt: new Date().toISOString(),
+        employeeId: 'e1',
+        employeeName: 'Admin',
+        expectedProducts: 10,
+        countedProducts: 0,
+        productsWithDifference: 0,
       };
 
       act(() => {
@@ -62,7 +74,9 @@ describe('inventoryStore', () => {
       const mockItems = [
         {
           id: '1',
+          inventoryId: '1',
           productId: 'p1',
+          productBarcode: '123',
           productName: 'Product 1',
           expectedStock: 100,
           countedQuantity: 0,
@@ -71,7 +85,9 @@ describe('inventoryStore', () => {
         },
         {
           id: '2',
+          inventoryId: '1',
           productId: 'p2',
+          productBarcode: '456',
           productName: 'Product 2',
           expectedStock: 50,
           countedQuantity: 0,
@@ -95,7 +111,9 @@ describe('inventoryStore', () => {
       const mockItems = [
         {
           id: '1',
+          inventoryId: '1',
           productId: 'p1',
+          productBarcode: '123',
           productName: 'Product 1',
           expectedStock: 100,
           countedQuantity: 0,
@@ -115,7 +133,7 @@ describe('inventoryStore', () => {
       });
 
       const state = useInventoryStore.getState();
-      const item = state.items.find(i => i.productId === 'p1');
+      const item = state.items.find((i) => i.productId === 'p1');
       expect(item?.countedQuantity).toBe(95);
       expect(item?.difference).toBe(-5); // 95 - 100 = -5
       expect(item?.status).toBe('counted');
@@ -127,7 +145,7 @@ describe('inventoryStore', () => {
       });
 
       const state = useInventoryStore.getState();
-      const item = state.items.find(i => i.productId === 'p1');
+      const item = state.items.find((i) => i.productId === 'p1');
       expect(item?.notes).toBe('Test note');
     });
   });
@@ -137,7 +155,9 @@ describe('inventoryStore', () => {
       const mockItems = [
         {
           id: '1',
+          inventoryId: '1',
           productId: 'p1',
+          productBarcode: '123',
           productName: 'Product 1',
           expectedStock: 100,
           countedQuantity: 0,
@@ -157,7 +177,7 @@ describe('inventoryStore', () => {
       });
 
       const state = useInventoryStore.getState();
-      const item = state.items.find(i => i.productId === 'p1');
+      const item = state.items.find((i) => i.productId === 'p1');
       expect(item?.status).toBe('skipped');
     });
   });
@@ -167,7 +187,9 @@ describe('inventoryStore', () => {
       const mockItems = [
         {
           id: '1',
+          inventoryId: '1',
           productId: 'p1',
+          productBarcode: '123',
           productName: 'Product 1',
           expectedStock: 100,
           countedQuantity: 95,
@@ -176,7 +198,9 @@ describe('inventoryStore', () => {
         },
         {
           id: '2',
+          inventoryId: '1',
           productId: 'p2',
+          productBarcode: '456',
           productName: 'Product 2',
           expectedStock: 50,
           countedQuantity: 55,
@@ -185,7 +209,9 @@ describe('inventoryStore', () => {
         },
         {
           id: '3',
+          inventoryId: '1',
           productId: 'p3',
+          productBarcode: '789',
           productName: 'Product 3',
           expectedStock: 30,
           countedQuantity: 0,
@@ -211,7 +237,9 @@ describe('inventoryStore', () => {
       const mockItems = [
         {
           id: '1',
+          inventoryId: '1',
           productId: 'p1',
+          productBarcode: '123',
           productName: 'Product 1',
           expectedStock: 100,
           countedQuantity: 0,
@@ -242,8 +270,14 @@ describe('inventoryStore', () => {
       const mockInventory = {
         id: '1',
         name: 'Inventory Test',
+        scope: 'full' as const,
         status: 'in_progress' as const,
-        createdAt: new Date().toISOString(),
+        startedAt: new Date().toISOString(),
+        employeeId: 'e1',
+        employeeName: 'Admin',
+        expectedProducts: 10,
+        countedProducts: 0,
+        productsWithDifference: 0,
       };
 
       act(() => {

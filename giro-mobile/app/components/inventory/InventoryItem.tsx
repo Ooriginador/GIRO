@@ -18,10 +18,13 @@ interface InventoryItemProps {
   onSkip?: () => void;
 }
 
-export function InventoryItem({ item, countedQuantity, onPress, onSkip }: InventoryItemProps) {
+export function InventoryItem({ item, countedQuantity, onPress }: InventoryItemProps) {
   const isCounted = countedQuantity !== undefined;
-  const hasDifference = isCounted && countedQuantity !== item.expectedQuantity;
-  const difference = isCounted ? countedQuantity - item.expectedQuantity : 0;
+  const hasDifference =
+    isCounted && countedQuantity !== (item.expectedQuantity || item.expectedStock || 0);
+  const difference = isCounted
+    ? countedQuantity - (item.expectedQuantity || item.expectedStock || 0)
+    : 0;
 
   const getStatusIcon = () => {
     if (!isCounted) {
@@ -55,7 +58,7 @@ export function InventoryItem({ item, countedQuantity, onPress, onSkip }: Invent
             <Text className="font-medium text-foreground" numberOfLines={1}>
               {item.productName}
             </Text>
-            <Text className="text-sm text-muted-foreground">{item.barcode}</Text>
+            <Text className="text-sm text-muted-foreground">{item.productBarcode}</Text>
 
             {/* Status Badge */}
             <View className="flex-row items-center mt-1">
@@ -78,7 +81,7 @@ export function InventoryItem({ item, countedQuantity, onPress, onSkip }: Invent
             {isCounted ? (
               <>
                 <Text className="text-lg font-bold text-foreground">
-                  {formatQuantity(countedQuantity, item.unit)}
+                  {formatQuantity(countedQuantity, item.unit || 'UN')}
                 </Text>
                 {hasDifference && (
                   <Text
@@ -87,7 +90,7 @@ export function InventoryItem({ item, countedQuantity, onPress, onSkip }: Invent
                     }`}
                   >
                     {difference > 0 ? '+' : ''}
-                    {formatQuantity(difference, item.unit)}
+                    {formatQuantity(difference, item.unit || 'UN')}
                   </Text>
                 )}
               </>
@@ -95,7 +98,10 @@ export function InventoryItem({ item, countedQuantity, onPress, onSkip }: Invent
               <>
                 <Text className="text-sm text-muted-foreground">Esperado</Text>
                 <Text className="text-lg font-bold text-foreground">
-                  {formatQuantity(item.expectedQuantity, item.unit)}
+                  {formatQuantity(
+                    item.expectedQuantity || item.expectedStock || 0,
+                    item.unit || 'UN'
+                  )}
                 </Text>
               </>
             )}
@@ -143,8 +149,8 @@ export function InventoryItemCompact({
 
       <Text className={`font-medium ${isCounted ? 'text-primary' : 'text-muted-foreground'}`}>
         {isCounted
-          ? formatQuantity(countedQuantity, item.unit)
-          : formatQuantity(item.expectedQuantity, item.unit)}
+          ? formatQuantity(countedQuantity, item.unit || 'UN')
+          : formatQuantity(item.expectedQuantity || item.expectedStock || 0, item.unit || 'UN')}
       </Text>
     </Pressable>
   );

@@ -3,7 +3,7 @@
  * Tests the complete scanner flow
  */
 
-import { createProduct, createWSResponse } from '../factories';
+import { createProduct } from '../factories';
 import { MockWebSocket } from '../mocks/websocket';
 
 // Mock the scanner hook
@@ -40,13 +40,15 @@ describe('Scanner Integration', () => {
       });
 
       // Simulate scan
-      const barcode = '7891234567890';
+      // barcode: '7891234567890'
 
       // Simulate WebSocket response
-      const response = createWSResponse({
+      /*
+      createWSResponse({
         found: true,
         product,
       });
+      */
 
       // The flow should be:
       // 1. Camera detects barcode
@@ -66,7 +68,7 @@ describe('Scanner Integration', () => {
     });
 
     it('should handle product not found', async () => {
-      const barcode = '9999999999999';
+      // barcode: '9999999999999'
 
       mockWs.simulateMessage({
         id: 1,

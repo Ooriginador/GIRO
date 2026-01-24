@@ -69,7 +69,7 @@ export default function ScannerScreen() {
       if (product) {
         hapticSuccess();
         setSelectedProduct(product);
-        addRecentScan({ barcode, product, scannedAt: new Date() });
+        addRecentScan(barcode, product);
         resultScale.value = withSpring(1, { damping: 15 });
       } else {
         hapticError();
@@ -261,7 +261,7 @@ export default function ScannerScreen() {
                       {formatCurrency(selectedProduct.salePrice)}
                     </Text>
                     <Text className="text-xs text-muted-foreground">
-                      Custo: {formatCurrency(selectedProduct.costPrice)}
+                      Custo: {formatCurrency(selectedProduct.costPrice || 0)}
                     </Text>
                   </View>
                 </View>
@@ -318,20 +318,24 @@ export default function ScannerScreen() {
             <Text className="text-sm font-medium text-muted-foreground">Últimos escaneados</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {recentScans.slice(0, 5).map((scan, index) => (
-              <Pressable
-                key={index}
-                onPress={() => setSelectedProduct(scan.product)}
-                className="mr-3 bg-muted px-3 py-2 rounded-lg"
-              >
-                <Text className="text-foreground font-medium" numberOfLines={1}>
-                  {scan.product.name}
-                </Text>
-                <Text className="text-xs text-muted-foreground">
-                  {formatQuantity(scan.product.currentStock, scan.product.unit)} em estoque
-                </Text>
-              </Pressable>
-            ))}
+            {recentScans
+              .slice(0, 5)
+              .filter((scan) => scan.product !== null)
+              .map((scan, index) => (
+                <Pressable
+                  key={index}
+                  onPress={() => scan.product && setSelectedProduct(scan.product)}
+                  className="mr-3 bg-muted px-3 py-2 rounded-lg"
+                >
+                  <Text className="text-foreground font-medium" numberOfLines={1}>
+                    {scan.product?.name}
+                  </Text>
+                  <Text className="text-xs text-muted-foreground">
+                    {formatQuantity(scan.product?.currentStock || 0, scan.product?.unit || 'UN')} em
+                    estoque
+                  </Text>
+                </Pressable>
+              ))}
           </ScrollView>
         </View>
       )}

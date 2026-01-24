@@ -17,6 +17,8 @@ const badgeVariants = cva('flex-row items-center justify-center rounded-full', {
       error: 'bg-error/10',
       info: 'bg-info/10',
       muted: 'bg-background-tertiary',
+      destructive: 'bg-error/10',
+      outline: 'bg-transparent border border-border',
     },
     size: {
       sm: 'px-2 py-0.5',
@@ -39,6 +41,9 @@ const textVariants = cva('font-medium text-center', {
       error: 'text-error',
       info: 'text-info',
       muted: 'text-foreground-muted',
+      secondary: 'text-secondary-700',
+      outline: 'text-muted-foreground',
+      destructive: 'text-error',
     },
     size: {
       sm: 'text-xs',

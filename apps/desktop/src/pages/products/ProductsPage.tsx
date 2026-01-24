@@ -197,10 +197,10 @@ export const ProductsPage: FC = () => {
           <p className="text-muted-foreground">Gerencie seu catálogo de produtos</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild data-tutorial="categories-link">
             <Link to="/products/categories">Categorias</Link>
           </Button>
-          <Button asChild>
+          <Button asChild data-tutorial="new-product-button">
             <Link to="/products/new">
               <Plus className="mr-2 h-4 w-4" />
               Novo Produto
@@ -210,7 +210,10 @@ export const ProductsPage: FC = () => {
       </div>
 
       {/* Filtros */}
-      <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
+      <Card
+        className="border-none bg-card/50 backdrop-blur-sm shadow-md"
+        data-tutorial="products-filters"
+      >
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
@@ -220,6 +223,7 @@ export const ProductsPage: FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
+                data-tutorial="products-search"
               />
             </div>
             <Select
@@ -251,7 +255,7 @@ export const ProductsPage: FC = () => {
             <Badge variant="secondary">{totalItems}</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent data-tutorial="products-table">
           <div className="space-y-4">
             <Table>
               <TableHeader>
@@ -325,6 +329,7 @@ export const ProductsPage: FC = () => {
                               variant="ghost"
                               size="icon-sm"
                               data-testid={`product-menu-${product.id}`}
+                              data-tutorial="product-edit"
                             >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
@@ -343,6 +348,7 @@ export const ProductsPage: FC = () => {
                               <DropdownMenuItem
                                 className="text-destructive"
                                 onClick={() => setProductToDeactivate(product)}
+                                data-tutorial="product-status"
                               >
                                 <PowerOff className="mr-2 h-4 w-4" />
                                 Desativar
@@ -351,6 +357,7 @@ export const ProductsPage: FC = () => {
                               <DropdownMenuItem
                                 className="text-success"
                                 onClick={() => handleReactivate(product)}
+                                data-tutorial="product-status"
                               >
                                 <Power className="mr-2 h-4 w-4" />
                                 Reativar

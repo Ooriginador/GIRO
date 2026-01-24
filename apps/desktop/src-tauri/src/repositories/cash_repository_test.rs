@@ -280,6 +280,14 @@ mod tests {
         .await
         .unwrap();
 
+        sqlx::query(
+            "INSERT INTO sale_payments (id, sale_id, method, amount, created_at) VALUES ('pay-001', ?, 'CASH', 200.0, datetime('now'))"
+        )
+        .bind(sale_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
         // 5. Create a credit sale +500.0 (should NOT affect cash_in_drawer)
         let sale_id_2 = "sale-test-002";
         sqlx::query(
@@ -288,6 +296,14 @@ mod tests {
         )
         .bind(sale_id_2)
         .bind(&session.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "INSERT INTO sale_payments (id, sale_id, method, amount, created_at) VALUES ('pay-002', ?, 'CREDIT', 500.0, datetime('now'))"
+        )
+        .bind(sale_id_2)
         .execute(&pool)
         .await
         .unwrap();

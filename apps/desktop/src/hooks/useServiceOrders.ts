@@ -14,6 +14,7 @@
 import { invoke } from '@/lib/tauri';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import type { CreateSalePayment } from '@/types';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -276,24 +277,24 @@ export function useServiceOrders() {
     },
   });
 
-  // Entregar ordem (Finalizar pagamento)
+  // Entregar ordem (Finalizar pagamento - Suporta Multi-pagamento)
   const deliverOrder = useMutation({
     mutationFn: async ({
       id,
-      paymentMethod,
+      payments,
       amountPaid,
       sessionId,
       employeeId,
     }: {
       id: string;
-      paymentMethod: string;
+      payments: CreateSalePayment[];
       amountPaid: number;
       sessionId: string;
       employeeId?: string;
     }) => {
       const result = await invoke<string>('finish_service_order', {
         id,
-        payment_method: paymentMethod,
+        payments,
         amount_paid: amountPaid,
         cash_session_id: sessionId,
         employee_id: employeeId,

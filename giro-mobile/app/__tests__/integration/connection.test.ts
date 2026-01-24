@@ -143,7 +143,7 @@ describe('Connection Integration', () => {
     });
 
     it('should authenticate with valid PIN', async () => {
-      const operator = createOperator({ pin: '8899' });
+      const operator = createOperator();
 
       // Send auth request
       mockWs.send(

@@ -228,6 +228,7 @@ export const PDVPage: FC = () => {
                 onChange={(e) => handleSearch(e.target.value)}
                 className="h-12 pl-10 text-lg"
                 autoFocus
+                data-tutorial="product-search"
               />
               <span className="kbd absolute right-3 top-1/2 -translate-y-1/2">F2</span>
             </div>
@@ -282,7 +283,7 @@ export const PDVPage: FC = () => {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="h-[calc(100%-60px)] p-0">
+            <CardContent className="h-[calc(100%-60px)] p-0" data-tutorial="cart-items">
               {items.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
                   <ShoppingCart className="h-12 w-12 opacity-50" />
@@ -309,7 +310,10 @@ export const PDVPage: FC = () => {
           className="flex w-80 flex-col gap-4"
         >
           {/* Resumo */}
-          <Card className="p-4 border-none bg-card/50 backdrop-blur-sm shadow-md">
+          <Card
+            className="p-4 border-none bg-card/50 backdrop-blur-sm shadow-md"
+            data-tutorial="cart-totals"
+          >
             <div className="space-y-4">
               {/* Subtotal */}
               <div className="flex justify-between text-lg">
@@ -350,6 +354,7 @@ export const PDVPage: FC = () => {
                 className="h-14 text-lg"
                 disabled={items.length === 0}
                 onClick={() => setShowPaymentModal(true)}
+                data-tutorial="finalize-button"
               >
                 <Banknote className="mr-2 h-5 w-5" />
                 Dinheiro

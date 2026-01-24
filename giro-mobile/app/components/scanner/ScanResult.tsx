@@ -85,7 +85,7 @@ export function ScanResult({
                   {formatCurrency(product.salePrice)}
                 </Text>
                 <Text className="text-xs text-muted-foreground mt-1">
-                  Custo: {formatCurrency(product.costPrice)}
+                  Custo: {formatCurrency(product.costPrice || 0)}
                 </Text>
               </View>
             </View>

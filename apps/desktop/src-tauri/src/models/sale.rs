@@ -61,7 +61,7 @@ pub struct Sale {
     pub discount_value: f64,
     pub discount_reason: Option<String>,
     pub total: f64,
-    pub payment_method: String,
+    pub payment_method: String, // Keeping for backward compatibility (primary method)
     pub amount_paid: f64,
     pub change: f64,
     pub status: String,
@@ -71,8 +71,29 @@ pub struct Sale {
     pub customer_id: Option<String>,
     pub employee_id: String,
     pub cash_session_id: String,
+    #[sqlx(skip)]
+    pub payments: Option<Vec<SalePayment>>,
     pub created_at: String,
     pub updated_at: String,
+}
+
+/// Pagamento de uma venda
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SalePayment {
+    pub id: String,
+    pub sale_id: String,
+    pub method: PaymentMethod,
+    pub amount: f64,
+    pub created_at: String,
+}
+
+/// Dados para registro de pagamento
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateSalePayment {
+    pub method: PaymentMethod,
+    pub amount: f64,
 }
 
 /// Venda com informações relacionadas
@@ -83,6 +104,7 @@ pub struct SaleWithDetails {
     pub sale: Sale,
     pub employee_name: Option<String>,
     pub items: Vec<SaleItem>,
+    pub payments: Vec<SalePayment>,
     pub items_count: i32,
 }
 
@@ -119,7 +141,7 @@ pub struct CreateSaleItem {
 #[serde(rename_all = "camelCase")]
 pub struct CreateSale {
     pub items: Vec<CreateSaleItem>,
-    pub payment_method: PaymentMethod,
+    pub payments: Vec<CreateSalePayment>,
     pub amount_paid: f64,
     pub discount_type: Option<DiscountType>,
     pub discount_value: Option<f64>,

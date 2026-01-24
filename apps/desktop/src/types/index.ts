@@ -162,6 +162,7 @@ export interface Sale {
   cashSessionId: string;
   cashSession?: CashSession;
   items: SaleItem[];
+  payments: SalePayment[];
   subtotal: number;
   discountType?: string;
   discountValue: number;
@@ -177,6 +178,14 @@ export interface Sale {
   cancelReason?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SalePayment {
+  id: string;
+  saleId: string;
+  method: PaymentMethod;
+  amount: number;
+  createdAt: string;
 }
 
 export interface SaleItem {
@@ -441,12 +450,19 @@ export interface CreateSaleInput {
     discount?: number;
     lotId?: string;
   }[];
-  discount?: number;
-  paymentMethod: PaymentMethod;
+  payments: CreateSalePayment[];
   amountPaid: number;
+  discountValue?: number;
+  discountType?: 'FIXED' | 'PERCENTAGE';
+  discountReason?: string;
   employeeId: string;
   cashSessionId: string;
   customerId?: string;
+}
+
+export interface CreateSalePayment {
+  method: PaymentMethod;
+  amount: number;
 }
 
 export interface OpenCashSessionInput {

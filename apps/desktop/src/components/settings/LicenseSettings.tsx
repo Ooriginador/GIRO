@@ -3,60 +3,63 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { activateLicense, getSetting, setSetting, validateLicense } from '@/lib/tauri';
-import { LicenseInfo } from '@/types';
+import { activateLicense, setSetting, validateLicense } from '@/lib/tauri';
+import { useLicenseStore } from '@/stores/license-store';
 import { Key, Loader2, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function LicenseSettings() {
-  const [licenseKey, setLicenseKey] = useState('');
-  const [info, setInfo] = useState<LicenseInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    licenseKey: storeKey,
+    licenseInfo: storeInfo,
+    state: storeState,
+    setLicenseKey,
+    setLicenseInfo,
+    updateLastValidation,
+    hydrateFromDisk,
+    isHydrated,
+  } = useLicenseStore();
+
+  const [inputKey, setInputKey] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
 
-  const validate = useCallback(async (key: string) => {
-    setIsLoading(true);
-    try {
-      const result = await validateLicense(key);
-      setInfo(result);
-    } catch (error) {
-      console.error('Validation failed:', (error as Error)?.message ?? String(error));
-      // Don't clear key, just show error state
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const loadLicense = useCallback(async () => {
-    try {
-      const storedKey = await getSetting('system.license_key');
-      if (storedKey) {
-        setLicenseKey(storedKey);
-        await validate(storedKey);
-      } else {
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error('Failed to load license:', (error as Error)?.message ?? String(error));
-      setIsLoading(false);
-    }
-  }, [validate]);
-
+  // Sync input field with store key when it loads
   useEffect(() => {
-    loadLicense();
-  }, [loadLicense]);
+    if (storeKey && !inputKey) {
+      setInputKey(storeKey);
+    }
+  }, [storeKey, inputKey]);
+
+  // Ensure store is hydrated
+  useEffect(() => {
+    if (!isHydrated) {
+      hydrateFromDisk();
+    }
+  }, [isHydrated, hydrateFromDisk]);
 
   const handleActivate = async () => {
-    if (!licenseKey.trim()) return;
+    if (!inputKey.trim()) {
+      toast({
+        title: 'Chave Obrigatória',
+        description: 'Por favor, insira uma chave de ativação.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsLoading(true);
     try {
-      const result = await activateLicense(licenseKey);
-      setInfo(result);
+      const result = await activateLicense(inputKey);
 
-      // Save key
-      await setSetting('system.license_key', licenseKey, 'string');
+      // Update Store
+      setLicenseKey(inputKey);
+      setLicenseInfo(result);
+      updateLastValidation();
+
+      // Save key to local database for legacy support/redundancy
+      await setSetting('system.license_key', inputKey, 'string');
 
       toast({
         title: 'Licença Ativada',
@@ -76,11 +79,13 @@ export function LicenseSettings() {
   };
 
   const handleSync = async () => {
-    if (!licenseKey) return;
+    if (!storeKey) return;
     setIsSyncing(true);
     try {
-      const result = await validateLicense(licenseKey);
-      setInfo(result);
+      const result = await validateLicense(storeKey);
+      setLicenseInfo(result);
+      updateLastValidation();
+
       toast({
         title: 'Sincronização Concluída',
         description: 'Dados atualizados com sucesso.',
@@ -98,10 +103,14 @@ export function LicenseSettings() {
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'Vitalício';
-    return new Date(dateStr).toLocaleDateString('pt-BR');
+    try {
+      return new Date(dateStr).toLocaleDateString('pt-BR');
+    } catch {
+      return 'Data Inválida';
+    }
   };
 
-  if (isLoading) {
+  if (!isHydrated || (storeState === 'loading' && !storeInfo)) {
     return (
       <Card>
         <CardContent className="pt-6 flex justify-center items-center h-40">
@@ -111,7 +120,7 @@ export function LicenseSettings() {
     );
   }
 
-  const isLicenseActive = info?.status === 'active';
+  const isLicenseActive = storeState === 'valid' || storeInfo?.status === 'active';
 
   return (
     <Card>
@@ -128,7 +137,7 @@ export function LicenseSettings() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4">
-          {info ? (
+          {storeInfo ? (
             <div
               className={`p-4 rounded-lg border ${
                 isLicenseActive ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
@@ -144,7 +153,7 @@ export function LicenseSettings() {
                     {isLicenseActive ? 'Licença Ativa' : 'Licença Inválida/Suspensa'}
                   </h3>
                   <p className="text-sm mt-1 text-gray-700">
-                    {info.message ||
+                    {storeInfo.message ||
                       (isLicenseActive ? 'Sistema operando normalmente.' : 'Contate o suporte.')}
                   </p>
                 </div>
@@ -158,16 +167,16 @@ export function LicenseSettings() {
               <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-500 block">Status</span>
-                  <span className="font-medium capitalize">{info.status}</span>
+                  <span className="font-medium capitalize">{storeInfo.status}</span>
                 </div>
                 <div>
                   <span className="text-gray-500 block">Expira em</span>
-                  <span className="font-medium">{formatDate(info.expires_at)}</span>
+                  <span className="font-medium">{formatDate(storeInfo.expires_at)}</span>
                 </div>
-                {info.company_name && (
+                {storeInfo.company_name && (
                   <div className="col-span-2">
                     <span className="text-gray-500 block">Licenciado para</span>
-                    <span className="font-medium">{info.company_name}</span>
+                    <span className="font-medium">{storeInfo.company_name}</span>
                   </div>
                 )}
               </div>
@@ -197,14 +206,15 @@ export function LicenseSettings() {
             <div className="flex gap-2">
               <Input
                 id="licenseKey"
-                value={licenseKey}
-                onChange={(e) => setLicenseKey(e.target.value)}
+                value={inputKey}
+                onChange={(e) => setInputKey(e.target.value)}
                 placeholder="XXXX-XXXX-XXXX-XXXX"
                 className="font-mono uppercase"
                 disabled={isLoading}
               />
-              <Button onClick={handleActivate} disabled={isLoading || !licenseKey}>
-                {info ? 'Reativar' : 'Ativar'}
+              <Button onClick={handleActivate} disabled={isLoading || !inputKey}>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {storeInfo ? 'Reativar' : 'Ativar'}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">

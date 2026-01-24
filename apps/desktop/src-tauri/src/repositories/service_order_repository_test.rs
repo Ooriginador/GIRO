@@ -386,8 +386,12 @@ async fn test_finish_order_generates_commission() {
     .unwrap();
 
     // 5. Finish Order ($200 + $50 = $250)
+    let payments = vec![crate::models::CreateSalePayment {
+        method: crate::models::PaymentMethod::Cash,
+        amount: 250.0,
+    }];
     let result = repo
-        .finish_order_transaction(&order.id, "CASH", 250.0, cashier_id, session_id)
+        .finish_order_transaction(&order.id, payments, 250.0, cashier_id, session_id)
         .await;
 
     assert!(result.is_ok(), "Finish order failed: {:?}", result.err());

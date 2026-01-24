@@ -34,6 +34,7 @@ export const pdvAdvancedTutorial: Tutorial = {
       target: '[data-tutorial="product-search"]',
       placement: 'bottom',
       hotkey: 'F2',
+      route: '/pdv',
     },
     {
       id: 'adv-shortcut-f4',
@@ -43,15 +44,17 @@ export const pdvAdvancedTutorial: Tutorial = {
       target: '[data-tutorial="product-search"]',
       placement: 'bottom',
       hotkey: 'F4',
+      route: '/pdv',
     },
     {
       id: 'adv-shortcut-f6',
       title: '⌨️ F6 - Aplicar Desconto',
       description:
         'Aplica desconto na venda inteira ou no item selecionado. Você pode dar desconto em % ou valor fixo (R$). Sempre informe o motivo!',
-      target: '[data-tutorial="discount-button"]',
+      target: '[data-tutorial="cart-totals"]', // Fixed to cart totals
       placement: 'top',
       hotkey: 'F6',
+      route: '/pdv',
     },
     {
       id: 'adv-shortcut-f10',
@@ -60,6 +63,7 @@ export const pdvAdvancedTutorial: Tutorial = {
       target: '[data-tutorial="finalize-button"]',
       placement: 'top',
       hotkey: 'F10',
+      route: '/pdv',
     },
     {
       id: 'adv-shortcut-f12',
@@ -68,6 +72,7 @@ export const pdvAdvancedTutorial: Tutorial = {
       target: '[data-tutorial="cart-items"]',
       placement: 'left',
       hotkey: 'F12',
+      route: '/pdv',
     },
     {
       id: 'adv-shortcut-esc',
@@ -76,6 +81,7 @@ export const pdvAdvancedTutorial: Tutorial = {
         'Cancela toda a venda em andamento. O sistema pedirá confirmação antes de limpar o carrinho. Use com cuidado!',
       placement: 'center',
       hotkey: 'Escape',
+      route: '/pdv',
     },
     {
       id: 'adv-weighted',
@@ -83,6 +89,7 @@ export const pdvAdvancedTutorial: Tutorial = {
       description:
         'Frutas, verduras, carnes e frios são vendidos por peso (KG). O sistema integra com a balança automaticamente para ler o peso ou você pode digitar manualmente.',
       placement: 'center',
+      route: '/pdv',
     },
     {
       id: 'adv-weighted-search',
@@ -93,6 +100,7 @@ export const pdvAdvancedTutorial: Tutorial = {
       placement: 'bottom',
       action: 'type',
       actionData: 'banana',
+      route: '/pdv',
     },
     {
       id: 'adv-weighted-scale',
@@ -101,14 +109,16 @@ export const pdvAdvancedTutorial: Tutorial = {
         'Se a balança estiver configurada (em Configurações > Hardware), o peso é lido automaticamente. Caso contrário, digite o peso em KG (ex: 0.500 para 500g).',
       target: '[data-tutorial="weight-input"]',
       placement: 'bottom',
+      route: '/pdv',
     },
     {
       id: 'adv-weighted-calc',
       title: '🧮 Cálculo Automático',
       description:
         'O valor é calculado automaticamente: Peso × Preço/KG = Subtotal. Exemplo: 0.500 kg × R$ 5,00/kg = R$ 2,50. Confira sempre o subtotal!',
-      target: '[data-tutorial="cart-item-subtotal"]',
+      target: '[data-tutorial="cart-items"]', // Fixed
       placement: 'left',
+      route: '/pdv',
     },
     {
       id: 'adv-barcode-weighted',
@@ -116,6 +126,7 @@ export const pdvAdvancedTutorial: Tutorial = {
       description:
         'Códigos que começam com "2" são especiais: o peso já vem embutido! Formato: 2PPPPP XXXXX C (P=produto, X=peso, C=dígito). A balança da loja imprime essas etiquetas.',
       placement: 'center',
+      route: '/pdv',
     },
     {
       id: 'adv-discount-item',
@@ -125,39 +136,36 @@ export const pdvAdvancedTutorial: Tutorial = {
       target: '[data-tutorial="cart-items"]',
       placement: 'left',
       hotkey: 'F6',
-    },
-    {
-      id: 'adv-cancel-sale',
-      title: 'Cancelar Venda Finalizada',
-      description:
-        'Se precisar cancelar uma venda já finalizada, vá em Relatórios > Vendas, encontre a venda e clique em Cancelar. Apenas gerentes podem fazer isso.',
-      placement: 'center',
+      route: '/pdv',
     },
     {
       id: 'adv-customer',
       title: 'Identificar Cliente',
       description:
         'Clique em "Cliente" para associar a venda a um cliente cadastrado. Útil para histórico e fidelização.',
-      target: '[data-tutorial="customer-button"]',
+      target: '[data-tutorial="product-search"]', // Fix: target search vicinity
       placement: 'top',
+      route: '/pdv',
     },
     {
       id: 'adv-hold-sale',
       title: '⏸️ Segurar Venda (F8)',
       description:
         'Cliente esqueceu algo? Pressione F8 para "pausar" a venda atual e atender outro cliente. A venda fica salva para recuperar depois!',
-      target: '[data-tutorial="hold-button"]',
+      target: '[data-tutorial="finalize-button"]', // Fix
       placement: 'top',
       hotkey: 'F8',
+      route: '/pdv',
     },
     {
       id: 'adv-recover-sale',
       title: '▶️ Recuperar Venda (F9)',
       description:
         'Pressione F9 para ver todas as vendas em espera e recuperar a que deseja finalizar. As vendas ficam salvas apenas durante a sessão de caixa atual.',
-      target: '[data-tutorial="recover-button"]',
+      target: '[data-tutorial="finalize-button"]', // Fix
       placement: 'top',
       hotkey: 'F9',
+      route: '/pdv',
     },
     {
       id: 'adv-done',

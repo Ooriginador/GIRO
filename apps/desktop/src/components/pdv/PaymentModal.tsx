@@ -138,64 +138,72 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
     setIsProcessing(true);
 
     try {
-      if (onFinalize) {
-        // Modo Externo (ex: Ordem de Serviço)
-        if (isSplitMode) {
-          if (!canFinalizeSplit) return;
-          const primaryMethod = splitPayments[0]?.method || 'CASH';
+      const { items, customerId } = pdvStore;
+      let saleResult;
+
+      if (isSplitMode) {
+        if (!canFinalizeSplit) return;
+        const payments = splitPayments.map((p) => ({
+          method: p.method,
+          amount: p.amount,
+        }));
+
+        if (onFinalize) {
           await onFinalize({
-            paymentMethod: primaryMethod,
+            paymentMethod: splitPayments[0]?.method || 'CASH',
             amountPaid: splitTotal,
             splitPayments,
           });
         } else {
-          if (!canFinalize || !paymentMethod) return;
+          saleResult = await createSale.mutateAsync({
+            items: items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              discount: item.discount,
+            })),
+            payments,
+            amountPaid: splitTotal,
+            discountValue: pdvStore.discount,
+            discountType: 'FIXED',
+            discountReason: pdvStore.discountReason,
+            employeeId: employee.id,
+            cashSessionId: currentSession.id,
+            customerId: customerId || undefined,
+          });
+        }
+      } else {
+        if (!canFinalize || !paymentMethod) return;
+        const payments = [
+          {
+            method: paymentMethod,
+            amount: amountPaidNum || total,
+          },
+        ];
+
+        if (onFinalize) {
           await onFinalize({
             paymentMethod,
             amountPaid: amountPaidNum || total,
           });
+        } else {
+          saleResult = await createSale.mutateAsync({
+            items: items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              discount: item.discount,
+            })),
+            payments,
+            amountPaid: amountPaidNum || total,
+            discountValue: pdvStore.discount,
+            discountType: 'FIXED',
+            discountReason: pdvStore.discountReason,
+            employeeId: employee.id,
+            cashSessionId: currentSession.id,
+            customerId: customerId || undefined,
+          });
         }
-        onClose();
-        return;
-      }
-
-      // Modo PDV Padrão
-      let saleResult;
-      const { items, discount, customerId } = pdvStore;
-
-      if (isSplitMode) {
-        if (!canFinalizeSplit) return;
-        const primaryMethod = splitPayments[0]?.method || 'CASH';
-        saleResult = await createSale.mutateAsync({
-          items: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount,
-          })),
-          paymentMethod: primaryMethod,
-          discount,
-          amountPaid: splitTotal,
-          employeeId: employee.id,
-          cashSessionId: currentSession.id,
-          customerId: customerId || undefined,
-        });
-      } else {
-        if (!canFinalize || !paymentMethod) return;
-        saleResult = await createSale.mutateAsync({
-          items: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount,
-          })),
-          paymentMethod,
-          discount,
-          amountPaid: amountPaidNum || total,
-          employeeId: employee.id,
-          cashSessionId: currentSession.id,
-          customerId: customerId || undefined,
-        });
       }
 
       // Auto-print receipt
@@ -384,6 +392,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
               onChange={(e) => setAmountPaid(e.target.value)}
               className="h-14 pl-10 text-2xl text-money font-bold"
               placeholder="0,00"
+              data-tutorial="cash-amount-input"
             />
           </div>
         </div>
@@ -604,7 +613,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" data-tutorial="payment-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">Finalizar Venda</DialogTitle>
           <DialogDescription>
@@ -630,6 +639,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
                 isSplitMode ? !canFinalizeSplit || isProcessing : !canFinalize || isProcessing
               }
               className="gap-2"
+              data-tutorial="confirm-sale-button"
             >
               {isProcessing ? (
                 <>

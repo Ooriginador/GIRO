@@ -48,6 +48,7 @@ impl<'a> SaleRepository<'a> {
         match sale {
             Some(s) => {
                 let items = self.find_items_by_sale(&s.id).await?;
+                let payments = self.find_payments_by_sale(&s.id).await?;
                 let emp_name: Option<(String,)> =
                     sqlx::query_as("SELECT name FROM employees WHERE id = ?")
                         .bind(&s.employee_id)
@@ -58,6 +59,7 @@ impl<'a> SaleRepository<'a> {
                     employee_name: emp_name.map(|e| e.0),
                     items_count: items.len() as i32,
                     items,
+                    payments,
                 }))
             }
             None => Ok(None),
@@ -201,7 +203,14 @@ impl<'a> SaleRepository<'a> {
         let discount = data.discount_value.unwrap_or(0.0);
         let total = subtotal - discount;
         let change = data.amount_paid - total;
-        let payment_method = format!("{:?}", data.payment_method).to_uppercase();
+
+        // Primary method (first piece or 'OTHER')
+        let primary_method = data
+            .payments
+            .first()
+            .map(|p| format!("{:?}", p.method).to_uppercase())
+            .unwrap_or_else(|| "OTHER".to_string());
+
         let discount_type = data
             .discount_type
             .map(|dt| format!("{:?}", dt).to_uppercase());
@@ -217,7 +226,7 @@ impl<'a> SaleRepository<'a> {
         .bind(discount)
         .bind(&data.discount_reason)
         .bind(total)
-        .bind(&payment_method)
+        .bind(&primary_method)
         .bind(data.amount_paid)
         .bind(change)
         .bind(&data.employee_id)
@@ -226,6 +235,22 @@ impl<'a> SaleRepository<'a> {
         .bind(&now)
         .execute(&mut *tx)
         .await?;
+
+        // Insert payments
+        for payment in &data.payments {
+            let pay_id = new_id();
+            let method_str = format!("{:?}", payment.method).to_uppercase();
+            sqlx::query(
+                "INSERT INTO sale_payments (id, sale_id, method, amount, created_at) VALUES (?, ?, ?, ?, ?)"
+            )
+            .bind(pay_id)
+            .bind(&id)
+            .bind(method_str)
+            .bind(payment.amount)
+            .bind(&now)
+            .execute(&mut *tx)
+            .await?;
+        }
 
         // Insert items and update stock
         for item in &data.items {
@@ -239,12 +264,18 @@ impl<'a> SaleRepository<'a> {
 
         tx.commit().await?;
 
-        self.find_by_id(&id)
-            .await?
-            .ok_or_else(|| crate::error::AppError::NotFound {
-                entity: "Sale".into(),
-                id,
-            })
+        let mut sale =
+            self.find_by_id(&id)
+                .await?
+                .ok_or_else(|| crate::error::AppError::NotFound {
+                    entity: "Sale".into(),
+                    id: id.clone(),
+                })?;
+
+        let payments = self.find_payments_by_sale(&id).await?;
+        sale.payments = Some(payments);
+
+        Ok(sale)
     }
 
     async fn get_next_daily_number_tx(
@@ -483,6 +514,19 @@ impl<'a> SaleRepository<'a> {
             })
     }
 
+    pub async fn find_payments_by_sale(
+        &self,
+        sale_id: &str,
+    ) -> AppResult<Vec<crate::models::SalePayment>> {
+        let result = sqlx::query_as::<_, crate::models::SalePayment>(
+            "SELECT id, sale_id, method, amount, created_at FROM sale_payments WHERE sale_id = ?",
+        )
+        .bind(sale_id)
+        .fetch_all(self.pool)
+        .await?;
+        Ok(result)
+    }
+
     async fn find_items_by_sale_tx(
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
@@ -517,22 +561,24 @@ impl<'a> SaleRepository<'a> {
             0.0
         };
 
-        let mut by_method: std::collections::HashMap<String, (i64, f64)> =
-            std::collections::HashMap::new();
-        for sale in &sales {
-            let entry = by_method
-                .entry(sale.payment_method.clone())
-                .or_insert((0, 0.0));
-            entry.0 += 1;
-            entry.1 += sale.total;
-        }
+        let payment_rows = sqlx::query(
+            r#"
+            SELECT method as payment_method, SUM(amount) as total, COUNT(*) as count
+            FROM sale_payments 
+            WHERE sale_id IN (SELECT id FROM sales WHERE date(created_at) = ? AND status = 'COMPLETED')
+            GROUP BY method
+            "#,
+        )
+        .bind(date)
+        .fetch_all(self.pool)
+        .await?;
 
-        let by_payment_method: Vec<PaymentMethodSummary> = by_method
+        let by_payment_method: Vec<PaymentMethodSummary> = payment_rows
             .into_iter()
-            .map(|(method, (count, amount))| PaymentMethodSummary {
-                method,
-                count,
-                amount,
+            .map(|row| PaymentMethodSummary {
+                method: row.get("payment_method"),
+                count: row.get("count"),
+                amount: row.get("total"),
             })
             .collect();
 
@@ -570,7 +616,7 @@ impl<'a> SaleRepository<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{CreateSaleItem, DiscountType, PaymentMethod};
+    use crate::models::{CreateSaleItem, CreateSalePayment, DiscountType, PaymentMethod};
     use sqlx::SqlitePool;
 
     async fn setup_test_db() -> SqlitePool {
@@ -606,7 +652,10 @@ mod tests {
                 unit_price: 10.0,
                 discount: Some(0.0),
             }],
-            payment_method: PaymentMethod::Cash,
+            payments: vec![CreateSalePayment {
+                method: PaymentMethod::Cash,
+                amount: 20.0,
+            }],
             amount_paid: 25.0,
             discount_type: None,
             discount_value: None,
@@ -637,7 +686,10 @@ mod tests {
                 unit_price: 10.0,
                 discount: Some(0.0),
             }],
-            payment_method: PaymentMethod::Cash,
+            payments: vec![CreateSalePayment {
+                method: PaymentMethod::Cash,
+                amount: 2000.0,
+            }],
             amount_paid: 2000.0,
             discount_type: None,
             discount_value: None,
@@ -663,7 +715,10 @@ mod tests {
                 unit_price: 10.0,
                 discount: Some(0.0),
             }],
-            payment_method: PaymentMethod::Cash,
+            payments: vec![CreateSalePayment {
+                method: PaymentMethod::Cash,
+                amount: 45.0,
+            }],
             amount_paid: 45.0,
             discount_type: Some(DiscountType::Fixed),
             discount_value: Some(5.0),
@@ -692,7 +747,10 @@ mod tests {
                 unit_price: 10.0,
                 discount: Some(0.0),
             }],
-            payment_method: PaymentMethod::Debit,
+            payments: vec![CreateSalePayment {
+                method: PaymentMethod::Debit,
+                amount: 10.0,
+            }],
             amount_paid: 10.0,
             discount_type: None,
             discount_value: None,
@@ -721,7 +779,10 @@ mod tests {
                 unit_price: 10.0,
                 discount: Some(0.0),
             }],
-            payment_method: PaymentMethod::Cash,
+            payments: vec![CreateSalePayment {
+                method: PaymentMethod::Cash,
+                amount: 10.0,
+            }],
             amount_paid: 10.0,
             discount_type: None,
             discount_value: None,
@@ -749,7 +810,10 @@ mod tests {
                 unit_price: 10.0,
                 discount: Some(0.0),
             }],
-            payment_method: PaymentMethod::Cash,
+            payments: vec![CreateSalePayment {
+                method: PaymentMethod::Cash,
+                amount: 10.0,
+            }],
             amount_paid: 10.0,
             discount_type: None,
             discount_value: None,
@@ -771,7 +835,7 @@ mod tests {
 
         for _ in 0..3 {
             let input = CreateSale {
-            customer_id: None,
+                customer_id: None,
                 employee_id: "emp-001".to_string(),
                 cash_session_id: "cs-001".to_string(),
                 items: vec![CreateSaleItem {
@@ -780,7 +844,10 @@ mod tests {
                     unit_price: 10.0,
                     discount: Some(0.0),
                 }],
-                payment_method: PaymentMethod::Cash,
+                payments: vec![CreateSalePayment {
+                    method: PaymentMethod::Cash,
+                    amount: 10.0,
+                }],
                 amount_paid: 10.0,
                 discount_type: None,
                 discount_value: None,
@@ -814,7 +881,10 @@ mod tests {
                 unit_price: 100.0,
                 discount: Some(0.0),
             }],
-            payment_method: PaymentMethod::Cash,
+            payments: vec![CreateSalePayment {
+                method: PaymentMethod::Cash,
+                amount: 100.0,
+            }],
             amount_paid: 100.0,
             discount_type: None,
             discount_value: None,
@@ -853,7 +923,10 @@ mod tests {
                 unit_price: 100.0,
                 discount: Some(0.0),
             }],
-            payment_method: PaymentMethod::Cash,
+            payments: vec![CreateSalePayment {
+                method: PaymentMethod::Cash,
+                amount: 100.0,
+            }],
             amount_paid: 100.0,
             discount_type: None,
             discount_value: None,

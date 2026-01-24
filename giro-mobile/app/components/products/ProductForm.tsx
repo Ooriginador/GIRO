@@ -57,7 +57,7 @@ export function ProductForm({
     setValue,
     formState: { errors },
   } = useForm<ProductFormData>({
-    resolver: zodResolver(productSchema),
+    resolver: zodResolver(productSchema as any),
     defaultValues: {
       name: '',
       barcode: initialBarcode,
@@ -286,7 +286,6 @@ export function ProductForm({
                 >
                   {unit.label}
                 </Text>
-                <Text className="text-sm text-muted-foreground">{unit.description}</Text>
               </Pressable>
             ))}
           </ScrollView>

@@ -70,10 +70,19 @@ export const TutorialTooltip: FC<TutorialTooltipProps> = ({
       return;
     }
 
-    const targetElement = document.querySelector(step.target);
+    const targetElement = step.target ? document.querySelector(step.target) : null;
     const tooltipElement = tooltipRef.current;
 
-    if (!targetElement || !tooltipElement) return;
+    if (!tooltipElement) return;
+
+    // Se o alvo não for encontrado ou não existir, centralizar na tela
+    if (!targetElement) {
+      setPosition({
+        top: window.innerHeight / 2,
+        left: window.innerWidth / 2,
+      });
+      return;
+    }
 
     const targetRect = targetElement.getBoundingClientRect();
     const tooltipRect = tooltipElement.getBoundingClientRect();

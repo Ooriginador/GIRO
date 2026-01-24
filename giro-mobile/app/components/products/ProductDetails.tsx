@@ -19,12 +19,12 @@ import { ScrollView, Text, View } from 'react-native';
 import { Badge, StockBadge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { formatCurrency, formatQuantity, formatRelativeTime } from '@/lib/utils';
-import type { Product, ProductLot, StockAdjustment } from '@/types/product';
+import type { Product, ProductLot, StockMovement } from '@/types/product';
 
 interface ProductDetailsProps {
   product: Product;
   lots?: ProductLot[];
-  recentMovements?: StockAdjustment[];
+  recentMovements?: StockMovement[];
 }
 
 export function ProductDetails({ product, lots = [], recentMovements = [] }: ProductDetailsProps) {
@@ -96,7 +96,7 @@ export function ProductDetails({ product, lots = [], recentMovements = [] }: Pro
             <DetailRow
               icon={<DollarSign size={18} className="text-muted-foreground" />}
               label="Preço de Custo"
-              value={formatCurrency(product.costPrice)}
+              value={formatCurrency(product.costPrice || 0)}
               isLast
             />
           </CardContent>
@@ -180,7 +180,7 @@ interface LotRowProps {
 
 function LotRow({ lot, unit, isLast }: LotRowProps) {
   const daysUntilExpiration = Math.ceil(
-    (new Date(lot.expirationDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    (new Date(lot.expirationDate || new Date()).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   );
   const isExpired = daysUntilExpiration <= 0;
   const isExpiring = daysUntilExpiration <= 7;
@@ -188,7 +188,7 @@ function LotRow({ lot, unit, isLast }: LotRowProps) {
   return (
     <View className={`py-3 ${!isLast ? 'border-b border-border' : ''}`}>
       <View className="flex-row items-center justify-between mb-1">
-        <Text className="font-medium text-foreground">{lot.lotNumber}</Text>
+        <Text className="font-medium text-foreground">{lot.batchNumber || '-'}</Text>
         <Text className="font-semibold text-foreground">{formatQuantity(lot.quantity, unit)}</Text>
       </View>
       <View className="flex-row items-center">
@@ -203,7 +203,7 @@ function LotRow({ lot, unit, isLast }: LotRowProps) {
             isExpired ? 'text-destructive' : isExpiring ? 'text-warning' : 'text-muted-foreground'
           }`}
         >
-          {new Date(lot.expirationDate).toLocaleDateString('pt-BR')}
+          {lot.expirationDate ? new Date(lot.expirationDate).toLocaleDateString('pt-BR') : '-'}
           {isExpired && ' (Vencido)'}
           {!isExpired && isExpiring && ` (${daysUntilExpiration} dias)`}
         </Text>
@@ -214,7 +214,7 @@ function LotRow({ lot, unit, isLast }: LotRowProps) {
 
 // Movement Row Component
 interface MovementRowProps {
-  movement: StockAdjustment;
+  movement: StockMovement;
   unit: string;
   isLast?: boolean;
 }

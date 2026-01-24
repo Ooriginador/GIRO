@@ -57,7 +57,7 @@ export const StockPage: FC = () => {
               Movimentações
             </Link>
           </Button>
-          <Button asChild>
+          <Button asChild data-tutorial="stock-entry-button">
             <Link to="/stock/entry">
               <PackagePlus className="mr-2 h-4 w-4" />
               Nova Entrada
@@ -67,7 +67,7 @@ export const StockPage: FC = () => {
       </div>
 
       {/* Cards de Resumo */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-tutorial="stock-indicators">
         <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
@@ -125,7 +125,10 @@ export const StockPage: FC = () => {
       </div>
 
       {/* Produtos com Estoque Baixo */}
-      <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
+      <Card
+        className="border-none bg-card/50 backdrop-blur-sm shadow-md"
+        data-tutorial="stock-table"
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-warning" />

@@ -757,10 +757,10 @@ export const SettingsPage: FC = () => {
             >
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="printerModel">Modelo</Label>
+                  <Label htmlFor="printerModel">Modelo da Impressora</Label>
                   <Select value={printerModel} onValueChange={setPrinterModel}>
-                    <SelectTrigger>
-                      <SelectValue />
+                    <SelectTrigger id="printerModel">
+                      <SelectValue placeholder="Selecione o modelo..." />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="EPSON TM-T20">EPSON TM-T20</SelectItem>
@@ -773,15 +773,17 @@ export const SettingsPage: FC = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="printerPort">Porta</Label>
+                  <Label htmlFor="printerPort">Porta de Conexão</Label>
                   <Select value={printerPort} onValueChange={setPrinterPort}>
-                    <SelectTrigger>
+                    <SelectTrigger id="printerPort">
                       <SelectValue
-                        placeholder={isLoadingPorts ? 'Carregando...' : 'Selecione...'}
+                        placeholder={
+                          isLoadingPorts ? 'Carregando portas...' : 'Selecione a porta...'
+                        }
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USB">USB (Físico/Raw)</SelectItem>
+                      <SelectItem value="USB">USB (Automático/Físico)</SelectItem>
                       {availablePorts.map((p) => (
                         <SelectItem key={p} value={p}>
                           {p}
@@ -791,48 +793,58 @@ export const SettingsPage: FC = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="printerBaud">Baud Rate</Label>
-                  <Input
-                    id="printerBaud"
-                    type="number"
+                  <Label htmlFor="printerBaud">Velocidade (Baud Rate)</Label>
+                  <Select
                     value={String(printerBaudRate)}
-                    onChange={(e) => setPrinterBaudRate(Number(e.target.value) || 9600)}
-                    placeholder="9600"
-                  />
+                    onValueChange={(v) => setPrinterBaudRate(Number(v))}
+                  >
+                    <SelectTrigger id="printerBaud">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2400">2400</SelectItem>
+                      <SelectItem value="4800">4800</SelectItem>
+                      <SelectItem value="9600">9600 (Padrão)</SelectItem>
+                      <SelectItem value="19200">19200</SelectItem>
+                      <SelectItem value="38400">38400</SelectItem>
+                      <SelectItem value="57600">57600</SelectItem>
+                      <SelectItem value="115200">115200</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <Label htmlFor="printerDataBits">Data Bits</Label>
+                  <Label htmlFor="printerDataBits">Bits de Dados</Label>
                   <Select
                     value={String(printerDataBits)}
                     onValueChange={(v) => setPrinterDataBits(Number(v))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="printerDataBits">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="7">7</SelectItem>
-                      <SelectItem value="8">8</SelectItem>
+                      <SelectItem value="8">8 (Padrão)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="printerParity">Parity</Label>
+                  <Label htmlFor="printerParity">Paridade</Label>
                   <Select
                     value={printerParity}
                     onValueChange={(v: string) => setPrinterParity(v as 'none' | 'odd' | 'even')}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="printerParity">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="even">Even</SelectItem>
-                      <SelectItem value="odd">Odd</SelectItem>
+                      <SelectItem value="none">Nenhuma (None)</SelectItem>
+                      <SelectItem value="even">Par (Even)</SelectItem>
+                      <SelectItem value="odd">Ímpar (Odd)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="printerTimeout">Timeout (ms)</Label>
+                  <Label htmlFor="printerTimeout">Tempo de Resposta (ms)</Label>
                   <Input
                     id="printerTimeout"
                     type="number"
@@ -842,15 +854,17 @@ export const SettingsPage: FC = () => {
                   />
                 </div>
               </div>
-              <Button variant="outline" className="w-full" onClick={handleTestPrinter}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Testar Impressora
-              </Button>
+              <div className="grid gap-2 pt-2">
+                <Button variant="outline" className="w-full" onClick={handleTestPrinter}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Testar Comunicação
+                </Button>
 
-              <Button variant="outline" className="w-full" onClick={handlePrintTestDocuments}>
-                <FileCode className="mr-2 h-4 w-4" />
-                Imprimir Documentos de Teste
-              </Button>
+                <Button variant="outline" className="w-full" onClick={handlePrintTestDocuments}>
+                  <FileCode className="mr-2 h-4 w-4" />
+                  Imprimir Documentos de Teste
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -906,10 +920,10 @@ export const SettingsPage: FC = () => {
             >
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="scaleModel">Modelo</Label>
+                  <Label htmlFor="scaleModel">Modelo da Balança</Label>
                   <Select value={scaleModel} onValueChange={setScaleModel}>
-                    <SelectTrigger>
-                      <SelectValue />
+                    <SelectTrigger id="scaleModel">
+                      <SelectValue placeholder="Selecione o modelo..." />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="TOLEDO Prix 4">Toledo Prix 4</SelectItem>
@@ -920,10 +934,10 @@ export const SettingsPage: FC = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="scalePort">Porta Serial</Label>
+                  <Label htmlFor="scalePort">Porta Serial de Conexão</Label>
                   <Select value={scalePort} onValueChange={setScalePort}>
-                    <SelectTrigger>
-                      <SelectValue />
+                    <SelectTrigger id="scalePort">
+                      <SelectValue placeholder="Selecione a porta..." />
                     </SelectTrigger>
                     <SelectContent>
                       {availablePorts.map((p) => (
@@ -937,7 +951,7 @@ export const SettingsPage: FC = () => {
               </div>
               <Button variant="outline" className="w-full" onClick={handleTestScale}>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Testar Balança
+                Testar Comunicação da Balança
               </Button>
             </CardContent>
           </Card>
@@ -961,7 +975,7 @@ export const SettingsPage: FC = () => {
             >
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <Label>Modo de Funcionamento</Label>
+                  <Label>Modo de Operação</Label>
                   <Select
                     value={scannerMode}
                     onValueChange={(v: 'hid' | 'serial') => setScannerMode(v)}
@@ -970,17 +984,17 @@ export const SettingsPage: FC = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="hid">USB HID (Emulação Teclado)</SelectItem>
-                      <SelectItem value="serial">Serial (Background)</SelectItem>
+                      <SelectItem value="hid">USB HID (Emulação de Teclado)</SelectItem>
+                      <SelectItem value="serial">Serial (Segundo Plano)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 {scannerMode === 'serial' && (
                   <div>
-                    <Label>Porta Serial</Label>
+                    <Label>Porta Serial do Leitor</Label>
                     <Select value={scannerPort} onValueChange={setScannerPort}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
+                        <SelectValue placeholder="Selecione a porta..." />
                       </SelectTrigger>
                       <SelectContent>
                         {availablePorts.map((p) => (
@@ -1005,13 +1019,13 @@ export const SettingsPage: FC = () => {
                         baud: 9600,
                       });
                       toast({
-                        title: 'Scanner iniciado',
-                        description: 'O leitor serial está ativo.',
+                        title: 'Leitor iniciado',
+                        description: 'O leitor serial está ativo e pronto para uso.',
                       });
                     } catch (e: unknown) {
                       const message = e instanceof Error ? e.message : String(e);
                       toast({
-                        title: 'Erro ao iniciar scanner',
+                        title: 'Erro ao iniciar leitor',
                         description: message || 'Falha desconhecida',
                         variant: 'destructive',
                       });
@@ -1019,14 +1033,14 @@ export const SettingsPage: FC = () => {
                   }}
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Ativar Leitor Serial
+                  Iniciar Leitor Serial
                 </Button>
               )}
 
               {lastScan && (
-                <div className="p-4 rounded-lg bg-muted text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Última leitura:</p>
-                  <p className="text-xl font-mono font-bold">{lastScan}</p>
+                <div className="p-4 rounded-lg bg-muted text-center border">
+                  <p className="text-xs text-muted-foreground mb-1">Última Leitura realizada:</p>
+                  <p className="text-xl font-mono font-bold tracking-widest">{lastScan}</p>
                 </div>
               )}
             </CardContent>

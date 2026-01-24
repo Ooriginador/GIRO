@@ -26,6 +26,7 @@ export const productsTutorial: Tutorial = {
         'Aqui estão todos os produtos cadastrados. Clique nos cabeçalhos das colunas para ordenar por nome, preço, estoque ou categoria.',
       target: '[data-tutorial="products-table"]',
       placement: 'bottom',
+      route: '/products',
     },
     {
       id: 'prod-search',
@@ -36,6 +37,7 @@ export const productsTutorial: Tutorial = {
       placement: 'bottom',
       action: 'type',
       actionData: 'arroz',
+      route: '/products',
     },
     {
       id: 'prod-filters',
@@ -44,6 +46,7 @@ export const productsTutorial: Tutorial = {
         'Filtre por categoria, status (ativo/inativo) ou nível de estoque. Combine filtros para encontrar exatamente o que precisa.',
       target: '[data-tutorial="products-filters"]',
       placement: 'bottom',
+      route: '/products',
     },
     {
       id: 'prod-new-button',
@@ -64,6 +67,7 @@ export const productsTutorial: Tutorial = {
       placement: 'bottom',
       action: 'type',
       required: true,
+      route: '/products/new',
     },
     {
       id: 'prod-form-barcode',
@@ -72,6 +76,7 @@ export const productsTutorial: Tutorial = {
         'Escaneie ou digite o EAN-13 (13 dígitos) da embalagem. Se o produto não tiver código de barras, deixe em branco - o sistema gera um código interno automático.',
       target: '[data-tutorial="product-barcode"]',
       placement: 'bottom',
+      route: '/products/new',
     },
     {
       id: 'prod-form-internal',
@@ -80,6 +85,7 @@ export const productsTutorial: Tutorial = {
         'Gerado automaticamente pelo sistema (MRC-00001, MRC-00002...). Você também pode usar para buscar no PDV.',
       target: '[data-tutorial="product-internal-code"]',
       placement: 'bottom',
+      route: '/products/new',
     },
     {
       id: 'prod-form-category',
@@ -89,6 +95,7 @@ export const productsTutorial: Tutorial = {
       target: '[data-tutorial="product-category"]',
       placement: 'bottom',
       required: true,
+      route: '/products/new',
     },
     {
       id: 'prod-form-unit',
@@ -97,6 +104,7 @@ export const productsTutorial: Tutorial = {
         'Escolha: UNIDADE (UN) para itens contáveis como latas e pacotes, ou QUILOGRAMA (KG) para produtos vendidos por peso.',
       target: '[data-tutorial="product-unit"]',
       placement: 'bottom',
+      route: '/products/new',
     },
     {
       id: 'prod-form-weighted',
@@ -105,6 +113,7 @@ export const productsTutorial: Tutorial = {
         'Ative esta opção para frutas, verduras, carnes e frios. O PDV solicitará o peso e pode integrar com a balança automaticamente.',
       target: '[data-tutorial="product-weighted"]',
       placement: 'bottom',
+      route: '/products/new',
     },
     {
       id: 'prod-form-prices',
@@ -114,6 +123,7 @@ export const productsTutorial: Tutorial = {
       target: '[data-tutorial="product-prices"]',
       placement: 'bottom',
       required: true,
+      route: '/products/new',
     },
     {
       id: 'prod-form-margin',
@@ -122,6 +132,7 @@ export const productsTutorial: Tutorial = {
         'A margem é calculada: (Venda - Custo) / Custo × 100. Verde = lucro saudável, Amarelo = margem baixa, Vermelho = prejuízo! Ajuste os preços se necessário.',
       target: '[data-tutorial="product-margin"]',
       placement: 'left',
+      route: '/products/new',
     },
     {
       id: 'prod-form-stock',
@@ -130,6 +141,7 @@ export const productsTutorial: Tutorial = {
         'Defina o estoque atual e o estoque mínimo de alerta. Quando atingir o mínimo, você receberá uma notificação para repor!',
       target: '[data-tutorial="product-stock"]',
       placement: 'bottom',
+      route: '/products/new',
     },
     {
       id: 'prod-form-save',
@@ -139,6 +151,7 @@ export const productsTutorial: Tutorial = {
       target: '[data-tutorial="product-save"]',
       placement: 'top',
       action: 'click',
+      route: '/products/new',
     },
     {
       id: 'prod-edit',
@@ -147,6 +160,7 @@ export const productsTutorial: Tutorial = {
         'Para editar, clique no produto na lista ou no ícone de lápis. Você pode alterar todos os campos.',
       target: '[data-tutorial="product-edit"]',
       placement: 'left',
+      route: '/products',
     },
     {
       id: 'prod-deactivate',
@@ -155,6 +169,7 @@ export const productsTutorial: Tutorial = {
         'Produtos com histórico de vendas não podem ser excluídos (para manter relatórios). Use "Desativar" - ele some do PDV mas mantém o histórico.',
       target: '[data-tutorial="product-status"]',
       placement: 'left',
+      route: '/products',
     },
     {
       id: 'prod-categories',

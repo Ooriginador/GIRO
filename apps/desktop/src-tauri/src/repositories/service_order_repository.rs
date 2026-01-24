@@ -1370,11 +1370,11 @@ impl ServiceOrderRepository {
             })
     }
 
-    /// Finaliza uma OS, gerando venda e movimento financeiro
+    /// Finaliza uma OS, gerando venda e movimento financeiro (Suporte Multi-pagamento)
     pub async fn finish_order_transaction(
         &self,
         order_id: &str,
-        payment_method: &str,
+        payments: Vec<crate::models::CreateSalePayment>,
         amount_paid: f64,
         employee_id: &str,
         cash_session_id: &str,
@@ -1414,25 +1414,46 @@ impl ServiceOrderRepository {
                 .await?;
         let daily_number = daily_count.0 + 1;
 
+        // Primary method for backwards compatibility
+        let primary_method = payments
+            .first()
+            .map(|p| format!("{:?}", p.method).to_uppercase())
+            .unwrap_or_else(|| "OTHER".to_string());
+
         // 3. Criar Venda (Sale)
-        // Nota: Colunas renomeadas na migration 003 (discount->discount_value, change_amount->change, session_id->cash_session_id)
         sqlx::query(
-        "INSERT INTO sales (id, daily_number, subtotal, discount_value, total, payment_method, amount_paid, change, status, employee_id, cash_session_id, created_at, customer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?)"
-    )
-    .bind(&sale_id)
-    .bind(daily_number)
-    .bind(subtotal)
-    .bind(discount)
-    .bind(total)
-    .bind(payment_method)
-    .bind(amount_paid)
-    .bind(change_val)
-    .bind(employee_id)
-    .bind(cash_session_id)
-    .bind(&now)
-    .bind(&order.customer_id)
-    .execute(&mut *tx)
-    .await?;
+            "INSERT INTO sales (id, daily_number, subtotal, discount_value, total, payment_method, amount_paid, change, status, employee_id, cash_session_id, created_at, customer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?)"
+        )
+        .bind(&sale_id)
+        .bind(daily_number)
+        .bind(subtotal)
+        .bind(discount)
+        .bind(total)
+        .bind(&primary_method)
+        .bind(amount_paid)
+        .bind(change_val)
+        .bind(employee_id)
+        .bind(cash_session_id)
+        .bind(&now)
+        .bind(&order.customer_id)
+        .execute(&mut *tx)
+        .await?;
+
+        // 3.1 Gravar pagamentos múltiplos
+        for payment in &payments {
+            let pay_id = new_id();
+            let method_str = format!("{:?}", payment.method).to_uppercase();
+            sqlx::query(
+                "INSERT INTO sale_payments (id, sale_id, method, amount, created_at) VALUES (?, ?, ?, ?, ?)"
+            )
+            .bind(pay_id)
+            .bind(&sale_id)
+            .bind(method_str)
+            .bind(payment.amount)
+            .bind(&now)
+            .execute(&mut *tx)
+            .await?;
+        }
 
         // 4. Criar Itens da Venda (SERVIÇOS + PRODUTOS)
         // 4.1 Serviços (Mão de obra)

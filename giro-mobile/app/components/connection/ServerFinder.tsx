@@ -173,9 +173,9 @@ export function ServerFinder({
                 <Text className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">
                   Conexões Recentes
                 </Text>
-                {connectionHistory.map((desktop) => (
-                  <View key={`history-${desktop.id}`}>
-                    {renderDesktopItem({ item: desktop, isHistory: true })}
+                {connectionHistory.map((historyItem) => (
+                  <View key={`history-${historyItem.desktop.id}`}>
+                    {renderDesktopItem({ item: historyItem.desktop, isHistory: true })}
                   </View>
                 ))}
               </View>

@@ -12,7 +12,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ToastProvider } from '@/components/ui/Toast';
-import { useConnectionStore } from '@/stores/connectionStore';
 import { installTokenSync } from '@lib/tokenSync';
 
 import '../global.css';
@@ -33,8 +32,6 @@ const queryClient = new QueryClient({
 });
 
 export default function RootLayout() {
-  const connectionState = useConnectionStore((state) => state.connectionState);
-
   useEffect(() => {
     const unsubscribe = installTokenSync();
 

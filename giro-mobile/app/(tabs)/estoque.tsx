@@ -50,11 +50,15 @@ export default function EstoqueScreen() {
       }
 
       // Fetch based on filter
-      const response = await send<Product[]>({
-        action: 'stock.list',
-        payload: { filter: activeFilter, limit: 100 },
+      const response = await send<object, Product[]>('stock.list', {
+        filter: activeFilter,
+        limit: 100,
       });
-      return response || [];
+
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return [];
     },
     staleTime: 1000 * 60, // 1 minute
   });
@@ -266,7 +270,7 @@ export default function EstoqueScreen() {
               <View className="flex-row justify-between">
                 <Text className="text-muted-foreground">Preço de Custo</Text>
                 <Text className="font-medium text-foreground">
-                  {formatCurrency(selectedProduct.costPrice)}
+                  {formatCurrency(selectedProduct.costPrice || 0)}
                 </Text>
               </View>
             </View>

@@ -27,7 +27,7 @@ export function ConnectionStatus({
   onPress,
   showDesktopName = true,
 }: ConnectionStatusProps) {
-  const { selectedDesktop, connectionState, operator } = useConnectionStore();
+  const { selectedDesktop, connectionState: _connectionState, operator } = useConnectionStore();
   const { isConnected, isConnecting } = useWebSocket();
 
   // Pulse animation for connecting state
@@ -153,7 +153,7 @@ interface ConnectionAlertProps {
 }
 
 export function ConnectionAlert({ onReconnect }: ConnectionAlertProps) {
-  const { isConnected, isConnecting } = useWebSocket();
+  const { isConnected } = useWebSocket();
 
   if (isConnected) return null;
 

@@ -331,6 +331,7 @@ impl<'a> ProductRepository<'a> {
         .bind(max_stock)
         .bind(&data.category_id)
         .bind(&now)
+        .bind(&now)
         .execute(&mut *tx)
         .await?;
 

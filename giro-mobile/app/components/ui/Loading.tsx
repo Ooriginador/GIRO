@@ -76,8 +76,8 @@ export function Skeleton({
     <View
       className={cn('bg-background-tertiary animate-pulse', className)}
       style={{
-        width,
-        height,
+        width: width as any,
+        height: height as any,
         borderRadius,
       }}
     />

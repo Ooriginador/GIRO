@@ -1,5 +1,5 @@
 /**
- * ProductsStore Tests  
+ * ProductsStore Tests
  */
 
 import { useProductsStore } from '@/stores/productsStore';
@@ -12,7 +12,7 @@ const createMockProduct = (overrides?: Partial<Product>): Product => ({
   name: 'Test Product',
   description: '',
   categoryId: 'cat1',
-  category: 'Bebidas',
+  category: { id: 'cat1', name: 'Bebidas' },
   costPrice: 5.0,
   salePrice: 10.0,
   currentStock: 100,
@@ -186,8 +186,8 @@ describe('productsStore', () => {
   describe('categories', () => {
     it('should set categories', () => {
       const categories = [
-        { id: '1', name: 'Bebidas', description: '' },
-        { id: '2', name: 'Alimentos', description: '' },
+        { id: '1', name: 'Bebidas', description: '', productCount: 0 },
+        { id: '2', name: 'Alimentos', description: '', productCount: 0 },
       ];
 
       act(() => {
@@ -199,7 +199,7 @@ describe('productsStore', () => {
     });
 
     it('should get category by id', () => {
-      const categories = [{ id: 'cat-1', name: 'Test Category', description: '' }];
+      const categories = [{ id: 'cat-1', name: 'Test Category', description: '', productCount: 0 }];
 
       act(() => {
         useProductsStore.getState().setCategories(categories);

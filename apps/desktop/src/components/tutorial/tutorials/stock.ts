@@ -26,14 +26,16 @@ export const stockTutorial: Tutorial = {
         'Dashboard completo do seu estoque! Produtos com estoque baixo ficam em 🟡 amarelo, zerados em 🔴 vermelho. Clique em qualquer linha para ver detalhes ou fazer ajustes.',
       target: '[data-tutorial="stock-table"]',
       placement: 'bottom',
+      route: '/stock',
     },
     {
       id: 'stock-indicators',
       title: '🎯 Indicadores Rápidos',
       description:
-        'Cards no topo mostram: total de produtos cadastrados, quantos estão com estoque baixo, próximos a vencer, e valor total investido em mercadorias.',
+        'Cards no topo showm: total de produtos cadastrados, quantos estão com estoque baixo, próximos a vencer, e valor total investido em mercadorias.',
       target: '[data-tutorial="stock-indicators"]',
       placement: 'bottom',
+      route: '/stock',
     },
     {
       id: 'stock-entry-button',
@@ -43,7 +45,7 @@ export const stockTutorial: Tutorial = {
       target: '[data-tutorial="stock-entry-button"]',
       placement: 'bottom',
       action: 'click',
-      route: '/stock/entry',
+      route: '/stock',
     },
     {
       id: 'stock-entry-form',
@@ -52,6 +54,7 @@ export const stockTutorial: Tutorial = {
         'Adicione vários produtos numa mesma entrada! Informe quantidade, custo unitário, validade e dados da nota fiscal. Tudo em um único lançamento.',
       target: '[data-tutorial="stock-entry-form"]',
       placement: 'right',
+      route: '/stock/entry',
     },
     {
       id: 'stock-entry-product',
@@ -61,6 +64,7 @@ export const stockTutorial: Tutorial = {
       target: '[data-tutorial="stock-entry-product"]',
       placement: 'bottom',
       action: 'type',
+      route: '/stock/entry',
     },
     {
       id: 'stock-entry-quantity',
@@ -69,6 +73,7 @@ export const stockTutorial: Tutorial = {
         'Informe a quantidade que chegou. Para produtos pesados (açúicar, arroz a granel), informe o peso total em KG. O sistema calcula as unidades automaticamente.',
       target: '[data-tutorial="stock-entry-quantity"]',
       placement: 'bottom',
+      route: '/stock/entry',
     },
     {
       id: 'stock-entry-cost',
@@ -77,6 +82,7 @@ export const stockTutorial: Tutorial = {
         'Quanto você pagou por unidade? O sistema atualiza o custo médio automaticamente usando média ponderada. Isso mantém sua margem de lucro sempre correta!',
       target: '[data-tutorial="stock-entry-cost"]',
       placement: 'bottom',
+      route: '/stock/entry',
     },
     {
       id: 'stock-entry-expiration',
@@ -85,6 +91,7 @@ export const stockTutorial: Tutorial = {
         'Registre a validade do lote! O sistema monitora e avisa quando produtos estão próximos a vencer. Assim você tem tempo de vender ou fazer promoção.',
       target: '[data-tutorial="stock-entry-expiration"]',
       placement: 'bottom',
+      route: '/stock/entry',
     },
     {
       id: 'stock-entry-save',
@@ -94,6 +101,7 @@ export const stockTutorial: Tutorial = {
       target: '[data-tutorial="stock-entry-save"]',
       placement: 'top',
       action: 'click',
+      route: '/stock/entry',
     },
     {
       id: 'stock-adjustment',
@@ -110,6 +118,7 @@ export const stockTutorial: Tutorial = {
         'Na lista de produtos, clique nos três pontos "⋮" e escolha "Ajustar". Informe a quantidade REAL que você contou na loja - o sistema calcula a diferença.',
       target: '[data-tutorial="stock-adjust-button"]',
       placement: 'left',
+      route: '/stock',
     },
     {
       id: 'stock-adjust-reason',
@@ -119,15 +128,7 @@ export const stockTutorial: Tutorial = {
       target: '[data-tutorial="stock-adjust-reason"]',
       placement: 'bottom',
       required: true,
-    },
-    {
-      id: 'stock-expiration',
-      title: '📆 Controle de Validade',
-      description:
-        'Clique em "Validades" para ver todos os produtos organizados por data de vencimento. Priorize os que vencem primeiro - FIFO (First In, First Out)!',
-      target: '[data-tutorial="stock-expiration-link"]',
-      placement: 'right',
-      route: '/stock/expiration',
+      route: '/stock',
     },
     {
       id: 'stock-expiration-list',
@@ -136,6 +137,7 @@ export const stockTutorial: Tutorial = {
         'Produtos agrupados por urgência: 🔴 Vencidos (retirar imediatamente), 🟡 Esta semana (promoção urgente), 🟢 Este mês (monitorar). Aja rápido nos críticos!',
       target: '[data-tutorial="expiration-list"]',
       placement: 'bottom',
+      route: '/stock/expiration',
     },
     {
       id: 'stock-expiration-action',
@@ -144,6 +146,7 @@ export const stockTutorial: Tutorial = {
         'Para cada produto vencendo você pode: dar baixa por perda, transferir para seção de promoção, ou corrigir a data se estava errada. Mantenha a gôndola limpa!',
       target: '[data-tutorial="expiration-actions"]',
       placement: 'left',
+      route: '/stock/expiration',
     },
     {
       id: 'stock-alerts',
@@ -151,6 +154,7 @@ export const stockTutorial: Tutorial = {
       description:
         'O sistema gera alertas quando produtos atingem o estoque mínimo. Configure os limites em cada produto ou defina um padrão em Configurações > Alertas.',
       placement: 'center',
+      route: '/stock',
     },
     {
       id: 'stock-done',
@@ -158,6 +162,7 @@ export const stockTutorial: Tutorial = {
       description:
         'Você agora sabe registrar entradas, fazer ajustes e controlar validades! Dica de ouro: faça inventário mensal nos itens de maior giro para manter tudo certinho.',
       placement: 'center',
+      route: '/stock',
     },
   ],
 };

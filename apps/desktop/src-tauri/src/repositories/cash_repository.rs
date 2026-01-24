@@ -153,10 +153,10 @@ impl<'a> CashRepository<'a> {
         // 2. Get Sales by Payment Method
         let payment_rows = sqlx::query(
             r#"
-            SELECT payment_method, COALESCE(SUM(total), 0.0) as total, COUNT(*) as count
-            FROM sales
-            WHERE cash_session_id = ? AND status = 'COMPLETED'
-            GROUP BY payment_method
+            SELECT method as payment_method, COALESCE(SUM(amount), 0.0) as total, COUNT(*) as count
+            FROM sale_payments
+            WHERE sale_id IN (SELECT id FROM sales WHERE cash_session_id = ? AND status = 'COMPLETED')
+            GROUP BY method
             "#,
         )
         .bind(session_id)
