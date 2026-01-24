@@ -317,6 +317,7 @@ pub enum MobileAction {
     // Sync (PC-to-PC)
     SyncFull,
     SyncDelta,
+    SyncPush,
     SaleRemoteCreate,
 }
 
@@ -348,6 +349,7 @@ impl MobileAction {
             "system.info" => Some(Self::SystemInfo),
             "sync.full" => Some(Self::SyncFull),
             "sync.delta" => Some(Self::SyncDelta),
+            "sync.push" => Some(Self::SyncPush),
             "sale.remote_create" => Some(Self::SaleRemoteCreate),
             _ => None,
         }
@@ -536,6 +538,17 @@ pub struct SyncFullPayload {
 pub struct SyncDeltaPayload {
     /// Timestamp da última sincronização
     pub last_sync: i64,
+    /// Tabelas solicitadas (opcional, default: todas)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tables: Option<Vec<String>>,
+}
+
+/// Payload de Push de Sincronização (Satellite -> Master)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncPushPayload {
+    pub entity: String, // "product", "customer", "setting", "service_order", etc
+    pub data: serde_json::Value, // The entity object
 }
 
 /// Payload de Venda Remota (Satellite -> Master)

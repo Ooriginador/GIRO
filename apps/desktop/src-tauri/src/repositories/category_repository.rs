@@ -253,6 +253,44 @@ impl<'a> CategoryRepository<'a> {
         .await?;
         Ok(result)
     }
+
+    pub async fn find_delta(&self, last_sync: i64) -> AppResult<Vec<Category>> {
+        let result = sqlx::query_as::<_, Category>(
+            "SELECT id, name, description, color, icon, parent_id, sort_order, is_active as active, created_at, updated_at FROM categories WHERE unixepoch(updated_at) > ? ORDER BY updated_at ASC"
+        )
+        .bind(last_sync)
+        .fetch_all(self.pool)
+        .await?;
+        Ok(result)
+    }
+
+    pub async fn upsert_from_sync(&self, category: Category) -> AppResult<()> {
+        sqlx::query(
+            r#"INSERT INTO categories (id, name, description, color, icon, parent_id, sort_order, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+                name=excluded.name,
+                description=excluded.description,
+                color=excluded.color,
+                icon=excluded.icon,
+                parent_id=excluded.parent_id,
+                sort_order=excluded.sort_order,
+                is_active=excluded.is_active,
+                updated_at=excluded.updated_at"#
+        )
+        .bind(&category.id)
+        .bind(&category.name)
+        .bind(&category.description)
+        .bind(&category.color)
+        .bind(&category.icon)
+        .bind(&category.parent_id)
+        .bind(category.sort_order)
+        .bind(category.active)
+        .bind(&category.created_at)
+        .bind(&category.updated_at)
+        .execute(self.pool)
+        .await?;
+        Ok(())
+    }
 }
 
 #[path = "category_repository_test.rs"]

@@ -321,6 +321,7 @@ impl NetworkClient {
                                 action: "sync.delta".into(),
                                 payload: serde_json::to_value(SyncDeltaPayload {
                                     last_sync: last_sync_val,
+                                    tables: None,
                                 }).unwrap(),
                                 token: current_token,
                                 timestamp: chrono::Utc::now().timestamp_millis(),

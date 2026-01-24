@@ -1661,4 +1661,99 @@ impl ServiceOrderRepository {
                 id: id.to_string(),
             })
     }
+
+    pub async fn find_delta(&self, last_sync: i64) -> AppResult<Vec<ServiceOrder>> {
+        let orders = sqlx::query_as!(
+            ServiceOrder,
+            r#"
+            SELECT 
+                id as "id!", order_number as "order_number!: i32", customer_id as "customer_id!", 
+                customer_vehicle_id as "customer_vehicle_id!", vehicle_year_id as "vehicle_year_id!", 
+                employee_id as "employee_id!",
+                vehicle_km as "vehicle_km?: i32", symptoms as "symptoms?", diagnosis as "diagnosis?",
+                status as "status!", labor_cost as "labor_cost!", parts_cost as "parts_cost!", 
+                discount as "discount!", total as "total!", warranty_days as "warranty_days!: i32",
+                warranty_until as "warranty_until?", scheduled_date as "scheduled_date?",
+                started_at as "started_at?", completed_at as "completed_at?",
+                payment_method as "payment_method?", is_paid as "is_paid!: bool",
+                notes as "notes?", internal_notes as "internal_notes?",
+                created_at as "created_at!", updated_at as "updated_at!"
+            FROM service_orders
+            WHERE unixepoch(updated_at) > ?
+            ORDER BY updated_at ASC
+            "#,
+            last_sync
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(orders)
+    }
+
+    pub async fn upsert_from_sync(&self, order: ServiceOrder) -> AppResult<()> {
+        sqlx::query!(
+            r#"
+            INSERT INTO service_orders (
+                id, order_number, customer_id, customer_vehicle_id, vehicle_year_id,
+                employee_id, vehicle_km, symptoms, diagnosis, status, labor_cost, 
+                parts_cost, discount, total, warranty_days, warranty_until,
+                scheduled_date, started_at, completed_at, payment_method, is_paid,
+                notes, internal_notes, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                order_number=excluded.order_number,
+                customer_id=excluded.customer_id,
+                customer_vehicle_id=excluded.customer_vehicle_id,
+                vehicle_year_id=excluded.vehicle_year_id,
+                employee_id=excluded.employee_id,
+                vehicle_km=excluded.vehicle_km,
+                symptoms=excluded.symptoms,
+                diagnosis=excluded.diagnosis,
+                status=excluded.status,
+                labor_cost=excluded.labor_cost,
+                parts_cost=excluded.parts_cost,
+                discount=excluded.discount,
+                total=excluded.total,
+                warranty_days=excluded.warranty_days,
+                warranty_until=excluded.warranty_until,
+                scheduled_date=excluded.scheduled_date,
+                started_at=excluded.started_at,
+                completed_at=excluded.completed_at,
+                payment_method=excluded.payment_method,
+                is_paid=excluded.is_paid,
+                notes=excluded.notes,
+                internal_notes=excluded.internal_notes,
+                updated_at=excluded.updated_at
+            "#,
+            order.id,
+            order.order_number,
+            order.customer_id,
+            order.customer_vehicle_id,
+            order.vehicle_year_id,
+            order.employee_id,
+            order.vehicle_km,
+            order.symptoms,
+            order.diagnosis,
+            order.status,
+            order.labor_cost,
+            order.parts_cost,
+            order.discount,
+            order.total,
+            order.warranty_days,
+            order.warranty_until,
+            order.scheduled_date,
+            order.started_at,
+            order.completed_at,
+            order.payment_method,
+            order.is_paid,
+            order.notes,
+            order.internal_notes,
+            order.created_at,
+            order.updated_at
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
 }

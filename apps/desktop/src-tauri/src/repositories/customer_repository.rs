@@ -710,6 +710,32 @@ impl<'a> CustomerRepository<'a> {
 
         Ok(())
     }
+    pub async fn find_delta(&self, last_sync: i64) -> AppResult<Vec<Customer>> {
+        let customers = sqlx::query_as!(
+            Customer,
+            r#"
+            SELECT 
+                id as "id!", name as "name!",
+                cpf as "cpf?", phone as "phone?", phone2 as "phone2?", email as "email?",
+                zip_code as "zip_code?", street as "street?", number as "number?", 
+                complement as "complement?", neighborhood as "neighborhood?",
+                city as "city?", state as "state?",
+                is_active as "is_active!: bool",
+                notes as "notes?", 
+                created_at as "created_at!", 
+                updated_at as "updated_at!"
+            FROM customers
+            WHERE unixepoch(updated_at) > ?
+            ORDER BY updated_at ASC
+            "#,
+            last_sync
+        )
+        .fetch_all(self.pool)
+        .await?;
+
+        Ok(customers)
+    }
+
     pub async fn upsert_from_sync(&self, customer: Customer) -> AppResult<()> {
         sqlx::query(
             "INSERT INTO customers (id, name, cpf, phone, phone2, email, zip_code, street, number, complement, neighborhood, city, state, is_active, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
