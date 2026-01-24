@@ -1,8 +1,6 @@
 packages:
   - "apps/*"
   - "packages/*"
-  - "giro-mobile"
-  - "giro-license-server/**"
 
 ignoredBuiltDependencies:
   - "@prisma/client"
