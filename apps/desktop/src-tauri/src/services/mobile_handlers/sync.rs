@@ -185,7 +185,7 @@ impl SyncHandler {
 
         let result = match payload.entity.as_str() {
             "product" => {
-                if let Ok(item) = serde_json::from_value::<Product>(payload.data) {
+                if let Ok(item) = serde_json::from_value::<Product>(payload.data.clone()) {
                     let repo = ProductRepository::new(&self.pool);
                     repo.upsert_from_sync(item).await
                 } else {
@@ -195,7 +195,7 @@ impl SyncHandler {
                 }
             }
             "customer" => {
-                if let Ok(item) = serde_json::from_value::<Customer>(payload.data) {
+                if let Ok(item) = serde_json::from_value::<Customer>(payload.data.clone()) {
                     let repo = CustomerRepository::new(&self.pool);
                     repo.upsert_from_sync(item).await
                 } else {
@@ -205,7 +205,7 @@ impl SyncHandler {
                 }
             }
             "setting" => {
-                if let Ok(item) = serde_json::from_value::<Setting>(payload.data) {
+                if let Ok(item) = serde_json::from_value::<Setting>(payload.data.clone()) {
                     let repo = SettingsRepository::new(&self.pool);
                     repo.upsert_from_sync(item).await
                 } else {
@@ -215,7 +215,7 @@ impl SyncHandler {
                 }
             }
             "category" => {
-                if let Ok(item) = serde_json::from_value::<Category>(payload.data) {
+                if let Ok(item) = serde_json::from_value::<Category>(payload.data.clone()) {
                     let repo = CategoryRepository::new(&self.pool);
                     repo.upsert_from_sync(item).await
                 } else {
@@ -225,7 +225,7 @@ impl SyncHandler {
                 }
             }
             "supplier" => {
-                if let Ok(item) = serde_json::from_value::<Supplier>(payload.data) {
+                if let Ok(item) = serde_json::from_value::<Supplier>(payload.data.clone()) {
                     let repo = SupplierRepository::new(&self.pool);
                     repo.upsert_from_sync(item).await
                 } else {
@@ -235,7 +235,7 @@ impl SyncHandler {
                 }
             }
             "service_order" => {
-                if let Ok(item) = serde_json::from_value::<ServiceOrder>(payload.data) {
+                if let Ok(item) = serde_json::from_value::<ServiceOrder>(payload.data.clone()) {
                     let repo = ServiceOrderRepository::new(self.pool.clone());
                     repo.upsert_from_sync(item).await
                 } else {
@@ -251,32 +251,26 @@ impl SyncHandler {
             Ok(_) => {
                 // Notificar todos os clientes (Master -> Satélites) sobre a mudança vinda de outro Satélite
                 if let Some(event_service) = self.event_service.as_ref() {
-                    let _ = match payload.entity.as_str() {
+                    match payload.entity.as_str() {
                         "customer" => {
-                            event_service.emit_customer_updated(payload.data.clone());
-                            Ok(())
+                            event_service.emit_sync_push("customer", payload.data.clone());
                         }
                         "product" => {
-                            event_service.emit_product_updated(payload.data.clone());
-                            Ok(())
+                            event_service.emit_sync_push("product", payload.data.clone());
                         }
                         "setting" => {
-                            event_service.emit_setting_updated(payload.data.clone());
-                            Ok(())
+                            event_service.emit_sync_push("setting", payload.data.clone());
                         }
                         "service_order" => {
-                            event_service.emit_service_order_updated(payload.data.clone());
-                            Ok(())
+                            event_service.emit_sync_push("service_order", payload.data.clone());
                         }
                         "category" => {
-                            event_service.emit_category_updated(payload.data.clone());
-                            Ok(())
+                            event_service.emit_sync_push("category", payload.data.clone());
                         }
                         "supplier" => {
-                            event_service.emit_supplier_updated(payload.data.clone());
-                            Ok(())
+                            event_service.emit_sync_push("supplier", payload.data.clone());
                         }
-                        _ => Ok(()),
+                        _ => {}
                     };
                 }
 

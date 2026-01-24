@@ -406,7 +406,11 @@ impl<'a> ProductRepository<'a> {
 
         // Sincronização em tempo real (broadcast)
         if let Some(service) = self.event_service {
-            service.emit_product_updated(serde_json::to_value(&product).unwrap_or_default());
+            service.emit_sync_push(
+                "product",
+                serde_json::to_value(&product).unwrap_or_default(),
+            );
+            service.emit_product_notification(&product.id, &product.name);
         }
 
         Ok(product)
@@ -524,7 +528,11 @@ impl<'a> ProductRepository<'a> {
 
         // Sincronização em tempo real (broadcast)
         if let Some(service) = self.event_service {
-            service.emit_product_updated(serde_json::to_value(&product).unwrap_or_default());
+            service.emit_sync_push(
+                "product",
+                serde_json::to_value(&product).unwrap_or_default(),
+            );
+            service.emit_product_notification(&product.id, &product.name);
             // Se houve mudança de estoque, notificar também
             if (product.current_stock - existing.current_stock).abs() > 0.001 {
                 service.emit_stock_updated(
@@ -617,7 +625,7 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn soft_delete(&self, id: &str) -> AppResult<()> {
-        let name = sqlx::query_scalar::<_, String>("SELECT name FROM products WHERE id = ?")
+        let _name = sqlx::query_scalar::<_, String>("SELECT name FROM products WHERE id = ?")
             .bind(id)
             .fetch_one(self.pool)
             .await
@@ -632,7 +640,7 @@ impl<'a> ProductRepository<'a> {
 
         if let Some(service) = self.event_service {
             if let Ok(Some(product)) = self.find_by_id(id).await {
-                service.emit_product_updated(serde_json::to_value(&product).unwrap_or_default());
+                service.emit_product_notification(&product.id, &product.name);
             }
         }
 

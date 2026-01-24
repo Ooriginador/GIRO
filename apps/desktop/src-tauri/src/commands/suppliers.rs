@@ -15,7 +15,7 @@ use tokio::sync::RwLock;
 #[tauri::command]
 #[specta::specta]
 pub async fn get_suppliers(state: State<'_, AppState>) -> AppResult<Vec<Supplier>> {
-    let repo = SupplierRepository::new(state.pool());
+    let repo = SupplierRepository::with_events(state.pool(), &state.event_service);
     repo.find_all_active().await
 }
 
@@ -25,7 +25,7 @@ pub async fn get_supplier_by_id(
     id: String,
     state: State<'_, AppState>,
 ) -> AppResult<Option<Supplier>> {
-    let repo = SupplierRepository::new(state.pool());
+    let repo = SupplierRepository::with_events(state.pool(), &state.event_service);
     repo.find_by_id(&id).await
 }
 
@@ -35,7 +35,7 @@ pub async fn search_suppliers(
     query: String,
     state: State<'_, AppState>,
 ) -> AppResult<Vec<Supplier>> {
-    let repo = SupplierRepository::new(state.pool());
+    let repo = SupplierRepository::with_events(state.pool(), &state.event_service);
     repo.search(&query).await
 }
 
@@ -49,7 +49,7 @@ pub async fn create_supplier(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
-    let repo = SupplierRepository::new(state.pool());
+    let repo = SupplierRepository::with_events(state.pool(), &state.event_service);
     let result = repo.create(input).await?;
 
     // Audit Log
@@ -88,7 +88,7 @@ pub async fn update_supplier(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
-    let repo = SupplierRepository::new(state.pool());
+    let repo = SupplierRepository::with_events(state.pool(), &state.event_service);
     let result = repo.update(&id, input).await?;
 
     // Audit Log
@@ -126,7 +126,7 @@ pub async fn delete_supplier(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
-    let repo = SupplierRepository::new(state.pool());
+    let repo = SupplierRepository::with_events(state.pool(), &state.event_service);
     repo.delete(&id).await?;
 
     // Audit Log
@@ -164,7 +164,7 @@ pub async fn deactivate_supplier(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
-    let repo = SupplierRepository::new(state.pool());
+    let repo = SupplierRepository::with_events(state.pool(), &state.event_service);
     repo.delete(&id).await?;
 
     // Push Update
@@ -191,7 +191,7 @@ pub async fn reactivate_supplier(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
-    let repo = SupplierRepository::new(state.pool());
+    let repo = SupplierRepository::with_events(state.pool(), &state.event_service);
     let result = repo.reactivate(&id).await?;
 
     // Push to Network
@@ -214,7 +214,7 @@ pub async fn get_all_suppliers(
     include_inactive: bool,
     state: State<'_, AppState>,
 ) -> AppResult<Vec<Supplier>> {
-    let repo = SupplierRepository::new(state.pool());
+    let repo = SupplierRepository::with_events(state.pool(), &state.event_service);
     if include_inactive {
         repo.find_all().await
     } else {
@@ -226,6 +226,6 @@ pub async fn get_all_suppliers(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_inactive_suppliers(state: State<'_, AppState>) -> AppResult<Vec<Supplier>> {
-    let repo = SupplierRepository::new(state.pool());
+    let repo = SupplierRepository::with_events(state.pool(), &state.event_service);
     repo.find_inactive().await
 }

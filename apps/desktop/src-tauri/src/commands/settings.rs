@@ -15,7 +15,7 @@ use tokio::sync::RwLock;
 #[tauri::command]
 #[specta::specta]
 pub async fn get_all_settings(state: State<'_, AppState>) -> AppResult<Vec<Setting>> {
-    let repo = SettingsRepository::new(state.pool());
+    let repo = SettingsRepository::with_events(state.pool(), &state.event_service);
     repo.find_all().await
 }
 
@@ -25,28 +25,28 @@ pub async fn get_settings_by_group(
     group: String,
     state: State<'_, AppState>,
 ) -> AppResult<Vec<Setting>> {
-    let repo = SettingsRepository::new(state.pool());
+    let repo = SettingsRepository::with_events(state.pool(), &state.event_service);
     repo.find_by_group(&group).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_setting(key: String, state: State<'_, AppState>) -> AppResult<Option<String>> {
-    let repo = SettingsRepository::new(state.pool());
+    let repo = SettingsRepository::with_events(state.pool(), &state.event_service);
     repo.get_value(&key).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_setting_bool(key: String, state: State<'_, AppState>) -> AppResult<bool> {
-    let repo = SettingsRepository::new(state.pool());
+    let repo = SettingsRepository::with_events(state.pool(), &state.event_service);
     repo.get_bool(&key).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_setting_number(key: String, state: State<'_, AppState>) -> AppResult<Option<f64>> {
-    let repo = SettingsRepository::new(state.pool());
+    let repo = SettingsRepository::with_events(state.pool(), &state.event_service);
     repo.get_number(&key).await
 }
 
@@ -63,7 +63,7 @@ pub async fn set_setting(
 
     let mut tx = state.pool().begin().await?;
 
-    let repo = SettingsRepository::new(state.pool());
+    let repo = SettingsRepository::with_events(state.pool(), &state.event_service);
     let result = repo.set_tx(&mut tx, input).await?;
 
     // Audit Log
@@ -99,19 +99,19 @@ pub async fn set_setting(
 pub async fn delete_setting(
     key: String,
     state: State<'_, AppState>,
-    network_state: State<'_, RwLock<NetworkState>>,
+    _network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<()> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::UpdateSettings);
-    let repo = SettingsRepository::new(state.pool());
+    let repo = SettingsRepository::with_events(state.pool(), &state.event_service);
 
     // Fetch before delete for push
     let existing = repo.get_value(&key).await?;
 
     repo.delete(&key).await?;
 
-    if let Some(val) = existing {
+    if let Some(_val) = existing {
         // Reconstruct setting object loosely or just push key? Sync protocol expects full object for upsert normally.
         // But delete might need special handling or we verify upsert handles deletes?
         // upsert_from_sync in SettingsRepository:

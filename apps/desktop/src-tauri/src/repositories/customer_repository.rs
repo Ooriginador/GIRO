@@ -403,7 +403,11 @@ impl<'a> CustomerRepository<'a> {
 
         // Sincronização em tempo real (broadcast)
         if let Some(service) = self.event_service {
-            service.emit_customer_updated(serde_json::to_value(&customer).unwrap_or_default());
+            service.emit_sync_push(
+                "customer",
+                serde_json::to_value(&customer).unwrap_or_default(),
+            );
+            service.emit_customer_updated(&customer.id, &customer.name);
         }
 
         Ok(customer)
@@ -483,7 +487,11 @@ impl<'a> CustomerRepository<'a> {
 
         // Sincronização em tempo real (broadcast)
         if let Some(service) = self.event_service {
-            service.emit_customer_updated(serde_json::to_value(&customer).unwrap_or_default());
+            service.emit_sync_push(
+                "customer",
+                serde_json::to_value(&customer).unwrap_or_default(),
+            );
+            service.emit_customer_updated(&customer.id, &customer.name);
         }
 
         Ok(customer)

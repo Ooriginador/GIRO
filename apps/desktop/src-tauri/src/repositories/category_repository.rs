@@ -133,7 +133,11 @@ impl<'a> CategoryRepository<'a> {
 
         // Sincronização em tempo real (broadcast)
         if let Some(service) = self.event_service {
-            service.emit_category_updated(serde_json::to_value(&result).unwrap_or_default());
+            service.emit_sync_push(
+                "category",
+                serde_json::to_value(&result).unwrap_or_default(),
+            );
+            service.emit_category_updated(&result.id, &result.name);
         }
 
         Ok(result)
@@ -172,12 +176,24 @@ impl<'a> CategoryRepository<'a> {
         .execute(self.pool)
         .await?;
 
-        self.find_by_id(id)
-            .await?
-            .ok_or_else(|| crate::error::AppError::NotFound {
-                entity: "Category".into(),
-                id: id.into(),
-            })
+        let result =
+            self.find_by_id(id)
+                .await?
+                .ok_or_else(|| crate::error::AppError::NotFound {
+                    entity: "Category".into(),
+                    id: id.into(),
+                })?;
+
+        // Sincronização em tempo real (broadcast)
+        if let Some(service) = self.event_service {
+            service.emit_sync_push(
+                "category",
+                serde_json::to_value(&result).unwrap_or_default(),
+            );
+            service.emit_category_updated(&result.id, &result.name);
+        }
+
+        Ok(result)
     }
 
     pub async fn delete(&self, id: &str) -> AppResult<()> {
