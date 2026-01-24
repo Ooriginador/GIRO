@@ -24,7 +24,9 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { clickableByKeyboard } from '@/lib/a11y';
 import { CheckCircle, Clock, FileText, Filter, Plus, Search, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useKeyboard } from '@/hooks/use-keyboard';
+import { useNavigate } from 'react-router-dom';
 
 interface ServiceOrderListProps {
   onSelectOrder?: (orderId: string) => void;
@@ -35,6 +37,34 @@ export function ServiceOrderList({ onSelectOrder, onCreateNew }: ServiceOrderLis
   const { openOrders, isLoadingOpen } = useServiceOrders();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ServiceOrderStatus | 'ALL'>('ALL');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+
+  // Atalhos de teclado
+  useKeyboard([
+    {
+      key: 'F1',
+      action: () => navigate('/tutorials'),
+      description: 'Ajuda',
+    },
+    {
+      key: 'F2',
+      action: () => onCreateNew?.(),
+      description: 'Nova OS',
+    },
+    {
+      key: 'F3',
+      action: () => searchInputRef.current?.focus(),
+      description: 'Buscar',
+    },
+    {
+      key: 'Escape',
+      action: () => {
+        if (searchTerm) setSearchTerm('');
+      },
+      description: 'Limpar busca',
+    },
+  ]);
 
   // Filtrar ordens
   const filteredOrders = openOrders?.filter((order) => {
@@ -62,7 +92,10 @@ export function ServiceOrderList({ onSelectOrder, onCreateNew }: ServiceOrderLis
             </CardTitle>
             <Button onClick={onCreateNew} size="sm">
               <Plus className="h-4 w-4 mr-2" />
-              Nova OS
+              <span>Nova OS</span>
+              <span className="kbd ml-2 text-[10px] bg-primary-foreground/20 border-primary-foreground/30">
+                F2
+              </span>
             </Button>
           </div>
         </CardHeader>
@@ -71,7 +104,8 @@ export function ServiceOrderList({ onSelectOrder, onCreateNew }: ServiceOrderLis
             <div className="flex-1 relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por número, cliente, veículo ou placa..."
+                ref={searchInputRef}
+                placeholder="Buscar por número, cliente, veículo ou placa... (F3)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"

@@ -58,8 +58,9 @@ import {
   Search,
   Trash2,
 } from 'lucide-react';
-import { type FC, useEffect, useState } from 'react';
+import { type FC, useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useKeyboard } from '@/hooks/use-keyboard';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 
@@ -70,6 +71,33 @@ export const ProductsPage: FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
   const [productToDeactivate, setProductToDeactivate] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard Shortcuts
+  useKeyboard([
+    {
+      key: 'F1',
+      action: () => navigate('/tutorials'),
+      description: 'Ajuda',
+    },
+    {
+      key: 'F2',
+      action: () => navigate('/products/new'),
+      description: 'Novo Produto',
+    },
+    {
+      key: 'F3',
+      action: () => searchInputRef.current?.focus(),
+      description: 'Buscar',
+    },
+    {
+      key: 'Escape',
+      action: () => {
+        if (searchQuery) setSearchQuery('');
+      },
+      description: 'Limpar busca',
+    },
+  ]);
 
   const { toast } = useToast();
   const createProduct = useCreateProduct();
@@ -203,7 +231,10 @@ export const ProductsPage: FC = () => {
           <Button asChild data-tutorial="new-product-button">
             <Link to="/products/new">
               <Plus className="mr-2 h-4 w-4" />
-              Novo Produto
+              <span>Novo Produto</span>
+              <span className="kbd ml-2 text-[10px] bg-primary-foreground/20 border-primary-foreground/30">
+                F2
+              </span>
             </Link>
           </Button>
         </div>
@@ -219,7 +250,8 @@ export const ProductsPage: FC = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome, código ou código de barras..."
+                ref={searchInputRef}
+                placeholder="Buscar por nome, código ou código de barras... (F3)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"

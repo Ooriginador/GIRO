@@ -106,9 +106,23 @@ export const pdvShortcuts = [
   { label: 'Buscar produto', shortcut: 'F2' },
   { label: 'Alterar quantidade', shortcut: 'F4' },
   { label: 'Aplicar desconto', shortcut: 'F6' },
+  { label: 'Pausar venda', shortcut: 'F8' },
+  { label: 'Recuperar venda', shortcut: 'F9' },
   { label: 'Finalizar venda', shortcut: 'F10' },
+  { label: 'Abrir gaveta', shortcut: 'F11' },
   { label: 'Remover último item', shortcut: 'F12' },
   { label: 'Limpar carrinho', shortcut: 'Esc' },
+] as const;
+
+/**
+ * Atalhos padrão para módulos do ERP (Produtos, Clientes, OS, etc.)
+ */
+export const erpShortcuts = [
+  { label: 'Ajuda', shortcut: 'F1' },
+  { label: 'Novo / Criar', shortcut: 'F2' },
+  { label: 'Focar Busca', shortcut: 'F3' },
+  { label: 'Atualizar', shortcut: 'F5' },
+  { label: 'Voltar / Fechar', shortcut: 'Esc' },
 ] as const;
 
 export default KeyboardShortcut;

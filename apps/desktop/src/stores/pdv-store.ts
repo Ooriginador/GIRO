@@ -35,6 +35,16 @@ interface PDVState {
   paymentMethod: PaymentMethod | null;
   amountPaid: number;
   customerId: string | null;
+  heldSales: {
+    id: string;
+    items: CartItem[];
+    discount: number;
+    discountReason: string;
+    customerId: string | null;
+    subtotal: number;
+    total: number;
+    createdAt: string;
+  }[];
 
   // Estado da sessão de caixa
   cashSession: CashSession | null;
@@ -60,6 +70,9 @@ interface PDVState {
   // Ações de sessão
   setCashSession: (session: CashSession | null) => void;
   setCustomer: (customerId: string | null) => void;
+  holdSale: () => void;
+  resumeSale: (id: string) => void;
+  removeHeldSale: (id: string) => void;
 
   // Ações de modal
   openPaymentModal: () => void;
@@ -96,6 +109,7 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
   isProcessing: false,
   lastSaleId: null,
   customerId: null,
+  heldSales: [],
 
   // Adicionar item ao carrinho
   addItem: (item) => {
@@ -174,6 +188,51 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
   },
   setCustomer: (customerId) => {
     set({ customerId });
+  },
+
+  holdSale: () => {
+    const { items, discount, discountReason, customerId, getSubtotal, getTotal, clearCart } = get();
+    if (items.length === 0) return;
+
+    const newHold = {
+      id: crypto.randomUUID(),
+      items: [...items],
+      discount,
+      discountReason,
+      customerId,
+      subtotal: getSubtotal(),
+      total: getTotal(),
+      createdAt: new Date().toISOString(),
+    };
+
+    set((state) => ({
+      heldSales: [newHold, ...state.heldSales],
+    }));
+
+    clearCart();
+  },
+
+  resumeSale: (id) => {
+    const { heldSales, items } = get();
+    // Se o carrinho atual não estiver vazio, não permite recuperar (para evitar sobrescrever ou precisar de merge)
+    if (items.length > 0) return;
+
+    const sale = heldSales.find((s) => s.id === id);
+    if (!sale) return;
+
+    set({
+      items: sale.items,
+      discount: sale.discount,
+      discountReason: sale.discountReason,
+      customerId: sale.customerId,
+      heldSales: heldSales.filter((s) => s.id !== id),
+    });
+  },
+
+  removeHeldSale: (id) => {
+    set((state) => ({
+      heldSales: state.heldSales.filter((s) => s.id !== id),
+    }));
   },
 
   openPaymentModal: () => {

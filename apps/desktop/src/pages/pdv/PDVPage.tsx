@@ -42,6 +42,7 @@ import { type FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LabeledShortcut, pdvShortcuts } from '@/components/pdv/KeyboardShortcut';
 import { HelpCircle } from 'lucide-react';
+import { commands } from '@/lib/bindings';
 
 export const PDVPage: FC = () => {
   const navigate = useNavigate();
@@ -51,6 +52,8 @@ export const PDVPage: FC = () => {
   const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showRecoverModal, setShowRecoverModal] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [quantityInput, setQuantityInput] = useState('');
   const [discountInput, setDiscountInput] = useState('');
@@ -70,6 +73,10 @@ export const PDVPage: FC = () => {
     setDiscount,
     customerId,
     setCustomer,
+    heldSales,
+    holdSale,
+    resumeSale,
+    removeHeldSale,
   } = usePDVStore();
   const { currentSession } = useAuthStore();
   const { getCustomerById } = useCustomers();
@@ -127,6 +134,23 @@ export const PDVPage: FC = () => {
           setTimeout(() => discountInputRef.current?.select(), 100);
         }
       }
+      // F8 - Pausar venda (Hold)
+      if (e.key === 'F8') {
+        e.preventDefault();
+        if (items.length > 0) {
+          holdSale();
+        }
+      }
+      // F9 - Recuperar venda (Resume)
+      if (e.key === 'F9') {
+        e.preventDefault();
+        setShowRecoverModal(true);
+      }
+      // F11 - Abrir gaveta
+      if (e.key === 'F11') {
+        e.preventDefault();
+        commands.openCashDrawer();
+      }
       // F10 - Finalizar venda
       if (e.key === 'F10') {
         e.preventDefault();
@@ -144,19 +168,47 @@ export const PDVPage: FC = () => {
           }
         }
       }
-      // Escape - Fechar modais
+      // Escape - Cancelar venda (ou fechar modais)
       if (e.key === 'Escape') {
-        setShowSearch(false);
-        setShowPaymentModal(false);
-        setShowQuantityModal(false);
-        setShowDiscountModal(false);
-        setShowHelpModal(false);
+        const anyModalOpen =
+          showSearch ||
+          showPaymentModal ||
+          showQuantityModal ||
+          showDiscountModal ||
+          showHelpModal ||
+          showClearConfirm ||
+          showRecoverModal;
+
+        if (anyModalOpen) {
+          setShowSearch(false);
+          setShowPaymentModal(false);
+          setShowQuantityModal(false);
+          setShowDiscountModal(false);
+          setShowHelpModal(false);
+          setShowClearConfirm(false);
+          setShowRecoverModal(false);
+        } else if (items.length > 0) {
+          setShowClearConfirm(true);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [items, currentSession, discount, removeItem]);
+  }, [
+    items,
+    currentSession,
+    discount,
+    removeItem,
+    holdSale,
+    showSearch,
+    showPaymentModal,
+    showQuantityModal,
+    showDiscountModal,
+    showHelpModal,
+    showClearConfirm,
+    showRecoverModal,
+  ]);
 
   const handleQuantityConfirm = () => {
     if (selectedItemId && quantityInput) {
@@ -295,7 +347,7 @@ export const PDVPage: FC = () => {
                     variant="ghost"
                     size="sm"
                     className="text-destructive hover:text-destructive"
-                    onClick={clearCart}
+                    onClick={() => setShowClearConfirm(true)}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Limpar
@@ -408,7 +460,7 @@ export const PDVPage: FC = () => {
                   variant="ghost"
                   className="w-full text-destructive hover:text-destructive"
                   disabled={items.length === 0}
-                  onClick={clearCart}
+                  onClick={() => setShowClearConfirm(true)}
                 >
                   <X className="mr-2 h-4 w-4" />
                   Cancelar Venda (Esc)
@@ -429,20 +481,32 @@ export const PDVPage: FC = () => {
                 <span>Quantidade</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="kbd">F6</span>
-                <span>Desconto</span>
+                <span className="kbd text-[10px]">F6</span>
+                <span>Desc.</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="kbd">F10</span>
-                <span>Finalizar</span>
+                <span className="kbd text-[10px]">F8</span>
+                <span>Pause</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="kbd">F12</span>
-                <span>Remover</span>
+                <span className="kbd text-[10px]">F9</span>
+                <span>Recup.</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="kbd">Esc</span>
-                <span>Cancelar</span>
+                <span className="kbd text-[10px]">F10</span>
+                <span>Fim</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="kbd text-[10px]">F11</span>
+                <span>Gaveta</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="kbd text-[10px]">F12</span>
+                <span>Rem.</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="kbd text-[10px]">Esc</span>
+                <span>Canc.</span>
               </div>
             </div>
           </Card>
@@ -555,6 +619,92 @@ export const PDVPage: FC = () => {
           </div>
           <DialogFooter>
             <Button onClick={() => setShowHelpModal(false)}>Entendi</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação de Limpar Carrinho */}
+      <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cancelar Venda?</DialogTitle>
+            <DialogDescription>
+              Isso removerá todos os itens do carrinho. Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowClearConfirm(false)}>
+              Não, manter
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                clearCart();
+                setShowClearConfirm(false);
+              }}
+            >
+              Sim, cancelar (Esc)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Recuperar Venda (F9) */}
+      <Dialog open={showRecoverModal} onOpenChange={setShowRecoverModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vendas em Espera</DialogTitle>
+            <DialogDescription>Selecione uma venda pausada para recuperar.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {heldSales.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Nenhuma venda pausada.</p>
+            ) : (
+              <ScrollArea className="h-64">
+                <div className="space-y-2">
+                  {heldSales.map((sale) => (
+                    <div
+                      key={sale.id}
+                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted cursor-pointer"
+                      onClick={() => {
+                        if (items.length > 0) {
+                          alert('O carrinho deve estar vazio para recuperar uma venda.');
+                          return;
+                        }
+                        resumeSale(sale.id);
+                        setShowRecoverModal(false);
+                      }}
+                    >
+                      <div>
+                        <p className="font-medium">{sale.items.length} itens</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(sale.createdAt).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-primary">{formatCurrency(sale.total)}</p>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-destructive h-6 w-6 mt-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeHeldSale(sale.id);
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRecoverModal(false)}>
+              Fechar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

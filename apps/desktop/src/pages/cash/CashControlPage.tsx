@@ -39,6 +39,8 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useState, type FC } from 'react';
+import { useKeyboard } from '@/hooks/use-keyboard';
+import { useNavigate } from 'react-router-dom';
 
 export const CashControlPage: FC = () => {
   const { toast } = useToast();
@@ -56,8 +58,48 @@ export const CashControlPage: FC = () => {
   const [isSupplyOpen, setIsSupplyOpen] = useState(false);
   const [movementAmount, setMovementAmount] = useState('');
   const [movementReason, setMovementReason] = useState('');
+  const navigate = useNavigate();
 
   const addMovementMutation = useCashMovement();
+
+  // Keyboard Shortcuts
+  useKeyboard([
+    {
+      key: 'F1',
+      action: () => navigate('/tutorials'),
+      description: 'Ajuda',
+    },
+    {
+      key: 'F2',
+      action: () => !isOpen && setIsOpenDialogOpen(true),
+      description: 'Abrir Caixa',
+    },
+    {
+      key: 'F4',
+      action: () => isOpen && setIsSupplyOpen(true),
+      description: 'Suprimento',
+    },
+    {
+      key: 'F6',
+      action: () => isOpen && setIsWithdrawOpen(true),
+      description: 'Sangria',
+    },
+    {
+      key: 'F10',
+      action: () => isOpen && hasPermission('cash.close') && setIsCloseDialogOpen(true),
+      description: 'Fechar Caixa',
+    },
+    {
+      key: 'Escape',
+      action: () => {
+        setIsOpenDialogOpen(false);
+        setIsSupplyOpen(false);
+        setIsWithdrawOpen(false);
+        setIsCloseDialogOpen(false);
+      },
+      description: 'Fechar modais',
+    },
+  ]);
 
   const addMovement = async (type: CashMovement['type']) => {
     const value = parseFloat(movementAmount.replace(',', '.')) || 0;
@@ -201,7 +243,10 @@ export const CashControlPage: FC = () => {
               data-tutorial="cash-open-button"
             >
               <DollarSign className="mr-2 h-4 w-4" />
-              Abrir Caixa
+              <span>Abrir Caixa</span>
+              <span className="kbd ml-2 text-[10px] bg-primary-foreground/20 border-primary-foreground/30">
+                F2
+              </span>
             </Button>
           ) : (
             <>
@@ -216,7 +261,10 @@ export const CashControlPage: FC = () => {
                 data-tutorial="cash-supply-button"
               >
                 <ArrowUpRight className="mr-2 h-4 w-4" />
-                Suprimento
+                <span>Suprimento</span>
+                <span className="kbd ml-2 text-[10px] bg-primary-foreground/20 border-primary-foreground/30">
+                  F4
+                </span>
               </Button>
               <Button
                 data-testid="cash-withdrawal"
@@ -225,7 +273,10 @@ export const CashControlPage: FC = () => {
                 data-tutorial="cash-withdrawal-button"
               >
                 <ArrowDownRight className="mr-2 h-4 w-4" />
-                Sangria
+                <span>Sangria</span>
+                <span className="kbd ml-2 text-[10px] bg-primary-foreground/20 border-primary-foreground/30">
+                  F6
+                </span>
               </Button>
               <Button
                 variant="destructive"
@@ -235,6 +286,9 @@ export const CashControlPage: FC = () => {
               >
                 <Clock className="mr-2 h-4 w-4" />
                 <span data-testid="close-cash">Fechar Caixa</span>
+                <span className="kbd ml-2 text-[10px] bg-destructive-foreground/20 border-destructive-foreground/30">
+                  F10
+                </span>
               </Button>
             </>
           )}
