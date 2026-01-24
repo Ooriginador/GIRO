@@ -8,10 +8,12 @@
 use giro_lib::commands::mobile::MobileServerState;
 use giro_lib::commands::network::NetworkState;
 use giro_lib::{commands, nfce, AppState, DatabaseManager, HardwareState};
+#[cfg(debug_assertions)]
 use specta_typescript::Typescript;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::Manager;
+#[cfg(debug_assertions)]
 use tauri_specta::collect_commands;
 use tokio::sync::RwLock;
 
@@ -936,77 +938,4 @@ fn get_primary_mac_address() -> String {
     }
 
     "00-00-00-00-00-00".to_string()
-}
-
-/// Get primary disk serial number
-fn get_disk_serial() -> String {
-    #[cfg(target_os = "linux")]
-    {
-        // Linux: Read from /dev/disk/by-id
-        if let Ok(entries) = std::fs::read_dir("/dev/disk/by-id") {
-            for entry in entries.flatten() {
-                let name = entry.file_name().to_string_lossy().to_string();
-                if name.starts_with("ata-")
-                    || name.starts_with("nvme-")
-                    || name.starts_with("scsi-")
-                {
-                    // Extract serial from name
-                    if let Some(serial) = name.split('_').next_back() {
-                        return serial.chars().take(20).collect();
-                    }
-                }
-            }
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        // 1. WMIC
-        let wmic_cmd = std::process::Command::new("wmic")
-            .args(["diskdrive", "get", "serialnumber"])
-            .output();
-
-        if let Ok(output) = wmic_cmd {
-            if let Ok(stdout) = String::from_utf8(output.stdout) {
-                let lines: Vec<&str> = stdout.lines().filter(|l| !l.trim().is_empty()).collect();
-                if lines.len() > 1 {
-                    return lines[1].trim().to_string();
-                }
-            }
-        }
-
-        // 2. PowerShell
-        let ps_cmd = std::process::Command::new("powershell")
-            .args(["-Command", "Get-CimInstance -ClassName Win32_DiskDrive | Select-Object -ExpandProperty SerialNumber | Select-Object -First 1"])
-            .output();
-
-        if let Ok(output) = ps_cmd {
-            if let Ok(stdout) = String::from_utf8(output.stdout) {
-                let serial = stdout.trim();
-                if !serial.is_empty() {
-                    return serial.to_string();
-                }
-            }
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        if let Ok(output) = std::process::Command::new("diskutil")
-            .args(["info", "disk0"])
-            .output()
-        {
-            if let Ok(stdout) = String::from_utf8(output.stdout) {
-                for line in stdout.lines() {
-                    if line.contains("Volume UUID") || line.contains("Disk / Partition UUID") {
-                        if let Some(uuid) = line.split(':').nth(1) {
-                            return uuid.trim().to_string();
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    "UNKNOWN-DISK".to_string()
 }
