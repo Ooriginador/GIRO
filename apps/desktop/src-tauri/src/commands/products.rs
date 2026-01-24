@@ -89,7 +89,7 @@ pub async fn create_product(
     );
 
     let employee = require_permission!(state.pool(), &employee_id, Permission::CreateProducts);
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     let result = match repo.create(input).await {
         Ok(product) => {
             tracing::debug!("Product created successfully: {:?}", product.id);
@@ -126,7 +126,7 @@ pub async fn update_product(
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateProducts);
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     let result = repo.update(&id, input).await?;
 
     // Audit Log
@@ -150,7 +150,7 @@ pub async fn delete_product(id: String, state: State<'_, AppState>) -> AppResult
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::DeleteProducts);
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     repo.soft_delete(&id).await?;
 
     // Audit Log
@@ -174,7 +174,7 @@ pub async fn deactivate_product(id: String, state: State<'_, AppState>) -> AppRe
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::UpdateProducts);
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     repo.soft_delete(&id).await
 }
 
@@ -185,7 +185,7 @@ pub async fn reactivate_product(id: String, state: State<'_, AppState>) -> AppRe
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     require_permission!(state.pool(), &employee_id, Permission::UpdateProducts);
-    let repo = ProductRepository::new(state.pool());
+    let repo = ProductRepository::with_events(state.pool(), &state.event_service);
     repo.reactivate(&id).await
 }
 

@@ -2,7 +2,9 @@
 
 use crate::error::{AppError, AppResult};
 use crate::repositories::SettingsRepository;
-use crate::services::{MdnsConfig, MdnsService, MobileServer, MobileServerConfig};
+use crate::services::{
+    MdnsConfig, MdnsService, MobileEventService, MobileServer, MobileServerConfig,
+};
 use crate::AppState;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -150,12 +152,22 @@ pub async fn start_mobile_server(
         .await
         .ok()
         .flatten();
+    let pdv_name = settings_repo
+        .get_value("pdv.name")
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "Principal".to_string());
+
+    // Criar serviço de eventos compartilhado
+    let event_service = Arc::new(MobileEventService::new());
 
     // Criar servidor
     let server = Arc::new(MobileServer::new(
         app_state.pool().clone(),
         server_config,
-        "GIRO PDV".to_string(), // Nome do PDV
+        event_service.clone(),
+        pdv_name,
         store_name,
         store_document,
     ));

@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState, type FC } from 'react';
 
-interface SplitPayment {
+export interface SplitPayment {
   id: string;
   method: PaymentMethod;
   amount: number;

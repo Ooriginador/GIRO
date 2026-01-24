@@ -77,7 +77,7 @@ impl<'a> StockRepository<'a> {
         if (data.movement_type == "ENTRY" || data.movement_type == "INPUT") && data.quantity > 0.0 {
             let nid = new_id();
             let cost = data.cost_price.unwrap_or(0.0);
-            
+
             sqlx::query(
                 "INSERT INTO product_lots (id, product_id, lot_number, expiration_date, manufacturing_date, initial_quantity, current_quantity, cost_price, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'AVAILABLE', ?, ?)"
             )
@@ -93,14 +93,13 @@ impl<'a> StockRepository<'a> {
             .bind(&now)
             .execute(&mut *tx)
             .await?;
-            
+
             lot_id = Some(nid);
 
             // Update product cost price if provided
             if cost > 0.0 {
-                sqlx::query("UPDATE products SET cost_price = ?, updated_at = ? WHERE id = ?")
+                sqlx::query("UPDATE products SET cost_price = ?, updated_at = (datetime('now')) WHERE id = ?")
                     .bind(cost)
-                    .bind(&now)
                     .bind(&data.product_id)
                     .execute(&mut *tx)
                     .await?;
@@ -127,12 +126,13 @@ impl<'a> StockRepository<'a> {
         .await?;
 
         // Update product stock
-        sqlx::query("UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?")
-            .bind(new_stock)
-            .bind(&now)
-            .bind(&data.product_id)
-            .execute(&mut *tx)
-            .await?;
+        sqlx::query(
+            "UPDATE products SET current_stock = ?, updated_at = (datetime('now')) WHERE id = ?",
+        )
+        .bind(new_stock)
+        .bind(&data.product_id)
+        .execute(&mut *tx)
+        .await?;
 
         // If decimal columns are enabled, populate them as well for parity
         // Using crate::database::decimal_config instead of local check if possible, or just checking for the setting
@@ -233,12 +233,13 @@ impl<'a> StockRepository<'a> {
         .await?;
 
         // Atualizar estoque do produto
-        sqlx::query("UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?")
-            .bind(new_stock)
-            .bind(&now)
-            .bind(&movement.product_id)
-            .execute(self.pool)
-            .await?;
+        sqlx::query(
+            "UPDATE products SET current_stock = ?, updated_at = (datetime('now')) WHERE id = ?",
+        )
+        .bind(new_stock)
+        .bind(&movement.product_id)
+        .execute(self.pool)
+        .await?;
 
         Ok(())
     }
@@ -282,12 +283,13 @@ impl<'a> StockRepository<'a> {
         .await?;
 
         // Atualizar estoque do produto
-        sqlx::query("UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?")
-            .bind(new_stock)
-            .bind(&now)
-            .bind(product_id)
-            .execute(&mut *tx)
-            .await?;
+        sqlx::query(
+            "UPDATE products SET current_stock = ?, updated_at = (datetime('now')) WHERE id = ?",
+        )
+        .bind(new_stock)
+        .bind(product_id)
+        .execute(&mut *tx)
+        .await?;
 
         // Sync decimal columns
         if crate::database::decimal_config::use_decimal_columns() {

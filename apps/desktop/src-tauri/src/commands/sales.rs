@@ -60,7 +60,7 @@ pub async fn create_sale(mut input: CreateSale, state: State<'_, AppState>) -> A
     input.employee_id = info.employee_id.clone();
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::CreateSales);
-    let repo = SaleRepository::new(state.pool());
+    let repo = SaleRepository::with_events(state.pool(), &state.event_service);
     let result = repo.create(input.clone()).await?;
 
     // Audit Log
@@ -93,7 +93,7 @@ pub async fn cancel_sale(
     let info = state.session.require_authenticated()?;
     let canceled_by = info.employee_id;
     let employee = require_permission!(state.pool(), &canceled_by, Permission::CancelSales);
-    let repo = SaleRepository::new(state.pool());
+    let repo = SaleRepository::with_events(state.pool(), &state.event_service);
     let result = repo.cancel(&id, &canceled_by, &reason).await?;
 
     // Audit Log

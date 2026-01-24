@@ -10,6 +10,7 @@ use giro_lib::commands::network::NetworkState;
 use giro_lib::{commands, nfce, AppState, DatabaseManager, HardwareState};
 use specta_typescript::Typescript;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tauri::Manager;
 use tauri_specta::collect_commands;
 use tokio::sync::RwLock;
@@ -372,6 +373,8 @@ async fn main() {
 
     let api_key = std::env::var("LICENSE_API_KEY").unwrap_or_else(|_| "dev-key".to_string());
 
+    let event_service = Arc::new(giro_lib::services::mobile_events::MobileEventService::new());
+
     let app_state = AppState::new(
         db.pool().clone(),
         db_path.clone(),
@@ -379,6 +382,7 @@ async fn main() {
         license_server_url,
         api_key,
         hardware_id,
+        event_service,
     );
 
     tauri::Builder::default()
@@ -406,8 +410,38 @@ async fn main() {
             tauri::async_runtime::spawn(async move {
                 let state = handle.state::<AppState>();
                 let hw_state = handle.state::<HardwareState>();
-                if let Err(e) = commands::load_hardware_configs(state, hw_state).await {
+                let mobile_state = handle.state::<RwLock<MobileServerState>>();
+                let network_state = handle.state::<RwLock<NetworkState>>();
+
+                // 1. Carregar configurações de hardware
+                if let Err(e) = commands::load_hardware_configs_internal(&state, &hw_state).await {
                     tracing::error!("Erro ao carregar configurações de hardware: {:?}", e);
+                }
+
+                // 2. Verificar Auto-start de Rede (Master/Satellite)
+                let settings_repo = giro_lib::repositories::SettingsRepository::new(state.pool());
+                let role = settings_repo.get_value("network.role").await.ok().flatten().unwrap_or_else(|| "STANDALONE".to_string());
+
+                match role.as_str() {
+                    "MASTER" => {
+                        tracing::info!("Auto-start: Este terminal está configurado como MASTER. Iniciando servidor...");
+                        let config = giro_lib::commands::mobile::StartServerConfig {
+                            port: 3847,
+                            max_connections: 10,
+                        };
+                        // Chamamos o comando diretamente (usando clones para evitar o erro de move)
+                        if let Err(e) = commands::start_mobile_server(config, state.clone(), mobile_state.clone()).await {
+                            tracing::error!("Erro no auto-start do Master: {:?}", e);
+                        }
+                    },
+                    "SATELLITE" => {
+                        tracing::info!("Auto-start: Este terminal está configurado como SATELLITE. Iniciando busca pelo Master...");
+                        let terminal_name = settings_repo.get_value("terminal.name").await.ok().flatten().unwrap_or_else(|| "Satellite Terminal".into());
+                        if let Err(e) = commands::network::start_network_client(terminal_name, state.clone(), network_state.clone()).await {
+                            tracing::error!("Erro no auto-start do Satellite: {:?}", e);
+                        }
+                    },
+                    _ => tracing::info!("Auto-start: Modo STANDALONE (Nenhum serviço de rede iniciado)"),
                 }
             });
             tracing::info!("Aplicação inicializada com sucesso");

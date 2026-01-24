@@ -6,11 +6,25 @@ use sqlx::{QueryBuilder, Sqlite, SqlitePool};
 
 pub struct ProductRepository<'a> {
     pool: &'a SqlitePool,
+    event_service: Option<&'a crate::services::mobile_events::MobileEventService>,
 }
 
 impl<'a> ProductRepository<'a> {
     pub fn new(pool: &'a SqlitePool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            event_service: None,
+        }
+    }
+
+    pub fn with_events(
+        pool: &'a SqlitePool,
+        event_service: &'a crate::services::mobile_events::MobileEventService,
+    ) -> Self {
+        Self {
+            pool,
+            event_service: Some(event_service),
+        }
     }
 
     // Build column selection dynamically to support migrated *_decimal columns when enabled
@@ -315,7 +329,7 @@ impl<'a> ProductRepository<'a> {
         let max_stock = data.max_stock;
 
         sqlx::query(
-            "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, max_stock, is_active, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)"
+            "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, max_stock, is_active, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, (datetime('now')), (datetime('now')))"
         )
         .bind(&id)
         .bind(&data.barcode)
@@ -330,8 +344,6 @@ impl<'a> ProductRepository<'a> {
         .bind(min_stock)
         .bind(max_stock)
         .bind(&data.category_id)
-        .bind(&now)
-        .bind(&now)
         .execute(&mut *tx)
         .await?;
 
@@ -367,12 +379,21 @@ impl<'a> ProductRepository<'a> {
 
         tx.commit().await?;
 
-        self.find_by_id(&id)
-            .await?
-            .ok_or_else(|| crate::error::AppError::NotFound {
-                entity: "Product".into(),
-                id,
-            })
+        let product =
+            self.find_by_id(&id)
+                .await?
+                .ok_or_else(|| crate::error::AppError::NotFound {
+                    entity: "Product".into(),
+                    id: id.clone(),
+                })?;
+
+        // Sincronização em tempo real (broadcast)
+        if let Some(service) = self.event_service {
+            // Emite evento de produto atualizado para Satélites
+            service.emit_product_updated(&product.id, &product.name, "Produto criado");
+        }
+
+        Ok(product)
     }
 
     pub async fn update(&self, id: &str, data: UpdateProduct) -> AppResult<Product> {
@@ -442,7 +463,7 @@ impl<'a> ProductRepository<'a> {
         }
 
         sqlx::query(
-            "UPDATE products SET name = ?, barcode = ?, description = ?, unit = ?, is_weighted = ?, sale_price = ?, cost_price = ?, current_stock = ?, min_stock = ?, max_stock = ?, is_active = ?, category_id = ?, updated_at = ? WHERE id = ?"
+            "UPDATE products SET name = ?, barcode = ?, description = ?, unit = ?, is_weighted = ?, sale_price = ?, cost_price = ?, current_stock = ?, min_stock = ?, max_stock = ?, is_active = ?, category_id = ?, updated_at = (datetime('now')) WHERE id = ?"
         )
         .bind(&name)
         .bind(&barcode)
@@ -456,7 +477,6 @@ impl<'a> ProductRepository<'a> {
         .bind(max_stock)
         .bind(is_active)
         .bind(&category_id)
-        .bind(&now)
         .bind(id)
         .execute(&mut *tx)
         .await?;
@@ -475,12 +495,30 @@ impl<'a> ProductRepository<'a> {
 
         tx.commit().await?;
 
-        self.find_by_id(id)
-            .await?
-            .ok_or_else(|| crate::error::AppError::NotFound {
-                entity: "Product".into(),
-                id: id.into(),
-            })
+        let product =
+            self.find_by_id(id)
+                .await?
+                .ok_or_else(|| crate::error::AppError::NotFound {
+                    entity: "Product".into(),
+                    id: id.into(),
+                })?;
+
+        // Sincronização em tempo real (broadcast)
+        if let Some(service) = self.event_service {
+            service.emit_product_updated(&product.id, &product.name, "Produto atualizado");
+            // Se houve mudança de estoque, notificar também
+            if (product.current_stock - existing.current_stock).abs() > 0.001 {
+                service.emit_stock_updated(
+                    &product.id,
+                    &product.name,
+                    existing.current_stock,
+                    product.current_stock,
+                    "MANUAL",
+                );
+            }
+        }
+
+        Ok(product)
     }
 
     pub async fn update_stock(
@@ -519,12 +557,13 @@ impl<'a> ProductRepository<'a> {
         .await?;
 
         // 2. Update Product Stock
-        sqlx::query("UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?")
-            .bind(new_stock)
-            .bind(&now)
-            .bind(id)
-            .execute(&mut *tx)
-            .await?;
+        sqlx::query(
+            "UPDATE products SET current_stock = ?, updated_at = (datetime('now')) WHERE id = ?",
+        )
+        .bind(new_stock)
+        .bind(id)
+        .execute(&mut *tx)
+        .await?;
 
         if decimal_config::use_decimal_columns() {
             sqlx::query("UPDATE products SET current_stock_decimal = ROUND(?,3) WHERE id = ?")
@@ -536,32 +575,57 @@ impl<'a> ProductRepository<'a> {
 
         tx.commit().await?;
 
-        self.find_by_id(id)
-            .await?
-            .ok_or_else(|| crate::error::AppError::NotFound {
-                entity: "Product".into(),
-                id: id.into(),
-            })
+        let product =
+            self.find_by_id(id)
+                .await?
+                .ok_or_else(|| crate::error::AppError::NotFound {
+                    entity: "Product".into(),
+                    id: id.into(),
+                })?;
+
+        // Sincronização em tempo real (broadcast)
+        if let Some(service) = self.event_service {
+            service.emit_stock_updated(
+                &product.id,
+                &product.name,
+                existing.current_stock,
+                product.current_stock,
+                &data.movement_type,
+            );
+        }
+
+        Ok(product)
     }
 
     pub async fn soft_delete(&self, id: &str) -> AppResult<()> {
-        let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE products SET is_active = 0, updated_at = ? WHERE id = ?")
-            .bind(&now)
+        let name = sqlx::query_scalar::<_, String>("SELECT name FROM products WHERE id = ?")
             .bind(id)
-            .execute(self.pool)
-            .await?;
+            .fetch_one(self.pool)
+            .await
+            .unwrap_or_else(|_| "Produto".to_string());
+
+        sqlx::query(
+            "UPDATE products SET is_active = 0, updated_at = (datetime('now')) WHERE id = ?",
+        )
+        .bind(id)
+        .execute(self.pool)
+        .await?;
+
+        if let Some(service) = self.event_service {
+            service.emit_product_updated(id, &name, "Produto desativado");
+        }
+
         Ok(())
     }
 
     /// Reativa um produto que foi desativado (soft deleted)
     pub async fn reactivate(&self, id: &str) -> AppResult<Product> {
-        let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE products SET is_active = 1, updated_at = ? WHERE id = ?")
-            .bind(&now)
-            .bind(id)
-            .execute(self.pool)
-            .await?;
+        sqlx::query(
+            "UPDATE products SET is_active = 1, updated_at = (datetime('now')) WHERE id = ?",
+        )
+        .bind(id)
+        .execute(self.pool)
+        .await?;
         self.find_by_id(id)
             .await?
             .ok_or_else(|| crate::error::AppError::NotFound {
