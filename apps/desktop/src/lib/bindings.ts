@@ -4,2733 +4,4018 @@
 
 /** user-defined commands **/
 
-
-async getProducts() : Promise<Result<Product[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_products") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getProductsPaginated(page: number | null, perPage: number | null, search: string | null, categoryId: string | null, isActive: boolean | null) : Promise<Result<PaginatedResult<Product>, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_products_paginated", { page, perPage, search, categoryId, isActive }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getProductById(id: string) : Promise<Result<Product | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_product_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getProductByBarcode(barcode: string) : Promise<Result<Product | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_product_by_barcode", { barcode }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async searchProducts(query: string) : Promise<Result<Product[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("search_products", { query }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getLowStockProducts() : Promise<Result<Product[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_low_stock_products") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async createProduct(input: CreateProduct) : Promise<Result<Product, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_product", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async updateProduct(id: string, input: UpdateProduct) : Promise<Result<Product, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_product", { id, input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async deleteProduct(id: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_product", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Desativa um produto (soft delete) - alias para consistência com frontend
- */
-async deactivateProduct(id: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("deactivate_product", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Reativa um produto que foi desativado
- */
-async reactivateProduct(id: string) : Promise<Result<Product, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("reactivate_product", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista todos os produtos (ativos e inativos)
- */
-async getAllProducts(includeInactive: boolean) : Promise<Result<Product[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_all_products", { includeInactive }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista apenas produtos inativos
- */
-async getInactiveProducts() : Promise<Result<Product[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_inactive_products") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getCategories() : Promise<Result<Category[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_categories") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getCategoriesWithCount() : Promise<Result<CategoryWithCount[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_categories_with_count") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getCategoryById(id: string) : Promise<Result<Category | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_category_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async createCategory(input: CreateCategory) : Promise<Result<Category, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_category", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async updateCategory(id: string, input: UpdateCategory) : Promise<Result<Category, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_category", { id, input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async deleteCategory(id: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_category", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Desativa uma categoria (alias para delete)
- */
-async deactivateCategory(id: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("deactivate_category", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Reativa uma categoria desativada
- */
-async reactivateCategory(id: string) : Promise<Result<Category, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("reactivate_category", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista todas as categorias (ativas e inativas)
- */
-async getAllCategories(includeInactive: boolean) : Promise<Result<Category[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_all_categories", { includeInactive }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista apenas categorias inativas
- */
-async getInactiveCategories() : Promise<Result<Category[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_inactive_categories") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getEmployees() : Promise<Result<SafeEmployee[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_employees") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getEmployeeById(id: string) : Promise<Result<Employee | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_employee_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async authenticateByPin(pin: string) : Promise<Result<SafeEmployee | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("authenticate_by_pin", { pin }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async authenticateEmployee(pin: string) : Promise<Result<SafeEmployee | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("authenticate_employee", { pin }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async hasAdmin() : Promise<Result<boolean, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("has_admin") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async createFirstAdmin(input: CreateFirstAdminInput) : Promise<Result<SafeEmployee, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_first_admin", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async hasAnyEmployee() : Promise<Result<boolean, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("has_any_employee") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async createEmployee(input: CreateEmployee) : Promise<Result<SafeEmployee, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_employee", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async updateEmployee(id: string, input: UpdateEmployee) : Promise<Result<SafeEmployee, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_employee", { id, input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async deactivateEmployee(id: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("deactivate_employee", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Reativa um funcionário desativado
- */
-async reactivateEmployee(id: string) : Promise<Result<SafeEmployee, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("reactivate_employee", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async logout() : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("logout") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getCurrentUser() : Promise<Result<SafeEmployee | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_current_user") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista apenas funcionários inativos
- */
-async getInactiveEmployees() : Promise<Result<SafeEmployee[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_inactive_employees") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSales(filter: SaleFilters | null) : Promise<Result<PaginatedResult<Sale>, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_sales", { filter }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSalesToday() : Promise<Result<Sale[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_sales_today") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getTodaySales() : Promise<Result<Sale[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_today_sales") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSaleById(id: string) : Promise<Result<SaleWithDetails | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_sale_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSalesBySession(sessionId: string) : Promise<Result<Sale[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_sales_by_session", { sessionId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async createSale(input: CreateSale) : Promise<Result<Sale, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_sale", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async cancelSale(id: string, reason: string) : Promise<Result<Sale, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("cancel_sale", { id, reason }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getDailySummary(date: string) : Promise<Result<DailySalesSummary, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_daily_summary", { date }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Total de vendas (valor) do dia atual.
- * 
- * Compatibilidade com o frontend (`get_daily_sales_total`).
- */
-async getDailySalesTotal() : Promise<Result<number, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_daily_sales_total") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Resumo de vendas do mês (YYYY-MM)
- */
-async getMonthlySummary(yearMonth: string) : Promise<Result<MonthlySalesSummary, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_monthly_summary", { yearMonth }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getCurrentSession() : Promise<Result<CashSession | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_current_session") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getCurrentCashSession() : Promise<Result<CashSession | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_current_cash_session") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSessionHistory(limit: number) : Promise<Result<CashSession[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_session_history", { limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getCashSessionHistory(limit: number) : Promise<Result<CashSession[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_cash_session_history", { limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSessionMovements(sessionId: string) : Promise<Result<CashMovement[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_session_movements", { sessionId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async openCashSession(input: CreateCashSession) : Promise<Result<CashSession, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("open_cash_session", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async closeCashSession(id: string, actualBalance: number, notes: string | null) : Promise<Result<CashSession, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("close_cash_session", { id, actualBalance, notes }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async addCashMovement(input: CreateCashMovement) : Promise<Result<CashMovement, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("add_cash_movement", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getCashSessionSummary(sessionId: string) : Promise<Result<CashSessionSummary, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_cash_session_summary", { sessionId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getRecentStockMovements(limit: number) : Promise<Result<StockMovementRow[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_recent_stock_movements", { limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getProductStockMovements(productId: string, limit: number) : Promise<Result<StockMovementRow[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_product_stock_movements", { productId, limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async createStockMovement(input: CreateStockMovement) : Promise<Result<StockMovementRow, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_stock_movement", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getProductLots(productId: string) : Promise<Result<ProductLot[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_product_lots", { productId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getExpiringLots(days: number) : Promise<Result<ProductLot[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_expiring_lots", { days }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getExpiredLots() : Promise<Result<ProductLot[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_expired_lots") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSuppliers() : Promise<Result<Supplier[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_suppliers") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSupplierById(id: string) : Promise<Result<Supplier | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_supplier_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async searchSuppliers(query: string) : Promise<Result<Supplier[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("search_suppliers", { query }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async createSupplier(input: CreateSupplier) : Promise<Result<Supplier, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_supplier", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async updateSupplier(id: string, input: UpdateSupplier) : Promise<Result<Supplier, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_supplier", { id, input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async deleteSupplier(id: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_supplier", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Desativa um fornecedor (alias para delete)
- */
-async deactivateSupplier(id: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("deactivate_supplier", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Reativa um fornecedor desativado
- */
-async reactivateSupplier(id: string) : Promise<Result<Supplier, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("reactivate_supplier", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista todos os fornecedores (ativos e inativos)
- */
-async getAllSuppliers(includeInactive: boolean) : Promise<Result<Supplier[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_all_suppliers", { includeInactive }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista apenas fornecedores inativos
- */
-async getInactiveSuppliers() : Promise<Result<Supplier[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_inactive_suppliers") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista todos os clientes ativos
- */
-async getCustomers() : Promise<Result<Customer[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_customers") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista clientes com paginação e filtros
- */
-async getCustomersPaginated(page: number | null, perPage: number | null, filters: CustomerFilters | null) : Promise<Result<PaginatedResult<CustomerWithStats>, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_customers_paginated", { page, perPage, filters }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca cliente por ID
- */
-async getCustomerById(id: string) : Promise<Result<Customer | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_customer_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca cliente por CPF
- */
-async getCustomerByCpf(cpf: string) : Promise<Result<Customer | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_customer_by_cpf", { cpf }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca clientes por termo (nome, CPF, telefone)
- */
-async searchCustomers(query: string, limit: number | null) : Promise<Result<Customer[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("search_customers", { query, limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Cria novo cliente
- */
-async createCustomer(input: CreateCustomer) : Promise<Result<Customer, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_customer", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Atualiza cliente
- */
-async updateCustomer(id: string, input: UpdateCustomer) : Promise<Result<Customer, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_customer", { id, input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Desativa cliente (soft delete)
- */
-async deactivateCustomer(id: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("deactivate_customer", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Reativa cliente
- */
-async reactivateCustomer(id: string) : Promise<Result<Customer, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("reactivate_customer", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista veículos de um cliente
- */
-async getCustomerVehicles(customerId: string) : Promise<Result<CustomerVehicleWithDetails[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_customer_vehicles", { customerId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca veículo do cliente por ID
- */
-async getCustomerVehicleById(id: string) : Promise<Result<CustomerVehicle | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_customer_vehicle_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Cria veículo do cliente
- */
-async createCustomerVehicle(input: CreateCustomerVehicle) : Promise<Result<CustomerVehicle, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_customer_vehicle", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Atualiza veículo do cliente
- */
-async updateCustomerVehicle(id: string, input: UpdateCustomerVehicle) : Promise<Result<CustomerVehicle, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_customer_vehicle", { id, input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Desativa veículo do cliente
- */
-async deactivateCustomerVehicle(id: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("deactivate_customer_vehicle", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Atualiza quilometragem do veículo
- */
-async updateVehicleKm(id: string, km: number) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_vehicle_km", { id, km }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getAllSettings() : Promise<Result<Setting[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_all_settings") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSettingsByGroup(group: string) : Promise<Result<Setting[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_settings_by_group", { group }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSetting(key: string) : Promise<Result<string | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_setting", { key }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSettingBool(key: string) : Promise<Result<boolean, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_setting_bool", { key }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSettingNumber(key: string) : Promise<Result<number | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_setting_number", { key }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async setSetting(input: SetSetting) : Promise<Result<Setting, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("set_setting", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async deleteSetting(key: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_setting", { key }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista todas as marcas de veículos ativas
- */
-async getVehicleBrands() : Promise<Result<VehicleBrand[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_vehicle_brands") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca uma marca por ID
- */
-async getVehicleBrandById(id: string) : Promise<Result<VehicleBrand | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_vehicle_brand_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Cria uma nova marca
- */
-async createVehicleBrand(input: CreateVehicleBrand) : Promise<Result<VehicleBrand, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_vehicle_brand", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista modelos de uma marca
- */
-async getVehicleModels(brandId: string) : Promise<Result<VehicleModel[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_vehicle_models", { brandId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca um modelo por ID
- */
-async getVehicleModelById(id: string) : Promise<Result<VehicleModel | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_vehicle_model_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Cria um novo modelo
- */
-async createVehicleModel(input: CreateVehicleModel) : Promise<Result<VehicleModel, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_vehicle_model", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista anos de um modelo
- */
-async getVehicleYears(modelId: string) : Promise<Result<VehicleYear[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_vehicle_years", { modelId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca um ano por ID
- */
-async getVehicleYearById(id: string) : Promise<Result<VehicleYear | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_vehicle_year_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Cria um novo ano
- */
-async createVehicleYear(input: CreateVehicleYear) : Promise<Result<VehicleYear, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_vehicle_year", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca veículos por texto (marca, modelo, ano)
- */
-async searchVehicles(query: string, limit: number | null) : Promise<Result<VehicleComplete[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("search_vehicles", { query, limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Obtém veículo completo por ID do ano
- */
-async getCompleteVehicle(yearId: string) : Promise<Result<VehicleComplete | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_complete_vehicle", { yearId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista compatibilidades de um produto
- */
-async getProductCompatibilities(productId: string) : Promise<Result<ProductCompatibilityWithVehicle[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_product_compatibilities", { productId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Adiciona uma compatibilidade
- */
-async addProductCompatibility(input: AddProductCompatibility) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("add_product_compatibility", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Remove uma compatibilidade
- */
-async removeProductCompatibility(productId: string, vehicleYearId: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("remove_product_compatibility", { productId, vehicleYearId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Salva todas as compatibilidades de um produto (substitui existentes)
- */
-async saveProductCompatibilities(input: SaveProductCompatibilities) : Promise<Result<ProductCompatibilityWithVehicle[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("save_product_compatibilities", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista IDs de produtos compatíveis com um veículo
- */
-async getProductsByVehicle(vehicleYearId: string) : Promise<Result<string[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_products_by_vehicle", { vehicleYearId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getStockReport() : Promise<Result<StockReport, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_stock_report") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getTopProducts(limit: number) : Promise<Result<TopProduct[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_top_products", { limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getSalesReport(startDate: string, endDate: string) : Promise<Result<SalesReport, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_sales_report", { startDate, endDate }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getFinancialReport(startDate: string, endDate: string) : Promise<Result<FinancialReport, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_financial_report", { startDate, endDate }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getEmployeePerformance(startDate: string, endDate: string) : Promise<Result<EmployeeRanking[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_employee_performance", { startDate, endDate }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getMotopartsDashboardStats() : Promise<Result<DashboardStats, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_motoparts_dashboard_stats") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getServiceOrderStats() : Promise<Result<ServiceOrderStats, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_service_order_stats") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getTopProductsMotoparts(limit: number) : Promise<Result<TopItem[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_top_products_motoparts", { limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getAlerts(limit: number) : Promise<Result<Alert[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_alerts", { limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getUnreadAlerts() : Promise<Result<Alert[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_unread_alerts") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getUnreadAlertCount() : Promise<Result<number, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_unread_alert_count") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getUnreadAlertsCount() : Promise<Result<number, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_unread_alerts_count") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async markAlertRead(id: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("mark_alert_read", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async markAllAlertsRead() : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("mark_all_alerts_read") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async createAlert(input: CreateAlert) : Promise<Result<Alert, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_alert", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async deleteAlert(id: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_alert", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca histórico de preços de um produto específico
- */
-async getPriceHistoryByProduct(productId: string) : Promise<Result<PriceHistory[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_price_history_by_product", { productId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca histórico de preços recente (últimos N registros)
- */
-async getRecentPriceHistory(limit: number | null) : Promise<Result<PriceHistoryWithProduct[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_recent_price_history", { limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca um registro de histórico de preço por ID
- */
-async getPriceHistoryById(id: string) : Promise<Result<PriceHistory | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_price_history_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Retorna o caminho do diretório de dados do aplicativo
- */
-async getAppDataPath() : Promise<Result<string, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_app_data_path") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Retorna o caminho do banco de dados
- */
-async getDatabasePath() : Promise<Result<string, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_database_path") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Retorna informações sobre o uso de disco
- */
-async getDiskUsage() : Promise<Result<DiskUsageInfo, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_disk_usage") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Tenta corrigir as regras de firewall (Windows only)
- */
-async fixFirewallRules() : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("fix_firewall_rules") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista ordens abertas (não entregues/canceladas)
- */
-async getOpenServiceOrders() : Promise<Result<ServiceOrderSummary[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_open_service_orders") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista ordens com paginação e filtros
- */
-async getServiceOrdersPaginated(page: number | null, perPage: number | null, status: string | null, customerId: string | null, vehicleId: string | null, employeeId: string | null, isPaid: boolean | null, dateFrom: string | null, dateTo: string | null) : Promise<Result<PaginatedResult<ServiceOrderSummary>, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_service_orders_paginated", { page, perPage, status, customerId, vehicleId, employeeId, isPaid, dateFrom, dateTo }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca ordem por ID
- */
-async getServiceOrderById(id: string) : Promise<Result<ServiceOrder | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_service_order_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca ordem por número
- */
-async getServiceOrderByNumber(orderNumber: number) : Promise<Result<ServiceOrder | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_service_order_by_number", { orderNumber }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca ordem com detalhes completos
- */
-async getServiceOrderDetails(id: string) : Promise<Result<ServiceOrderWithDetails | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_service_order_details", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Cria nova ordem de serviço
- */
-async createServiceOrder(input: CreateServiceOrder) : Promise<Result<ServiceOrder, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_service_order", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Atualiza ordem de serviço
- */
-async updateServiceOrder(id: string, input: UpdateServiceOrder) : Promise<Result<ServiceOrder, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_service_order", { id, input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Inicia ordem (muda status para IN_PROGRESS)
- */
-async startServiceOrder(id: string) : Promise<Result<ServiceOrder, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("start_service_order", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Finaliza ordem (muda status para COMPLETED)
- */
-async completeServiceOrder(id: string, diagnosis: string | null) : Promise<Result<ServiceOrder, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("complete_service_order", { id, diagnosis }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Marca como entregue (muda status para DELIVERED)
- */
-async deliverServiceOrder(id: string, paymentMethod: string) : Promise<Result<ServiceOrder, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("deliver_service_order", { id, paymentMethod }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Cancela ordem
- */
-async cancelServiceOrder(id: string, notes: string | null) : Promise<Result<ServiceOrder, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("cancel_service_order", { id, notes }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Finaliza ordem de serviço (Gera venda e financeiro)
- */
-async finishServiceOrder(id: string, paymentMethod: string, amountPaid: number, cashSessionId: string) : Promise<Result<string, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("finish_service_order", { id, paymentMethod, amountPaid, cashSessionId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista itens de uma ordem
- */
-async getServiceOrderItems(orderId: string) : Promise<Result<ServiceOrderItem[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_service_order_items", { orderId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Adiciona item (peça ou serviço) à ordem
- */
-async addServiceOrderItem(orderId: string, productId: string | null, itemType: string, description: string, quantity: number, unitPrice: number, discount: number | null, notes: string | null) : Promise<Result<ServiceOrderItem, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("add_service_order_item", { orderId, productId, itemType, description, quantity, unitPrice, discount, notes }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Remove item da ordem
- */
-async removeServiceOrderItem(itemId: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("remove_service_order_item", { itemId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Atualiza item da ordem (com delta de estoque automático)
- */
-async updateServiceOrderItem(itemId: string, quantity: number | null, unitPrice: number | null, discount: number | null, notes: string | null) : Promise<Result<ServiceOrderItem, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_service_order_item", { itemId, quantity, unitPrice, discount, notes }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista todos os serviços ativos
- */
-async getServices() : Promise<Result<Service[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_services") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca serviço por ID
- */
-async getServiceById(id: string) : Promise<Result<Service | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_service_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca serviço por código
- */
-async getServiceByCode(code: string) : Promise<Result<Service | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_service_by_code", { code }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Cria novo serviço
- */
-async createService(input: CreateService) : Promise<Result<Service, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_service", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Atualiza serviço
- */
-async updateService(id: string, input: UpdateService) : Promise<Result<Service, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_service", { id, input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca o histórico de serviços de um veículo
- */
-async getVehicleServicesHistory(vehicleId: string) : Promise<Result<ServiceOrderSummary[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_vehicle_services_history", { vehicleId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista garantias ativas (não fechadas/negadas)
- */
-async getActiveWarranties() : Promise<Result<WarrantyClaimSummary[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_active_warranties") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista garantias com paginação e filtros
- */
-async getWarrantiesPaginated(page: number | null, perPage: number | null, status: string | null, sourceType: string | null, customerId: string | null, productId: string | null, dateFrom: string | null, dateTo: string | null) : Promise<Result<PaginatedResult<WarrantyClaimSummary>, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_warranties_paginated", { page, perPage, status, sourceType, customerId, productId, dateFrom, dateTo }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca garantia por ID
- */
-async getWarrantyById(id: string) : Promise<Result<WarrantyClaim | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_warranty_by_id", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca garantia com detalhes completos
- */
-async getWarrantyDetails(id: string) : Promise<Result<WarrantyClaimWithDetails | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_warranty_details", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca garantias por cliente
- */
-async getWarrantiesByCustomer(customerId: string) : Promise<Result<WarrantyClaimSummary[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_warranties_by_customer", { customerId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Busca garantias por produto
- */
-async getWarrantiesByProduct(productId: string) : Promise<Result<WarrantyClaimSummary[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_warranties_by_product", { productId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Cria nova garantia
- */
-async createWarrantyClaim(customerId: string, sourceType: string, saleItemId: string | null, orderItemId: string | null, productId: string | null, description: string, reason: string) : Promise<Result<WarrantyClaim, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_warranty_claim", { customerId, sourceType, saleItemId, orderItemId, productId, description, reason }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Atualiza garantia
- */
-async updateWarrantyClaim(id: string, description: string | null, reason: string | null, status: string | null, resolution: string | null, resolutionType: string | null, resolvedById: string | null, refundAmount: number | null, replacementCost: number | null) : Promise<Result<WarrantyClaim, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_warranty_claim", { id, description, reason, status, resolution, resolutionType, resolvedById, refundAmount, replacementCost }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Aprova garantia
- */
-async approveWarranty(id: string) : Promise<Result<WarrantyClaim, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("approve_warranty", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Nega garantia
- */
-async denyWarranty(id: string, reason: string) : Promise<Result<WarrantyClaim, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("deny_warranty", { id, reason }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Obtém estatísticas de garantias
- */
-async getWarrantyStats(dateFrom: string | null, dateTo: string | null) : Promise<Result<WarrantyStats, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_warranty_stats", { dateFrom, dateTo }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista portas seriais disponíveis
- */
-async listSerialPorts() : Promise<string[]> {
-    return await TAURI_INVOKE("list_serial_ports");
-},
-/**
- * Lista todas as portas de hardware relevantes (Serial + USB Printer no Linux)
- */
-async listHardwarePorts() : Promise<string[]> {
-    return await TAURI_INVOKE("list_hardware_ports");
-},
-/**
- * Verifica se uma porta existe
- */
-async checkPortExists(port: string) : Promise<boolean> {
-    return await TAURI_INVOKE("check_port_exists", { port });
-},
-/**
- * Configura a impressora
- */
-async configurePrinter(config: PrinterConfig) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("configure_printer", { config }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Imprime cupom de venda
- */
-async printReceipt(receipt: Receipt) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("print_receipt", { receipt }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Imprime cupom de venda buscando pelo ID
- */
-async printSaleById(saleId: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("print_sale_by_id", { saleId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Imprime ordem de serviço
- */
-async printServiceOrder(os: ServiceOrderReceipt) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("print_service_order", { os }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Testa impressão
- */
-async testPrinter() : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("test_printer") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async testPrinterConnection() : Promise<Result<boolean, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("test_printer_connection") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Imprime múltiplos documentos de teste (nota, ordem de serviço, relatório)
- */
-async printTestDocuments() : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("print_test_documents") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Retorna configuração atual da impressora
- */
-async getPrinterConfig() : Promise<Result<PrinterConfig, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_printer_config") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Configura a balança
- */
-async configureScale(config: ScaleConfig) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("configure_scale", { config }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Carrega configurações de hardware do banco de dados
- */
-async loadHardwareConfigs() : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("load_hardware_configs") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Health check agregado de hardware (impressora, balança, scanner)
- */
-async hardwareHealthCheck() : Promise<Result<HardwareStatus[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("hardware_health_check") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lê peso da balança
- */
-async readWeight() : Promise<Result<ScaleReading, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("read_weight") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async readScaleWeight() : Promise<Result<number, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("read_scale_weight") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async testScaleConnection() : Promise<Result<boolean, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("test_scale_connection") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Detecta automaticamente a balança
- */
-async autoDetectScale() : Promise<Result<ScaleAutoDetectInfo, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("auto_detect_scale") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Retorna configuração atual da balança
- */
-async getScaleConfig() : Promise<Result<ScaleConfig, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_scale_config") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Configura a gaveta
- */
-async configureDrawer(config: DrawerConfig) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("configure_drawer", { config }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Abre a gaveta
- */
-async openDrawer() : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("open_drawer") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async openCashDrawer() : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("open_cash_drawer") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Retorna configuração atual da gaveta
- */
-async getDrawerConfig() : Promise<Result<DrawerConfig, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_drawer_config") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Inicia servidor WebSocket para scanner mobile
- */
-async startScannerServer(config: MobileScannerConfig) : Promise<Result<ScannerServerInfo, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("start_scanner_server", { config }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Inicia leitor serial
- */
-async startSerialScanner(port: string, baud: number) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("start_serial_scanner", { port, baud }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Para servidor de scanner
- */
-async stopScannerServer() : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("stop_scanner_server") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista dispositivos mobile conectados
- */
-async listScannerDevices() : Promise<Result<MobileDevice[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("list_scanner_devices") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Retorna informações do servidor de scanner
- */
-async getScannerServerInfo() : Promise<Result<ScannerServerInfo | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_scanner_server_info") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Gera QR Code para pareamento
- */
-async generatePairingQr() : Promise<Result<string, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("generate_pairing_qr") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Gera QR Code em SVG para exibir no frontend (teste de leitura)
- */
-async generateQrSvg(data: string) : Promise<Result<string, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("generate_qr_svg", { data }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Cria um backup do banco de dados
- */
-async createBackup(password: string | null) : Promise<Result<BackupResult, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_backup", { password }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Restaura um backup
- */
-async restoreBackup(filename: string, password: string | null) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("restore_backup", { filename, password }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista backups locais
- */
-async listBackups() : Promise<Result<BackupMetadata[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("list_backups") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Remove backups antigos
- */
-async cleanupOldBackups() : Promise<Result<number, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("cleanup_old_backups") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Faz upload de backup para Google Drive
- */
-async uploadBackupToDrive(filename: string, accessToken: string) : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("upload_backup_to_drive", { filename, accessToken }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Baixa backup do Google Drive
- */
-async downloadBackupFromDrive(fileId: string, filename: string, accessToken: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("download_backup_from_drive", { fileId, filename, accessToken }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista backups no Google Drive
- */
-async listDriveBackups(accessToken: string) : Promise<Result<BackupMetadata[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("list_drive_backups", { accessToken }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Troca código OAuth por tokens
- */
-async exchangeGoogleCode(clientId: string, clientSecret: string, code: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("exchange_google_code", { clientId, clientSecret, code }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Obtém URL de autorização do Google
- */
-async getGoogleAuthUrl(clientId: string, clientSecret: string) : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_google_auth_url", { clientId, clientSecret }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async listCloudBackupsCmd(bearerToken: string) : Promise<Result<JsonValue, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("list_cloud_backups_cmd", { bearerToken }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async uploadCloudBackupCmd(bearerToken: string, filename: string) : Promise<Result<JsonValue, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("upload_cloud_backup_cmd", { bearerToken, filename }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getCloudBackupCmd(bearerToken: string, backupId: string) : Promise<Result<JsonValue, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_cloud_backup_cmd", { bearerToken, backupId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async deleteCloudBackupCmd(bearerToken: string, backupId: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_cloud_backup_cmd", { bearerToken, backupId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Inicia o cliente de rede (modo satélite)
- */
-async startNetworkClient(terminalName: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("start_network_client", { terminalName }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Para o cliente de rede
- */
-async stopNetworkClient() : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("stop_network_client") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Obtém status da rede
- */
-async getNetworkStatus() : Promise<Result<NetworkStatus, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_network_status") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Inicia o servidor mobile
- */
-async startMobileServer(config: StartServerConfig) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("start_mobile_server", { config }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Para o servidor mobile
- */
-async stopMobileServer() : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("stop_mobile_server") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Alias para compatibilidade com código antigo
- */
-async getMobileServerInfo() : Promise<Result<MobileServerStatus, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_mobile_server_info") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Obtém status do servidor mobile
- */
-async getMobileServerStatus() : Promise<Result<MobileServerStatus, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_mobile_server_status") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Lista dispositivos conectados
- */
-async getConnectedDevices() : Promise<Result<ConnectedDevice[], AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_connected_devices") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Desconecta um dispositivo específico
- */
-async disconnectMobileDevice(deviceId: string) : Promise<Result<null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("disconnect_mobile_device", { deviceId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Used by frontend to display hardware info and for activation
- */
-async getHardwareId() : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_hardware_id") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async activateLicense(licenseKey: string) : Promise<Result<LicenseInfo, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("activate_license", { licenseKey }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async validateLicense(licenseKey: string) : Promise<Result<LicenseInfo, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("validate_license", { licenseKey }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getStoredLicense() : Promise<Result<JsonValue | null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_stored_license") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async syncMetrics(licenseKey: string, metrics: MetricsPayload) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("sync_metrics", { licenseKey, metrics }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getServerTime() : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_server_time") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async restoreLicense() : Promise<Result<string | null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("restore_license") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async updateLicenseAdmin(licenseKey: string, data: UpdateAdminRequest) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_license_admin", { licenseKey, data }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async recoverLicenseFromLogin(payload: LoginPayload) : Promise<Result<LicenseInfo, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("recover_license_from_login", { payload }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async licenseServerLogin(payload: LoginPayload) : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("license_server_login", { payload }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-}
-}
+export const commands = {
+  async getProducts(): Promise<Result<Product[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_products') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getProductsPaginated(
+    page: number | null,
+    perPage: number | null,
+    search: string | null,
+    categoryId: string | null,
+    isActive: boolean | null
+  ): Promise<Result<PaginatedResult<Product>, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_products_paginated', {
+          page,
+          perPage,
+          search,
+          categoryId,
+          isActive,
+        }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getProductById(id: string): Promise<Result<Product | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_product_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getProductByBarcode(barcode: string): Promise<Result<Product | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_product_by_barcode', { barcode }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async searchProducts(query: string): Promise<Result<Product[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('search_products', { query }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getLowStockProducts(): Promise<Result<Product[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_low_stock_products') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async createProduct(input: CreateProduct): Promise<Result<Product, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_product', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async updateProduct(id: string, input: UpdateProduct): Promise<Result<Product, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('update_product', { id, input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async deleteProduct(id: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('delete_product', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Desativa um produto (soft delete) - alias para consistência com frontend
+   */
+  async deactivateProduct(id: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('deactivate_product', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Reativa um produto que foi desativado
+   */
+  async reactivateProduct(id: string): Promise<Result<Product, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('reactivate_product', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista todos os produtos (ativos e inativos)
+   */
+  async getAllProducts(includeInactive: boolean): Promise<Result<Product[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_all_products', { includeInactive }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista apenas produtos inativos
+   */
+  async getInactiveProducts(): Promise<Result<Product[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_inactive_products') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getCategories(): Promise<Result<Category[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_categories') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getCategoriesWithCount(): Promise<Result<CategoryWithCount[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_categories_with_count') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getCategoryById(id: string): Promise<Result<Category | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_category_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async createCategory(input: CreateCategory): Promise<Result<Category, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_category', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async updateCategory(id: string, input: UpdateCategory): Promise<Result<Category, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('update_category', { id, input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async deleteCategory(id: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('delete_category', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Desativa uma categoria (alias para delete)
+   */
+  async deactivateCategory(id: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('deactivate_category', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Reativa uma categoria desativada
+   */
+  async reactivateCategory(id: string): Promise<Result<Category, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('reactivate_category', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista todas as categorias (ativas e inativas)
+   */
+  async getAllCategories(includeInactive: boolean): Promise<Result<Category[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_all_categories', { includeInactive }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista apenas categorias inativas
+   */
+  async getInactiveCategories(): Promise<Result<Category[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_inactive_categories') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getEmployees(): Promise<Result<SafeEmployee[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_employees') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getEmployeeById(id: string): Promise<Result<Employee | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_employee_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async authenticateByPin(pin: string): Promise<Result<SafeEmployee | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('authenticate_by_pin', { pin }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async authenticateEmployee(pin: string): Promise<Result<SafeEmployee | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('authenticate_employee', { pin }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async hasAdmin(): Promise<Result<boolean, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('has_admin') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async createFirstAdmin(input: CreateFirstAdminInput): Promise<Result<SafeEmployee, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_first_admin', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async hasAnyEmployee(): Promise<Result<boolean, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('has_any_employee') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async createEmployee(input: CreateEmployee): Promise<Result<SafeEmployee, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_employee', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async updateEmployee(id: string, input: UpdateEmployee): Promise<Result<SafeEmployee, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('update_employee', { id, input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async deactivateEmployee(id: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('deactivate_employee', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Reativa um funcionário desativado
+   */
+  async reactivateEmployee(id: string): Promise<Result<SafeEmployee, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('reactivate_employee', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async logout(): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('logout') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getCurrentUser(): Promise<Result<SafeEmployee | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_current_user') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista apenas funcionários inativos
+   */
+  async getInactiveEmployees(): Promise<Result<SafeEmployee[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_inactive_employees') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSales(filter: SaleFilters | null): Promise<Result<PaginatedResult<Sale>, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_sales', { filter }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSalesToday(): Promise<Result<Sale[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_sales_today') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getTodaySales(): Promise<Result<Sale[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_today_sales') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSaleById(id: string): Promise<Result<SaleWithDetails | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_sale_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSalesBySession(sessionId: string): Promise<Result<Sale[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_sales_by_session', { sessionId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async createSale(input: CreateSale): Promise<Result<Sale, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_sale', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async cancelSale(id: string, reason: string): Promise<Result<Sale, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('cancel_sale', { id, reason }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getDailySummary(date: string): Promise<Result<DailySalesSummary, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_daily_summary', { date }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Total de vendas (valor) do dia atual.
+   *
+   * Compatibilidade com o frontend (`get_daily_sales_total`).
+   */
+  async getDailySalesTotal(): Promise<Result<number, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_daily_sales_total') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Resumo de vendas do mês (YYYY-MM)
+   */
+  async getMonthlySummary(yearMonth: string): Promise<Result<MonthlySalesSummary, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_monthly_summary', { yearMonth }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getCurrentSession(): Promise<Result<CashSession | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_current_session') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getCurrentCashSession(): Promise<Result<CashSession | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_current_cash_session') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSessionHistory(limit: number): Promise<Result<CashSession[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_session_history', { limit }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getCashSessionHistory(limit: number): Promise<Result<CashSession[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_cash_session_history', { limit }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSessionMovements(sessionId: string): Promise<Result<CashMovement[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_session_movements', { sessionId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async openCashSession(input: CreateCashSession): Promise<Result<CashSession, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('open_cash_session', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async closeCashSession(
+    id: string,
+    actualBalance: number,
+    notes: string | null
+  ): Promise<Result<CashSession, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('close_cash_session', { id, actualBalance, notes }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async addCashMovement(input: CreateCashMovement): Promise<Result<CashMovement, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('add_cash_movement', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getCashSessionSummary(sessionId: string): Promise<Result<CashSessionSummary, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_cash_session_summary', { sessionId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getRecentStockMovements(limit: number): Promise<Result<StockMovementRow[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_recent_stock_movements', { limit }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getProductStockMovements(
+    productId: string,
+    limit: number
+  ): Promise<Result<StockMovementRow[], AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_product_stock_movements', { productId, limit }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async createStockMovement(
+    input: CreateStockMovement
+  ): Promise<Result<StockMovementRow, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_stock_movement', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getProductLots(productId: string): Promise<Result<ProductLot[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_product_lots', { productId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getExpiringLots(days: number): Promise<Result<ProductLot[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_expiring_lots', { days }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getExpiredLots(): Promise<Result<ProductLot[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_expired_lots') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSuppliers(): Promise<Result<Supplier[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_suppliers') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSupplierById(id: string): Promise<Result<Supplier | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_supplier_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async searchSuppliers(query: string): Promise<Result<Supplier[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('search_suppliers', { query }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async createSupplier(input: CreateSupplier): Promise<Result<Supplier, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_supplier', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async updateSupplier(id: string, input: UpdateSupplier): Promise<Result<Supplier, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('update_supplier', { id, input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async deleteSupplier(id: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('delete_supplier', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Desativa um fornecedor (alias para delete)
+   */
+  async deactivateSupplier(id: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('deactivate_supplier', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Reativa um fornecedor desativado
+   */
+  async reactivateSupplier(id: string): Promise<Result<Supplier, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('reactivate_supplier', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista todos os fornecedores (ativos e inativos)
+   */
+  async getAllSuppliers(includeInactive: boolean): Promise<Result<Supplier[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_all_suppliers', { includeInactive }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista apenas fornecedores inativos
+   */
+  async getInactiveSuppliers(): Promise<Result<Supplier[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_inactive_suppliers') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista todos os clientes ativos
+   */
+  async getCustomers(): Promise<Result<Customer[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_customers') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista clientes com paginação e filtros
+   */
+  async getCustomersPaginated(
+    page: number | null,
+    perPage: number | null,
+    filters: CustomerFilters | null
+  ): Promise<Result<PaginatedResult<CustomerWithStats>, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_customers_paginated', { page, perPage, filters }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca cliente por ID
+   */
+  async getCustomerById(id: string): Promise<Result<Customer | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_customer_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca cliente por CPF
+   */
+  async getCustomerByCpf(cpf: string): Promise<Result<Customer | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_customer_by_cpf', { cpf }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca clientes por termo (nome, CPF, telefone)
+   */
+  async searchCustomers(
+    query: string,
+    limit: number | null
+  ): Promise<Result<Customer[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('search_customers', { query, limit }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Cria novo cliente
+   */
+  async createCustomer(input: CreateCustomer): Promise<Result<Customer, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_customer', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Atualiza cliente
+   */
+  async updateCustomer(id: string, input: UpdateCustomer): Promise<Result<Customer, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('update_customer', { id, input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Desativa cliente (soft delete)
+   */
+  async deactivateCustomer(id: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('deactivate_customer', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Reativa cliente
+   */
+  async reactivateCustomer(id: string): Promise<Result<Customer, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('reactivate_customer', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista veículos de um cliente
+   */
+  async getCustomerVehicles(
+    customerId: string
+  ): Promise<Result<CustomerVehicleWithDetails[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_customer_vehicles', { customerId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca veículo do cliente por ID
+   */
+  async getCustomerVehicleById(id: string): Promise<Result<CustomerVehicle | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_customer_vehicle_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Cria veículo do cliente
+   */
+  async createCustomerVehicle(
+    input: CreateCustomerVehicle
+  ): Promise<Result<CustomerVehicle, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_customer_vehicle', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Atualiza veículo do cliente
+   */
+  async updateCustomerVehicle(
+    id: string,
+    input: UpdateCustomerVehicle
+  ): Promise<Result<CustomerVehicle, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('update_customer_vehicle', { id, input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Desativa veículo do cliente
+   */
+  async deactivateCustomerVehicle(id: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('deactivate_customer_vehicle', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Atualiza quilometragem do veículo
+   */
+  async updateVehicleKm(id: string, km: number): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('update_vehicle_km', { id, km }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getAllSettings(): Promise<Result<Setting[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_all_settings') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSettingsByGroup(group: string): Promise<Result<Setting[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_settings_by_group', { group }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSetting(key: string): Promise<Result<string | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_setting', { key }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSettingBool(key: string): Promise<Result<boolean, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_setting_bool', { key }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSettingNumber(key: string): Promise<Result<number | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_setting_number', { key }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async setSetting(input: SetSetting): Promise<Result<Setting, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('set_setting', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async deleteSetting(key: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('delete_setting', { key }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista todas as marcas de veículos ativas
+   */
+  async getVehicleBrands(): Promise<Result<VehicleBrand[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_vehicle_brands') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca uma marca por ID
+   */
+  async getVehicleBrandById(id: string): Promise<Result<VehicleBrand | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_vehicle_brand_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Cria uma nova marca
+   */
+  async createVehicleBrand(input: CreateVehicleBrand): Promise<Result<VehicleBrand, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_vehicle_brand', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista modelos de uma marca
+   */
+  async getVehicleModels(brandId: string): Promise<Result<VehicleModel[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_vehicle_models', { brandId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca um modelo por ID
+   */
+  async getVehicleModelById(id: string): Promise<Result<VehicleModel | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_vehicle_model_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Cria um novo modelo
+   */
+  async createVehicleModel(input: CreateVehicleModel): Promise<Result<VehicleModel, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_vehicle_model', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista anos de um modelo
+   */
+  async getVehicleYears(modelId: string): Promise<Result<VehicleYear[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_vehicle_years', { modelId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca um ano por ID
+   */
+  async getVehicleYearById(id: string): Promise<Result<VehicleYear | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_vehicle_year_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Cria um novo ano
+   */
+  async createVehicleYear(input: CreateVehicleYear): Promise<Result<VehicleYear, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_vehicle_year', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca veículos por texto (marca, modelo, ano)
+   */
+  async searchVehicles(
+    query: string,
+    limit: number | null
+  ): Promise<Result<VehicleComplete[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('search_vehicles', { query, limit }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Obtém veículo completo por ID do ano
+   */
+  async getCompleteVehicle(yearId: string): Promise<Result<VehicleComplete | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_complete_vehicle', { yearId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista compatibilidades de um produto
+   */
+  async getProductCompatibilities(
+    productId: string
+  ): Promise<Result<ProductCompatibilityWithVehicle[], AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_product_compatibilities', { productId }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Adiciona uma compatibilidade
+   */
+  async addProductCompatibility(input: AddProductCompatibility): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('add_product_compatibility', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Remove uma compatibilidade
+   */
+  async removeProductCompatibility(
+    productId: string,
+    vehicleYearId: string
+  ): Promise<Result<null, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('remove_product_compatibility', { productId, vehicleYearId }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Salva todas as compatibilidades de um produto (substitui existentes)
+   */
+  async saveProductCompatibilities(
+    input: SaveProductCompatibilities
+  ): Promise<Result<ProductCompatibilityWithVehicle[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('save_product_compatibilities', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista IDs de produtos compatíveis com um veículo
+   */
+  async getProductsByVehicle(vehicleYearId: string): Promise<Result<string[], AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_products_by_vehicle', { vehicleYearId }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getStockReport(): Promise<Result<StockReport, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_stock_report') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getTopProducts(limit: number): Promise<Result<TopProduct[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_top_products', { limit }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getSalesReport(startDate: string, endDate: string): Promise<Result<SalesReport, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_sales_report', { startDate, endDate }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getFinancialReport(
+    startDate: string,
+    endDate: string
+  ): Promise<Result<FinancialReport, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_financial_report', { startDate, endDate }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getEmployeePerformance(
+    startDate: string,
+    endDate: string
+  ): Promise<Result<EmployeeRanking[], AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_employee_performance', { startDate, endDate }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getMotopartsDashboardStats(): Promise<Result<DashboardStats, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_motoparts_dashboard_stats') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getServiceOrderStats(): Promise<Result<ServiceOrderStats, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_service_order_stats') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getTopProductsMotoparts(limit: number): Promise<Result<TopItem[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_top_products_motoparts', { limit }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getAlerts(limit: number): Promise<Result<Alert[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_alerts', { limit }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getUnreadAlerts(): Promise<Result<Alert[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_unread_alerts') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getUnreadAlertCount(): Promise<Result<number, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_unread_alert_count') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getUnreadAlertsCount(): Promise<Result<number, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_unread_alerts_count') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async markAlertRead(id: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('mark_alert_read', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async markAllAlertsRead(): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('mark_all_alerts_read') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async createAlert(input: CreateAlert): Promise<Result<Alert, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_alert', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async deleteAlert(id: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('delete_alert', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca histórico de preços de um produto específico
+   */
+  async getPriceHistoryByProduct(productId: string): Promise<Result<PriceHistory[], AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_price_history_by_product', { productId }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca histórico de preços recente (últimos N registros)
+   */
+  async getRecentPriceHistory(
+    limit: number | null
+  ): Promise<Result<PriceHistoryWithProduct[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_recent_price_history', { limit }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca um registro de histórico de preço por ID
+   */
+  async getPriceHistoryById(id: string): Promise<Result<PriceHistory | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_price_history_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Retorna o caminho do diretório de dados do aplicativo
+   */
+  async getAppDataPath(): Promise<Result<string, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_app_data_path') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Retorna o caminho do banco de dados
+   */
+  async getDatabasePath(): Promise<Result<string, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_database_path') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Retorna informações sobre o uso de disco
+   */
+  async getDiskUsage(): Promise<Result<DiskUsageInfo, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_disk_usage') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Tenta corrigir as regras de firewall (Windows only)
+   */
+  async fixFirewallRules(): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('fix_firewall_rules') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista ordens abertas (não entregues/canceladas)
+   */
+  async getOpenServiceOrders(): Promise<Result<ServiceOrderSummary[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_open_service_orders') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista ordens com paginação e filtros
+   */
+  async getServiceOrdersPaginated(
+    page: number | null,
+    perPage: number | null,
+    status: string | null,
+    customerId: string | null,
+    vehicleId: string | null,
+    employeeId: string | null,
+    isPaid: boolean | null,
+    dateFrom: string | null,
+    dateTo: string | null
+  ): Promise<Result<PaginatedResult<ServiceOrderSummary>, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_service_orders_paginated', {
+          page,
+          perPage,
+          status,
+          customerId,
+          vehicleId,
+          employeeId,
+          isPaid,
+          dateFrom,
+          dateTo,
+        }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca ordem por ID
+   */
+  async getServiceOrderById(id: string): Promise<Result<ServiceOrder | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_service_order_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca ordem por número
+   */
+  async getServiceOrderByNumber(
+    orderNumber: number
+  ): Promise<Result<ServiceOrder | null, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_service_order_by_number', { orderNumber }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca ordem com detalhes completos
+   */
+  async getServiceOrderDetails(
+    id: string
+  ): Promise<Result<ServiceOrderWithDetails | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_service_order_details', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Cria nova ordem de serviço
+   */
+  async createServiceOrder(input: CreateServiceOrder): Promise<Result<ServiceOrder, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_service_order', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Atualiza ordem de serviço
+   */
+  async updateServiceOrder(
+    id: string,
+    input: UpdateServiceOrder
+  ): Promise<Result<ServiceOrder, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('update_service_order', { id, input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Inicia ordem (muda status para IN_PROGRESS)
+   */
+  async startServiceOrder(id: string): Promise<Result<ServiceOrder, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('start_service_order', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Finaliza ordem (muda status para COMPLETED)
+   */
+  async completeServiceOrder(
+    id: string,
+    diagnosis: string | null
+  ): Promise<Result<ServiceOrder, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('complete_service_order', { id, diagnosis }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Marca como entregue (muda status para DELIVERED)
+   */
+  async deliverServiceOrder(
+    id: string,
+    paymentMethod: string
+  ): Promise<Result<ServiceOrder, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('deliver_service_order', { id, paymentMethod }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Cancela ordem
+   */
+  async cancelServiceOrder(
+    id: string,
+    notes: string | null
+  ): Promise<Result<ServiceOrder, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('cancel_service_order', { id, notes }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Finaliza ordem de serviço (Gera venda e financeiro)
+   */
+  async finishServiceOrder(
+    id: string,
+    paymentMethod: string,
+    amountPaid: number,
+    cashSessionId: string
+  ): Promise<Result<string, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('finish_service_order', {
+          id,
+          paymentMethod,
+          amountPaid,
+          cashSessionId,
+        }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista itens de uma ordem
+   */
+  async getServiceOrderItems(orderId: string): Promise<Result<ServiceOrderItem[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_service_order_items', { orderId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Adiciona item (peça ou serviço) à ordem
+   */
+  async addServiceOrderItem(
+    orderId: string,
+    productId: string | null,
+    itemType: string,
+    description: string,
+    quantity: number,
+    unitPrice: number,
+    discount: number | null,
+    notes: string | null
+  ): Promise<Result<ServiceOrderItem, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('add_service_order_item', {
+          orderId,
+          productId,
+          itemType,
+          description,
+          quantity,
+          unitPrice,
+          discount,
+          notes,
+        }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Remove item da ordem
+   */
+  async removeServiceOrderItem(itemId: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('remove_service_order_item', { itemId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Atualiza item da ordem (com delta de estoque automático)
+   */
+  async updateServiceOrderItem(
+    itemId: string,
+    quantity: number | null,
+    unitPrice: number | null,
+    discount: number | null,
+    notes: string | null
+  ): Promise<Result<ServiceOrderItem, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('update_service_order_item', {
+          itemId,
+          quantity,
+          unitPrice,
+          discount,
+          notes,
+        }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista todos os serviços ativos
+   */
+  async getServices(): Promise<Result<Service[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_services') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca serviço por ID
+   */
+  async getServiceById(id: string): Promise<Result<Service | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_service_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca serviço por código
+   */
+  async getServiceByCode(code: string): Promise<Result<Service | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_service_by_code', { code }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Cria novo serviço
+   */
+  async createService(input: CreateService): Promise<Result<Service, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_service', { input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Atualiza serviço
+   */
+  async updateService(id: string, input: UpdateService): Promise<Result<Service, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('update_service', { id, input }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca o histórico de serviços de um veículo
+   */
+  async getVehicleServicesHistory(
+    vehicleId: string
+  ): Promise<Result<ServiceOrderSummary[], AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_vehicle_services_history', { vehicleId }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista garantias ativas (não fechadas/negadas)
+   */
+  async getActiveWarranties(): Promise<Result<WarrantyClaimSummary[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_active_warranties') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista garantias com paginação e filtros
+   */
+  async getWarrantiesPaginated(
+    page: number | null,
+    perPage: number | null,
+    status: string | null,
+    sourceType: string | null,
+    customerId: string | null,
+    productId: string | null,
+    dateFrom: string | null,
+    dateTo: string | null
+  ): Promise<Result<PaginatedResult<WarrantyClaimSummary>, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_warranties_paginated', {
+          page,
+          perPage,
+          status,
+          sourceType,
+          customerId,
+          productId,
+          dateFrom,
+          dateTo,
+        }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca garantia por ID
+   */
+  async getWarrantyById(id: string): Promise<Result<WarrantyClaim | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_warranty_by_id', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca garantia com detalhes completos
+   */
+  async getWarrantyDetails(id: string): Promise<Result<WarrantyClaimWithDetails | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_warranty_details', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca garantias por cliente
+   */
+  async getWarrantiesByCustomer(
+    customerId: string
+  ): Promise<Result<WarrantyClaimSummary[], AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_warranties_by_customer', { customerId }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Busca garantias por produto
+   */
+  async getWarrantiesByProduct(
+    productId: string
+  ): Promise<Result<WarrantyClaimSummary[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_warranties_by_product', { productId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Cria nova garantia
+   */
+  async createWarrantyClaim(
+    customerId: string,
+    sourceType: string,
+    saleItemId: string | null,
+    orderItemId: string | null,
+    productId: string | null,
+    description: string,
+    reason: string
+  ): Promise<Result<WarrantyClaim, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('create_warranty_claim', {
+          customerId,
+          sourceType,
+          saleItemId,
+          orderItemId,
+          productId,
+          description,
+          reason,
+        }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Atualiza garantia
+   */
+  async updateWarrantyClaim(
+    id: string,
+    description: string | null,
+    reason: string | null,
+    status: string | null,
+    resolution: string | null,
+    resolutionType: string | null,
+    resolvedById: string | null,
+    refundAmount: number | null,
+    replacementCost: number | null
+  ): Promise<Result<WarrantyClaim, AppError>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('update_warranty_claim', {
+          id,
+          description,
+          reason,
+          status,
+          resolution,
+          resolutionType,
+          resolvedById,
+          refundAmount,
+          replacementCost,
+        }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Aprova garantia
+   */
+  async approveWarranty(id: string): Promise<Result<WarrantyClaim, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('approve_warranty', { id }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Nega garantia
+   */
+  async denyWarranty(id: string, reason: string): Promise<Result<WarrantyClaim, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('deny_warranty', { id, reason }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Obtém estatísticas de garantias
+   */
+  async getWarrantyStats(
+    dateFrom: string | null,
+    dateTo: string | null
+  ): Promise<Result<WarrantyStats, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_warranty_stats', { dateFrom, dateTo }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista portas seriais disponíveis
+   */
+  async listSerialPorts(): Promise<string[]> {
+    return await TAURI_INVOKE('list_serial_ports');
+  },
+  /**
+   * Lista todas as portas de hardware relevantes (Serial + USB Printer no Linux)
+   */
+  async listHardwarePorts(): Promise<string[]> {
+    return await TAURI_INVOKE('list_hardware_ports');
+  },
+  /**
+   * Verifica se uma porta existe
+   */
+  async checkPortExists(port: string): Promise<boolean> {
+    return await TAURI_INVOKE('check_port_exists', { port });
+  },
+  /**
+   * Configura a impressora
+   */
+  async configurePrinter(config: PrinterConfig): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('configure_printer', { config }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Imprime cupom de venda
+   */
+  async printReceipt(receipt: Receipt): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('print_receipt', { receipt }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Imprime cupom de venda buscando pelo ID
+   */
+  async printSaleById(saleId: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('print_sale_by_id', { saleId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Imprime ordem de serviço
+   */
+  async printServiceOrder(os: ServiceOrderReceipt): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('print_service_order', { os }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Testa impressão
+   */
+  async testPrinter(): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('test_printer') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async testPrinterConnection(): Promise<Result<boolean, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('test_printer_connection') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Imprime múltiplos documentos de teste (nota, ordem de serviço, relatório)
+   */
+  async printTestDocuments(): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('print_test_documents') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Retorna configuração atual da impressora
+   */
+  async getPrinterConfig(): Promise<Result<PrinterConfig, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_printer_config') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Configura a balança
+   */
+  async configureScale(config: ScaleConfig): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('configure_scale', { config }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Carrega configurações de hardware do banco de dados
+   */
+  async loadHardwareConfigs(): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('load_hardware_configs') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Health check agregado de hardware (impressora, balança, scanner)
+   */
+  async hardwareHealthCheck(): Promise<Result<HardwareStatus[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('hardware_health_check') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lê peso da balança
+   */
+  async readWeight(): Promise<Result<ScaleReading, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('read_weight') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async readScaleWeight(): Promise<Result<number, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('read_scale_weight') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async testScaleConnection(): Promise<Result<boolean, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('test_scale_connection') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Detecta automaticamente a balança
+   */
+  async autoDetectScale(): Promise<Result<ScaleAutoDetectInfo, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('auto_detect_scale') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Retorna configuração atual da balança
+   */
+  async getScaleConfig(): Promise<Result<ScaleConfig, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_scale_config') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Configura a gaveta
+   */
+  async configureDrawer(config: DrawerConfig): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('configure_drawer', { config }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Abre a gaveta
+   */
+  async openDrawer(): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('open_drawer') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async openCashDrawer(): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('open_cash_drawer') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Retorna configuração atual da gaveta
+   */
+  async getDrawerConfig(): Promise<Result<DrawerConfig, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_drawer_config') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Inicia servidor WebSocket para scanner mobile
+   */
+  async startScannerServer(
+    config: MobileScannerConfig
+  ): Promise<Result<ScannerServerInfo, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('start_scanner_server', { config }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Inicia leitor serial
+   */
+  async startSerialScanner(port: string, baud: number): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('start_serial_scanner', { port, baud }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Para servidor de scanner
+   */
+  async stopScannerServer(): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('stop_scanner_server') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista dispositivos mobile conectados
+   */
+  async listScannerDevices(): Promise<Result<MobileDevice[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('list_scanner_devices') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Retorna informações do servidor de scanner
+   */
+  async getScannerServerInfo(): Promise<Result<ScannerServerInfo | null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_scanner_server_info') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Gera QR Code para pareamento
+   */
+  async generatePairingQr(): Promise<Result<string, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('generate_pairing_qr') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Gera QR Code em SVG para exibir no frontend (teste de leitura)
+   */
+  async generateQrSvg(data: string): Promise<Result<string, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('generate_qr_svg', { data }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Cria um backup do banco de dados
+   */
+  async createBackup(password: string | null): Promise<Result<BackupResult, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('create_backup', { password }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Restaura um backup
+   */
+  async restoreBackup(filename: string, password: string | null): Promise<Result<null, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('restore_backup', { filename, password }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista backups locais
+   */
+  async listBackups(): Promise<Result<BackupMetadata[], string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('list_backups') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Remove backups antigos
+   */
+  async cleanupOldBackups(): Promise<Result<number, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('cleanup_old_backups') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Faz upload de backup para Google Drive
+   */
+  async uploadBackupToDrive(
+    filename: string,
+    accessToken: string
+  ): Promise<Result<string, string>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('upload_backup_to_drive', { filename, accessToken }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Baixa backup do Google Drive
+   */
+  async downloadBackupFromDrive(
+    fileId: string,
+    filename: string,
+    accessToken: string
+  ): Promise<Result<null, string>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('download_backup_from_drive', { fileId, filename, accessToken }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista backups no Google Drive
+   */
+  async listDriveBackups(accessToken: string): Promise<Result<BackupMetadata[], string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('list_drive_backups', { accessToken }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Troca código OAuth por tokens
+   */
+  async exchangeGoogleCode(
+    clientId: string,
+    clientSecret: string,
+    code: string
+  ): Promise<Result<null, string>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('exchange_google_code', { clientId, clientSecret, code }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Obtém URL de autorização do Google
+   */
+  async getGoogleAuthUrl(clientId: string, clientSecret: string): Promise<Result<string, string>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_google_auth_url', { clientId, clientSecret }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async listCloudBackupsCmd(bearerToken: string): Promise<Result<JsonValue, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('list_cloud_backups_cmd', { bearerToken }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async uploadCloudBackupCmd(
+    bearerToken: string,
+    filename: string
+  ): Promise<Result<JsonValue, string>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('upload_cloud_backup_cmd', { bearerToken, filename }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getCloudBackupCmd(
+    bearerToken: string,
+    backupId: string
+  ): Promise<Result<JsonValue, string>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('get_cloud_backup_cmd', { bearerToken, backupId }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async deleteCloudBackupCmd(bearerToken: string, backupId: string): Promise<Result<null, string>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('delete_cloud_backup_cmd', { bearerToken, backupId }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Inicia o cliente de rede (modo satélite)
+   */
+  async startNetworkClient(terminalName: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('start_network_client', { terminalName }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Para o cliente de rede
+   */
+  async stopNetworkClient(): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('stop_network_client') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Obtém status da rede
+   */
+  async getNetworkStatus(): Promise<Result<NetworkStatus, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_network_status') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Inicia o servidor mobile
+   */
+  async startMobileServer(config: StartServerConfig): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('start_mobile_server', { config }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Para o servidor mobile
+   */
+  async stopMobileServer(): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('stop_mobile_server') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Alias para compatibilidade com código antigo
+   */
+  async getMobileServerInfo(): Promise<Result<MobileServerStatus, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_mobile_server_info') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Obtém status do servidor mobile
+   */
+  async getMobileServerStatus(): Promise<Result<MobileServerStatus, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_mobile_server_status') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Lista dispositivos conectados
+   */
+  async getConnectedDevices(): Promise<Result<ConnectedDevice[], AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_connected_devices') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Desconecta um dispositivo específico
+   */
+  async disconnectMobileDevice(deviceId: string): Promise<Result<null, AppError>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('disconnect_mobile_device', { deviceId }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  /**
+   * Used by frontend to display hardware info and for activation
+   */
+  async getHardwareId(): Promise<Result<string, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_hardware_id') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async activateLicense(licenseKey: string): Promise<Result<LicenseInfo, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('activate_license', { licenseKey }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async validateLicense(licenseKey: string): Promise<Result<LicenseInfo, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('validate_license', { licenseKey }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getStoredLicense(): Promise<Result<JsonValue | null, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_stored_license') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async syncMetrics(licenseKey: string, metrics: MetricsPayload): Promise<Result<null, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('sync_metrics', { licenseKey, metrics }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async getServerTime(): Promise<Result<string, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('get_server_time') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async restoreLicense(): Promise<Result<string | null, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('restore_license') };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async updateLicenseAdmin(
+    licenseKey: string,
+    data: UpdateAdminRequest
+  ): Promise<Result<null, string>> {
+    try {
+      return {
+        status: 'ok',
+        data: await TAURI_INVOKE('update_license_admin', { licenseKey, data }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async recoverLicenseFromLogin(payload: LoginPayload): Promise<Result<LicenseInfo, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('recover_license_from_login', { payload }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+  async licenseServerLogin(payload: LoginPayload): Promise<Result<string, string>> {
+    try {
+      return { status: 'ok', data: await TAURI_INVOKE('license_server_login', { payload }) };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: 'error', error: e as any };
+    }
+  },
+};
 
 /** user-defined events **/
 
-
-
 /** user-defined constants **/
-
-
 
 /** user-defined types **/
 
 /**
  * Para adicionar/remover compatibilidade individual
  */
-export type AddProductCompatibility = { productId: string; vehicleYearId: string; isVerified: number | null }
+export type AddProductCompatibility = {
+  productId: string;
+  vehicleYearId: string;
+  isVerified: number | null;
+};
 /**
  * Admin user sync data
  */
-export type AdminUserSyncData = { id: string; name: string; email: string; phone: string | null; passwordHash: string }
+export type AdminUserSyncData = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  passwordHash: string;
+};
 /**
  * Alerta
  */
-export type Alert = { id: string; type: string; severity: string; title: string; message: string; isRead: boolean; isDismissed: boolean; productId: string | null; lotId: string | null; createdAt: string }
+export type Alert = {
+  id: string;
+  type: string;
+  severity: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  isDismissed: boolean;
+  productId: string | null;
+  lotId: string | null;
+  createdAt: string;
+};
 /**
  * Erro principal da aplicação
  */
-export type AppError = { Database: string } | { NotFound: { entity: string; id: string } } | { Duplicate: string } | { Constraint: string } | { Validation: string } | { BadRequest: string } | { RequiredField: string } | { InvalidValue: { field: string; message: string } } | { InsufficientStock: { available: number; requested: number } } | "CashSessionNotOpen" | "CashSessionAlreadyOpen" | { SaleCannotBeCanceled: string } | { Unauthorized: string } | "InvalidCredentials" | "ExpiredProduct" | { DiscountExceedsLimit: { max: number } } | "PermissionDenied" | { Hardware: string } | "Io" | "Serialization" | { Internal: string } | { System: string } | "Sql"
+export type AppError =
+  | { Database: string }
+  | { NotFound: { entity: string; id: string } }
+  | { Duplicate: string }
+  | { Constraint: string }
+  | { Validation: string }
+  | { BadRequest: string }
+  | { RequiredField: string }
+  | { InvalidValue: { field: string; message: string } }
+  | { InsufficientStock: { available: number; requested: number } }
+  | 'CashSessionNotOpen'
+  | 'CashSessionAlreadyOpen'
+  | { SaleCannotBeCanceled: string }
+  | { Unauthorized: string }
+  | 'InvalidCredentials'
+  | 'ExpiredProduct'
+  | { DiscountExceedsLimit: { max: number } }
+  | 'PermissionDenied'
+  | { Hardware: string }
+  | 'Io'
+  | 'Serialization'
+  | { Internal: string }
+  | { System: string }
+  | 'Sql';
 /**
  * Metadados do backup
  */
-export type BackupMetadata = { id: string; filename: string; sizeBytes: number; createdAt: string; encrypted: boolean; driveFileId: string | null; checksum: string }
+export type BackupMetadata = {
+  id: string;
+  filename: string;
+  sizeBytes: number;
+  createdAt: string;
+  encrypted: boolean;
+  driveFileId: string | null;
+  checksum: string;
+};
 /**
  * Resultado de operação de backup
  */
-export type BackupResult = { success: boolean; metadata: BackupMetadata | null; error: string | null }
+export type BackupResult = {
+  success: boolean;
+  metadata: BackupMetadata | null;
+  error: string | null;
+};
 /**
  * Movimentação de caixa
  */
-export type CashMovement = { id: string; sessionId: string; type: string; amount: number; description: string | null; createdAt: string }
+export type CashMovement = {
+  id: string;
+  sessionId: string;
+  type: string;
+  amount: number;
+  description: string | null;
+  createdAt: string;
+};
 /**
  * Sessão de caixa
  */
-export type CashSession = { id: string; employeeId: string; openedAt: string; closedAt: string | null; openingBalance: number; expectedBalance: number | null; actualBalance: number | null; difference: number | null; status: string; notes: string | null; createdAt: string; updatedAt: string }
+export type CashSession = {
+  id: string;
+  employeeId: string;
+  openedAt: string;
+  closedAt: string | null;
+  openingBalance: number;
+  expectedBalance: number | null;
+  actualBalance: number | null;
+  difference: number | null;
+  status: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Resumo da sessão
  */
-export type CashSessionSummary = { session: CashSession; totalSales: number; totalCanceled: number; totalWithdrawals: number; totalSupplies: number; movementCount: number; salesByMethod: PaymentMethodSummary[]; cashInDrawer: number }
+export type CashSessionSummary = {
+  session: CashSession;
+  totalSales: number;
+  totalCanceled: number;
+  totalWithdrawals: number;
+  totalSupplies: number;
+  movementCount: number;
+  salesByMethod: PaymentMethodSummary[];
+  cashInDrawer: number;
+};
 /**
  * Categoria de produtos
  */
-export type Category = { id: string; name: string; description: string | null; color: string | null; icon: string | null; parentId: string | null; sortOrder: number; active: boolean; createdAt: string; updatedAt: string }
+export type Category = {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  parentId: string | null;
+  sortOrder: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Categoria com contagem de produtos
  */
-export type CategoryWithCount = ({ id: string; name: string; description: string | null; color: string | null; icon: string | null; parentId: string | null; sortOrder: number; active: boolean; createdAt: string; updatedAt: string }) & { productCount: number }
+export type CategoryWithCount = {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  parentId: string | null;
+  sortOrder: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+} & { productCount: number };
 /**
  * Dispositivo conectado
  */
-export type ConnectedDevice = { id: string; deviceName: string; employeeName: string | null; connectedAt: string; lastActivity: string }
+export type ConnectedDevice = {
+  id: string;
+  deviceName: string;
+  employeeName: string | null;
+  connectedAt: string;
+  lastActivity: string;
+};
 /**
  * Para criar alerta
  */
-export type CreateAlert = { alertType: string; severity: string; title: string; message: string; productId: string | null; lotId: string | null }
+export type CreateAlert = {
+  alertType: string;
+  severity: string;
+  title: string;
+  message: string;
+  productId: string | null;
+  lotId: string | null;
+};
 /**
  * Para criar movimentação
  */
-export type CreateCashMovement = { sessionId: string; employeeId: string; movementType: string; amount: number; description: string | null }
+export type CreateCashMovement = {
+  sessionId: string;
+  employeeId: string;
+  movementType: string;
+  amount: number;
+  description: string | null;
+};
 /**
  * Para abrir sessão de caixa
  */
-export type CreateCashSession = { employeeId: string; openingBalance: number; notes: string | null }
+export type CreateCashSession = {
+  employeeId: string;
+  openingBalance: number;
+  notes: string | null;
+};
 /**
  * Para criar categoria
  */
-export type CreateCategory = { name: string; description: string | null; color: string | null; icon: string | null; parentId: string | null; sortOrder: number | null }
+export type CreateCategory = {
+  name: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  parentId: string | null;
+  sortOrder: number | null;
+};
 /**
  * Para criar cliente
  */
-export type CreateCustomer = { name: string; cpf: string | null; phone: string | null; phone2: string | null; email: string | null; zipCode: string | null; street: string | null; number: string | null; complement: string | null; neighborhood: string | null; city: string | null; state: string | null; notes: string | null }
+export type CreateCustomer = {
+  name: string;
+  cpf: string | null;
+  phone: string | null;
+  phone2: string | null;
+  email: string | null;
+  zipCode: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  notes: string | null;
+};
 /**
  * Para criar veículo do cliente
  */
-export type CreateCustomerVehicle = { customerId: string; vehicleYearId: string; plate: string | null; chassis: string | null; renavam: string | null; color: string | null; currentKm: number | null; nickname: string | null; notes: string | null }
+export type CreateCustomerVehicle = {
+  customerId: string;
+  vehicleYearId: string;
+  plate: string | null;
+  chassis: string | null;
+  renavam: string | null;
+  color: string | null;
+  currentKm: number | null;
+  nickname: string | null;
+  notes: string | null;
+};
 /**
  * Para criar funcionário
  */
-export type CreateEmployee = { name: string; cpf: string | null; phone: string | null; email: string | null; pin: string; password: string | null; role: EmployeeRole | null; commissionRate: number | null }
-export type CreateFirstAdminInput = { name: string; email: string | null; pin: string }
+export type CreateEmployee = {
+  name: string;
+  cpf: string | null;
+  phone: string | null;
+  email: string | null;
+  pin: string;
+  password: string | null;
+  role: EmployeeRole | null;
+  commissionRate: number | null;
+};
+export type CreateFirstAdminInput = { name: string; email: string | null; pin: string };
 /**
  * Para criar produto
  */
-export type CreateProduct = { barcode: string | null; internalCode: string | null; name: string; description: string | null; unit: ProductUnit | null; isWeighted: boolean | null; salePrice: number; costPrice: number | null; currentStock: number | null; minStock: number | null; maxStock: number | null; categoryId: string }
+export type CreateProduct = {
+  barcode: string | null;
+  internalCode: string | null;
+  name: string;
+  description: string | null;
+  unit: ProductUnit | null;
+  isWeighted: boolean | null;
+  salePrice: number;
+  costPrice: number | null;
+  currentStock: number | null;
+  minStock: number | null;
+  maxStock: number | null;
+  categoryId: string;
+};
 /**
  * Para criar venda
  */
-export type CreateSale = { items: CreateSaleItem[]; paymentMethod: PaymentMethod; amountPaid: number; discountType: DiscountType | null; discountValue: number | null; discountReason: string | null; customerId: string | null; employeeId: string; cashSessionId: string }
+export type CreateSale = {
+  items: CreateSaleItem[];
+  paymentMethod: PaymentMethod;
+  amountPaid: number;
+  discountType: DiscountType | null;
+  discountValue: number | null;
+  discountReason: string | null;
+  customerId: string | null;
+  employeeId: string;
+  cashSessionId: string;
+};
 /**
  * Para criar item de venda (do carrinho)
  */
-export type CreateSaleItem = { productId: string; quantity: number; unitPrice: number; discount: number | null }
+export type CreateSaleItem = {
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number | null;
+};
 /**
  * Para criar serviço padrão
  */
-export type CreateService = { code: string; name: string; description: string | null; defaultPrice: number; estimatedTime: number | null; defaultWarrantyDays: number | null }
+export type CreateService = {
+  code: string;
+  name: string;
+  description: string | null;
+  defaultPrice: number;
+  estimatedTime: number | null;
+  defaultWarrantyDays: number | null;
+};
 /**
  * Para criar ordem de serviço
  */
-export type CreateServiceOrder = { customerId: string; customerVehicleId: string; vehicleYearId: string; employeeId: string; vehicleKm: number | null; symptoms: string | null; scheduledDate: string | null; notes: string | null; internalNotes: string | null; status: string | null }
+export type CreateServiceOrder = {
+  customerId: string;
+  customerVehicleId: string;
+  vehicleYearId: string;
+  employeeId: string;
+  vehicleKm: number | null;
+  symptoms: string | null;
+  scheduledDate: string | null;
+  notes: string | null;
+  internalNotes: string | null;
+  status: string | null;
+};
 /**
  * Para criar movimentação
  */
-export type CreateStockMovement = { productId: string; movementType: string; quantity: number; reason: string | null; referenceId: string | null; referenceType: string | null; employeeId: string | null; costPrice: number | null; lotNumber: string | null; expirationDate: string | null; manufacturingDate: string | null }
+export type CreateStockMovement = {
+  productId: string;
+  movementType: string;
+  quantity: number;
+  reason: string | null;
+  referenceId: string | null;
+  referenceType: string | null;
+  employeeId: string | null;
+  costPrice: number | null;
+  lotNumber: string | null;
+  expirationDate: string | null;
+  manufacturingDate: string | null;
+};
 /**
  * Para criar fornecedor
  */
-export type CreateSupplier = { name: string; tradeName: string | null; cnpj: string | null; phone: string | null; email: string | null; address: string | null; city: string | null; state: string | null; notes: string | null }
+export type CreateSupplier = {
+  name: string;
+  tradeName: string | null;
+  cnpj: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  notes: string | null;
+};
 /**
  * Para criar marca de veículo
  */
-export type CreateVehicleBrand = { name: string; logoUrl: string | null }
+export type CreateVehicleBrand = { name: string; logoUrl: string | null };
 /**
  * Para criar modelo de veículo
  */
-export type CreateVehicleModel = { brandId: string; name: string; category: string | null; engineSize: string | null }
+export type CreateVehicleModel = {
+  brandId: string;
+  name: string;
+  category: string | null;
+  engineSize: string | null;
+};
 /**
  * Para criar ano de veículo
  */
-export type CreateVehicleYear = { modelId: string; year: number; yearLabel: string }
+export type CreateVehicleYear = { modelId: string; year: number; yearLabel: string };
 /**
  * Cliente do estabelecimento
  */
-export type Customer = { id: string; name: string; cpf: string | null; phone: string | null; phone2: string | null; email: string | null; zipCode: string | null; street: string | null; number: string | null; complement: string | null; neighborhood: string | null; city: string | null; state: string | null; isActive: boolean; notes: string | null; createdAt: string; updatedAt: string }
+export type Customer = {
+  id: string;
+  name: string;
+  cpf: string | null;
+  phone: string | null;
+  phone2: string | null;
+  email: string | null;
+  zipCode: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Filtros para busca de clientes
  */
-export type CustomerFilters = { search: string | null; city: string | null; state: string | null; isActive: boolean | null; hasVehicles: boolean | null }
+export type CustomerFilters = {
+  search: string | null;
+  city: string | null;
+  state: string | null;
+  isActive: boolean | null;
+  hasVehicles: boolean | null;
+};
 /**
  * Veículo cadastrado para um cliente
  */
-export type CustomerVehicle = { id: string; customerId: string; vehicleYearId: string; plate: string | null; chassis: string | null; renavam: string | null; color: string | null; currentKm: number | null; nickname: string | null; isActive: boolean; notes: string | null; createdAt: string; updatedAt: string }
+export type CustomerVehicle = {
+  id: string;
+  customerId: string;
+  vehicleYearId: string;
+  plate: string | null;
+  chassis: string | null;
+  renavam: string | null;
+  color: string | null;
+  currentKm: number | null;
+  nickname: string | null;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Veículo do cliente com informações completas do veículo
  */
-export type CustomerVehicleWithDetails = { id: string; customerId: string; vehicleYearId: string; plate: string | null; chassis: string | null; renavam: string | null; color: string | null; currentKm: number | null; nickname: string | null; isActive: boolean; notes: string | null; createdAt: string; updatedAt: string; brandName: string; modelName: string; year: number; yearLabel: string; category: string | null; engineSize: number | null; displayName: string }
+export type CustomerVehicleWithDetails = {
+  id: string;
+  customerId: string;
+  vehicleYearId: string;
+  plate: string | null;
+  chassis: string | null;
+  renavam: string | null;
+  color: string | null;
+  currentKm: number | null;
+  nickname: string | null;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  brandName: string;
+  modelName: string;
+  year: number;
+  yearLabel: string;
+  category: string | null;
+  engineSize: number | null;
+  displayName: string;
+};
 /**
  * Cliente com estatísticas
  */
-export type CustomerWithStats = ({ id: string; name: string; cpf: string | null; phone: string | null; phone2: string | null; email: string | null; zipCode: string | null; street: string | null; number: string | null; complement: string | null; neighborhood: string | null; city: string | null; state: string | null; isActive: boolean; notes: string | null; createdAt: string; updatedAt: string }) & { vehicleCount: number; orderCount: number; totalSpent: number; lastVisit: string | null }
-export type DailyRevenue = { date: string; amount: number }
+export type CustomerWithStats = {
+  id: string;
+  name: string;
+  cpf: string | null;
+  phone: string | null;
+  phone2: string | null;
+  email: string | null;
+  zipCode: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+} & { vehicleCount: number; orderCount: number; totalSpent: number; lastVisit: string | null };
+export type DailyRevenue = { date: string; amount: number };
 /**
  * Resumo diário de vendas
  */
-export type DailySalesSummary = { date: string; totalSales: number; totalAmount: number; totalItems: number; averageTicket: number; byPaymentMethod: PaymentMethodSummary[] }
-export type DashboardStats = { totalSalesToday: number; countSalesToday: number; openServiceOrders: number; activeWarranties: number; lowStockProducts: number; revenueWeekly: DailyRevenue[] }
+export type DailySalesSummary = {
+  date: string;
+  totalSales: number;
+  totalAmount: number;
+  totalItems: number;
+  averageTicket: number;
+  byPaymentMethod: PaymentMethodSummary[];
+};
+export type DashboardStats = {
+  totalSalesToday: number;
+  countSalesToday: number;
+  openServiceOrders: number;
+  activeWarranties: number;
+  lowStockProducts: number;
+  revenueWeekly: DailyRevenue[];
+};
 /**
  * Tipo de desconto
  */
-export type DiscountType = "PERCENTAGE" | "FIXED"
-export type DiskUsageInfo = { databaseSize: number; backupsSize: number; logsSize: number; totalSize: number; databasePath: string; backupsPath: string }
-export type DrawerConfig = { enabled: boolean; 
-/**
- * Porta da impressora conectada à gaveta
- */
-printerPort: string; 
-/**
- * Pino de acionamento (2 ou 5)
- */
-pin: DrawerPin; 
-/**
- * Duração do pulso em ms
- */
-pulseDuration: number; mockMode: boolean }
+export type DiscountType = 'PERCENTAGE' | 'FIXED';
+export type DiskUsageInfo = {
+  databaseSize: number;
+  backupsSize: number;
+  logsSize: number;
+  totalSize: number;
+  databasePath: string;
+  backupsPath: string;
+};
+export type DrawerConfig = {
+  enabled: boolean;
+  /**
+   * Porta da impressora conectada à gaveta
+   */
+  printerPort: string;
+  /**
+   * Pino de acionamento (2 ou 5)
+   */
+  pin: DrawerPin;
+  /**
+   * Duração do pulso em ms
+   */
+  pulseDuration: number;
+  mockMode: boolean;
+};
 /**
  * Pino de acionamento da gaveta
  */
-export type DrawerPin = "pin2" | "pin5"
+export type DrawerPin = 'pin2' | 'pin5';
 /**
  * Funcionário completo (interno, com hash da senha)
  */
-export type Employee = { id: string; name: string; cpf: string | null; phone: string | null; email: string | null; pin: string; password: string | null; role: string; commissionRate: number | null; isActive: boolean; createdAt: string; updatedAt: string }
-export type EmployeeRanking = { employeeId: string; employeeName: string; salesCount: number; totalAmount: number; totalCommission: number }
+export type Employee = {
+  id: string;
+  name: string;
+  cpf: string | null;
+  phone: string | null;
+  email: string | null;
+  pin: string;
+  password: string | null;
+  role: string;
+  commissionRate: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+export type EmployeeRanking = {
+  employeeId: string;
+  employeeName: string;
+  salesCount: number;
+  totalAmount: number;
+  totalCommission: number;
+};
 /**
  * Papel do funcionário
  */
-export type EmployeeRole = "ADMIN" | "MANAGER" | "CASHIER" | "STOCKER" | "VIEWER"
-export type FinancialReport = { revenue: number; cogs: number; grossProfit: number; expenses: number; netProfit: number; margin: number }
+export type EmployeeRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STOCKER' | 'VIEWER';
+export type FinancialReport = {
+  revenue: number;
+  cogs: number;
+  grossProfit: number;
+  expenses: number;
+  netProfit: number;
+  margin: number;
+};
 /**
  * Resultado simples de verificação de saúde de um dispositivo de hardware
  */
-export type HardwareStatus = { name: string; ok: boolean; message: string | null }
-export type JsonValue = null | boolean | number | string | JsonValue[] | { [key in string]: JsonValue }
+export type HardwareStatus = { name: string; ok: boolean; message: string | null };
+export type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | JsonValue[]
+  | { [key in string]: JsonValue };
 /**
  * License information
  */
-export type LicenseInfo = { key: string | null; status: LicenseStatus; message: string | null; valid: boolean | null; expiresAt: string | null; daysRemaining: number | null; companyName: string; companyCnpj: string | null; companyAddress: string | null; companyCity: string | null; companyState: string | null; maxUsers: number; features: string[]; planType: string | null; supportExpiresAt: string | null; isLifetime: boolean | null; canOffline: boolean | null; hasAdmin: boolean | null; adminUser: AdminUserSyncData | null }
+export type LicenseInfo = {
+  key: string | null;
+  status: LicenseStatus;
+  message: string | null;
+  valid: boolean | null;
+  expiresAt: string | null;
+  daysRemaining: number | null;
+  companyName: string;
+  companyCnpj: string | null;
+  companyAddress: string | null;
+  companyCity: string | null;
+  companyState: string | null;
+  maxUsers: number;
+  features: string[];
+  planType: string | null;
+  supportExpiresAt: string | null;
+  isLifetime: boolean | null;
+  canOffline: boolean | null;
+  hasAdmin: boolean | null;
+  adminUser: AdminUserSyncData | null;
+};
 /**
  * License status from server
  */
-export type LicenseStatus = "pending" | "active" | "suspended" | "expired" | "revoked"
+export type LicenseStatus = 'pending' | 'active' | 'suspended' | 'expired' | 'revoked';
 /**
  * Payload for login-based recovery
  */
-export type LoginPayload = { email: string; password: string }
+export type LoginPayload = { email: string; password: string };
 /**
  * Metrics sync payload (as passed from frontend/service)
  */
-export type MetricsPayload = { date: string; salesTotal: number; salesCount: number; productsSold: number; lowStockCount: number; expiringCount: number; cashOpens: number; cashCloses: number }
+export type MetricsPayload = {
+  date: string;
+  salesTotal: number;
+  salesCount: number;
+  productsSold: number;
+  lowStockCount: number;
+  expiringCount: number;
+  cashOpens: number;
+  cashCloses: number;
+};
 /**
  * Informações de dispositivo mobile conectado
  */
-export type MobileDevice = { id: string; name: string | null; ipAddress: string; connectedAt: number; lastActivity: number }
+export type MobileDevice = {
+  id: string;
+  name: string | null;
+  ipAddress: string;
+  connectedAt: number;
+  lastActivity: number;
+};
 /**
  * Configuração do scanner mobile
  */
-export type MobileScannerConfig = { enabled: boolean; port: number; timeoutSeconds: number; requireLocalNetwork: boolean }
+export type MobileScannerConfig = {
+  enabled: boolean;
+  port: number;
+  timeoutSeconds: number;
+  requireLocalNetwork: boolean;
+};
 /**
  * Status do servidor mobile
  */
-export type MobileServerStatus = { isRunning: boolean; port: number; connectedDevices: number; localIp: string | null; version: string }
+export type MobileServerStatus = {
+  isRunning: boolean;
+  port: number;
+  connectedDevices: number;
+  localIp: string | null;
+  version: string;
+};
 /**
  * Resumo mensal de vendas (totais do mês)
  */
-export type MonthlySalesSummary = { 
-/**
- * Formato: YYYY-MM
- */
-yearMonth: string; totalSales: number; totalAmount: number }
+export type MonthlySalesSummary = {
+  /**
+   * Formato: YYYY-MM
+   */
+  yearMonth: string;
+  totalSales: number;
+  totalAmount: number;
+};
 /**
  * Status da rede
  */
-export type NetworkStatus = { isRunning: boolean; status: string; connectedMaster: string | null }
+export type NetworkStatus = { isRunning: boolean; status: string; connectedMaster: string | null };
 /**
  * Resultado paginado
  */
-export type PaginatedResult<T> = { data: T[]; total: number; page: number; per_page: number; total_pages: number }
-export type PaginatedResult<T> = { data: T[]; total: number; page: number; limit: number; totalPages: number }
+export type PaginatedResult<T> = {
+  data: T[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+};
+export type PaginatedResult<T> = {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
 /**
  * Forma de pagamento
  */
-export type PaymentMethod = "CASH" | "PIX" | "CREDIT" | "DEBIT" | "VOUCHER" | "OTHER"
+export type PaymentMethod = 'CASH' | 'PIX' | 'CREDIT' | 'DEBIT' | 'VOUCHER' | 'OTHER';
 /**
  * Resumo por forma de pagamento
  */
-export type PaymentMethodSummary = { method: string; count: number; amount: number }
+export type PaymentMethodSummary = { method: string; count: number; amount: number };
 /**
  * Histórico de alteração de preço
  */
-export type PriceHistory = { id: string; productId: string; oldPrice: number; newPrice: number; reason: string | null; employeeId: string | null; createdAt: string }
+export type PriceHistory = {
+  id: string;
+  productId: string;
+  oldPrice: number;
+  newPrice: number;
+  reason: string | null;
+  employeeId: string | null;
+  createdAt: string;
+};
 /**
  * Histórico de preço com nome do produto (para listagens)
  */
-export type PriceHistoryWithProduct = { id: string; productId: string; oldPrice: number; newPrice: number; reason: string | null; employeeId: string | null; createdAt: string; productName: string | null; employeeName: string | null }
+export type PriceHistoryWithProduct = {
+  id: string;
+  productId: string;
+  oldPrice: number;
+  newPrice: number;
+  reason: string | null;
+  employeeId: string | null;
+  createdAt: string;
+  productName: string | null;
+  employeeName: string | null;
+};
 /**
  * Configuração da impressora
  */
-export type PrinterConfig = { enabled: boolean; model: PrinterModel; connection: PrinterConnection; port: string; paperWidth: number; autoCut: boolean; openDrawerOnSale: boolean; baudRate: number; dataBits: number; parity: string; timeoutMs: number; mockMode: boolean }
+export type PrinterConfig = {
+  enabled: boolean;
+  model: PrinterModel;
+  connection: PrinterConnection;
+  port: string;
+  paperWidth: number;
+  autoCut: boolean;
+  openDrawerOnSale: boolean;
+  baudRate: number;
+  dataBits: number;
+  parity: string;
+  timeoutMs: number;
+  mockMode: boolean;
+};
 /**
  * Tipo de conexão da impressora
  */
-export type PrinterConnection = "usb" | "serial" | "network"
+export type PrinterConnection = 'usb' | 'serial' | 'network';
 /**
  * Modelo de impressora
  */
-export type PrinterModel = "epson" | "elgin" | "bematech" | "daruma" | "c3tech" | "generic"
+export type PrinterModel = 'epson' | 'elgin' | 'bematech' | 'daruma' | 'c3tech' | 'generic';
 /**
  * Produto do catálogo
  */
-export type Product = { id: string; barcode: string | null; internalCode: string; name: string; description: string | null; unit: string; isWeighted: boolean; salePrice: number; costPrice: number; currentStock: number; minStock: number; maxStock: number | null; isActive: boolean; categoryId: string; createdAt: string; updatedAt: string }
+export type Product = {
+  id: string;
+  barcode: string | null;
+  internalCode: string;
+  name: string;
+  description: string | null;
+  unit: string;
+  isWeighted: boolean;
+  salePrice: number;
+  costPrice: number;
+  currentStock: number;
+  minStock: number;
+  maxStock: number | null;
+  isActive: boolean;
+  categoryId: string;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Compatibilidade com dados do veículo
  */
-export type ProductCompatibilityWithVehicle = { id: string; productId: string; vehicleYearId: string; isVerified: number; createdAt: string; updatedAt: string; vehicle: VehicleComplete }
+export type ProductCompatibilityWithVehicle = {
+  id: string;
+  productId: string;
+  vehicleYearId: string;
+  isVerified: number;
+  createdAt: string;
+  updatedAt: string;
+  vehicle: VehicleComplete;
+};
 /**
  * Lote de produto
  */
-export type ProductLot = { id: string; productId: string; supplierId: string | null; lotNumber: string | null; expirationDate: string | null; manufacturingDate: string | null; purchaseDate: string; initialQuantity: number; currentQuantity: number; costPrice: number; status: string; createdAt: string; updatedAt: string }
+export type ProductLot = {
+  id: string;
+  productId: string;
+  supplierId: string | null;
+  lotNumber: string | null;
+  expirationDate: string | null;
+  manufacturingDate: string | null;
+  purchaseDate: string;
+  initialQuantity: number;
+  currentQuantity: number;
+  costPrice: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Unidade de medida do produto
  */
-export type ProductUnit = "UNIT" | "KILOGRAM" | "GRAM" | "LITER" | "MILLILITER" | "METER" | "CENTIMETER" | "BOX" | "PACK" | "DOZEN"
+export type ProductUnit =
+  | 'UNIT'
+  | 'KILOGRAM'
+  | 'GRAM'
+  | 'LITER'
+  | 'MILLILITER'
+  | 'METER'
+  | 'CENTIMETER'
+  | 'BOX'
+  | 'PACK'
+  | 'DOZEN';
 /**
  * Dados do cupom
  */
-export type Receipt = { companyName: string; companyAddress: string; companyCnpj: string | null; companyPhone: string | null; saleNumber: number; operatorName: string; dateTime: string; items: ReceiptItem[]; subtotal: number; discount: number; total: number; paymentMethod: string; amountPaid: number; change: number }
+export type Receipt = {
+  companyName: string;
+  companyAddress: string;
+  companyCnpj: string | null;
+  companyPhone: string | null;
+  saleNumber: number;
+  operatorName: string;
+  dateTime: string;
+  items: ReceiptItem[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  paymentMethod: string;
+  amountPaid: number;
+  change: number;
+};
 /**
  * Item do cupom
  */
-export type ReceiptItem = { code: string; name: string; quantity: number; unit: string; unitPrice: number; total: number }
+export type ReceiptItem = {
+  code: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  total: number;
+};
 /**
  * Funcionário seguro (para retorno ao frontend, sem senhas)
  */
-export type SafeEmployee = { id: string; name: string; cpf: string | null; phone: string | null; email: string | null; role: string; commissionRate: number | null; isActive: boolean; createdAt: string; updatedAt: string }
+export type SafeEmployee = {
+  id: string;
+  name: string;
+  cpf: string | null;
+  phone: string | null;
+  email: string | null;
+  role: string;
+  commissionRate: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Venda completa
  */
-export type Sale = { id: string; dailyNumber: number; subtotal: number; discountType: string | null; discountValue: number; discountReason: string | null; total: number; paymentMethod: string; amountPaid: number; change: number; status: string; canceledAt: string | null; canceledById: string | null; cancelReason: string | null; customerId: string | null; employeeId: string; cashSessionId: string; createdAt: string; updatedAt: string }
+export type Sale = {
+  id: string;
+  dailyNumber: number;
+  subtotal: number;
+  discountType: string | null;
+  discountValue: number;
+  discountReason: string | null;
+  total: number;
+  paymentMethod: string;
+  amountPaid: number;
+  change: number;
+  status: string;
+  canceledAt: string | null;
+  canceledById: string | null;
+  cancelReason: string | null;
+  customerId: string | null;
+  employeeId: string;
+  cashSessionId: string;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Filtros de busca de vendas
  */
-export type SaleFilters = { dateFrom: string | null; dateTo: string | null; employeeId: string | null; cashSessionId: string | null; paymentMethod: string | null; status: string | null; minTotal: number | null; maxTotal: number | null; limit: number | null; offset: number | null; page: number | null }
+export type SaleFilters = {
+  dateFrom: string | null;
+  dateTo: string | null;
+  employeeId: string | null;
+  cashSessionId: string | null;
+  paymentMethod: string | null;
+  status: string | null;
+  minTotal: number | null;
+  maxTotal: number | null;
+  limit: number | null;
+  offset: number | null;
+  page: number | null;
+};
 /**
  * Item de venda
  */
-export type SaleItem = { id: string; saleId: string; productId: string; quantity: number; unitPrice: number; discount: number; total: number; productName: string; productBarcode: string | null; productUnit: string; lotId: string | null; createdAt: string }
+export type SaleItem = {
+  id: string;
+  saleId: string;
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  total: number;
+  productName: string;
+  productBarcode: string | null;
+  productUnit: string;
+  lotId: string | null;
+  createdAt: string;
+};
 /**
  * Venda com informações relacionadas
  */
-export type SaleWithDetails = ({ id: string; dailyNumber: number; subtotal: number; discountType: string | null; discountValue: number; discountReason: string | null; total: number; paymentMethod: string; amountPaid: number; change: number; status: string; canceledAt: string | null; canceledById: string | null; cancelReason: string | null; customerId: string | null; employeeId: string; cashSessionId: string; createdAt: string; updatedAt: string }) & { employeeName: string | null; items: SaleItem[]; itemsCount: number }
-export type SalesReport = { totalSales: number; totalRevenue: number; averageTicket: number; salesByPaymentMethod: { [key in string]: number }; salesByHour: { [key in string]: number } }
+export type SaleWithDetails = {
+  id: string;
+  dailyNumber: number;
+  subtotal: number;
+  discountType: string | null;
+  discountValue: number;
+  discountReason: string | null;
+  total: number;
+  paymentMethod: string;
+  amountPaid: number;
+  change: number;
+  status: string;
+  canceledAt: string | null;
+  canceledById: string | null;
+  cancelReason: string | null;
+  customerId: string | null;
+  employeeId: string;
+  cashSessionId: string;
+  createdAt: string;
+  updatedAt: string;
+} & { employeeName: string | null; items: SaleItem[]; itemsCount: number };
+export type SalesReport = {
+  totalSales: number;
+  totalRevenue: number;
+  averageTicket: number;
+  salesByPaymentMethod: { [key in string]: number };
+  salesByHour: { [key in string]: number };
+};
 /**
  * Para salvar compatibilidades de um produto
  */
-export type SaveProductCompatibilities = { productId: string; vehicleYearIds: string[] }
-export type ScaleAutoDetectInfo = { config: ScaleConfig | null; failures: string[] }
-export type ScaleConfig = { enabled: boolean; protocol: ScaleProtocol; port: string; baudRate: number; dataBits: number; parity: string; stopBits: number; mockMode: boolean }
+export type SaveProductCompatibilities = { productId: string; vehicleYearIds: string[] };
+export type ScaleAutoDetectInfo = { config: ScaleConfig | null; failures: string[] };
+export type ScaleConfig = {
+  enabled: boolean;
+  protocol: ScaleProtocol;
+  port: string;
+  baudRate: number;
+  dataBits: number;
+  parity: string;
+  stopBits: number;
+  mockMode: boolean;
+};
 /**
  * Protocolo da balança
  */
-export type ScaleProtocol = "toledo" | "filizola" | "elgin" | "urano" | "generic"
+export type ScaleProtocol = 'toledo' | 'filizola' | 'elgin' | 'urano' | 'generic';
 /**
  * Resposta de leitura da balança
  */
-export type ScaleReading = { 
-/**
- * Peso em quilogramas
- */
-weightKg: number; 
-/**
- * Peso em gramas
- */
-weightGrams: number; 
-/**
- * Se o peso está estável
- */
-stable: boolean; 
-/**
- * Se houve sobrecarga
- */
-overload: boolean; 
-/**
- * Se o peso é negativo (tara)
- */
-negative: boolean; 
-/**
- * Protocolo usado
- */
-protocol: ScaleProtocol }
+export type ScaleReading = {
+  /**
+   * Peso em quilogramas
+   */
+  weightKg: number;
+  /**
+   * Peso em gramas
+   */
+  weightGrams: number;
+  /**
+   * Se o peso está estável
+   */
+  stable: boolean;
+  /**
+   * Se houve sobrecarga
+   */
+  overload: boolean;
+  /**
+   * Se o peso é negativo (tara)
+   */
+  negative: boolean;
+  /**
+   * Protocolo usado
+   */
+  protocol: ScaleProtocol;
+};
 /**
  * Informações do servidor de scanner
  */
-export type ScannerServerInfo = { running: boolean; ip: string; port: number; url: string; startedAt: number; taskId: string | null }
+export type ScannerServerInfo = {
+  running: boolean;
+  ip: string;
+  port: number;
+  url: string;
+  startedAt: number;
+  taskId: string | null;
+};
 /**
  * Serviço padrão (mão de obra)
  */
-export type Service = { id: string; code: string; name: string; description: string | null; defaultPrice: number; estimatedTime: number | null; defaultWarrantyDays: number; isActive: boolean; createdAt: string; updatedAt: string }
+export type Service = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  defaultPrice: number;
+  estimatedTime: number | null;
+  defaultWarrantyDays: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Ordem de serviço
  */
-export type ServiceOrder = { id: string; orderNumber: number; customerId: string; customerVehicleId: string; vehicleYearId: string; employeeId: string; vehicleKm: number | null; symptoms: string | null; diagnosis: string | null; status: string; laborCost: number; partsCost: number; discount: number; total: number; warrantyDays: number; warrantyUntil: string | null; scheduledDate: string | null; startedAt: string | null; completedAt: string | null; paymentMethod: string | null; isPaid: boolean; notes: string | null; internalNotes: string | null; createdAt: string; updatedAt: string }
+export type ServiceOrder = {
+  id: string;
+  orderNumber: number;
+  customerId: string;
+  customerVehicleId: string;
+  vehicleYearId: string;
+  employeeId: string;
+  vehicleKm: number | null;
+  symptoms: string | null;
+  diagnosis: string | null;
+  status: string;
+  laborCost: number;
+  partsCost: number;
+  discount: number;
+  total: number;
+  warrantyDays: number;
+  warrantyUntil: string | null;
+  scheduledDate: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  paymentMethod: string | null;
+  isPaid: boolean;
+  notes: string | null;
+  internalNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Item de ordem de serviço
  */
-export type ServiceOrderItem = { id: string; orderId: string; productId: string | null; itemType: string; description: string; employeeId: string | null; quantity: number; unitPrice: number; discountPercent: number; discountValue: number; subtotal: number; total: number; notes: string | null; currentStock: number | null; minStock: number | null; createdAt: string; updatedAt: string }
+export type ServiceOrderItem = {
+  id: string;
+  orderId: string;
+  productId: string | null;
+  itemType: string;
+  description: string;
+  employeeId: string | null;
+  quantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  discountValue: number;
+  subtotal: number;
+  total: number;
+  notes: string | null;
+  currentStock: number | null;
+  minStock: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Dados para impressão de Ordem de Serviço
  */
-export type ServiceOrderReceipt = { companyName: string; companyAddress: string; companyCnpj: string | null; companyPhone: string | null; orderNumber: number; dateTime: string; status: string; mechanicName: string; customerName: string; customerPhone: string | null; vehicleDisplayName: string; vehiclePlate: string | null; vehicleKm: number | null; symptoms: string | null; items: ReceiptItem[]; laborCost: number; partsCost: number; discount: number; total: number; warrantyDays: number; notes: string | null }
-export type ServiceOrderStats = { totalOrders: number; byStatus: StatusCount[]; revenueLabor: number; revenueParts: number; averageTicket: number }
+export type ServiceOrderReceipt = {
+  companyName: string;
+  companyAddress: string;
+  companyCnpj: string | null;
+  companyPhone: string | null;
+  orderNumber: number;
+  dateTime: string;
+  status: string;
+  mechanicName: string;
+  customerName: string;
+  customerPhone: string | null;
+  vehicleDisplayName: string;
+  vehiclePlate: string | null;
+  vehicleKm: number | null;
+  symptoms: string | null;
+  items: ReceiptItem[];
+  laborCost: number;
+  partsCost: number;
+  discount: number;
+  total: number;
+  warrantyDays: number;
+  notes: string | null;
+};
+export type ServiceOrderStats = {
+  totalOrders: number;
+  byStatus: StatusCount[];
+  revenueLabor: number;
+  revenueParts: number;
+  averageTicket: number;
+};
 /**
  * Resumo da OS para listagens
  */
-export type ServiceOrderSummary = { id: string; orderNumber: number; status: string; customerName: string; vehicleDisplayName: string; vehiclePlate: string | null; total: number; isPaid: boolean; createdAt: string }
+export type ServiceOrderSummary = {
+  id: string;
+  orderNumber: number;
+  status: string;
+  customerName: string;
+  vehicleDisplayName: string;
+  vehiclePlate: string | null;
+  total: number;
+  isPaid: boolean;
+  createdAt: string;
+};
 /**
  * Ordem de serviço com dados relacionados
  */
-export type ServiceOrderWithDetails = ({ id: string; orderNumber: number; customerId: string; customerVehicleId: string; vehicleYearId: string; employeeId: string; vehicleKm: number | null; symptoms: string | null; diagnosis: string | null; status: string; laborCost: number; partsCost: number; discount: number; total: number; warrantyDays: number; warrantyUntil: string | null; scheduledDate: string | null; startedAt: string | null; completedAt: string | null; paymentMethod: string | null; isPaid: boolean; notes: string | null; internalNotes: string | null; createdAt: string; updatedAt: string }) & { customerName: string; customerPhone: string | null; vehicleDisplayName: string; vehiclePlate: string | null; vehicleColor: string | null; employeeName: string; items: ServiceOrderItem[] }
+export type ServiceOrderWithDetails = {
+  id: string;
+  orderNumber: number;
+  customerId: string;
+  customerVehicleId: string;
+  vehicleYearId: string;
+  employeeId: string;
+  vehicleKm: number | null;
+  symptoms: string | null;
+  diagnosis: string | null;
+  status: string;
+  laborCost: number;
+  partsCost: number;
+  discount: number;
+  total: number;
+  warrantyDays: number;
+  warrantyUntil: string | null;
+  scheduledDate: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  paymentMethod: string | null;
+  isPaid: boolean;
+  notes: string | null;
+  internalNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+} & {
+  customerName: string;
+  customerPhone: string | null;
+  vehicleDisplayName: string;
+  vehiclePlate: string | null;
+  vehicleColor: string | null;
+  employeeName: string;
+  items: ServiceOrderItem[];
+};
 /**
  * Para definir configuração
  */
-export type SetSetting = { key: string; value: string; valueType: string | null; groupName: string | null; description: string | null }
+export type SetSetting = {
+  key: string;
+  value: string;
+  valueType: string | null;
+  groupName: string | null;
+  description: string | null;
+};
 /**
  * Configuração
  */
-export type Setting = { id: string; key: string; value: string; settingType: string; groupName: string; description: string | null; updatedById: string | null; createdAt: string; updatedAt: string }
+export type Setting = {
+  id: string;
+  key: string;
+  value: string;
+  settingType: string;
+  groupName: string;
+  description: string | null;
+  updatedById: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Config para iniciar servidor
  */
-export type StartServerConfig = { port: number; maxConnections: number }
-export type StatusCount = { status: string; count: number }
+export type StartServerConfig = { port: number; maxConnections: number };
+export type StatusCount = { status: string; count: number };
 /**
  * Movimentação de estoque (compatível com DB existente)
  */
-export type StockMovementRow = { id: string; productId: string; type: string; quantity: number; previousStock: number; newStock: number; reason: string | null; referenceId: string | null; referenceType: string | null; employeeId: string | null; createdAt: string }
-export type StockReport = { totalProducts: number; totalValue: number; lowStockCount: number; outOfStockCount: number; expiringCount: number; excessStockCount: number; valuationByCategory: { [key in string]: number } }
+export type StockMovementRow = {
+  id: string;
+  productId: string;
+  type: string;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  reason: string | null;
+  referenceId: string | null;
+  referenceType: string | null;
+  employeeId: string | null;
+  createdAt: string;
+};
+export type StockReport = {
+  totalProducts: number;
+  totalValue: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  expiringCount: number;
+  excessStockCount: number;
+  valuationByCategory: { [key in string]: number };
+};
 /**
  * Fornecedor
  */
-export type Supplier = { id: string; name: string; tradeName: string | null; cnpj: string | null; phone: string | null; email: string | null; address: string | null; city: string | null; state: string | null; notes: string | null; isActive: boolean; createdAt: string; updatedAt: string }
-export type TopItem = { id: string; name: string; quantity: number; totalValue: number }
-export type TopProduct = { product: Product; quantity: number; revenue: number }
+export type Supplier = {
+  id: string;
+  name: string;
+  tradeName: string | null;
+  cnpj: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  notes: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+export type TopItem = { id: string; name: string; quantity: number; totalValue: number };
+export type TopProduct = { product: Product; quantity: number; revenue: number };
 /**
  * Admin update request
  */
-export type UpdateAdminRequest = { name: string; email: string; phone: string; companyName: string | null; companyCnpj: string | null; companyAddress: string | null; companyCity: string | null; companyState: string | null; pin: string }
+export type UpdateAdminRequest = {
+  name: string;
+  email: string;
+  phone: string;
+  companyName: string | null;
+  companyCnpj: string | null;
+  companyAddress: string | null;
+  companyCity: string | null;
+  companyState: string | null;
+  pin: string;
+};
 /**
  * Para atualizar categoria
  */
-export type UpdateCategory = { name: string | null; description: string | null; color: string | null; icon: string | null; parentId: string | null; sortOrder: number | null; active: boolean | null }
+export type UpdateCategory = {
+  name: string | null;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  parentId: string | null;
+  sortOrder: number | null;
+  active: boolean | null;
+};
 /**
  * Para atualizar cliente
  */
-export type UpdateCustomer = { name: string | null; cpf: string | null; phone: string | null; phone2: string | null; email: string | null; zipCode: string | null; street: string | null; number: string | null; complement: string | null; neighborhood: string | null; city: string | null; state: string | null; isActive: boolean | null; notes: string | null }
+export type UpdateCustomer = {
+  name: string | null;
+  cpf: string | null;
+  phone: string | null;
+  phone2: string | null;
+  email: string | null;
+  zipCode: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  isActive: boolean | null;
+  notes: string | null;
+};
 /**
  * Para atualizar veículo do cliente
  */
-export type UpdateCustomerVehicle = { vehicleYearId: string | null; plate: string | null; chassis: string | null; renavam: string | null; color: string | null; currentKm: number | null; nickname: string | null; isActive: boolean | null; notes: string | null }
+export type UpdateCustomerVehicle = {
+  vehicleYearId: string | null;
+  plate: string | null;
+  chassis: string | null;
+  renavam: string | null;
+  color: string | null;
+  currentKm: number | null;
+  nickname: string | null;
+  isActive: boolean | null;
+  notes: string | null;
+};
 /**
  * Para atualizar funcionário
  */
-export type UpdateEmployee = { name: string | null; cpf: string | null; phone: string | null; email: string | null; pin: string | null; password: string | null; role: EmployeeRole | null; commissionRate: number | null; isActive: boolean | null }
+export type UpdateEmployee = {
+  name: string | null;
+  cpf: string | null;
+  phone: string | null;
+  email: string | null;
+  pin: string | null;
+  password: string | null;
+  role: EmployeeRole | null;
+  commissionRate: number | null;
+  isActive: boolean | null;
+};
 /**
  * Para atualizar produto
  */
-export type UpdateProduct = { barcode: string | null; name: string | null; description: string | null; unit: ProductUnit | null; isWeighted: boolean | null; salePrice: number | null; costPrice: number | null; currentStock: number | null; minStock: number | null; maxStock: number | null; isActive: boolean | null; categoryId: string | null; reason: string | null; 
-/**
- * ID do funcionário que está fazendo a alteração (para auditoria)
- * ID do funcionário que está fazendo a alteração (para auditoria)
- */
-employeeId?: string | null }
+export type UpdateProduct = {
+  barcode: string | null;
+  name: string | null;
+  description: string | null;
+  unit: ProductUnit | null;
+  isWeighted: boolean | null;
+  salePrice: number | null;
+  costPrice: number | null;
+  currentStock: number | null;
+  minStock: number | null;
+  maxStock: number | null;
+  isActive: boolean | null;
+  categoryId: string | null;
+  reason: string | null;
+  /**
+   * ID do funcionário que está fazendo a alteração (para auditoria)
+   * ID do funcionário que está fazendo a alteração (para auditoria)
+   */
+  employeeId?: string | null;
+};
 /**
  * Para atualizar serviço
  */
-export type UpdateService = { code: string | null; name: string | null; description: string | null; defaultPrice: number | null; estimatedTime: number | null; defaultWarrantyDays: number | null; isActive: boolean | null }
+export type UpdateService = {
+  code: string | null;
+  name: string | null;
+  description: string | null;
+  defaultPrice: number | null;
+  estimatedTime: number | null;
+  defaultWarrantyDays: number | null;
+  isActive: boolean | null;
+};
 /**
  * Para atualizar ordem de serviço
  */
-export type UpdateServiceOrder = { vehicleKm: number | null; symptoms: string | null; diagnosis: string | null; status: string | null; laborCost: number | null; discount: number | null; warrantyDays: number | null; scheduledDate: string | null; paymentMethod: string | null; isPaid: boolean | null; notes: string | null; internalNotes: string | null }
+export type UpdateServiceOrder = {
+  vehicleKm: number | null;
+  symptoms: string | null;
+  diagnosis: string | null;
+  status: string | null;
+  laborCost: number | null;
+  discount: number | null;
+  warrantyDays: number | null;
+  scheduledDate: string | null;
+  paymentMethod: string | null;
+  isPaid: boolean | null;
+  notes: string | null;
+  internalNotes: string | null;
+};
 /**
  * Para atualizar fornecedor
  */
-export type UpdateSupplier = { name: string | null; tradeName: string | null; cnpj: string | null; phone: string | null; email: string | null; address: string | null; city: string | null; state: string | null; notes: string | null; isActive: boolean | null }
+export type UpdateSupplier = {
+  name: string | null;
+  tradeName: string | null;
+  cnpj: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  notes: string | null;
+  isActive: boolean | null;
+};
 /**
  * Marca de veículo
  */
-export type VehicleBrand = { id: string; name: string; logoUrl: string | null; isActive: number; createdAt: string; updatedAt: string }
+export type VehicleBrand = {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  isActive: number;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Veículo completo (marca + modelo + ano)
  */
-export type VehicleComplete = { brandId: string; brandName: string; modelId: string; modelName: string; yearId: string; year: number; yearLabel: string; category: string | null; engineSize: string | null; fuelType: string | null; displayName: string }
+export type VehicleComplete = {
+  brandId: string;
+  brandName: string;
+  modelId: string;
+  modelName: string;
+  yearId: string;
+  year: number;
+  yearLabel: string;
+  category: string | null;
+  engineSize: string | null;
+  fuelType: string | null;
+  displayName: string;
+};
 /**
  * Modelo de veículo
  */
-export type VehicleModel = { id: string; brandId: string; name: string; category: string | null; engineSize: string | null; isActive: number; createdAt: string; updatedAt: string }
+export type VehicleModel = {
+  id: string;
+  brandId: string;
+  name: string;
+  category: string | null;
+  engineSize: string | null;
+  isActive: number;
+  createdAt: string;
+  updatedAt: string;
+};
 /**
  * Ano de veículo
  */
-export type VehicleYear = { id: string; modelId: string; year: number; yearLabel: string; isActive: number; createdAt: string; updatedAt: string }
-export type WarrantyClaim = { id: string; customerId: string; sourceType: string; saleItemId: string | null; orderItemId: string | null; productId: string | null; description: string; reason: string; status: string; resolution: string | null; resolutionType: string | null; resolvedById: string | null; resolvedAt: string | null; refundAmount: number | null; replacementCost: number | null; notes: string | null; createdAt: string; updatedAt: string }
-export type WarrantyClaimSummary = { id: string; customerName: string; productName: string | null; sourceType: string; sourceNumber: string | null; status: string; description: string; createdAt: string }
-export type WarrantyClaimWithDetails = { claim: WarrantyClaim; customerName: string; customerPhone: string | null; productName: string | null; productBarcode: string | null; resolvedByName: string | null; sourceNumber: string | null }
-export type WarrantyStats = { totalClaims: number; openClaims: number; inProgressClaims: number; approvedClaims: number; deniedClaims: number; closedClaims: number; totalRefundAmount: number; totalReplacementCost: number; avgResolutionDays: number | null }
+export type VehicleYear = {
+  id: string;
+  modelId: string;
+  year: number;
+  yearLabel: string;
+  isActive: number;
+  createdAt: string;
+  updatedAt: string;
+};
+export type WarrantyClaim = {
+  id: string;
+  customerId: string;
+  sourceType: string;
+  saleItemId: string | null;
+  orderItemId: string | null;
+  productId: string | null;
+  description: string;
+  reason: string;
+  status: string;
+  resolution: string | null;
+  resolutionType: string | null;
+  resolvedById: string | null;
+  resolvedAt: string | null;
+  refundAmount: number | null;
+  replacementCost: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+export type WarrantyClaimSummary = {
+  id: string;
+  customerName: string;
+  productName: string | null;
+  sourceType: string;
+  sourceNumber: string | null;
+  status: string;
+  description: string;
+  createdAt: string;
+};
+export type WarrantyClaimWithDetails = {
+  claim: WarrantyClaim;
+  customerName: string;
+  customerPhone: string | null;
+  productName: string | null;
+  productBarcode: string | null;
+  resolvedByName: string | null;
+  sourceNumber: string | null;
+};
+export type WarrantyStats = {
+  totalClaims: number;
+  openClaims: number;
+  inProgressClaims: number;
+  approvedClaims: number;
+  deniedClaims: number;
+  closedClaims: number;
+  totalRefundAmount: number;
+  totalReplacementCost: number;
+  avgResolutionDays: number | null;
+};
 
 /** tauri-specta globals **/
 
-import {
-	invoke as TAURI_INVOKE,
-	Channel as TAURI_CHANNEL,
-} from "@tauri-apps/api/core";
-import * as TAURI_API_EVENT from "@tauri-apps/api/event";
-import { type WebviewWindow as __WebviewWindow__ } from "@tauri-apps/api/webviewWindow";
+import { invoke as TAURI_INVOKE, Channel as TAURI_CHANNEL } from '@tauri-apps/api/core';
+import * as TAURI_API_EVENT from '@tauri-apps/api/event';
+import { type WebviewWindow as __WebviewWindow__ } from '@tauri-apps/api/webviewWindow';
 
 type __EventObj__<T> = {
-	listen: (
-		cb: TAURI_API_EVENT.EventCallback<T>,
-	) => ReturnType<typeof TAURI_API_EVENT.listen<T>>;
-	once: (
-		cb: TAURI_API_EVENT.EventCallback<T>,
-	) => ReturnType<typeof TAURI_API_EVENT.once<T>>;
-	emit: null extends T
-		? (payload?: T) => ReturnType<typeof TAURI_API_EVENT.emit>
-		: (payload: T) => ReturnType<typeof TAURI_API_EVENT.emit>;
+  listen: (cb: TAURI_API_EVENT.EventCallback<T>) => ReturnType<typeof TAURI_API_EVENT.listen<T>>;
+  once: (cb: TAURI_API_EVENT.EventCallback<T>) => ReturnType<typeof TAURI_API_EVENT.once<T>>;
+  emit: null extends T
+    ? (payload?: T) => ReturnType<typeof TAURI_API_EVENT.emit>
+    : (payload: T) => ReturnType<typeof TAURI_API_EVENT.emit>;
 };
 
-export type Result<T, E> =
-	| { status: "ok"; data: T }
-	| { status: "error"; error: E };
+export type Result<T, E> = { status: 'ok'; data: T } | { status: 'error'; error: E };
 
-function __makeEvents__<T extends Record<string, any>>(
-	mappings: Record<keyof T, string>,
-) {
-	return new Proxy(
-		{} as unknown as {
-			[K in keyof T]: __EventObj__<T[K]> & {
-				(handle: __WebviewWindow__): __EventObj__<T[K]>;
-			};
-		},
-		{
-			get: (_, event) => {
-				const name = mappings[event as keyof T];
+function __makeEvents__<T extends Record<string, any>>(mappings: Record<keyof T, string>) {
+  return new Proxy(
+    {} as unknown as {
+      [K in keyof T]: __EventObj__<T[K]> & {
+        (handle: __WebviewWindow__): __EventObj__<T[K]>;
+      };
+    },
+    {
+      get: (_, event) => {
+        const name = mappings[event as keyof T];
 
-				return new Proxy((() => {}) as any, {
-					apply: (_, __, [window]: [__WebviewWindow__]) => ({
-						listen: (arg: any) => window.listen(name, arg),
-						once: (arg: any) => window.once(name, arg),
-						emit: (arg: any) => window.emit(name, arg),
-					}),
-					get: (_, command: keyof __EventObj__<any>) => {
-						switch (command) {
-							case "listen":
-								return (arg: any) => TAURI_API_EVENT.listen(name, arg);
-							case "once":
-								return (arg: any) => TAURI_API_EVENT.once(name, arg);
-							case "emit":
-								return (arg: any) => TAURI_API_EVENT.emit(name, arg);
-						}
-					},
-				});
-			},
-		},
-	);
+        return new Proxy((() => {}) as any, {
+          apply: (_, __, [window]: [__WebviewWindow__]) => ({
+            listen: (arg: any) => window.listen(name, arg),
+            once: (arg: any) => window.once(name, arg),
+            emit: (arg: any) => window.emit(name, arg),
+          }),
+          get: (_, command: keyof __EventObj__<any>) => {
+            switch (command) {
+              case 'listen':
+                return (arg: any) => TAURI_API_EVENT.listen(name, arg);
+              case 'once':
+                return (arg: any) => TAURI_API_EVENT.once(name, arg);
+              case 'emit':
+                return (arg: any) => TAURI_API_EVENT.emit(name, arg);
+            }
+          },
+        });
+      },
+    }
+  );
 }
