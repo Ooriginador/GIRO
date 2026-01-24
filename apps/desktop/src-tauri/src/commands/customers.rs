@@ -142,9 +142,22 @@ pub async fn update_customer(
 pub async fn deactivate_customer(id: String, state: State<'_, AppState>) -> AppResult<()> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
-    require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
+    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
-    repo.deactivate(&id).await
+    repo.deactivate(&id).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::CustomerDeleted,
+        &employee.id,
+        &employee.name,
+        "Customer",
+        &id
+    );
+
+    Ok(())
 }
 
 /// Reativa cliente
@@ -153,9 +166,23 @@ pub async fn deactivate_customer(id: String, state: State<'_, AppState>) -> AppR
 pub async fn reactivate_customer(id: String, state: State<'_, AppState>) -> AppResult<Customer> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
-    require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
+    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCustomers);
     let repo = CustomerRepository::new(state.pool());
-    repo.reactivate(&id).await
+    let result = repo.reactivate(&id).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::CustomerUpdated,
+        &employee.id,
+        &employee.name,
+        "Customer",
+        &id,
+        "Reativado"
+    );
+
+    Ok(result)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

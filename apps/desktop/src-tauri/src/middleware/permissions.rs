@@ -10,6 +10,9 @@ use sqlx::{Pool, Sqlite};
 /// Permissões disponíveis no sistema
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Permission {
+    // Sistema
+    ManageSystem,
+
     // Produtos
     ViewProducts,
     CreateProducts,
@@ -124,6 +127,7 @@ impl Permission {
                     Permission::ManageWarranties,
                     Permission::ViewVehicles,
                     Permission::ManageVehicles,
+                    Permission::ManageSystem,
                 ]
             }
             EmployeeRole::Manager => {
@@ -164,6 +168,7 @@ impl Permission {
                     Permission::ManageWarranties,
                     Permission::ViewVehicles,
                     Permission::ManageVehicles,
+                    Permission::ManageSystem,
                 ]
             }
             EmployeeRole::Cashier => {
@@ -219,6 +224,7 @@ impl Permission {
                     Permission::ManageCategories,
                     Permission::ViewVehicles,
                     Permission::ManageVehicles,
+                    Permission::ManageSystem,
                 ]
             }
         }

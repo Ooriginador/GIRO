@@ -1,6 +1,7 @@
 //! Comandos Tauri - Expõe backend ao frontend
 
 pub mod alerts;
+pub mod audit;
 pub mod backup;
 pub mod cash;
 pub mod categories;
@@ -8,6 +9,7 @@ pub mod customers;
 pub mod dispatcher;
 pub mod employees;
 pub mod hardware;
+pub mod held_sales;
 pub mod license;
 pub mod mobile;
 pub mod network;
@@ -31,12 +33,14 @@ pub use hardware::*;
 
 // Re-export all commands
 pub use alerts::*;
+pub use audit::*;
 pub use backup::*;
 pub use cash::*;
 pub use categories::*;
 pub use customers::*;
 pub use dispatcher::*;
 pub use employees::*;
+pub use held_sales::*;
 pub use license::*;
 pub use mobile::*;
 pub use price_history::*;

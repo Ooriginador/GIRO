@@ -30,6 +30,7 @@ pub struct NetworkState {
 #[specta::specta]
 pub async fn start_network_client(
     terminal_name: String,
+    app_handle: tauri::AppHandle,
     app_state: State<'_, AppState>,
     network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<()> {
@@ -42,7 +43,7 @@ pub async fn start_network_client(
         ));
     }
 
-    let client = NetworkClient::new(app_state.pool().clone(), terminal_name);
+    let client = NetworkClient::new(app_state.pool().clone(), terminal_name, app_handle);
 
     // Iniciar
     client.start();

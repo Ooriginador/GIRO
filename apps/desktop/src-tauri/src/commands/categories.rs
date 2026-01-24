@@ -52,7 +52,7 @@ pub async fn create_category(
     let audit_service = AuditService::new(state.pool().clone());
     audit_log!(
         audit_service,
-        AuditAction::ProductUpdated, // Proxied for now
+        AuditAction::CategoryCreated,
         &employee.id,
         &employee.name,
         "Category",
@@ -80,7 +80,7 @@ pub async fn update_category(
     let audit_service = AuditService::new(state.pool().clone());
     audit_log!(
         audit_service,
-        AuditAction::ProductUpdated, // Proxied for now
+        AuditAction::CategoryUpdated,
         &employee.id,
         &employee.name,
         "Category",
@@ -96,9 +96,22 @@ pub async fn update_category(
 pub async fn delete_category(id: String, state: State<'_, AppState>) -> AppResult<()> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
-    require_permission!(state.pool(), &employee_id, Permission::ManageCategories);
+    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageCategories);
     let repo = CategoryRepository::new(state.pool());
-    repo.delete(&id).await
+    repo.delete(&id).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::CategoryDeleted,
+        &employee.id,
+        &employee.name,
+        "Category",
+        &id
+    );
+
+    Ok(())
 }
 
 /// Desativa uma categoria (alias para delete)

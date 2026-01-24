@@ -70,9 +70,12 @@ interface PDVState {
   // Ações de sessão
   setCashSession: (session: CashSession | null) => void;
   setCustomer: (customerId: string | null) => void;
-  holdSale: () => void;
-  resumeSale: (id: string) => void;
-  removeHeldSale: (id: string) => void;
+  holdSale: () => Promise<void>;
+  resumeSale: (id: string) => Promise<void>;
+  removeHeldSale: (id: string) => Promise<void>;
+  loadHeldSales: () => Promise<void>;
+
+  // Ações de modal
 
   // Ações de modal
   openPaymentModal: () => void;
@@ -110,6 +113,15 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
   lastSaleId: null,
   customerId: null,
   heldSales: [],
+  loadHeldSales: async () => {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const sales = (await invoke('get_held_sales')) as any[];
+      set({ heldSales: sales });
+    } catch (e) {
+      console.error('Failed to load held sales:', e);
+    }
+  },
 
   // Adicionar item ao carrinho
   addItem: (item) => {
@@ -190,49 +202,79 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
     set({ customerId });
   },
 
-  holdSale: () => {
-    const { items, discount, discountReason, customerId, getSubtotal, getTotal, clearCart } = get();
+  holdSale: async () => {
+    const { items, discount, discountReason, customerId, clearCart } = get();
     if (items.length === 0) return;
 
-    const newHold = {
-      id: crypto.randomUUID(),
-      items: [...items],
-      discount,
-      discountReason,
-      customerId,
-      subtotal: getSubtotal(),
-      total: getTotal(),
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
 
-    set((state) => ({
-      heldSales: [newHold, ...state.heldSales],
-    }));
+      const newHold = {
+        id: crypto.randomUUID(),
+        customerId,
+        discountValue: discount,
+        discountReason,
+        items: items.map((i) => ({
+          productId: i.productId,
+          productName: i.productName,
+          barcode: i.barcode,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          discount: i.discount,
+          unit: i.unit,
+          isWeighted: i.isWeighted,
+        })),
+      };
 
-    clearCart();
+      const result = (await invoke('save_held_sale', { input: newHold })) as any;
+
+      set((state) => ({
+        heldSales: [result, ...state.heldSales],
+      }));
+
+      clearCart();
+    } catch (e) {
+      console.error('Failed to hold sale:', e);
+    }
   },
 
-  resumeSale: (id) => {
+  resumeSale: async (id) => {
     const { heldSales, items } = get();
-    // Se o carrinho atual não estiver vazio, não permite recuperar (para evitar sobrescrever ou precisar de merge)
     if (items.length > 0) return;
 
-    const sale = heldSales.find((s) => s.id === id);
+    const sale = heldSales.find((s) => (s as any).id === id);
     if (!sale) return;
 
-    set({
-      items: sale.items,
-      discount: sale.discount,
-      discountReason: sale.discountReason,
-      customerId: sale.customerId,
-      heldSales: heldSales.filter((s) => s.id !== id),
-    });
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke('delete_held_sale', { id });
+
+      set({
+        items: (sale as any).items.map((i: any) => ({
+          ...i,
+          id: crypto.randomUUID(), // New UUID for cart item
+        })),
+        discount: (sale as any).discountValue,
+        discountReason: (sale as any).discountReason,
+        customerId: (sale as any).customerId,
+        heldSales: heldSales.filter((s) => (s as any).id !== id),
+      });
+    } catch (e) {
+      console.error('Failed to resume sale:', e);
+    }
   },
 
-  removeHeldSale: (id) => {
-    set((state) => ({
-      heldSales: state.heldSales.filter((s) => s.id !== id),
-    }));
+  removeHeldSale: async (id) => {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke('delete_held_sale', { id });
+
+      set((state) => ({
+        heldSales: state.heldSales.filter((s) => (s as any).id !== id),
+      }));
+    } catch (e) {
+      console.error('Failed to remove held sale:', e);
+    }
   },
 
   openPaymentModal: () => {

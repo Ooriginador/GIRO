@@ -39,6 +39,17 @@ pub async fn authenticate_by_pin(
 
     if let Some(ref e) = emp {
         state.session.set_employee(e);
+
+        // Audit Log
+        let audit_service = AuditService::new(state.pool().clone());
+        audit_log!(
+            audit_service,
+            AuditAction::Login,
+            &e.id,
+            &e.name,
+            "Employee",
+            &e.id
+        );
     }
 
     Ok(emp.map(SafeEmployee::from))
@@ -206,9 +217,22 @@ pub async fn reactivate_employee(
 ) -> AppResult<SafeEmployee> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
-    require_permission!(state.pool(), &employee_id, Permission::UpdateEmployees);
+    let employee = require_permission!(state.pool(), &employee_id, Permission::UpdateEmployees);
     let repo = EmployeeRepository::new(state.pool());
     let emp = repo.reactivate(&id).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::EmployeeUpdated,
+        &employee.id,
+        &employee.name,
+        "Employee",
+        &id,
+        "Reativado"
+    );
+
     Ok(SafeEmployee::from(emp))
 }
 

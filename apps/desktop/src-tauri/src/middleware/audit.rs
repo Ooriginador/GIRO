@@ -66,6 +66,16 @@ pub enum AuditAction {
     // Serviços
     ServiceCreated,
     ServiceUpdated,
+
+    // Categorias
+    CategoryCreated,
+    CategoryUpdated,
+    CategoryDeleted,
+
+    // Fornecedores
+    SupplierCreated,
+    SupplierUpdated,
+    SupplierDeleted,
 }
 
 impl std::fmt::Display for AuditAction {

@@ -75,6 +75,10 @@ async fn main() {
             commands::get_daily_summary,
             commands::get_daily_sales_total,
             commands::get_monthly_summary,
+            // Held Sales (PDV Persistence)
+            commands::get_held_sales,
+            commands::save_held_sale,
+            commands::delete_held_sale,
             // Cash
             commands::get_current_session,
             commands::get_current_cash_session,
@@ -144,6 +148,9 @@ async fn main() {
             commands::remove_product_compatibility,
             commands::save_product_compatibilities,
             commands::get_products_by_vehicle,
+            // Audit
+            commands::get_audit_logs,
+            commands::get_audit_summary,
             // Reports
             commands::get_stock_report,
             commands::get_top_products,
@@ -273,8 +280,17 @@ async fn main() {
     }
 
     let app_data = dirs::data_local_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("GIRO");
+        .map(|p| p.join("GIRO"))
+        .unwrap_or_else(|| {
+            cfg_if::cfg_if! {
+                if #[cfg(windows)] {
+                    // Fallback para C:\GIRO se AppData estiver inacessível (raro)
+                    PathBuf::from("C:\\GIRO")
+                } else {
+                    PathBuf::from("GIRO")
+                }
+            }
+        });
     let log_dir = app_data.join("logs");
     std::fs::create_dir_all(&log_dir).ok();
 
@@ -328,9 +344,28 @@ async fn main() {
         }
     }
 
+    // Verify DB integrity (basic size check)
+    if db_path.exists() {
+        if let Ok(metadata) = std::fs::metadata(&db_path) {
+            if metadata.len() == 0 {
+                tracing::warn!(
+                    "⚠️ Arquivo de banco de dados vazio detectado. Tentando recuperar..."
+                );
+                let _ = std::fs::remove_file(&db_path);
+            }
+        }
+    }
+
     let db = match DatabaseManager::new(db_path.to_str().unwrap()).await {
         Ok(db) => db,
         Err(e) => {
+            let err_msg = e.to_string();
+            if err_msg.contains("database is locked") {
+                tracing::error!(
+                    "❌ FATAL: O banco de dados está bloqueado por outra instância do GIRO."
+                );
+                panic!("O banco de dados está bloqueado. Verifique se o GIRO já está aberto ou encerre o processo 'giro-desktop.exe' no Gerenciador de Tarefas.");
+            }
             tracing::error!("❌ FATAL: Falha ao conectar com banco de dados: {:?}", e);
             panic!("Falha ao conectar com banco de dados: {}", e);
         }
@@ -393,6 +428,7 @@ async fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(app_state)
         .manage(HardwareState::default())
         .manage(RwLock::new(MobileServerState::default()))
@@ -439,7 +475,7 @@ async fn main() {
                     "SATELLITE" => {
                         tracing::info!("Auto-start: Este terminal está configurado como SATELLITE. Iniciando busca pelo Master...");
                         let terminal_name = settings_repo.get_value("terminal.name").await.ok().flatten().unwrap_or_else(|| "Satellite Terminal".into());
-                        if let Err(e) = commands::network::start_network_client(terminal_name, state.clone(), network_state.clone()).await {
+                        if let Err(e) = commands::network::start_network_client(terminal_name, handle.clone(), state.clone(), network_state.clone()).await {
                             tracing::error!("Erro no auto-start do Satellite: {:?}", e);
                         }
                     },
@@ -449,7 +485,13 @@ async fn main() {
                 // 3. Verificar Garantias de OS expirando
                 let alert_repo = giro_lib::repositories::AlertRepository::new(state.pool());
                 match alert_repo.check_os_warranties().await {
-                    Ok(count) if count > 0 => tracing::info!("✅ Alertas de Garantia: {} novos alertas gerados", count),
+                    Ok(count) if count > 0 => {
+                        tracing::info!("✅ Alertas de Garantia: {} novos alertas gerados", count);
+                        giro_lib::services::NotificationService::alert(
+                            &handle,
+                            &format!("Você tem {} novas garantias de OS expirando em breve!", count)
+                        );
+                    },
                     Ok(_) => tracing::info!("✅ Alertas de Garantia: Nenhuma garantia expirando em breve"),
                     Err(e) => tracing::error!("❌ Erro ao verificar garantias de OS: {:?}", e),
                 }

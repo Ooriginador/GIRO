@@ -7,6 +7,7 @@ import { useHasAdmin } from '@/hooks/useSetup';
 import { useAuthStore } from '@/stores/auth-store';
 import { useLicenseStore } from '@/stores/license-store';
 import { useBusinessProfile } from '@/stores/useBusinessProfile';
+import { useNetworkEvents } from '@/hooks/use-network-events';
 import { type FC, useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes, useNavigate, useLocation } from 'react-router-dom';
 // ... existing imports ...
@@ -161,6 +162,7 @@ const RootRedirect: FC = () => {
 const App: FC = () => {
   const { isAuthenticated, restoreSession, isRestoring } = useAuthStore();
   useHelpHotkey();
+  useNetworkEvents();
 
   useEffect(() => {
     restoreSession();

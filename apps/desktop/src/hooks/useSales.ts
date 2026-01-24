@@ -27,6 +27,7 @@ import type {
   SaleFilter,
 } from '@/types';
 import { cashSessionKeys } from './usePDV';
+import { productKeys } from './use-products';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, startOfWeek, startOfMonth } from 'date-fns';
 
@@ -114,6 +115,7 @@ export function useCreateSale() {
       queryClient.invalidateQueries({ queryKey: saleKeys.today() });
       queryClient.invalidateQueries({ queryKey: saleKeys.dailyTotal() });
       queryClient.invalidateQueries({ queryKey: cashSessionKeys.current() });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
 
       // Limpa o carrinho
       clearCart();
@@ -140,6 +142,7 @@ export function useCancelSale() {
       queryClient.invalidateQueries({ queryKey: saleKeys.today() });
       queryClient.invalidateQueries({ queryKey: saleKeys.dailyTotal() });
       queryClient.invalidateQueries({ queryKey: saleKeys.detail(sale.id) });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
 
       success('Venda cancelada', `Venda #${sale.dailyNumber} foi cancelada`);
     },
@@ -209,7 +212,7 @@ export function useCloseCashSession() {
     onSuccess: (session) => {
       setCashSession(null);
       queryClient.invalidateQueries({ queryKey: cashSessionKeys.current() });
-      
+
       const diff = session.difference ?? 0;
       if (Math.abs(diff) < 0.01) {
         success('Caixa fechado', 'Fechamento conferido sem diferença');

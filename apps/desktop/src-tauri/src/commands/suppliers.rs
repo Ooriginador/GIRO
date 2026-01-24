@@ -1,6 +1,8 @@
 //! Comandos Tauri para Fornecedores
 
+use crate::audit_log;
 use crate::error::AppResult;
+use crate::middleware::audit::{AuditAction, AuditService};
 use crate::middleware::Permission;
 use crate::models::{CreateSupplier, Supplier, UpdateSupplier};
 use crate::repositories::SupplierRepository;
@@ -43,9 +45,23 @@ pub async fn create_supplier(
 ) -> AppResult<Supplier> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
-    require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
+    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
     let repo = SupplierRepository::new(state.pool());
-    repo.create(input).await
+    let result = repo.create(input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::SupplierCreated,
+        &employee.id,
+        &employee.name,
+        "Supplier",
+        &result.id,
+        format!("Fornecedor Criado: {}", result.name)
+    );
+
+    Ok(result)
 }
 
 #[tauri::command]
@@ -57,9 +73,23 @@ pub async fn update_supplier(
 ) -> AppResult<Supplier> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
-    require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
+    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
     let repo = SupplierRepository::new(state.pool());
-    repo.update(&id, input).await
+    let result = repo.update(&id, input).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::SupplierUpdated,
+        &employee.id,
+        &employee.name,
+        "Supplier",
+        &id,
+        format!("Fornecedor Atualizado: {}", result.name)
+    );
+
+    Ok(result)
 }
 
 #[tauri::command]
@@ -67,9 +97,22 @@ pub async fn update_supplier(
 pub async fn delete_supplier(id: String, state: State<'_, AppState>) -> AppResult<()> {
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
-    require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
+    let employee = require_permission!(state.pool(), &employee_id, Permission::ManageSuppliers);
     let repo = SupplierRepository::new(state.pool());
-    repo.delete(&id).await
+    repo.delete(&id).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::SupplierDeleted,
+        &employee.id,
+        &employee.name,
+        "Supplier",
+        &id
+    );
+
+    Ok(())
 }
 
 /// Desativa um fornecedor (alias para delete)

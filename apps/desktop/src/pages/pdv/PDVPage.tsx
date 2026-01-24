@@ -77,6 +77,7 @@ export const PDVPage: FC = () => {
     holdSale,
     resumeSale,
     removeHeldSale,
+    loadHeldSales,
   } = usePDVStore();
   const { currentSession } = useAuthStore();
   const { getCustomerById } = useCustomers();
@@ -87,7 +88,9 @@ export const PDVPage: FC = () => {
     if (customerId && !selectedCustomer) {
       getCustomerById(customerId).then(setSelectedCustomer);
     }
-  }, [customerId, getCustomerById, selectedCustomer]);
+    // Carregar vendas em espera ao montar
+    loadHeldSales();
+  }, [customerId, getCustomerById, selectedCustomer, loadHeldSales]);
 
   const handleCustomerSelect = (customer: Customer | null) => {
     setSelectedCustomer(customer);
