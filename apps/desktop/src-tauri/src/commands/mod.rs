@@ -19,6 +19,7 @@ pub mod price_history;
 pub mod products;
 pub mod reports;
 pub mod sales;
+#[cfg(debug_assertions)]
 pub mod seed;
 pub mod service_orders;
 pub mod settings;

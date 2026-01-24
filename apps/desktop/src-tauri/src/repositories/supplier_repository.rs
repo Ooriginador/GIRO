@@ -170,6 +170,52 @@ impl<'a> SupplierRepository<'a> {
             .await?;
         Ok(result)
     }
+
+    pub async fn find_delta(&self, last_sync: i64) -> AppResult<Vec<Supplier>> {
+        let query = format!(
+            "SELECT {} FROM suppliers WHERE unixepoch(updated_at) > ? ORDER BY updated_at ASC",
+            Self::COLS
+        );
+        let result = sqlx::query_as::<_, Supplier>(&query)
+            .bind(last_sync)
+            .fetch_all(self.pool)
+            .await?;
+        Ok(result)
+    }
+
+    pub async fn upsert_from_sync(&self, supplier: Supplier) -> AppResult<()> {
+        sqlx::query(
+            r#"INSERT INTO suppliers (id, name, trade_name, cnpj, phone, email, address, city, state, notes, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+                name=excluded.name,
+                trade_name=excluded.trade_name,
+                cnpj=excluded.cnpj,
+                phone=excluded.phone,
+                email=excluded.email,
+                address=excluded.address,
+                city=excluded.city,
+                state=excluded.state,
+                notes=excluded.notes,
+                is_active=excluded.is_active,
+                updated_at=excluded.updated_at"#
+        )
+        .bind(&supplier.id)
+        .bind(&supplier.name)
+        .bind(&supplier.trade_name)
+        .bind(&supplier.cnpj)
+        .bind(&supplier.phone)
+        .bind(&supplier.email)
+        .bind(&supplier.address)
+        .bind(&supplier.city)
+        .bind(&supplier.state)
+        .bind(&supplier.notes)
+        .bind(supplier.is_active)
+        .bind(&supplier.created_at)
+        .bind(&supplier.updated_at)
+        .execute(self.pool)
+        .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

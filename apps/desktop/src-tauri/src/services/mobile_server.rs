@@ -729,6 +729,20 @@ async fn process_request(
             };
             sync_handler.delta(id, payload).await
         }
+        MobileAction::SyncPush => {
+            let payload: crate::services::mobile_protocol::SyncPushPayload =
+                match serde_json::from_value(request.payload.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return MobileResponse::error(
+                            id,
+                            MobileErrorCode::ValidationError,
+                            format!("Payload inválido: {}", e),
+                        );
+                    }
+                };
+            sync_handler.push(id, payload).await
+        }
         MobileAction::SaleRemoteCreate => {
             let payload: SaleRemoteCreatePayload =
                 match serde_json::from_value(request.payload.clone()) {

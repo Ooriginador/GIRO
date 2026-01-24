@@ -722,6 +722,18 @@ impl<'a> ProductRepository<'a> {
     }
 
     /// Lista todos produtos ativos com paginação (compatível com mobile)
+    pub async fn find_delta(&self, last_sync: i64) -> AppResult<Vec<Product>> {
+        let query = format!(
+            "SELECT {} FROM products WHERE unixepoch(updated_at) > ? ORDER BY updated_at ASC",
+            self.product_columns_string()
+        );
+        let result = sqlx::query_as::<_, Product>(&query)
+            .bind(last_sync)
+            .fetch_all(self.pool)
+            .await?;
+        Ok(result)
+    }
+
     pub async fn list_all(&self, limit: i32, offset: i32) -> AppResult<Vec<Product>> {
         let query = format!(
             "SELECT {} FROM products WHERE is_active = 1 ORDER BY name LIMIT ? OFFSET ?",

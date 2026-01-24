@@ -1,16 +1,17 @@
 //! Handler de sincronização PC-to-PC
 //!
-//! Processa ações: sync.full, sync.delta, sale.remote_create
+//! Processa ações: sync.full, sync.delta, sync.push, sale.remote_create
 
-use crate::models::CreateSale;
+use crate::models::{Category, CreateSale, Customer, Product, ServiceOrder, Setting, Supplier};
 use crate::repositories::{
-    CustomerRepository, ProductRepository, SaleRepository, SettingsRepository,
+    CategoryRepository, CustomerRepository, ProductRepository, SaleRepository,
+    ServiceOrderRepository, SettingsRepository, SupplierRepository,
 };
 use crate::services::mobile_protocol::{
     MobileErrorCode, MobileResponse, SaleRemoteCreatePayload, SyncDeltaPayload, SyncFullPayload,
+    SyncPushPayload,
 };
 use sqlx::SqlitePool;
-// use chrono::Utc; // Removed unused import
 
 use std::collections::HashMap;
 
@@ -27,44 +28,63 @@ impl SyncHandler {
 
     /// Processa sincronização completa
     pub async fn full(&self, id: u64, payload: SyncFullPayload) -> MobileResponse {
-        let mut data = HashMap::new();
+        let mut data: HashMap<String, serde_json::Value> = HashMap::new();
 
         for table in payload.tables {
             match table.as_str() {
                 "products" => {
                     let repo = ProductRepository::new(&self.pool);
-                    match repo.find_all().await {
-                        Ok(products) => {
-                            data.insert(
-                                "products".to_string(),
-                                serde_json::to_value(products).unwrap_or_default(),
-                            );
-                        }
-                        Err(e) => tracing::error!("Erro ao sync products: {}", e),
+                    if let Ok(items) = repo.find_all().await {
+                        data.insert(
+                            "products".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
                     }
                 }
                 "customers" => {
                     let repo = CustomerRepository::new(&self.pool);
-                    match repo.find_all_active().await {
-                        Ok(customers) => {
-                            data.insert(
-                                "customers".to_string(),
-                                serde_json::to_value(customers).unwrap_or_default(),
-                            );
-                        }
-                        Err(e) => tracing::error!("Erro ao sync customers: {}", e),
+                    if let Ok(items) = repo.find_all_active().await {
+                        data.insert(
+                            "customers".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
                     }
                 }
                 "settings" => {
                     let repo = SettingsRepository::new(&self.pool);
-                    match repo.find_all().await {
-                        Ok(settings) => {
-                            data.insert(
-                                "settings".to_string(),
-                                serde_json::to_value(settings).unwrap_or_default(),
-                            );
-                        }
-                        Err(e) => tracing::error!("Erro ao sync settings: {}", e),
+                    if let Ok(items) = repo.find_all().await {
+                        data.insert(
+                            "settings".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
+                    }
+                }
+                "categories" => {
+                    let repo = CategoryRepository::new(&self.pool);
+                    if let Ok(items) = repo.find_all().await {
+                        data.insert(
+                            "categories".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
+                    }
+                }
+                "suppliers" => {
+                    let repo = SupplierRepository::new(&self.pool);
+                    if let Ok(items) = repo.find_all().await {
+                        data.insert(
+                            "suppliers".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
+                    }
+                }
+                "service_orders" => {
+                    let repo = ServiceOrderRepository::new(self.pool.clone());
+                    if let Ok(items) = repo.find_open_orders().await {
+                        // Full sync for OS usually only returns open/recent ones for performance
+                        data.insert(
+                            "service_orders".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
                     }
                 }
                 _ => {}
@@ -74,89 +94,163 @@ impl SyncHandler {
         MobileResponse::success(id, data)
     }
 
-    /// Processa sincronização delta (fallback para full)
+    /// Processa sincronização delta
     pub async fn delta(&self, id: u64, payload: SyncDeltaPayload) -> MobileResponse {
-        // Implementação simples de delta: retornamos somente registros com updated_at > last_sync
-        // Usa deserialização/parse de updated_at (RFC3339) e compara com o timestamp em segundos
-
-        let mut data = HashMap::new();
+        let mut data: HashMap<String, serde_json::Value> = HashMap::new();
         let last_sync = payload.last_sync;
+        let requested_tables = payload.tables.unwrap_or_else(|| {
+            vec![
+                "products".into(),
+                "customers".into(),
+                "settings".into(),
+                "categories".into(),
+                "suppliers".into(),
+                "service_orders".into(),
+            ]
+        });
 
-        // Products
-        let product_repo = ProductRepository::new(&self.pool);
-        match product_repo.find_all().await {
-            Ok(products) => {
-                let filtered: Vec<_> = products
-                    .into_iter()
-                    .filter(|p| {
-                        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&p.updated_at) {
-                            dt.timestamp() > last_sync
-                        } else {
-                            false
-                        }
-                    })
-                    .collect();
-                data.insert(
-                    "products".to_string(),
-                    serde_json::to_value(filtered).unwrap_or_default(),
-                );
+        for table in requested_tables {
+            match table.as_str() {
+                "products" => {
+                    let repo = ProductRepository::new(&self.pool);
+                    if let Ok(items) = repo.find_delta(last_sync).await {
+                        data.insert(
+                            "products".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
+                    }
+                }
+                "customers" => {
+                    let repo = CustomerRepository::new(&self.pool);
+                    if let Ok(items) = repo.find_delta(last_sync).await {
+                        data.insert(
+                            "customers".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
+                    }
+                }
+                "settings" => {
+                    let repo = SettingsRepository::new(&self.pool);
+                    if let Ok(items) = repo.find_delta(last_sync).await {
+                        data.insert(
+                            "settings".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
+                    }
+                }
+                "categories" => {
+                    let repo = CategoryRepository::new(&self.pool);
+                    if let Ok(items) = repo.find_delta(last_sync).await {
+                        data.insert(
+                            "categories".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
+                    }
+                }
+                "suppliers" => {
+                    let repo = SupplierRepository::new(&self.pool);
+                    if let Ok(items) = repo.find_delta(last_sync).await {
+                        data.insert(
+                            "suppliers".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
+                    }
+                }
+                "service_orders" => {
+                    let repo = ServiceOrderRepository::new(self.pool.clone());
+                    if let Ok(items) = repo.find_delta(last_sync).await {
+                        data.insert(
+                            "service_orders".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
+                    }
+                }
+                _ => {}
             }
-            Err(e) => tracing::error!("Erro ao delta products: {}", e),
-        }
-
-        // Customers
-        let customer_repo = CustomerRepository::new(&self.pool);
-        match customer_repo.find_all_active().await {
-            Ok(customers) => {
-                let filtered: Vec<_> = customers
-                    .into_iter()
-                    .filter(|c| {
-                        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&c.updated_at) {
-                            dt.timestamp() > last_sync
-                        } else {
-                            false
-                        }
-                    })
-                    .collect();
-                data.insert(
-                    "customers".to_string(),
-                    serde_json::to_value(filtered).unwrap_or_default(),
-                );
-            }
-            Err(e) => tracing::error!("Erro ao delta customers: {}", e),
-        }
-
-        // Settings
-        let settings_repo = SettingsRepository::new(&self.pool);
-        match settings_repo.find_all().await {
-            Ok(settings) => {
-                let filtered: Vec<_> = settings
-                    .into_iter()
-                    .filter(|s| {
-                        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&s.updated_at) {
-                            dt.timestamp() > last_sync
-                        } else {
-                            false
-                        }
-                    })
-                    .collect();
-                data.insert(
-                    "settings".to_string(),
-                    serde_json::to_value(filtered).unwrap_or_default(),
-                );
-            }
-            Err(e) => tracing::error!("Erro ao delta settings: {}", e),
         }
 
         MobileResponse::success(id, data)
     }
 
+    /// Processa Push de Sincronização (Master recebe de Satélite)
+    pub async fn push(&self, id: u64, payload: SyncPushPayload) -> MobileResponse {
+        tracing::info!("Recebendo Push de Sincronia: entity={}", payload.entity);
+
+        let result = match payload.entity.as_str() {
+            "product" => {
+                if let Ok(item) = serde_json::from_value::<Product>(payload.data) {
+                    let repo = ProductRepository::new(&self.pool);
+                    repo.upsert_from_sync(item).await
+                } else {
+                    Err(crate::error::AppError::Validation(
+                        "Invalid product data".into(),
+                    ))
+                }
+            }
+            "customer" => {
+                if let Ok(item) = serde_json::from_value::<Customer>(payload.data) {
+                    let repo = CustomerRepository::new(&self.pool);
+                    repo.upsert_from_sync(item).await
+                } else {
+                    Err(crate::error::AppError::Validation(
+                        "Invalid customer data".into(),
+                    ))
+                }
+            }
+            "setting" => {
+                if let Ok(item) = serde_json::from_value::<Setting>(payload.data) {
+                    let repo = SettingsRepository::new(&self.pool);
+                    repo.upsert_from_sync(item).await
+                } else {
+                    Err(crate::error::AppError::Validation(
+                        "Invalid setting data".into(),
+                    ))
+                }
+            }
+            "category" => {
+                if let Ok(item) = serde_json::from_value::<Category>(payload.data) {
+                    let repo = CategoryRepository::new(&self.pool);
+                    repo.upsert_from_sync(item).await
+                } else {
+                    Err(crate::error::AppError::Validation(
+                        "Invalid category data".into(),
+                    ))
+                }
+            }
+            "supplier" => {
+                if let Ok(item) = serde_json::from_value::<Supplier>(payload.data) {
+                    let repo = SupplierRepository::new(&self.pool);
+                    repo.upsert_from_sync(item).await
+                } else {
+                    Err(crate::error::AppError::Validation(
+                        "Invalid supplier data".into(),
+                    ))
+                }
+            }
+            "service_order" => {
+                if let Ok(item) = serde_json::from_value::<ServiceOrder>(payload.data) {
+                    let repo = ServiceOrderRepository::new(self.pool.clone());
+                    repo.upsert_from_sync(item).await
+                } else {
+                    Err(crate::error::AppError::Validation(
+                        "Invalid service order data".into(),
+                    ))
+                }
+            }
+            _ => Err(crate::error::AppError::Validation("Unknown entity".into())),
+        };
+
+        match result {
+            Ok(_) => MobileResponse::success(id, serde_json::json!({ "status": "ok" })),
+            Err(e) => {
+                tracing::error!("Erro ao processar sync push: {}", e);
+                MobileResponse::error(id, MobileErrorCode::InternalError, e.to_string())
+            }
+        }
+    }
+
     /// Processa criação de venda remota
     pub async fn remote_sale(&self, id: u64, payload: SaleRemoteCreatePayload) -> MobileResponse {
-        // O payload.sale vem como JSON Value, precisamos converter para CreateSale
-        // Porém, o CreateSale espera structures específicas.
-        // Vamos tentar desserializar diretamente para CreateSale
-
         let create_sale: CreateSale = match serde_json::from_value(payload.sale) {
             Ok(s) => s,
             Err(e) => {

@@ -167,6 +167,18 @@ impl<'a> SettingsRepository<'a> {
             .await?;
         Ok(())
     }
+    pub async fn find_delta(&self, last_sync: i64) -> AppResult<Vec<Setting>> {
+        let query = format!(
+            "SELECT {} FROM settings WHERE unixepoch(updated_at) > ? ORDER BY updated_at ASC",
+            Self::COLS
+        );
+        let result = sqlx::query_as::<_, Setting>(&query)
+            .bind(last_sync)
+            .fetch_all(self.pool)
+            .await?;
+        Ok(result)
+    }
+
     pub async fn upsert_from_sync(&self, setting: Setting) -> AppResult<()> {
         sqlx::query(
             "INSERT INTO settings (id, key, value, type, group_name, description, updated_by_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
