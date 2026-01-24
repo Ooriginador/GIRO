@@ -1,4 +1,4 @@
-# 🏪 GIRO - Sistema PDV Completo
+# 🏪 GIRO (v1.3.5) - Sistema PDV Completo
 
 <div align="center">
 
@@ -6,9 +6,8 @@
 [![Tauri](https://img.shields.io/badge/Tauri-2.2-24C8DB?style=for-the-badge&logo=tauri)](https://tauri.app)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
 [![Rust](https://img.shields.io/badge/Rust-1.83-orange?style=for-the-badge&logo=rust)](https://www.rust-lang.org)
-[![Expo](https://img.shields.io/badge/Expo-52-000020?style=for-the-badge&logo=expo)](https://expo.dev)
 
-## Sistema de Ponto de Venda completo com aplicações Desktop e Mobile
+## Core PDV Desktop para Gestão Comercial
 
 [🚀 Começar](#-instalação) • [📖 Documentação](#-documentação) • [🛠️ Desenvolvimento](#-desenvolvimento) • [🤝 Contribuir](#-contribuindo)
 
@@ -18,37 +17,35 @@
 
 ## 📋 Sobre o Projeto
 
-GIRO é um sistema completo de Ponto de Venda (PDV) desenvolvido com tecnologias modernas, oferecendo soluções tanto para Desktop (Windows/Linux) quanto Mobile (iOS/Android).
+GIRO é o ecossistema principal de Ponto de Venda (PDV) v1.3.5, focado na aplicação Desktop (Windows/Linux) e serviços core. Este repositório contém o coração do sistema.
 
-### ✨ Características Principais
+### ✨ Características Principais (Core Desktop)
 
 - 🖥️ **Desktop Nativo**: Aplicação Tauri com React + TypeScript
-- 📱 **Mobile Cross-Platform**: Expo com React Native
 - 🦀 **Backend Rust**: Performance e segurança garantidas
 - 💾 **Banco de Dados SQLite**: Leve e eficiente com Prisma ORM
 - 🔐 **Autenticação Robusta**: JWT + bcrypt
 - 🖨️ **Hardware Integrado**: Impressoras térmicas, balanças, scanners
 - 📊 **Relatórios Avançados**: Analytics e dashboards
-- 🔄 **Sincronização**: Dados entre desktop e mobile
 - 🎨 **UI Moderna**: TailwindCSS + Radix UI
 
 ---
 
-## 🏗️ Arquitetura
+## 🏗️ Arquitetura Core
 
-````text
+```text
 GIRO/
 ├── apps/
-│   ├── desktop/          # Aplicação Tauri (React + Rust)
-│   │   ├── src/          # Frontend React
-│   │   ├── src-tauri/    # Backend Rust
-│   │   └── tests/        # Testes E2E com Playwright
-│   └── giro-mobile/      # Aplicação Expo (React Native)
+│   └── desktop/          # Aplicação Tauri (React + Rust)
+│       ├── src/          # Frontend React
+│       ├── src-tauri/    # Backend Rust
+│       └── tests/        # Testes E2E com Playwright
 ├── packages/
 │   └── database/         # Schema Prisma compartilhado
-├── docs/                 # Documentação completa
+├── docs/                 # Documentação técnica core
 └── scripts/              # Scripts de build e deploy
-```text
+```
+
 ### 🔧 Stack Tecnológica
 
 #### Desktop
@@ -57,13 +54,6 @@ GIRO/
 - **Backend**: Rust, Tauri 2.2, SQLx, Tokio
 - **Database**: SQLite com Prisma
 - **Testes**: Playwright, Vitest
-
-#### Mobile
-
-- **Framework**: Expo 52, React Native
-- **UI**: React Native Paper, NativeWind
-- **State**: Zustand
-- **Testes**: Jest, React Native Testing Library
 
 ---
 
@@ -89,7 +79,8 @@ pnpm install
 cd packages/database
 pnpm prisma generate
 pnpm prisma db push
-```text
+```
+
 #### Desktop (Linux)
 
 ```bash
@@ -102,19 +93,11 @@ sudo apt install -y libwebkit2gtk-4.1-dev \
 
 pnpm install
 cd packages/database && pnpm prisma generate && pnpm prisma db push
-```text
-#### Mobile (cont.)
+```
 
-```bash
-cd giro-mobile
-pnpm install
-pnpm expo prebuild
-```text
 ---
 
-## 💻 Desenvolvimento
-
-### Desktop
+## 💻 Desenvolvimento (Desktop)
 
 ```bash
 # Modo desenvolvimento
@@ -123,27 +106,8 @@ pnpm tauri dev
 
 # Build de produção
 pnpm tauri build
+```
 
-# Testes E2E
-pnpm test:e2e
-
-# Testes unitários
-pnpm test
-```text
-### Mobile
-
-```bash
-cd giro-mobile
-
-# Desenvolvimento iOS
-pnpm ios
-
-# Desenvolvimento Android
-pnpm android
-
-# Testes
-pnpm test
-```text
 ---
 
 ## 📦 Build de Produção
@@ -153,18 +117,10 @@ pnpm test
 ```bash
 cd apps/desktop
 .\build-windows.sh
-```text
+```
+
 Gera instalador em `src-tauri/target/release/bundle/`
 
-### Mobile (cont.)
-
-```bash
-cd giro-mobile
-
-# Build de produção (cont.)
-eas build --platform android
-eas build --platform ios
-```text
 ---
 
 ## 🎯 Funcionalidades
@@ -217,14 +173,8 @@ pnpm test:e2e
 
 # Coverage
 pnpm test:coverage
-```text
-### Mobile (cont.)
+```
 
-```bash
-cd giro-mobile
-pnpm test
-pnpm test:coverage
-```text
 **Status atual**: 80%+ de cobertura em módulos críticos
 
 ---
@@ -255,7 +205,7 @@ Exemplo rápido:
 ```bash
 cp apps/desktop/.env.example apps/desktop/.env
 # then edit apps/desktop/.env and replace placeholders
-````
+```
 
 ## 🤝 Contribuindo
 
@@ -271,14 +221,15 @@ Contribuições são bem-vindas! Por favor:
 
 Seguimos [Conventional Commits](https://www.conventionalcommits.org/):
 
-````text
+```text
 feat(scope): add new feature
 fix(scope): fix bug description
 docs(scope): update documentation
 refactor(scope): refactor code
 test(scope): add tests
 chore(scope): maintenance tasks
-```text
+```
+
 ---
 
 ## 📄 Licença
@@ -288,7 +239,9 @@ Este projeto é proprietário. Todos os direitos reservados.
 ---
 
 ## 👨‍💻 Autor
+
 ## Arkheion Corp
+
 - GitHub: [@jhonslife](https://github.com/jhonslife)
 
 ---
@@ -296,7 +249,6 @@ Este projeto é proprietário. Todos os direitos reservados.
 ## 🙏 Agradecimentos
 
 - [Tauri](https://tauri.app) - Framework desktop
-- [Expo](https://expo.dev) - Framework mobile
 - [Prisma](https://prisma.io) - ORM
 - [Radix UI](https://radix-ui.com) - Componentes React
 - Comunidade Open Source
@@ -308,4 +260,3 @@ Este projeto é proprietário. Todos os direitos reservados.
 Feito com ❤️ por Arkheion Corp
 
 </div>
-````
