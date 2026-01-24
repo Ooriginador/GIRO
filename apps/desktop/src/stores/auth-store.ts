@@ -57,6 +57,9 @@ export const PERMISSIONS = {
 
   // Veículos (Motopeças)
   'vehicles.view': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER', 'VIEWER'],
+
+  // Estoque
+  'stock.view_value': ['ADMIN', 'MANAGER', 'STOCKER'],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
