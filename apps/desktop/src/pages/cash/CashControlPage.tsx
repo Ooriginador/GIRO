@@ -38,7 +38,7 @@ import {
   Printer,
   Wallet,
 } from 'lucide-react';
-import { useState, type FC } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { useKeyboard } from '@/hooks/use-keyboard';
 import { useNavigate } from 'react-router-dom';
 
@@ -48,7 +48,6 @@ export const CashControlPage: FC = () => {
   const { data: movementsData } = useCashMovements(sessionData?.id);
   const openSession = useOpenCashSession();
   const closeSession = useCloseCashSession();
-  const { employee, hasPermission } = useAuthStore();
 
   const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
@@ -100,6 +99,39 @@ export const CashControlPage: FC = () => {
       description: 'Fechar modais',
     },
   ]);
+
+  const {
+    employee,
+    hasPermission,
+    currentSession,
+    openCashSession,
+    closeCashSession: clearCashStore,
+  } = useAuthStore();
+
+  // Sincronizar estado do caixa com a store global quando carregar do backend
+  useEffect(() => {
+    if (sessionData) {
+      const backendIsOpen = sessionData.status === 'OPEN';
+      const storeIsOpen = currentSession?.status === 'OPEN';
+
+      if (backendIsOpen && (!storeIsOpen || currentSession?.id !== sessionData.id)) {
+        console.warn('🔄 [CashControl] Syncing open session to AuthStore');
+        openCashSession?.({
+          id: sessionData.id,
+          employeeId: sessionData.employeeId,
+          employeeName: sessionData.employee?.name || employee?.name || 'Não identificado',
+          openedAt: sessionData.openedAt,
+          closedAt: sessionData.closedAt,
+          openingBalance: sessionData.openingBalance,
+          closingBalance: sessionData.actualBalance,
+          status: 'OPEN',
+        });
+      } else if (!backendIsOpen && storeIsOpen) {
+        console.warn('🔄 [CashControl] Syncing closed session to AuthStore');
+        clearCashStore?.();
+      }
+    }
+  }, [sessionData, employee, currentSession, openCashSession, clearCashStore]);
 
   const addMovement = async (type: CashMovement['type']) => {
     const value = parseFloat(movementAmount.replace(',', '.')) || 0;

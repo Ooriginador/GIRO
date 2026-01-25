@@ -79,6 +79,9 @@ describe('CashControlPage', () => {
     vi.mocked(useAuthStore).mockReturnValue({
       employee: { id: 'emp-1', name: 'Test User' },
       hasPermission: () => true,
+      currentSession: null,
+      openCashSession: vi.fn(),
+      closeCashSession: vi.fn(),
     } as any);
     mockUseCurrentCashSession.data = null;
     mockUseCashMovements.data = [];

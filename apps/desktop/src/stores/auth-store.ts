@@ -152,8 +152,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isRestoring: true });
         try {
           // Import dynamic to avoid circular dependency if lib/tauri was to import useAuthStore (it already does)
-          const { getCurrentUser } = await import('@/lib/tauri');
-          const user = await getCurrentUser();
+          const { getCurrentUser, getCurrentCashSession } = await import('@/lib/tauri');
+          const [user, session] = await Promise.all([getCurrentUser(), getCurrentCashSession()]);
 
           if (user) {
             set({
@@ -172,6 +172,23 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: false,
               lastActivity: 0,
             });
+          }
+
+          if (session && session.status === 'OPEN') {
+            set({
+              currentSession: {
+                id: session.id,
+                employeeId: session.employeeId,
+                employeeName: session.employee?.name || user?.name || 'Não identificado',
+                openedAt: session.openedAt,
+                closedAt: session.closedAt,
+                openingBalance: session.openingBalance,
+                closingBalance: session.actualBalance,
+                status: 'OPEN',
+              },
+            });
+          } else {
+            set({ currentSession: null });
           }
         } catch (error) {
           console.error('[AuthStore] Failed to restore session:', error);
