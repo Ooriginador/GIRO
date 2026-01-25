@@ -60,12 +60,16 @@ describe('useHasAdmin', () => {
   });
 
   it('should be loading initially', () => {
-    mockInvoke.mockImplementation(() => new Promise(() => {}));
+    // Use delayed resolution instead of never-resolving promise to avoid test hangs
+    mockInvoke.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve(true), 100))
+    );
 
     const { result } = renderHook(() => useHasAdmin(), {
       wrapper: createWrapper(),
     });
 
+    // Check initial loading state synchronously
     expect(result.current.isLoading).toBe(true);
     expect(result.current.data).toBeUndefined();
   });

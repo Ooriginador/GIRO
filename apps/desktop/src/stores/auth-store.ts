@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { EmployeeRole } from '@/types';
+import { getCurrentUser, getCurrentCashSession } from '@/lib/tauri';
 
 // Re-export for convenience
 export type { EmployeeRole };
@@ -151,8 +152,6 @@ export const useAuthStore = create<AuthState>()(
       restoreSession: async () => {
         set({ isRestoring: true });
         try {
-          // Import dynamic to avoid circular dependency if lib/tauri was to import useAuthStore (it already does)
-          const { getCurrentUser, getCurrentCashSession } = await import('@/lib/tauri');
           const [user, session] = await Promise.all([getCurrentUser(), getCurrentCashSession()]);
 
           if (user) {

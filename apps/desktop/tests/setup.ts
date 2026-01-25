@@ -6,6 +6,16 @@ import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import React from 'react';
 
+// Mock do Tauri Plugin FS - Must be before @/lib/tauri
+vi.mock('@tauri-apps/plugin-fs', () => ({
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+  exists: vi.fn(() => Promise.resolve(false)),
+  createDir: vi.fn(),
+  removeDir: vi.fn(),
+  readDir: vi.fn(() => Promise.resolve([])),
+}));
+
 // Mock do Tauri API
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
@@ -88,6 +98,7 @@ if (typeof window !== 'undefined') {
 // Global mock for lucide-react icons used across tests.
 // A simple Proxy-based mock that provides SVG components for any icon name.
 // This avoids the need to maintain a massive list of icons and prevents CI hangs.
+// Global mock for lucide-react icons used across tests.
 vi.mock('lucide-react', () => {
   const IconMock = (name: string) => {
     const Component = (props: React.SVGProps<SVGSVGElement>) =>
@@ -96,17 +107,15 @@ vi.mock('lucide-react', () => {
     return Component;
   };
 
-  return new Proxy(
-    {},
-    {
-      get: (_target, prop) => {
-        if (prop === '__esModule') return true;
-        if (typeof prop === 'symbol') return undefined;
-        return IconMock(String(prop));
-      },
-      has: () => true,
-    }
-  );
+  return {
+    // Explicitly mock icons used in InitialSetupPage and others
+    CheckCircle2: IconMock('CheckCircle2'),
+    Loader2: IconMock('Loader2'),
+    RefreshCw: IconMock('RefreshCw'),
+    Shield: IconMock('Shield'),
+    UserPlus: IconMock('UserPlus'),
+    // Add others as needed or use a safer proxy pattern later
+  };
 });
 
 // Ensure guards exports exist in tests to avoid partial-mock issues

@@ -279,17 +279,32 @@ describe('useStockDashboard', () => {
   });
 
   it('should return defaults when loading', () => {
+    // Use mockResolvedValue with a delayed resolution instead of never-resolving promises
     vi.mocked(tauriLib.getLowStockProducts).mockImplementation(
-      () => new Promise(() => {}) // Never resolves
+      () => new Promise((resolve) => setTimeout(() => resolve([]), 50))
     );
     vi.mocked(tauriLib.getStockReport).mockImplementation(
-      () => new Promise(() => {}) // Never resolves
+      () =>
+        new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve({
+                totalProducts: 0,
+                totalValue: 0,
+                lowStockCount: 0,
+                outOfStockCount: 0,
+                expiringCount: 0,
+              }),
+            50
+          )
+        )
     );
 
     const { result } = renderHook(() => useStockDashboard(), {
       wrapper: createWrapper(),
     });
 
+    // Check initial loading state
     expect(result.current.isLoading).toBe(true);
     expect(result.current.lowStockProducts).toEqual([]);
     expect(result.current.report.totalProducts).toBe(0);

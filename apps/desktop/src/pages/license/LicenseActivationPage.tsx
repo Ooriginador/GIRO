@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   activateLicense,
   getHardwareId,
+  recoverLicenseFromLogin,
   restoreLicense,
   setSetting,
   testLicenseConnection,
@@ -458,7 +459,6 @@ const SyncLoginForm: FC<{ onBack: () => void; onSuccess: (key: string) => void }
 
     setLoading(true);
     try {
-      const { recoverLicenseFromLogin } = await import('@/lib/tauri');
       const info = await recoverLicenseFromLogin({ email, password });
 
       if (info.key) {

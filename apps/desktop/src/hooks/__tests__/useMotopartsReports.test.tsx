@@ -126,12 +126,16 @@ describe('useMotopartsReports', () => {
   });
 
   it('should return loading states initially', () => {
-    vi.mocked(tauriLib.getMotopartsDashboardStats).mockImplementation(() => new Promise(() => {})); // Never resolves
+    // Use delayed resolution instead of never-resolving promise to avoid test hangs
+    vi.mocked(tauriLib.getMotopartsDashboardStats).mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve(mockDashboardStats as any), 100))
+    );
 
     const { result } = renderHook(() => useMotopartsReports(), {
       wrapper: createWrapper(),
     });
 
+    // Check initial loading state synchronously
     expect(result.current.isLoadingDashboard).toBe(true);
     expect(result.current.isLoadingSO).toBe(true);
     expect(result.current.isLoadingTop).toBe(true);

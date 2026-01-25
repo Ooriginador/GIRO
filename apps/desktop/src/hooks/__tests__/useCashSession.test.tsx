@@ -21,9 +21,13 @@ vi.mock('@/lib/tauri', () => ({
   addCashMovement: vi.fn(),
 }));
 
-const { getCurrentCashSession, openCashSession, closeCashSession, addCashMovement } = await import(
-  '@/lib/tauri'
-);
+// Use static import after mock registration - vitest will use the mock
+import {
+  getCurrentCashSession,
+  openCashSession,
+  closeCashSession,
+  addCashMovement,
+} from '@/lib/tauri';
 
 describe('Cash Session Hooks', () => {
   beforeEach(() => {
