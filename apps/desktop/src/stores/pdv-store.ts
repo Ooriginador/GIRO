@@ -1,5 +1,8 @@
 import { create } from 'zustand';
+import { getHeldSales, saveHeldSale, deleteHeldSale } from '@/lib/tauri';
+import type { HeldSale, PaymentMethod, CashSession, HeldSaleItem } from '@/types';
 
+// Local definition matching UI needs (Flat structure)
 export interface CartItem {
   id: string;
   productId: string;
@@ -12,21 +15,6 @@ export interface CartItem {
   isWeighted: boolean;
 }
 
-export type PaymentMethod = 'CASH' | 'PIX' | 'CREDIT' | 'DEBIT' | 'VOUCHER' | 'OTHER';
-
-export interface CashSession {
-  id: string;
-  employeeId: string;
-  openedAt: string;
-  closedAt?: string;
-  openingBalance: number;
-  expectedBalance?: number;
-  actualBalance?: number;
-  difference?: number;
-  status: string;
-  notes?: string;
-}
-
 interface PDVState {
   // Estado do carrinho
   items: CartItem[];
@@ -35,16 +23,7 @@ interface PDVState {
   paymentMethod: PaymentMethod | null;
   amountPaid: number;
   customerId: string | null;
-  heldSales: {
-    id: string;
-    items: CartItem[];
-    discount: number;
-    discountReason: string;
-    customerId: string | null;
-    subtotal: number;
-    total: number;
-    createdAt: string;
-  }[];
+  heldSales: HeldSale[];
 
   // Estado da sessão de caixa
   cashSession: CashSession | null;
@@ -74,8 +53,6 @@ interface PDVState {
   resumeSale: (id: string) => Promise<void>;
   removeHeldSale: (id: string) => Promise<void>;
   loadHeldSales: () => Promise<void>;
-
-  // Ações de modal
 
   // Ações de modal
   openPaymentModal: () => void;
@@ -113,10 +90,10 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
   lastSaleId: null,
   customerId: null,
   heldSales: [],
+
   loadHeldSales: async () => {
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const sales = (await invoke('get_held_sales')) as any[];
+      const sales = await getHeldSales();
       set({ heldSales: sales });
     } catch (e) {
       console.error('Failed to load held sales:', e);
@@ -196,7 +173,7 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
   },
 
   setCashSession: (session) => {
-    set({ cashSession: session });
+    set({ cashSession: session, currentSession: session });
   },
   setCustomer: (customerId) => {
     set({ customerId });
@@ -207,26 +184,26 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
     if (items.length === 0) return;
 
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
+      const heldItems: HeldSaleItem[] = items.map((i) => ({
+        productId: i.productId,
+        productName: i.productName,
+        barcode: i.barcode,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        discount: i.discount,
+        unit: i.unit,
+        isWeighted: i.isWeighted,
+      }));
 
       const newHold = {
         id: crypto.randomUUID(),
-        customerId,
+        customerId: customerId || null,
         discountValue: discount,
         discountReason,
-        items: items.map((i) => ({
-          productId: i.productId,
-          productName: i.productName,
-          barcode: i.barcode,
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          discount: i.discount,
-          unit: i.unit,
-          isWeighted: i.isWeighted,
-        })),
+        items: heldItems,
       };
 
-      const result = (await invoke('save_held_sale', { input: newHold })) as any;
+      const result = await saveHeldSale(newHold);
 
       set((state) => ({
         heldSales: [result, ...state.heldSales],
@@ -242,22 +219,30 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
     const { heldSales, items } = get();
     if (items.length > 0) return;
 
-    const sale = heldSales.find((s) => (s as any).id === id);
+    const sale = heldSales.find((s) => s.id === id);
     if (!sale) return;
 
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('delete_held_sale', { id });
+      await deleteHeldSale(id);
+
+      const restoredItems: CartItem[] = sale.items.map((i) => ({
+        id: crypto.randomUUID(),
+        productId: i.productId,
+        productName: i.productName,
+        barcode: i.barcode,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        discount: i.discount,
+        unit: i.unit,
+        isWeighted: i.isWeighted,
+      }));
 
       set({
-        items: (sale as any).items.map((i: any) => ({
-          ...i,
-          id: crypto.randomUUID(), // New UUID for cart item
-        })),
-        discount: (sale as any).discountValue,
-        discountReason: (sale as any).discountReason,
-        customerId: (sale as any).customerId,
-        heldSales: heldSales.filter((s) => (s as any).id !== id),
+        items: restoredItems,
+        discount: sale.discountValue,
+        discountReason: sale.discountReason || '',
+        customerId: sale.customerId || null,
+        heldSales: heldSales.filter((s) => s.id !== id),
       });
     } catch (e) {
       console.error('Failed to resume sale:', e);
@@ -266,11 +251,10 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
 
   removeHeldSale: async (id) => {
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('delete_held_sale', { id });
+      await deleteHeldSale(id);
 
       set((state) => ({
-        heldSales: state.heldSales.filter((s) => (s as any).id !== id),
+        heldSales: state.heldSales.filter((s) => s.id !== id),
       }));
     } catch (e) {
       console.error('Failed to remove held sale:', e);
