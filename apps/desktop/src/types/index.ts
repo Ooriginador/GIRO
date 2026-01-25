@@ -203,6 +203,40 @@ export interface SaleItem {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// VENDAS EM ESPERA
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface HeldSaleItem {
+  productId: string;
+  productName: string;
+  barcode?: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  unit: string;
+  isWeighted: boolean;
+}
+
+export interface HeldSale {
+  id: string;
+  items: HeldSaleItem[];
+  discountValue: number;
+  discountReason?: string;
+  customerId?: string | null;
+  subtotal: number;
+  total: number;
+  createdAt: string;
+}
+
+export interface CreateHeldSaleInput {
+  id: string;
+  customerId?: string | null;
+  discountValue: number;
+  discountReason?: string;
+  items: HeldSaleItem[];
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // SESSÕES DE CAIXA
 // ────────────────────────────────────────────────────────────────────────────
 

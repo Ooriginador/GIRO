@@ -170,6 +170,9 @@ vi.mock('@/lib/tauri', () => {
     getUnreadAlertsCount: vi.fn(async () => 0),
     getLowStockProducts: vi.fn(async () => []),
     getExpiringLots: vi.fn(async () => []),
+    getHeldSales: vi.fn(async () => []),
+    saveHeldSale: vi.fn(async () => ({})),
+    deleteHeldSale: vi.fn(async () => undefined),
   };
 });
 

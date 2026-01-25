@@ -31,6 +31,8 @@ import type {
   StatusResponse,
   StockMovement,
   Supplier,
+  HeldSale,
+  CreateHeldSaleInput,
   TauriResponse,
   UpdateProductInput,
   UpdateLicenseAdminRequest,
@@ -698,6 +700,18 @@ export async function getTodaySales(): Promise<Sale[]> {
 
 export async function getDailySalesTotal(): Promise<number> {
   return tauriInvoke<number>('get_daily_sales_total');
+}
+
+export async function getHeldSales(): Promise<HeldSale[]> {
+  return tauriInvoke<HeldSale[]>('get_held_sales');
+}
+
+export async function saveHeldSale(input: CreateHeldSaleInput): Promise<HeldSale> {
+  return tauriInvoke<HeldSale>('save_held_sale', { input });
+}
+
+export async function deleteHeldSale(id: string): Promise<void> {
+  return tauriInvoke<void>('delete_held_sale', { id });
 }
 
 // MonthlySalesSummary moved to types/index.ts and re-exported
