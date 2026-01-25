@@ -18,7 +18,8 @@ vi.mock('@/lib/tauri', () => ({
   getRecentPriceHistory: vi.fn(),
 }));
 
-const { getPriceHistoryByProduct, getRecentPriceHistory } = await import('@/lib/tauri');
+// Use static import after mock registration - vitest will use the mock
+import { getPriceHistoryByProduct, getRecentPriceHistory } from '@/lib/tauri';
 
 describe('Price History Hooks', () => {
   beforeEach(() => {

@@ -3,7 +3,7 @@
  * Centraliza todas as chamadas ao backend Rust
  */
 
-import { useAuthStore } from '@/stores/auth-store';
+// import { useAuthStore } from '@/stores/auth-store'; // Removed to break circular dependency
 import type {
   Alert,
   CashMovement,
@@ -411,7 +411,15 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
   const finalArgs = args ? { ...args } : {};
 
   // Automatic injection of employee_id
-  const employeeId = useAuthStore.getState().employee?.id;
+  let employeeId: string | undefined;
+  try {
+    const { useAuthStore } = await import('@/stores/auth-store');
+    employeeId = useAuthStore.getState().employee?.id;
+  } catch (e) {
+    // In some environments (like early initialization during tests), the store might not be ready
+    // We log but continue as employee_id is optional but helpful
+    console.debug('[Tauri] useAuthStore not available for injection:', e);
+  }
 
   if (employeeId) {
     if (

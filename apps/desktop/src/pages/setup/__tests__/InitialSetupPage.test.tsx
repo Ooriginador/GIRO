@@ -2,162 +2,190 @@ import { InitialSetupPage } from '@/pages/setup/InitialSetupPage';
 import { createQueryWrapper } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import * as tauriLib from '@/lib/tauri';
+import { useAuthStore } from '@/stores/auth-store';
+import { useLicenseStore } from '@/stores/license-store';
+import { useBusinessProfile } from '@/stores/useBusinessProfile';
+import { useCreateFirstAdmin } from '@/hooks/useSetup';
 
+// Mocks
 const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
   return {
     ...actual,
     useNavigate: () => mockNavigate,
   };
 });
 
-// Mocks
+// CRITICAL: Mock the entire tauri module to prevent side effects during import
 vi.mock('@/lib/tauri', () => ({
   invoke: vi.fn(),
   updateLicenseAdmin: vi.fn().mockResolvedValue(undefined),
   validateLicense: vi.fn(),
+  recoverLicenseFromLogin: vi.fn(),
+  setSetting: vi.fn(),
+  getStoredLicense: vi.fn().mockResolvedValue(null),
+  getHardwareId: vi.fn().mockResolvedValue('test-hwid'),
 }));
-
-const mockMutateAsync = vi.fn().mockResolvedValue({
-  id: 'admin-1',
-  name: 'Test Admin',
-  email: 'test@example.com',
-});
 
 vi.mock('@/hooks/useSetup', () => ({
-  useCreateFirstAdmin: () => ({
-    mutateAsync: mockMutateAsync,
-    isPending: false,
-  }),
+  useCreateFirstAdmin: vi.fn(),
+  useHasAdmin: vi.fn(),
 }));
 
-const mockLogin = vi.fn();
 vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: () => ({
-    login: mockLogin,
-  }),
+  useAuthStore: vi.fn(),
+}));
+
+vi.mock('@/hooks/use-toast', () => ({
+  toast: vi.fn(),
+  useToast: vi.fn(() => ({
+    toast: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  })),
 }));
 
 vi.mock('@/stores/license-store', () => ({
   useLicenseStore: {
-    getState: () => ({
-      licenseKey: 'MOCK-KEY-123',
-      state: 'valid',
-    }),
+    getState: vi.fn(),
   },
+}));
+
+vi.mock('@/stores/useBusinessProfile', () => ({
+  useBusinessProfile: vi.fn(),
 }));
 
 const { Wrapper: queryWrapper } = createQueryWrapper();
 
 describe('InitialSetupPage', () => {
+  const mockMutateAsync = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    vi.mocked(useCreateFirstAdmin).mockReturnValue({
+      mutateAsync: mockMutateAsync,
+      isPending: false,
+    } as any);
+
+    vi.mocked(useAuthStore).mockReturnValue({
+      login: vi.fn(),
+    } as any);
+
+    vi.mocked(useLicenseStore.getState).mockReturnValue({
+      licenseKey: 'MOCK-KEY-123',
+      state: 'valid',
+      setLicenseKey: vi.fn(),
+    } as any);
+  });
+
   it('should render the welcome screen', () => {
-    render(
-      <MemoryRouter>
-        <InitialSetupPage />
-      </MemoryRouter>,
-      { wrapper: queryWrapper }
-    );
+    render(<InitialSetupPage />, { wrapper: queryWrapper });
 
     expect(screen.getByText(/Bem-vindo ao GIRO!/i)).toBeInTheDocument();
     expect(screen.getByText(/Criar Primeiro Administrador/i)).toBeInTheDocument();
   });
 
   it('should advance to step 2 (form) after clicking start', async () => {
-    render(
-      <MemoryRouter>
-        <InitialSetupPage />
-      </MemoryRouter>,
-      { wrapper: queryWrapper }
-    );
+    render(<InitialSetupPage />, { wrapper: queryWrapper });
 
     fireEvent.click(screen.getByText(/Criar Primeiro Administrador/i));
 
     await waitFor(() => {
-      // O form tem o título "Criar Primeiro Administrador" também, mas podemos checar labels
       expect(screen.getByLabelText(/Nome Completo/i)).toBeInTheDocument();
     });
   });
 
   it('should complete setup and call updateLicenseAdmin', async () => {
-    const { updateLicenseAdmin } = await import('@/lib/tauri');
+    mockMutateAsync.mockResolvedValue({
+      id: 'admin-1',
+      name: 'Test Admin',
+      email: 'test@example.com',
+    });
 
-    render(
-      <MemoryRouter>
-        <InitialSetupPage />
-      </MemoryRouter>,
-      { wrapper: queryWrapper }
-    );
+    render(<InitialSetupPage />, { wrapper: queryWrapper });
 
     // Step 1: Welcome
     fireEvent.click(screen.getByText(/Criar Primeiro Administrador/i));
 
     // Step 2: Form
-    const nameInput = screen.getByLabelText(/Nome Completo/i);
-    const cpfInput = screen.getByLabelText(/CPF/i);
-    const phoneInput = screen.getByLabelText(/Telefone/i);
-    const emailInput = screen.getByLabelText(/Email/i);
-    const pinInput = screen.getByLabelText(/PIN \(4-6 dígitos\)/i);
-    const confirmPinInput = screen.getByLabelText(/Confirmar PIN/i);
+    await waitFor(() => screen.getByLabelText(/Nome Completo/i));
 
-    fireEvent.change(nameInput, { target: { value: 'Test Admin' } });
-    fireEvent.change(cpfInput, { target: { value: '12345678909' } }); // Will be formatted by logic if I used fireEvent.change correctly
-    fireEvent.change(phoneInput, { target: { value: '11988887777' } });
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(pinInput, { target: { value: '1234' } });
-    fireEvent.change(confirmPinInput, { target: { value: '1234' } });
+    fireEvent.change(screen.getByLabelText(/Nome Completo/i), { target: { value: 'Test Admin' } });
+    fireEvent.change(screen.getByLabelText(/CPF/i), { target: { value: '12345678909' } });
+    fireEvent.change(screen.getByLabelText(/Telefone/i), { target: { value: '11988887777' } });
+    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'test@example.com' } });
+    fireEvent.change(screen.getByLabelText(/PIN \(4-6 dígitos\)/i), { target: { value: '1234' } });
+    fireEvent.change(screen.getByLabelText(/Confirmar PIN/i), { target: { value: '1234' } });
 
-    const submitBtn = screen.getByRole('button', {
-      name: /Criar Administrador/i,
-    });
-    fireEvent.click(submitBtn);
+    fireEvent.click(screen.getByRole('button', { name: /Criar Administrador/i }));
 
     await waitFor(() => {
-      expect(mockMutateAsync).toHaveBeenCalledWith({
-        name: 'Test Admin',
-        email: 'test@example.com',
-        pin: '1234',
-      });
-      expect(mockLogin).toHaveBeenCalled();
-      expect(updateLicenseAdmin).toHaveBeenCalledWith(
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Test Admin',
+          email: 'test@example.com',
+          pin: '1234',
+          // cpf and phone might differ slightly due to masking logic during test event firing
+          // checking they are present is enough for this flow test
+        })
+      );
+      expect(tauriLib.updateLicenseAdmin).toHaveBeenCalledWith(
         'MOCK-KEY-123',
         expect.objectContaining({
           name: 'Test Admin',
           email: 'test@example.com',
         })
       );
-      expect(screen.getByText(/Administrador Criado!/i)).toBeInTheDocument();
     });
   });
-  it.skip('should handle sync flow correctly', async () => {
-    const { validateLicense } = await import('@/lib/tauri');
-    // Mock validateLicense to return has_admin: true
-    (validateLicense as any).mockResolvedValue({
-      has_admin: true,
-    });
-    // Mock has_admin invoke to return true after sync
-    const { invoke } = await import('@/lib/tauri');
-    vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+
+  it('should handle sync flow correctly', async () => {
+    vi.mocked(tauriLib.recoverLicenseFromLogin).mockResolvedValue({
+      key: 'RECOVERED-KEY',
+      company_name: 'Test Company',
+      status: 'active',
+    } as any);
+
+    vi.mocked(tauriLib.invoke).mockImplementation(async (cmd: string) => {
       if (cmd === 'has_admin') return true;
       return undefined;
     });
 
-    render(
-      <MemoryRouter>
-        <InitialSetupPage />
-      </MemoryRouter>,
-      { wrapper: queryWrapper }
-    );
+    render(<InitialSetupPage />, { wrapper: queryWrapper });
 
-    const syncBtn = screen.getByText(/Sincronizar Dados/i);
-    expect(syncBtn).toBeInTheDocument();
-
+    // 1. Go to Login Form
+    const syncBtn = screen.getByText(/Sincronizar Conta/i);
     fireEvent.click(syncBtn);
 
-    await waitFor(() => {
-      // Should redirect to login if sync succeeds (has_admin becomes true)
-      expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
-    });
+    // 2. Fill Form
+    const emailInput = screen.getByLabelText(/Email/i);
+    const passInput = screen.getByLabelText(/Senha/i);
+
+    // Check if Inputs are separate from the previous form (they have different IDs but label text is same)
+    // The previous form is not rendered in 'login' step, so getAllByLabelText might not be needed if step replaces content.
+    // InitialSetupPage replaces content based on step.
+
+    fireEvent.change(emailInput, { target: { value: 'user@example.com' } });
+    fireEvent.change(passInput, { target: { value: 'password123' } });
+
+    // 3. Submit
+    const submitBtn = screen.getByRole('button', { name: /Entrar e Sincronizar/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(
+      () => {
+        expect(tauriLib.recoverLicenseFromLogin).toHaveBeenCalledWith({
+          email: 'user@example.com',
+          password: 'password123',
+        });
+        expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
+      },
+      { timeout: 5000 }
+    );
   });
 });

@@ -60,7 +60,10 @@ describe('LicenseActivationPage', () => {
   });
 
   it('should show loading state on mount', () => {
-    vi.mocked(tauri.getHardwareId).mockReturnValue(new Promise(() => {})); // Never resolves to keep loading
+    // Use delayed resolution instead of never-resolving promise to avoid test hangs
+    vi.mocked(tauri.getHardwareId).mockReturnValue(
+      new Promise((resolve) => setTimeout(() => resolve('MOCK-HWID-123'), 100))
+    );
 
     // render synchronously — do not await effects that never resolve
     render(<LicenseActivationPage />, { wrapper: queryWrapper.Wrapper });

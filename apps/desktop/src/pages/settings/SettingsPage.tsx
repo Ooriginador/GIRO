@@ -145,7 +145,8 @@ export const SettingsPage: FC = () => {
   useEffect(() => {
     fetchPorts();
 
-    // Listen for scan events (Serial Scanner)
+    // Listen for scan events (Serial Scanner) - Use dynamic import to avoid
+    // module-level execution in tests where @tauri-apps/api/event may hang
     let unlisten: (() => void) | undefined;
     const setupListener = async () => {
       try {

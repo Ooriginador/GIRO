@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCreateFirstAdmin } from '@/hooks/useSetup';
-import { updateLicenseAdmin } from '@/lib/tauri';
+import { recoverLicenseFromLogin, setSetting, updateLicenseAdmin, invoke } from '@/lib/tauri';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useLicenseStore } from '@/stores/license-store';
@@ -281,16 +281,14 @@ export const InitialSetupPage: FC = () => {
         onSuccess={() => {
           // Check if admin exists now
           queryClient.invalidateQueries({ queryKey: ['has-admin'] }).then(() => {
-            import('@/lib/tauri').then(({ invoke }) => {
-              invoke<boolean>('has_admin').then((has) => {
-                if (has) {
-                  navigate('/login', { replace: true });
-                } else {
-                  // If license recovered but no admin, maybe go to admin creation?
-                  // For now, reload to let main guard decide
-                  window.location.reload();
-                }
-              });
+            invoke<boolean>('has_admin').then((has) => {
+              if (has) {
+                navigate('/login', { replace: true });
+              } else {
+                // If license recovered but no admin, maybe go to admin creation?
+                // For now, reload to let main guard decide
+                window.location.reload();
+              }
             });
           });
         }}
@@ -504,7 +502,6 @@ const LoginRecoveryForm: FC<{ onBack: () => void; onSuccess: () => void }> = ({
 
     setLoading(true);
     try {
-      const { recoverLicenseFromLogin, setSetting } = await import('@/lib/tauri');
       const info = await recoverLicenseFromLogin({ email, password });
 
       if (info.key) {
