@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getHeldSales, saveHeldSale, deleteHeldSale } from '@/lib/tauri';
 import type { HeldSale, PaymentMethod, CashSession, HeldSaleItem } from '@/types';
+export type { PaymentMethod };
 
 // Local definition matching UI needs (Flat structure)
 export interface CartItem {
