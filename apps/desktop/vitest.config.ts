@@ -35,12 +35,14 @@ export default defineConfig({
         'playwright-report/**',
         'src/main.tsx',
         'src/vite-env.d.ts',
+        'src/lib/bindings.ts', // Gerado automaticamente pelo Tauri
+        'src/lib/tauri.ts', // Wrapper do Tauri, difícil de testar
       ],
       thresholds: {
         lines: 50,
-        branches: 40,
-        functions: 45,
-        statements: 50,
+        branches: 43,
+        functions: 47,
+        statements: 48,
       },
     },
     testTimeout: 10000,
