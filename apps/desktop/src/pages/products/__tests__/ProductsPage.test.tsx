@@ -32,6 +32,13 @@ vi.mock('@/hooks/useCategories', () => ({
   useCategories: vi.fn(),
 }));
 
+vi.mock('@/hooks/useStock', () => ({
+  useAdjustStock: vi.fn(() => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  })),
+}));
+
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mockToast }),
 }));
