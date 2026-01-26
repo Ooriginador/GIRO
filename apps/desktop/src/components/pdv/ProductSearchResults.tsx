@@ -5,8 +5,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useProducts } from '@/hooks/use-products';
-import { useProductByBarcode } from '@/hooks/use-products';
+import { useProductSearch, useProductByBarcode } from '@/hooks/use-products';
 import { cn, formatCurrency } from '@/lib/utils';
 import { type Product } from '@/types';
 import { AlertTriangle, Loader2, Package } from 'lucide-react';
@@ -49,11 +48,10 @@ export const ProductSearchResults: FC<ProductSearchResultsProps> = ({
     searchMode === 'barcode' ? query.trim() : null
   );
 
-  // Busca por texto (sempre ativa como fallback)
-  const { data: textProducts, isLoading: isLoadingText } = useProducts({
-    search: query,
-    isActive: true,
-  });
+  // Busca por texto usando search_products (funciona corretamente com LIKE)
+  const { data: textProducts, isLoading: isLoadingText } = useProductSearch(
+    searchMode === 'text' ? query : ''
+  );
 
   // Combinar resultados: barcode tem prioridade
   const products = useMemo(() => {
