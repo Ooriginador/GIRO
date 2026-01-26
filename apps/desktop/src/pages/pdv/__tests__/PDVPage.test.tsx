@@ -132,7 +132,7 @@ describe('PDVPage Stable', () => {
     await waitFor(() => {
       expect(screen.getByTestId('search-results')).toBeInTheDocument();
     });
-    
+
     fireEvent.click(screen.getByText('Select'));
     expect(mockPDVStore.addItem).toHaveBeenCalled();
   });
