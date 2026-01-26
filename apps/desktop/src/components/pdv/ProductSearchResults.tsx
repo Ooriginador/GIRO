@@ -122,7 +122,7 @@ export const ProductSearchResults: FC<ProductSearchResultsProps> = ({
 
   if (isLoading) {
     return (
-      <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border bg-card p-4 shadow-lg">
+      <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border bg-card p-4 shadow-lg" data-testid="search-results">
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>
@@ -135,7 +135,7 @@ export const ProductSearchResults: FC<ProductSearchResultsProps> = ({
 
   if (!products || products.length === 0) {
     return (
-      <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border bg-card p-4 shadow-lg">
+      <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border bg-card p-4 shadow-lg" data-testid="search-results">
         <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
           <Package className="h-4 w-4" />
           <span>Nenhum produto encontrado</span>
@@ -150,7 +150,7 @@ export const ProductSearchResults: FC<ProductSearchResultsProps> = ({
   }
 
   return (
-    <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border bg-card shadow-lg">
+    <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border bg-card shadow-lg" data-testid="search-results">
       <ScrollArea className="max-h-80">
         <div className="p-2">
           {products.map((product, index) => (

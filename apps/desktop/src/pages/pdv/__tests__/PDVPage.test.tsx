@@ -2,7 +2,7 @@ import { PDVPage } from '@/pages/pdv/PDVPage';
 import { useAuthStore } from '@/stores/auth-store';
 import { usePDVStore } from '@/stores/pdv-store';
 import { useCustomers } from '@/hooks/useCustomers';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
@@ -114,7 +114,7 @@ describe('PDVPage Stable', () => {
     expect(screen.getByText(/Caixa Fechado/i)).toBeInTheDocument();
   });
 
-  it('handles search and product selection', () => {
+  it('handles search and product selection', async () => {
     vi.mocked(useAuthStore).mockReturnValue({
       ...mockAuthStore,
       currentSession: { id: 's1' },
@@ -128,7 +128,11 @@ describe('PDVPage Stable', () => {
     const input = screen.getByPlaceholderText(/Buscar produto/i);
     fireEvent.change(input, { target: { value: 'test' } });
 
-    expect(screen.getByTestId('search-results')).toBeInTheDocument();
+    // Aguardar renderização assíncrona dos resultados
+    await waitFor(() => {
+      expect(screen.getByTestId('search-results')).toBeInTheDocument();
+    });
+    
     fireEvent.click(screen.getByText('Select'));
     expect(mockPDVStore.addItem).toHaveBeenCalled();
   });
