@@ -2099,7 +2099,7 @@ dependencies = [
 
 [[package]]
 name = "giro-desktop"
-version = "1.5.1"
+version = "2.0.4"
 dependencies = [
  "aes-gcm",
  "anyhow",
