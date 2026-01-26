@@ -4,11 +4,40 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { ensureLicensePresent, loginWithPin, dismissTutorialIfPresent } from '../e2e-helpers';
 
 test.describe('Contract Management E2E Flow', () => {
   test.beforeEach(async ({ page }) => {
+    // Ensure license is present and try to inject enterprise profile
+    await ensureLicensePresent(page, 'ENTERPRISE');
+    await page.goto('/');
+
+    // Force strict override of business profile to ensure stickiness
+    await page.evaluate(() => {
+      localStorage.setItem(
+        'giro-business-profile',
+        JSON.stringify({
+          state: { businessType: 'ENTERPRISE', isConfigured: true },
+          version: 0,
+        })
+      );
+    });
+    // Reload to apply the profile
+    await page.reload();
+
+    const profile = await page.evaluate(() => localStorage.getItem('giro-business-profile'));
+    console.log('DEBUG PROFILE:', profile);
+
+    await loginWithPin(page, '8899');
     await page.goto('/enterprise');
-    await expect(page.locator('[data-testid="enterprise-dashboard"]')).toBeVisible();
+    await dismissTutorialIfPresent(page);
+
+    // Debug if not visible
+    const dashboard = page.locator('[data-testid="enterprise-dashboard"]');
+    if (!(await dashboard.isVisible())) {
+      console.log('Dashboard not visible. Body text:', await page.textContent('body'));
+    }
+    await expect(dashboard).toBeVisible();
   });
 
   test('should create a new contract', async ({ page }) => {
@@ -20,13 +49,18 @@ test.describe('Contract Management E2E Flow', () => {
     await page.fill('[data-testid="contract-name"]', 'Construção Hospital Municipal');
     await page.fill('[data-testid="client-name"]', 'Prefeitura de Recife');
     await page.fill('[data-testid="client-document"]', '12.345.678/0001-90');
+    // Fill required cost center (was missing in original test)
+    await page.fill('[data-testid="cost-center"]', 'CC-TEST-001');
 
-    // Select manager
-    await page.selectOption('[data-testid="manager-select"]', { label: 'João Gerente' });
+    // Select manager (Shadcn Select)
+    await page.click('[data-testid="manager-select"]');
+    await page.getByRole('option', { name: 'Administrador Semente' }).click();
 
-    // Set estimated dates
-    await page.fill('[data-testid="estimated-start"]', '2026-02-01');
-    await page.fill('[data-testid="estimated-end"]', '2027-02-01');
+    // Set estimated dates using type for masked input (digits only, mask adds slashes)
+    await page.locator('[data-testid="estimated-start"]').click();
+    await page.locator('[data-testid="estimated-start"]').pressSequentially('01022026');
+    await page.locator('[data-testid="estimated-end"]').click();
+    await page.locator('[data-testid="estimated-end"]').pressSequentially('01022027');
 
     // Set budget
     await page.fill('[data-testid="estimated-budget"]', '5000000');
@@ -34,8 +68,10 @@ test.describe('Contract Management E2E Flow', () => {
     // Save
     await page.click('[data-testid="save-contract-btn"]');
 
-    // Verify success
-    await expect(page.locator('[data-testid="toast-success"]')).toContainText('Contrato criado');
+    // Verify success (use first() in case multiple toasts appear)
+    await expect(page.locator('[data-testid="toast-success"]').first()).toContainText(
+      'Contrato criado'
+    );
 
     // Verify contract appears in list
     await expect(page.locator('[data-testid="contract-list"]')).toContainText('OBRA-2026-001');

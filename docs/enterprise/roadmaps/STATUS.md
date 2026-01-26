@@ -393,19 +393,27 @@ Todas as 114 tasks foram implementadas:
 5. **vitest.config.ts**: Alterado `coverage.all` de `true` para `false` (evita análise de arquivos não testados)
 6. **types/enterprise.ts**: Exportadas interfaces `Employee` e `Product` (fix TS2459)
 
-**26/01/2026:** 7. **RequestsPage.test.tsx**: Added `usePendingRequests` mock, bypassed `PermissionGuard` for test rendering 8. **PDVPage.test.tsx**: Extended `usePDVStore` mock with complete state (`heldSales`, `loadHeldSales`) 9. **MotopartsDashboard.test.tsx**:
+**26/01/2026:**
 
-- Switched from hook mocks to direct Tauri API mocks (`getMotopartsDashboardStats`, etc.)
-- Added `AreaChart` to recharts mock
-- Used `waitFor` for async data loading
-- Fixed property names to match component (camelCase)
+7. **RequestsPage.test.tsx**: Added `usePendingRequests` mock, bypassed `PermissionGuard` for test rendering.
+8. **PDVPage.test.tsx**: Extended `usePDVStore` mock with complete state (`heldSales`, `loadHeldSales`).
+9. **MotopartsDashboard.test.tsx**:
+   - Switched from hook mocks to direct Tauri API mocks.
+   - Added `AreaChart` to recharts mock.
+   - Used `waitFor` for async data loading.
+10. **SettingsPage.test.tsx**: Corrigidas asserções de toast e estados de botão.
+11. **ReportsPage.test.tsx**: Ajustados mocks do Recharts e seletores de texto.
+12. **EnterpriseDashboardPage.test.tsx**: Adicionados exports faltantes (`useContractDashboard`, `usePendingRequests`) ao mock de `@/hooks/enterprise`.
+13. **LicenseSettings.test.tsx**: Adicionado mock de `getStoredLicense` em `@/lib/tauri`.
+14. **FiscalSettings.test.tsx**: Adicionado `waitFor` para sincronizar atualizações de estado e reduzir warnings `act(...)`.
+15. **WarrantyForm.test.tsx**: Verified passing (no changes needed).
+16. **models/enterprise.rs**: Added `UpdateMaterialRequest` and `UpdateStockTransfer` DTOs.
+17. **material_request_repository.rs**: Implemented `update()` method with DRAFT-only validation.
+18. **stock_transfer_repository.rs**: Implemented `update()` method with PENDING-only validation.
+19. **mobile_handlers/enterprise.rs**: Added `update()` handlers for Requests and Transfers.
+20. **mobile_server.rs**: Wired up `EnterpriseRequestUpdate` and `EnterpriseTransferUpdate` actions.
 
-10. **WarrantyForm.test.tsx**: Verified passing (no changes needed)
-11. **models/enterprise.rs**: Added `UpdateMaterialRequest` and `UpdateStockTransfer` DTOs
-12. **material_request_repository.rs**: Implemented `update()` method with DRAFT-only validation
-13. **stock_transfer_repository.rs**: Implemented `update()` method with PENDING-only validation
-14. **mobile_handlers/enterprise.rs**: Added `update()` handlers for Requests and Transfers
-15. **mobile_server.rs**: Wired up `EnterpriseRequestUpdate` and `EnterpriseTransferUpdate` actions
+**Status Geral**: Todos os testes do diretório `apps/desktop` estão passando.
 
 ### 🏗️ Arquitetura Validada
 

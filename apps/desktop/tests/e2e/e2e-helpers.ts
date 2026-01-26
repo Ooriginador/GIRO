@@ -45,7 +45,7 @@ export const dismissTutorialIfPresent = async (page: Page): Promise<void> => {
   }
 };
 
-export const ensureLicensePresent = async (page: Page): Promise<void> => {
+export const ensureLicensePresent = async (page: Page, businessType = 'GROCERY'): Promise<void> => {
   const licenseState = {
     licenseKey: 'TEST-LOCAL-KEY',
     licenseInfo: {
@@ -57,31 +57,53 @@ export const ensureLicensePresent = async (page: Page): Promise<void> => {
   };
 
   // Inject localStorage and test bypass flag before any page scripts run
-  await page.context().addInitScript((state) => {
-    try {
-      // set license key in localStorage and a global bypass flag for test runs
-      localStorage.setItem('giro-license', JSON.stringify(state));
+  await page.context().addInitScript(
+    (args) => {
       try {
-        (globalThis as unknown as Record<string, unknown>).__E2E_BYPASS_LICENSE = true;
-        // Also signal that an admin exists to avoid the initial setup flow
-        (globalThis as unknown as Record<string, unknown>).__E2E_HAS_ADMIN = true;
+        // set license key in localStorage and a global bypass flag for test runs
+        localStorage.setItem('giro-license', JSON.stringify(args.licenseState));
+        try {
+          (globalThis as unknown as Record<string, unknown>).__E2E_BYPASS_LICENSE = true;
+          // Also signal that an admin exists to avoid the initial setup flow
+          (globalThis as unknown as Record<string, unknown>).__E2E_HAS_ADMIN = true;
+        } catch {
+          void 0;
+        }
       } catch {
         void 0;
       }
-    } catch {
-      void 0;
-    }
-  }, licenseState);
+    },
+    { licenseState }
+  );
 
   // Also mark business profile as configured to avoid wizard redirection during E2E
-  await page.context().addInitScript(() => {
+  // And disable tutorials to avoid blocking UI elements
+  await page.context().addInitScript((type) => {
+    console.log('--- INJECTING PROFILE ---', type);
     try {
-      const profile = { businessType: 'RETAIL', isConfigured: true };
-      localStorage.setItem('giro-business-profile', JSON.stringify(profile));
+      const profileState = {
+        state: {
+          businessType: type,
+          isConfigured: true,
+        },
+        version: 0,
+      };
+      localStorage.setItem('giro-business-profile', JSON.stringify(profileState));
+
+      const tutorials = {
+        state: {
+          settings: {
+            enabled: false,
+            showWelcomeOnFirstLogin: false,
+          },
+        },
+        version: 0,
+      };
+      localStorage.setItem('giro-tutorials', JSON.stringify(tutorials));
     } catch {
       void 0;
     }
-  });
+  }, businessType);
 };
 
 export const loginWithPin = async (page: Page, pin: string): Promise<void> => {

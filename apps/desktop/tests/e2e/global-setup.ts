@@ -26,6 +26,16 @@ export default async function globalSetup(config: FullConfig) {
               name: 'giro-license',
               value: JSON.stringify(licenseState),
             },
+            {
+              name: 'giro-business-profile',
+              value: JSON.stringify({
+                state: {
+                  businessType: 'ENTERPRISE',
+                  isConfigured: true,
+                },
+                version: 0,
+              }),
+            },
             // Seed the web mock DB so the browser-mode backend has an admin
             // employee available for Playwright E2E tests.
             {
