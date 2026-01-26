@@ -411,7 +411,17 @@ impl<'a> EmployeeRepository<'a> {
 fn hash_pin(pin: &str) -> String {
     // Deterministic HMAC-SHA256 using PIN_HMAC_KEY env var for lookup-friendly PIN hashing
     type HmacSha256 = Hmac<Sha256>;
-    let key = std::env::var("PIN_HMAC_KEY").unwrap_or_else(|_| "giro-default-pin-key".to_string());
+    let key = std::env::var("PIN_HMAC_KEY").unwrap_or_else(|_| {
+        #[cfg(debug_assertions)]
+        {
+            tracing::warn!("PIN_HMAC_KEY não definida, usando chave de desenvolvimento");
+            "giro-dev-pin-key".to_string()
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            panic!("PIN_HMAC_KEY environment variable is required in production");
+        }
+    });
     let mut mac =
         HmacSha256::new_from_slice(key.as_bytes()).expect("HMAC can take key of any size");
     mac.update(pin.as_bytes());

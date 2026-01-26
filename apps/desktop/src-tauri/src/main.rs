@@ -481,7 +481,13 @@ async fn main() {
     let license_server_url =
         std::env::var("LICENSE_SERVER_URL").unwrap_or_else(|_| default_server_url.to_string());
 
+    // API Key: obrigatório em produção
+    #[cfg(debug_assertions)]
     let api_key = std::env::var("LICENSE_API_KEY").unwrap_or_else(|_| "dev-key".to_string());
+
+    #[cfg(not(debug_assertions))]
+    let api_key = std::env::var("LICENSE_API_KEY")
+        .expect("LICENSE_API_KEY environment variable is required in production");
 
     let event_service = Arc::new(giro_lib::services::mobile_events::MobileEventService::new());
 

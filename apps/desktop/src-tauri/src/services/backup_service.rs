@@ -225,7 +225,16 @@ impl BackupService {
 
         // Criptografa se necessário
         let (final_data, encrypted) = if self.config.encrypt {
-            let pwd = password.unwrap_or("giro-default-key");
+            let pwd = match password {
+                Some(p) => p,
+                None => {
+                    return BackupResult {
+                        success: false,
+                        metadata: None,
+                        error: Some("Senha obrigatória para backup criptografado".to_string()),
+                    }
+                }
+            };
             match encrypt_data(&data, pwd) {
                 Ok(encrypted_data) => (encrypted_data, true),
                 Err(e) => {
@@ -299,7 +308,7 @@ impl BackupService {
             .unwrap_or(false);
 
         let final_data = if is_encrypted {
-            let pwd = password.unwrap_or("giro-default-key");
+            let pwd = password.ok_or("Senha obrigatória para restaurar backup criptografado")?;
             decrypt_data(&data, pwd)?
         } else {
             data

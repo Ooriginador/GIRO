@@ -222,12 +222,24 @@ impl NetworkClient {
 
         // 1. Autenticar com o Master
         let settings_repo = SettingsRepository::new(&self.pool);
-        let secret = settings_repo
-            .get_value("network.secret")
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| "giro-default-secret".to_string());
+        let secret = match settings_repo.get_value("network.secret").await {
+            Ok(Some(s)) => s,
+            _ => {
+                #[cfg(debug_assertions)]
+                {
+                    tracing::warn!(
+                        "network.secret não configurado, usando fallback de desenvolvimento"
+                    );
+                    "giro-dev-secret".to_string()
+                }
+                #[cfg(not(debug_assertions))]
+                {
+                    return Err(
+                        anyhow::anyhow!("Rede não configurada: network.secret ausente").into(),
+                    );
+                }
+            }
+        };
 
         // Obter HW ID ou usar o terminal_name como ID único por enquanto
         let terminal_id = self._config.terminal_name.clone();
