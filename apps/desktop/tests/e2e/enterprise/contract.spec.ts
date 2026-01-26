@@ -70,11 +70,24 @@ test.describe('Contract Management E2E Flow', () => {
 
     // Verify success (use first() in case multiple toasts appear)
     await expect(page.locator('[data-testid="toast-success"]').first()).toContainText(
-      'Contrato criado'
+      'Contrato criado',
+      { timeout: 10000 }
     );
 
+    // Wait for navigation after save (may redirect to detail page)
+    await page.waitForTimeout(2000);
+
+    // Navigate back to contracts list if not already there
+    await page.click('[data-testid="nav-contracts"]');
+    await page.waitForURL('**/enterprise/contracts', { timeout: 10000 });
+
+    // Wait for list to load
+    await expect(page.locator('[data-testid="contract-list"]')).toBeVisible({ timeout: 10000 });
+
     // Verify contract appears in list
-    await expect(page.locator('[data-testid="contract-list"]')).toContainText('OBRA-2026-001');
+    await expect(page.locator('[data-testid="contract-row"]').first()).toContainText(
+      'OBRA-2026-001'
+    );
   });
 
   test('should start a contract (PLANNING -> ACTIVE)', async ({ page }) => {

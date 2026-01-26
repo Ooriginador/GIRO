@@ -21,6 +21,7 @@ import {
   MapPin,
   Package,
   Settings,
+  Shield,
   ShieldCheck,
   ShoppingCart,
   Truck,
@@ -109,6 +110,7 @@ export const Sidebar: FC = () => {
     { icon: Wallet, label: 'Caixa', href: '/cash', tutorialId: 'nav-cash' },
     { icon: BarChart3, label: 'Relatórios', href: '/reports', tutorialId: 'nav-reports' },
     { icon: Bell, label: 'Alertas', href: '/alerts', tutorialId: 'nav-alerts' },
+    { icon: Shield, label: 'Meus Dados', href: '/my-data', tutorialId: 'nav-my-data' },
     { icon: Settings, label: 'Configurações', href: '/settings', tutorialId: 'nav-settings' },
   ];
 

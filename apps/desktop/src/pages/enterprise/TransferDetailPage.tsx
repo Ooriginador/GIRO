@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/table';
 import { TransferWorkflow } from '@/components/enterprise';
 import { useCanDo } from '@/hooks/useEnterprisePermission';
-import type { StockTransfer, StockTransferItem, Employee, Product } from '@/types/enterprise';
+import type { StockTransfer, StockTransferItem } from '@/types/enterprise';
 
 // Status badge colors
 const statusColors: Record<string, string> = {

@@ -59,6 +59,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { type FC, useEffect, useState, useRef, useMemo } from 'react';
+import { type ExportSummaryItem } from '@/lib/export';
 import { Link, useNavigate } from 'react-router-dom';
 import { useKeyboard } from '@/hooks/use-keyboard';
 import { useCategories } from '@/hooks/useCategories';
@@ -148,42 +149,74 @@ export const ProductsPage: FC = () => {
   // Colunas para exportação
   const exportColumns: ExportColumn<Product>[] = useMemo(
     () => [
-      { key: 'code', header: 'Código' },
-      { key: 'barcode', header: 'Código de Barras' },
-      { key: 'name', header: 'Nome' },
+      { key: 'code', header: 'Código', width: 80 },
+      { key: 'barcode', header: 'Código de Barras', width: 120 },
+      { key: 'name', header: 'Nome', width: 200 },
       {
         key: 'categoryId',
         header: 'Categoria',
+        width: 120,
         formatter: (value) => categoryMap.get(String(value)) || '-',
       },
-      { key: 'unit', header: 'Unidade' },
+      { key: 'unit', header: 'Unidade', width: 60, align: 'center' },
       {
         key: 'salePrice',
         header: 'Preço Venda',
         align: 'right',
+        width: 100,
+        type: 'currency',
+        totalizable: true,
         formatter: (value) => formatCurrency(Number(value) || 0),
       },
       {
         key: 'costPrice',
         header: 'Preço Custo',
         align: 'right',
+        width: 100,
+        type: 'currency',
+        totalizable: true,
         formatter: (value) => formatCurrency(Number(value) || 0),
       },
       {
         key: 'stock',
         header: 'Estoque',
         align: 'right',
+        width: 80,
+        type: 'number',
+        totalizable: true,
         formatter: (value) => String(Number(value) || 0),
       },
-      { key: 'minStock', header: 'Estoque Mín.', align: 'right' },
+      { key: 'minStock', header: 'Estoque Mín.', align: 'right', width: 80, type: 'number' },
       {
         key: 'isActive',
         header: 'Status',
+        width: 70,
         formatter: (value) => (value ? 'Ativo' : 'Inativo'),
       },
     ],
     [categoryMap]
   );
+
+  // Summary para exportação profissional
+  const exportSummary: ExportSummaryItem[] = useMemo(() => {
+    const activeCount = products.filter((p) => p.isActive).length;
+    const uniqueCategories = new Set(products.map((p) => p.categoryId).filter(Boolean)).size;
+    const totalStockValue = products.reduce(
+      (sum, p) => sum + (p.salePrice || 0) * (p.stock || 0),
+      0
+    );
+    return [
+      { label: 'Total Produtos', value: String(products.length), icon: '📦', color: '#3b82f6' },
+      { label: 'Ativos', value: String(activeCount), icon: '✅', color: '#10b981' },
+      { label: 'Categorias', value: String(uniqueCategories), icon: '🏷️', color: '#8b5cf6' },
+      {
+        label: 'Valor em Estoque',
+        value: formatCurrency(totalStockValue),
+        icon: '💰',
+        color: '#f59e0b',
+      },
+    ];
+  }, [products]);
 
   const handleDeactivate = async () => {
     if (!productToDeactivate) return;
@@ -286,6 +319,9 @@ export const ProductsPage: FC = () => {
             title="Catálogo de Produtos"
             variant="dropdown"
             disabled={isLoading || products.length === 0}
+            summary={exportSummary}
+            showTotals={true}
+            primaryColor="#10b981"
           />
           <Button variant="outline" asChild data-tutorial="categories-link">
             <Link to="/products/categories">Categorias</Link>

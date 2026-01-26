@@ -73,6 +73,7 @@ const ContractCard: FC<ContractCardProps> = ({ contract, onClick }) => {
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="article"
+      data-testid="contract-row"
       aria-label={`Contrato ${contract.code}: ${contract.name}, cliente ${contract.clientName}, status ${statusInfo.label}`}
     >
       <CardHeader className="pb-3">
@@ -369,7 +370,10 @@ export const ContractsPage: FC = () => {
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            data-testid="contract-list"
+          >
             {paginatedContracts.map((contract) => (
               <ContractCard
                 key={contract.id}

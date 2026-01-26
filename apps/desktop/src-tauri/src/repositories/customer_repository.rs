@@ -10,6 +10,7 @@ use crate::models::{
     CustomerVehicleWithDetails, CustomerWithStats, UpdateCustomer, UpdateCustomerVehicle,
 };
 use crate::repositories::{new_id, PaginatedResult, Pagination};
+use crate::utils::pii;
 
 pub struct CustomerRepository<'a> {
     pool: &'a SqlitePool,
@@ -61,7 +62,7 @@ impl<'a> CustomerRepository<'a> {
         .fetch_all(self.pool)
         .await?;
 
-        Ok(customers)
+        Ok(customers.into_iter().map(Self::decrypt_customer).collect())
     }
 
     /// Lista clientes com paginação e filtros
@@ -91,8 +92,10 @@ impl<'a> CustomerRepository<'a> {
         if let Some(ref search) = filters.search {
             count_builder.push(" AND (LOWER(c.name) LIKE ");
             count_builder.push_bind(format!("%{}%", search.to_lowercase()));
-            count_builder.push(" OR c.cpf LIKE ");
-            count_builder.push_bind(format!("%{}%", search));
+            if !pii::is_enabled() {
+                count_builder.push(" OR c.cpf LIKE ");
+                count_builder.push_bind(format!("%{}%", search));
+            }
             count_builder.push(" OR c.phone LIKE ");
             count_builder.push_bind(format!("%{}%", search));
             count_builder.push(")");
@@ -154,8 +157,10 @@ impl<'a> CustomerRepository<'a> {
         if let Some(ref search) = filters.search {
             data_builder.push(" AND (LOWER(c.name) LIKE ");
             data_builder.push_bind(format!("%{}%", search.to_lowercase()));
-            data_builder.push(" OR c.cpf LIKE ");
-            data_builder.push_bind(format!("%{}%", search));
+            if !pii::is_enabled() {
+                data_builder.push(" OR c.cpf LIKE ");
+                data_builder.push_bind(format!("%{}%", search));
+            }
             data_builder.push(" OR c.phone LIKE ");
             data_builder.push_bind(format!("%{}%", search));
             data_builder.push(")");
@@ -194,7 +199,7 @@ impl<'a> CustomerRepository<'a> {
                 };
 
                 CustomerWithStats {
-                    customer,
+                    customer: Self::decrypt_customer(customer),
                     vehicle_count: row.get::<i64, _>("vehicle_count"),
                     order_count: row.get::<i64, _>("order_count"),
                     total_spent: row.get::<f64, _>("total_spent"),
@@ -231,11 +236,42 @@ impl<'a> CustomerRepository<'a> {
         .fetch_optional(self.pool)
         .await?;
 
-        Ok(customer)
+        Ok(customer.map(Self::decrypt_customer))
     }
 
     /// Busca cliente por CPF
     pub async fn find_by_cpf(&self, cpf: &str) -> AppResult<Option<Customer>> {
+        if pii::is_enabled() {
+            let customers = sqlx::query_as!(
+                Customer,
+                r#"SELECT 
+                    id as "id!", name as "name!",
+                    cpf as "cpf?", phone as "phone?", phone2 as "phone2?", email as "email?",
+                    zip_code as "zip_code?", street as "street?", number as "number?", 
+                    complement as "complement?", neighborhood as "neighborhood?",
+                    city as "city?", state as "state?",
+                    is_active as "is_active!: bool",
+                    notes as "notes?", 
+                    created_at as "created_at!", 
+                    updated_at as "updated_at!"
+                FROM customers WHERE cpf IS NOT NULL"#
+            )
+            .fetch_all(self.pool)
+            .await?;
+
+            let mut found = None;
+            for mut customer in customers {
+                let decrypted = pii::decrypt_optional_lossy(customer.cpf.clone());
+                if decrypted.as_deref() == Some(cpf) {
+                    customer.cpf = decrypted;
+                    found = Some(customer);
+                    break;
+                }
+            }
+
+            return Ok(found.map(Self::decrypt_customer));
+        }
+
         let customer = sqlx::query_as!(
             Customer,
             r#"SELECT 
@@ -254,7 +290,7 @@ impl<'a> CustomerRepository<'a> {
         .fetch_optional(self.pool)
         .await?;
 
-        Ok(customer)
+        Ok(customer.map(Self::decrypt_customer))
     }
 
     /// Busca cliente por CPF dentro de uma transação
@@ -263,6 +299,37 @@ impl<'a> CustomerRepository<'a> {
         tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
         cpf: &str,
     ) -> AppResult<Option<Customer>> {
+        if pii::is_enabled() {
+            let customers = sqlx::query_as!(
+                Customer,
+                r#"SELECT 
+                    id as "id!", name as "name!",
+                    cpf as "cpf?", phone as "phone?", phone2 as "phone2?", email as "email?",
+                    zip_code as "zip_code?", street as "street?", number as "number?", 
+                    complement as "complement?", neighborhood as "neighborhood?",
+                    city as "city?", state as "state?",
+                    is_active as "is_active!: bool",
+                    notes as "notes?", 
+                    created_at as "created_at!", 
+                    updated_at as "updated_at!"
+                FROM customers WHERE cpf IS NOT NULL"#
+            )
+            .fetch_all(&mut **tx)
+            .await?;
+
+            let mut found = None;
+            for mut customer in customers {
+                let decrypted = pii::decrypt_optional_lossy(customer.cpf.clone());
+                if decrypted.as_deref() == Some(cpf) {
+                    customer.cpf = decrypted;
+                    found = Some(customer);
+                    break;
+                }
+            }
+
+            return Ok(found.map(Self::decrypt_customer));
+        }
+
         let customer = sqlx::query_as!(
             Customer,
             r#"SELECT 
@@ -281,7 +348,7 @@ impl<'a> CustomerRepository<'a> {
         .fetch_optional(&mut **tx)
         .await?;
 
-        Ok(customer)
+        Ok(customer.map(Self::decrypt_customer))
     }
 
     /// Busca cliente por ID dentro de uma transação
@@ -308,12 +375,45 @@ impl<'a> CustomerRepository<'a> {
         .fetch_optional(&mut **tx)
         .await?;
 
-        Ok(customer)
+        Ok(customer.map(Self::decrypt_customer))
     }
 
     /// Busca clientes por termo (nome, CPF, telefone)
     pub async fn search(&self, query: &str, limit: i32) -> AppResult<Vec<Customer>> {
         let search_term = format!("%{}%", query.to_lowercase());
+
+        if pii::is_enabled() {
+            let customers = sqlx::query_as!(
+                Customer,
+                r#"
+                SELECT 
+                    id as "id!", name as "name!",
+                    cpf as "cpf?", phone as "phone?", phone2 as "phone2?", email as "email?",
+                    zip_code as "zip_code?", street as "street?", number as "number?", 
+                    complement as "complement?", neighborhood as "neighborhood?",
+                    city as "city?", state as "state?",
+                    is_active as "is_active!: bool",
+                    notes as "notes?", 
+                    created_at as "created_at!", 
+                    updated_at as "updated_at!"
+                FROM customers
+                WHERE is_active = 1
+                  AND (
+                    LOWER(name) LIKE ?
+                    OR phone LIKE ?
+                  )
+                ORDER BY name ASC
+                LIMIT ?
+                "#,
+                search_term,
+                search_term,
+                limit
+            )
+            .fetch_all(self.pool)
+            .await?;
+
+            return Ok(customers.into_iter().map(Self::decrypt_customer).collect());
+        }
 
         let customers = sqlx::query_as!(
             Customer,
@@ -346,7 +446,7 @@ impl<'a> CustomerRepository<'a> {
         .fetch_all(self.pool)
         .await?;
 
-        Ok(customers)
+        Ok(customers.into_iter().map(Self::decrypt_customer).collect())
     }
 
     /// Cria novo cliente
@@ -354,6 +454,7 @@ impl<'a> CustomerRepository<'a> {
         let mut tx = self.pool.begin().await?;
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
+        let cpf = pii::encrypt_optional(input.cpf.clone())?;
 
         // Verificar CPF duplicado
         if let Some(ref cpf) = input.cpf {
@@ -373,7 +474,7 @@ impl<'a> CustomerRepository<'a> {
             "#,
             id,
             input.name,
-            input.cpf,
+            cpf,
             input.phone,
             input.phone2,
             input.email,
@@ -435,6 +536,8 @@ impl<'a> CustomerRepository<'a> {
             }
         }
 
+        let cpf = pii::encrypt_optional(input.cpf)?;
+
         sqlx::query!(
             r#"
             UPDATE customers SET
@@ -456,7 +559,7 @@ impl<'a> CustomerRepository<'a> {
             WHERE id = ?
             "#,
             input.name,
-            input.cpf,
+            cpf,
             input.phone,
             input.phone2,
             input.email,
@@ -771,10 +874,11 @@ impl<'a> CustomerRepository<'a> {
         .fetch_all(self.pool)
         .await?;
 
-        Ok(customers)
+        Ok(customers.into_iter().map(Self::decrypt_customer).collect())
     }
 
     pub async fn upsert_from_sync(&self, customer: Customer) -> AppResult<()> {
+        let cpf = pii::encrypt_optional(customer.cpf.clone())?;
         sqlx::query(
             "INSERT INTO customers (id, name, cpf, phone, phone2, email, zip_code, street, number, complement, neighborhood, city, state, is_active, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(id) DO UPDATE SET
@@ -796,7 +900,7 @@ impl<'a> CustomerRepository<'a> {
         )
         .bind(&customer.id)
         .bind(&customer.name)
-        .bind(&customer.cpf)
+            .bind(&cpf)
         .bind(&customer.phone)
         .bind(&customer.phone2)
         .bind(&customer.email)
@@ -814,5 +918,10 @@ impl<'a> CustomerRepository<'a> {
         .execute(self.pool)
         .await?;
         Ok(())
+    }
+
+    fn decrypt_customer(mut customer: Customer) -> Customer {
+        customer.cpf = pii::decrypt_optional_lossy(customer.cpf);
+        customer
     }
 }

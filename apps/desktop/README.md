@@ -28,6 +28,7 @@ GIRO e um sistema completo de PDV (Ponto de Venda) e gestao comercial para peque
 - Relatorios
 - Alertas
 - Sistema de Tutoriais
+- **LGPD/GDPR Compliance** (Meus Dados, Exportação, Exclusão)
 
 ## Scripts
 
@@ -52,6 +53,12 @@ apps/desktop/
 └── tests/               # Testes E2E
 ```text
 ## Documentacao
+
+### Compliance e Segurança
+- **[✅ Implementação LGPD](docs/LGPD-IMPLEMENTATION-COMPLETE.md)** - Guia completo de compliance
+- **[🧪 Guia de Testes LGPD](docs/LGPD-TESTING-GUIDE.md)** - Como testar features de privacidade
+- **[🔐 Setup de Criptografia](docs/PII-ENCRYPTION-KEY-SETUP.md)** - Configuração de chave PII
+- **[📊 Status de Compliance](docs/COMPLIANCE-IMPLEMENTATION-STATUS.md)** - Score e métricas
 
 ### Testes
 - **[📚 ÍNDICE](docs/INDEX.md)** - Hub central de documentação de testes

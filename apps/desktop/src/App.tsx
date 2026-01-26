@@ -42,6 +42,7 @@ import {
   EmployeePerformancePage,
 } from '@/pages/reports';
 import { SettingsPage } from '@/pages/settings';
+import { MyDataPage } from '@/pages/settings';
 import { InitialSetupPage } from '@/pages/setup';
 import { ExpirationPage, StockEntryPage, StockMovementsPage, StockPage } from '@/pages/stock';
 import { SuppliersPage } from '@/pages/suppliers';
@@ -371,6 +372,16 @@ const App: FC = () => {
               element={
                 <ProtectedRoute requiredRole={['ADMIN']}>
                   <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Meus Dados LGPD */}
+            <Route
+              path="my-data"
+              element={
+                <ProtectedRoute>
+                  <MyDataPage />
                 </ProtectedRoute>
               }
             />

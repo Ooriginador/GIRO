@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ExportButtons } from '@/components/shared';
-import { type ExportColumn, exportFormatters } from '@/lib/export';
+import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
+import { CustomerLGPDActions } from '@/components/customers/CustomerLGPDActions';
 import {
   Table,
   TableBody,
@@ -19,7 +20,7 @@ import {
   type UpdateCustomerInput,
 } from '@/hooks/useCustomers';
 import { Edit, Mail, MoreHorizontal, Phone, Search, Trash2, User, UserPlus } from 'lucide-react';
-import { useEffect, useState, type FC } from 'react';
+import { useEffect, useMemo, useState, type FC } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,14 +73,32 @@ export const CustomersPage: FC = () => {
 
   // Colunas para exportação
   const exportColumns: ExportColumn<Customer>[] = [
-    { key: 'name', header: 'Nome' },
-    { key: 'cpf', header: 'CPF' },
-    { key: 'phone', header: 'Telefone' },
-    { key: 'email', header: 'E-mail' },
-    { key: 'address', header: 'Endereço' },
-    { key: 'isActive', header: 'Status', formatter: exportFormatters.activeInactive },
-    { key: 'createdAt', header: 'Cadastro', formatter: exportFormatters.date },
+    { key: 'name', header: 'Nome', width: 200 },
+    { key: 'cpf', header: 'CPF', width: 120 },
+    { key: 'phone', header: 'Telefone', width: 120 },
+    { key: 'email', header: 'E-mail', width: 180 },
+    { key: 'address', header: 'Endereço', width: 200 },
+    { key: 'isActive', header: 'Status', width: 70, formatter: exportFormatters.activeInactive },
+    { key: 'createdAt', header: 'Cadastro', width: 100, formatter: exportFormatters.date },
   ];
+
+  // Summary para exportação profissional
+  const exportSummary: ExportSummaryItem[] = useMemo(() => {
+    const activeCount = filteredCustomers.filter((c) => c.isActive).length;
+    const withEmail = filteredCustomers.filter((c) => c.email).length;
+    const withPhone = filteredCustomers.filter((c) => c.phone).length;
+    return [
+      {
+        label: 'Total Clientes',
+        value: String(filteredCustomers.length),
+        icon: '👥',
+        color: '#3b82f6',
+      },
+      { label: 'Ativos', value: String(activeCount), icon: '✅', color: '#10b981' },
+      { label: 'Com E-mail', value: String(withEmail), icon: '📧', color: '#8b5cf6' },
+      { label: 'Com Telefone', value: String(withPhone), icon: '📞', color: '#f59e0b' },
+    ];
+  }, [filteredCustomers]);
 
   return (
     <div className="space-y-6">
@@ -95,6 +114,8 @@ export const CustomersPage: FC = () => {
             filename="clientes"
             title="Cadastro de Clientes"
             variant="dropdown"
+            summary={exportSummary}
+            primaryColor="#3b82f6"
           />
           <Button
             onClick={() => {
@@ -189,30 +210,37 @@ export const CustomersPage: FC = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Ações para ${customer.name}`}
-                          >
-                            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEdit(customer)}>
-                            <Edit className="mr-2 h-4 w-4" aria-hidden="true" /> Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDelete(customer.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Desativar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center justify-end gap-2">
+                        <CustomerLGPDActions
+                          customerId={customer.id}
+                          customerName={customer.name}
+                          onDeleted={() => loadCustomers()}
+                        />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Ações para ${customer.name}`}
+                            >
+                              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEdit(customer)}>
+                              <Edit className="mr-2 h-4 w-4" aria-hidden="true" /> Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDelete(customer.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Desativar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

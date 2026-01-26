@@ -4,6 +4,7 @@ use crate::error::AppResult;
 use crate::license::AdminUserSyncData;
 use crate::models::{CreateEmployee, Employee, SafeEmployee, UpdateEmployee};
 use crate::repositories::new_id;
+use crate::utils::pii;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::{PasswordHash, SaltString};
 use argon2::{Argon2, PasswordHasher, PasswordVerifier};
@@ -30,16 +31,35 @@ impl<'a> EmployeeRepository<'a> {
             .bind(id)
             .fetch_optional(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.map(Self::decrypt_employee))
     }
 
     pub async fn find_by_cpf(&self, cpf: &str) -> AppResult<Option<Employee>> {
+        if pii::is_enabled() {
+            let query = format!("SELECT {} FROM employees WHERE cpf IS NOT NULL", Self::COLS);
+            let employees = sqlx::query_as::<_, Employee>(&query)
+                .fetch_all(self.pool)
+                .await?;
+
+            let mut found: Option<Employee> = None;
+            for mut employee in employees {
+                let decrypted_cpf = pii::decrypt_optional_lossy(employee.cpf.clone());
+                if decrypted_cpf.as_deref() == Some(cpf) {
+                    employee.cpf = decrypted_cpf;
+                    found = Some(employee);
+                    break;
+                }
+            }
+
+            return Ok(found.map(Self::decrypt_employee));
+        }
+
         let query = format!("SELECT {} FROM employees WHERE cpf = ?", Self::COLS);
         let result = sqlx::query_as::<_, Employee>(&query)
             .bind(cpf)
             .fetch_optional(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.map(Self::decrypt_employee))
     }
 
     pub async fn find_by_pin(&self, pin: &str) -> AppResult<Option<Employee>> {
@@ -51,7 +71,7 @@ impl<'a> EmployeeRepository<'a> {
             .bind(pin)
             .fetch_optional(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.map(Self::decrypt_employee))
     }
 
     pub async fn find_all_active(&self) -> AppResult<Vec<Employee>> {
@@ -62,7 +82,7 @@ impl<'a> EmployeeRepository<'a> {
         let result = sqlx::query_as::<_, Employee>(&query)
             .fetch_all(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.into_iter().map(Self::decrypt_employee).collect())
     }
 
     pub async fn find_all_safe(&self) -> AppResult<Vec<SafeEmployee>> {
@@ -100,12 +120,14 @@ impl<'a> EmployeeRepository<'a> {
         let password_hash = data.password.map(|password| hash_password(&password));
 
         tracing::info!("Criando funcionário: {} (role: {})", data.name, role);
+        let cpf = pii::encrypt_optional(data.cpf)?;
+
         let result = sqlx::query(
             "INSERT INTO employees (id, name, cpf, phone, email, pin, password, role, commission_rate, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
         )
         .bind(&id)
         .bind(&data.name)
-        .bind(&data.cpf)
+        .bind(&cpf)
         .bind(&data.phone)
         .bind(&data.email)
         .bind(&pin_hash)
@@ -141,7 +163,7 @@ impl<'a> EmployeeRepository<'a> {
         let now = chrono::Utc::now().to_rfc3339();
 
         let name = data.name.unwrap_or(existing.name);
-        let cpf = data.cpf.or(existing.cpf);
+        let cpf = pii::encrypt_optional(data.cpf.or(existing.cpf))?;
         let phone = data.phone.or(existing.phone);
         let email = data.email.or(existing.email);
         let pin = data.pin.map(|pin| hash_pin(&pin)).unwrap_or(existing.pin);
@@ -186,6 +208,11 @@ impl<'a> EmployeeRepository<'a> {
             })
     }
 
+    fn decrypt_employee(mut employee: Employee) -> Employee {
+        employee.cpf = pii::decrypt_optional_lossy(employee.cpf);
+        employee
+    }
+
     pub async fn deactivate(&self, id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
         sqlx::query("UPDATE employees SET is_active = 0, updated_at = ? WHERE id = ?")
@@ -221,7 +248,7 @@ impl<'a> EmployeeRepository<'a> {
         let result = sqlx::query_as::<_, Employee>(&query)
             .fetch_all(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.into_iter().map(Self::decrypt_employee).collect())
     }
 
     pub async fn authenticate_pin(&self, pin: &str) -> AppResult<Option<Employee>> {

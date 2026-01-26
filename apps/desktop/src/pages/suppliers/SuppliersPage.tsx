@@ -54,12 +54,12 @@ import {
   Search,
   Truck,
 } from 'lucide-react';
-import { useState, type FC } from 'react';
+import { useState, useMemo, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { ExportButtons } from '@/components/shared';
-import { type ExportColumn, exportFormatters } from '@/lib/export';
+import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
 
 // Schema de validação com Zod
 const supplierFormSchema = z.object({
@@ -203,14 +203,42 @@ export const SuppliersPage: FC = () => {
 
   // Colunas para exportação
   const exportColumns: ExportColumn<Supplier>[] = [
-    { key: 'name', header: 'Razão Social' },
-    { key: 'tradeName', header: 'Nome Fantasia' },
-    { key: 'cnpj', header: 'CNPJ' },
-    { key: 'phone', header: 'Telefone' },
-    { key: 'email', header: 'E-mail' },
-    { key: 'address', header: 'Endereço' },
-    { key: 'isActive', header: 'Status', formatter: exportFormatters.activeInactive },
+    { key: 'name', header: 'Razão Social', width: 200 },
+    { key: 'tradeName', header: 'Nome Fantasia', width: 150 },
+    { key: 'cnpj', header: 'CNPJ', width: 140 },
+    { key: 'phone', header: 'Telefone', width: 120 },
+    { key: 'email', header: 'E-mail', width: 180 },
+    { key: 'address', header: 'Endereço', width: 200 },
+    { key: 'isActive', header: 'Status', width: 70, formatter: exportFormatters.activeInactive },
   ];
+
+  // Filtrar suppliers primeiro
+  const filteredSuppliers = suppliers.filter(
+    (sup) =>
+      sup.name.toLowerCase().includes(search.toLowerCase()) ||
+      sup.tradeName?.toLowerCase().includes(search.toLowerCase()) ||
+      sup.cnpj?.includes(search)
+  );
+
+  // Summary para exportação profissional
+  const exportSummary: ExportSummaryItem[] = useMemo(() => {
+    const activeCount = filteredSuppliers.filter((s) => s.isActive).length;
+    const withCnpj = filteredSuppliers.filter((s) => s.cnpj).length;
+    const uniqueCities = new Set(
+      filteredSuppliers.map((s) => s.address?.split(',').pop()?.trim()).filter(Boolean)
+    ).size;
+    return [
+      {
+        label: 'Total Fornecedores',
+        value: String(filteredSuppliers.length),
+        icon: '🚚',
+        color: '#3b82f6',
+      },
+      { label: 'Ativos', value: String(activeCount), icon: '✅', color: '#10b981' },
+      { label: 'Com CNPJ', value: String(withCnpj), icon: '🏢', color: '#8b5cf6' },
+      { label: 'Cidades', value: String(uniqueCities || '-'), icon: '📍', color: '#f59e0b' },
+    ];
+  }, [filteredSuppliers]);
 
   // React Hook Form com Zod resolver
   const form = useForm<SupplierFormData>({
@@ -224,13 +252,6 @@ export const SuppliersPage: FC = () => {
       address: '',
     },
   });
-
-  const filteredSuppliers = suppliers.filter(
-    (sup) =>
-      sup.name.toLowerCase().includes(search.toLowerCase()) ||
-      (sup.tradeName && sup.tradeName.toLowerCase().includes(search.toLowerCase())) ||
-      (sup.cnpj && sup.cnpj.includes(search))
-  );
 
   const onSubmit = async (data: SupplierFormData) => {
     try {
@@ -318,6 +339,8 @@ export const SuppliersPage: FC = () => {
             filename="fornecedores"
             title="Cadastro de Fornecedores"
             variant="dropdown"
+            summary={exportSummary}
+            primaryColor="#8b5cf6"
           />
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>

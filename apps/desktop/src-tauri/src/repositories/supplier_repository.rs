@@ -3,6 +3,7 @@
 use crate::error::AppResult;
 use crate::models::{CreateSupplier, Supplier, UpdateSupplier};
 use crate::repositories::new_id;
+use crate::utils::pii;
 use sqlx::SqlitePool;
 
 pub struct SupplierRepository<'a> {
@@ -36,16 +37,38 @@ impl<'a> SupplierRepository<'a> {
             .bind(id)
             .fetch_optional(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.map(Self::decrypt_supplier))
     }
 
     pub async fn find_by_cnpj(&self, cnpj: &str) -> AppResult<Option<Supplier>> {
+        if pii::is_enabled() {
+            let query = format!(
+                "SELECT {} FROM suppliers WHERE cnpj IS NOT NULL",
+                Self::COLS
+            );
+            let suppliers = sqlx::query_as::<_, Supplier>(&query)
+                .fetch_all(self.pool)
+                .await?;
+
+            let mut found: Option<Supplier> = None;
+            for mut supplier in suppliers {
+                let decrypted = pii::decrypt_optional_lossy(supplier.cnpj.clone());
+                if decrypted.as_deref() == Some(cnpj) {
+                    supplier.cnpj = decrypted;
+                    found = Some(supplier);
+                    break;
+                }
+            }
+
+            return Ok(found.map(Self::decrypt_supplier));
+        }
+
         let query = format!("SELECT {} FROM suppliers WHERE cnpj = ?", Self::COLS);
         let result = sqlx::query_as::<_, Supplier>(&query)
             .bind(cnpj)
             .fetch_optional(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.map(Self::decrypt_supplier))
     }
 
     pub async fn find_all_active(&self) -> AppResult<Vec<Supplier>> {
@@ -56,11 +79,21 @@ impl<'a> SupplierRepository<'a> {
         let result = sqlx::query_as::<_, Supplier>(&query)
             .fetch_all(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.into_iter().map(Self::decrypt_supplier).collect())
     }
 
     pub async fn search(&self, term: &str) -> AppResult<Vec<Supplier>> {
         let pattern = format!("%{}%", term);
+        if pii::is_enabled() {
+            let query = format!("SELECT {} FROM suppliers WHERE is_active = 1 AND (name LIKE ? OR trade_name LIKE ?) ORDER BY name", Self::COLS);
+            let result = sqlx::query_as::<_, Supplier>(&query)
+                .bind(&pattern)
+                .bind(&pattern)
+                .fetch_all(self.pool)
+                .await?;
+            return Ok(result.into_iter().map(Self::decrypt_supplier).collect());
+        }
+
         let query = format!("SELECT {} FROM suppliers WHERE is_active = 1 AND (name LIKE ? OR trade_name LIKE ? OR cnpj LIKE ?) ORDER BY name", Self::COLS);
         let result = sqlx::query_as::<_, Supplier>(&query)
             .bind(&pattern)
@@ -68,12 +101,13 @@ impl<'a> SupplierRepository<'a> {
             .bind(&pattern)
             .fetch_all(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.into_iter().map(Self::decrypt_supplier).collect())
     }
 
     pub async fn create(&self, data: CreateSupplier) -> AppResult<Supplier> {
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
+        let cnpj = pii::encrypt_optional(data.cnpj)?;
 
         sqlx::query(
             "INSERT INTO suppliers (id, name, trade_name, cnpj, phone, email, address, city, state, notes, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
@@ -81,7 +115,7 @@ impl<'a> SupplierRepository<'a> {
         .bind(&id)
         .bind(&data.name)
         .bind(&data.trade_name)
-        .bind(&data.cnpj)
+        .bind(&cnpj)
         .bind(&data.phone)
         .bind(&data.email)
         .bind(&data.address)
@@ -125,7 +159,7 @@ impl<'a> SupplierRepository<'a> {
 
         let name = data.name.unwrap_or(existing.name);
         let trade_name = data.trade_name.or(existing.trade_name);
-        let cnpj = data.cnpj.or(existing.cnpj);
+        let cnpj = pii::encrypt_optional(data.cnpj.or(existing.cnpj))?;
         let phone = data.phone.or(existing.phone);
         let email = data.email.or(existing.email);
         let address = data.address.or(existing.address);
@@ -203,7 +237,7 @@ impl<'a> SupplierRepository<'a> {
         let result = sqlx::query_as::<_, Supplier>(&query)
             .fetch_all(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.into_iter().map(Self::decrypt_supplier).collect())
     }
 
     /// Retorna apenas fornecedores inativos
@@ -215,7 +249,12 @@ impl<'a> SupplierRepository<'a> {
         let result = sqlx::query_as::<_, Supplier>(&query)
             .fetch_all(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.into_iter().map(Self::decrypt_supplier).collect())
+    }
+
+    fn decrypt_supplier(mut supplier: Supplier) -> Supplier {
+        supplier.cnpj = pii::decrypt_optional_lossy(supplier.cnpj);
+        supplier
     }
 
     pub async fn find_delta(&self, last_sync: i64) -> AppResult<Vec<Supplier>> {
@@ -227,10 +266,11 @@ impl<'a> SupplierRepository<'a> {
             .bind(last_sync)
             .fetch_all(self.pool)
             .await?;
-        Ok(result)
+        Ok(result.into_iter().map(Self::decrypt_supplier).collect())
     }
 
     pub async fn upsert_from_sync(&self, supplier: Supplier) -> AppResult<()> {
+        let cnpj = pii::encrypt_optional(supplier.cnpj.clone())?;
         sqlx::query(
             r#"INSERT INTO suppliers (id, name, trade_name, cnpj, phone, email, address, city, state, notes, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(id) DO UPDATE SET
@@ -249,7 +289,7 @@ impl<'a> SupplierRepository<'a> {
         .bind(&supplier.id)
         .bind(&supplier.name)
         .bind(&supplier.trade_name)
-        .bind(&supplier.cnpj)
+        .bind(&cnpj)
         .bind(&supplier.phone)
         .bind(&supplier.email)
         .bind(&supplier.address)

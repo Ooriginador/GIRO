@@ -148,6 +148,10 @@ export interface WorkFront {
   // Status
   status: WorkFrontStatus;
 
+  // Relações (para detalhes)
+  activities?: Activity[];
+  requests?: MaterialRequest[];
+
   // Contagens
   _count?: {
     activities: number;
@@ -260,6 +264,7 @@ export interface StockBalance {
 export interface MaterialRequest {
   id: string;
   code: string; // REQ-2026-00001
+  requestNumber?: string; // Alias para code (UI)
 
   // Destino
   contractId: string;
@@ -268,6 +273,7 @@ export interface MaterialRequest {
   workFront?: WorkFront;
   activityId?: string | null;
   activity?: Activity;
+  destinationId?: string | null; // Alias para destino (UI)
 
   // Origem do material (opcional para draft)
   sourceLocationId?: string | null;

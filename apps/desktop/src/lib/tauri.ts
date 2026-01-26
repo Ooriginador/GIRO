@@ -52,12 +52,13 @@ import type {
 } from '@/types';
 import type {
   Contract,
-  EnterpriseMaterialRequest,
   StockTransfer,
   StockLocation,
   ContractDashboardStats,
   WorkFront,
+  TransferStatus,
 } from '@/types/enterprise';
+import type { MaterialRequest as EnterpriseMaterialRequest } from '@/types/enterprise';
 import { invoke as tauriCoreInvoke } from '@tauri-apps/api/core';
 import { readFile } from '@tauri-apps/plugin-fs';
 
@@ -74,6 +75,9 @@ export type {
   SalesReport,
   DailyRevenue,
 };
+
+// Re-export Enterprise types
+export type { MaterialRequest } from '@/types/enterprise';
 
 type WebMockDb = {
   employees: Employee[];
@@ -399,38 +403,42 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
     }
     case 'create_stock_transfer': {
       const input = (args?.input as any) || {};
-      const newTransfer = {
+      const newTransfer: StockTransfer = {
         id: randomId('trf'),
-        status: 'DRAFT',
-        originLocationId: input.originLocationId,
+        code: `TRF-${Date.now()}`,
+        status: 'DRAFT' as TransferStatus,
+        sourceLocationId: input.originLocationId || input.sourceLocationId,
         destinationLocationId: input.destinationLocationId,
         requesterId: input.requesterId || 'admin-1',
+        requestedAt: nowIso(),
         items: input.items || [],
         notes: input.notes,
         createdAt: nowIso(),
         updatedAt: nowIso(),
-        history: [],
-      };
-      db.stockTransfers = [newTransfer, ...db.stockTransfers];
+      } as StockTransfer;
+      db.stockTransfers = [newTransfer as any, ...db.stockTransfers];
       saveWebMockDb(db);
       return newTransfer as unknown as T;
     }
     case 'create_material_request': {
       const input = (args?.input as any) || {};
-      const newRequest: EnterpriseMaterialRequest = {
+      const newRequest = {
         id: randomId('req'),
+        code: `REQ-${Date.now()}`,
+        requestNumber: `REQ-${Date.now()}`,
         status: 'DRAFT',
         priority: input.priority || 'NORMAL',
         contractId: input.contractId,
         workFrontId: input.workFrontId,
+        destinationId: input.workFrontId,
         requesterId: input.requesterId || 'admin-1',
         items: input.items || [],
         createdAt: nowIso(),
         updatedAt: nowIso(),
         history: [],
-      } as EnterpriseMaterialRequest;
+      };
 
-      db.materialRequests = [newRequest, ...db.materialRequests];
+      db.materialRequests = [newRequest as any, ...db.materialRequests];
       saveWebMockDb(db);
       return newRequest as unknown as T;
     }
@@ -465,7 +473,7 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
     case 'get_contract_dashboard_stats': {
       const activeContracts = db.contracts.filter((c) => c.status === 'ACTIVE').length;
       const totalContracts = db.contracts.length;
-      const totalValue = db.contracts.reduce((acc, c) => acc + (c.value || 0), 0);
+      const totalValue = db.contracts.reduce((acc, c) => acc + (c.budget || 0), 0);
       const pendingRequests = db.materialRequests.filter((r) => r.status === 'PENDING').length;
 
       const stats: ContractDashboardStats = {
@@ -497,8 +505,9 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
         address: input.address,
         startDate: input.startDate || nowIso(),
         endDate: input.endDate,
-        value: input.value || 0,
         budget: input.budget || 0,
+        clientName: input.clientName || 'Cliente Exemplo',
+        costCenter: input.costCenter || 'CC-001',
         managerId: input.managerId,
         createdAt: nowIso(),
         updatedAt: nowIso(),
@@ -1938,32 +1947,6 @@ export async function deleteStockLocation(id: string): Promise<void> {
 // ENTERPRISE MODULE - MATERIAL REQUESTS
 // ────────────────────────────────────────────────────────────────────────────
 
-export interface EnterpriseMaterialRequest {
-  id: string;
-  requestNumber: string;
-  contractId: string;
-  workFrontId?: string | null;
-  activityId?: string | null;
-  requesterId: string;
-  destinationId: string;
-  status: string;
-  priority: string;
-  neededByDate?: string | null;
-  notes?: string | null;
-  submittedAt?: string | null;
-  approvedAt?: string | null;
-  approvedById?: string | null;
-  rejectedAt?: string | null;
-  rejectedById?: string | null;
-  rejectionReason?: string | null;
-  separationStartedAt?: string | null;
-  separatedById?: string | null;
-  deliveredAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt?: string | null;
-}
-
 export interface MaterialRequestWithDetails extends EnterpriseMaterialRequest {
   /** Alias for requestNumber for convenience */
   code: string;
@@ -2049,9 +2032,9 @@ export async function getMaterialRequestsPaginated(
   page: number,
   perPage: number,
   filters: RequestFilters
-): Promise<{ data: MaterialRequestWithDetails[]; total: number; page: number; perPage: number }> {
+): Promise<{ data: EnterpriseMaterialRequestWithDetails[]; total: number; page: number; perPage: number }> {
   return tauriInvoke<{
-    data: MaterialRequestWithDetails[];
+    data: EnterpriseMaterialRequestWithDetails[];
     total: number;
     page: number;
     perPage: number;
@@ -2088,10 +2071,7 @@ export async function approveRequest(
   return tauriInvoke<EnterpriseMaterialRequest>('approve_request', { requestId, approvedItems });
 }
 
-export async function rejectRequest(
-  requestId: string,
-  reason: string
-): Promise<EnterpriseMaterialRequest> {
+export async function rejectRequest(requestId: string, reason: string): Promise<EnterpriseMaterialRequest> {
   return tauriInvoke<EnterpriseMaterialRequest>('reject_request', { requestId, reason });
 }
 
@@ -2133,10 +2113,7 @@ export async function approveMaterialRequestWithItems(
   });
 }
 
-export async function rejectMaterialRequest(
-  id: string,
-  reason: string
-): Promise<EnterpriseMaterialRequest> {
+export async function rejectMaterialRequest(id: string, reason: string): Promise<EnterpriseMaterialRequest> {
   return tauriInvoke<EnterpriseMaterialRequest>('reject_material_request', { id, reason });
 }
 

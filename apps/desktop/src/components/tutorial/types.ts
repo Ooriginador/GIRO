@@ -4,6 +4,7 @@
  */
 
 export type TutorialId =
+  // Core Tutorials
   | 'welcome'
   | 'pdv-basic'
   | 'pdv-advanced'
@@ -13,7 +14,15 @@ export type TutorialId =
   | 'reports'
   | 'settings'
   | 'employees'
-  | 'alerts';
+  | 'alerts'
+  // Enterprise Tutorials
+  | 'enterprise-intro'
+  | 'enterprise-contracts'
+  | 'enterprise-workfronts'
+  | 'enterprise-requests'
+  | 'enterprise-transfers'
+  | 'enterprise-locations'
+  | 'enterprise-inventory';
 
 export type TutorialStatus = 'not-started' | 'in-progress' | 'completed' | 'skipped';
 
@@ -58,7 +67,7 @@ export interface Tutorial {
   /** Descrição do que será aprendido */
   description: string;
   /** Categoria do tutorial */
-  category: 'getting-started' | 'operations' | 'management' | 'advanced';
+  category: 'getting-started' | 'operations' | 'management' | 'advanced' | 'enterprise';
   /** Duração estimada em minutos */
   estimatedMinutes: number;
   /** Ícone (nome do lucide-react) */
