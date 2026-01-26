@@ -41,18 +41,28 @@ const mockDashboardData = {
 const mockRecentRequests = [
   {
     id: 'r1',
+    code: 'REQ-001',
     requestNumber: 'REQ-001',
     status: 'PENDING',
+    priority: 'NORMAL',
     requesterName: 'João',
+    contractCode: 'CNT-001',
     contractName: 'Obra A',
+    destinationName: 'Almoxarifado',
+    itemCount: 3,
     createdAt: '2024-01-01',
   },
   {
     id: 'r2',
+    code: 'REQ-002',
     requestNumber: 'REQ-002',
     status: 'APPROVED',
+    priority: 'HIGH',
     requesterName: 'Maria',
+    contractCode: 'CNT-002',
     contractName: 'Obra B',
+    destinationName: 'Frente de Obra',
+    itemCount: 5,
     createdAt: '2024-01-02',
   },
 ];

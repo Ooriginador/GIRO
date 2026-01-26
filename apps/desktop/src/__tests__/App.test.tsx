@@ -11,6 +11,7 @@ import { useBusinessProfile } from '@/stores/useBusinessProfile';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Outlet } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock hooks
 vi.mock('@/hooks/useSetup', () => ({
@@ -67,10 +68,23 @@ vi.mock('@/components/guards', () => ({
   ),
 }));
 
-// TODO: Re-enable after CI stabilization - these tests hang on Windows CI
-describe.skip('App', () => {
+// App tests - re-enabled with proper timeout handling for Windows
+describe('App', () => {
+  let queryClient: QueryClient;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    // Use fake timers for consistent behavior across platforms
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    // Create fresh QueryClient for each test
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
     vi.mocked(useLicenseStore).mockReturnValue({ state: 'valid' });
     vi.mocked(useHasAdmin).mockReturnValue({ data: true, isLoading: false });
     vi.mocked(useBusinessProfile).mockReturnValue({
@@ -80,64 +94,93 @@ describe.skip('App', () => {
     vi.mocked(useAuthStore).mockReturnValue({
       isAuthenticated: false,
       logout: vi.fn(),
-    });
+      restoreSession: vi.fn(),
+    } as any);
   });
+
+  afterEach(() => {
+    queryClient.clear();
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  const renderApp = (initialRoute = '/') => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[initialRoute]}>
+          <App />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+  };
 
   it('should redirect to /setup if no admin exists', async () => {
     vi.mocked(useHasAdmin).mockReturnValue({ data: false, isLoading: false });
 
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <App />
-      </MemoryRouter>
-    );
+    renderApp('/');
 
-    await waitFor(() => {
-      expect(screen.getByTestId('setup-page')).toBeInTheDocument();
-    });
+    // Flush pending timers for Windows compatibility
+    await vi.runAllTimersAsync();
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('setup-page')).toBeInTheDocument();
+      },
+      { timeout: 5000, interval: 50 }
+    );
   });
 
   it('should redirect to /login if NOT authenticated in ProtectedRoute', async () => {
-    vi.mocked(useAuthStore).mockReturnValue({ isAuthenticated: false });
+    vi.mocked(useAuthStore).mockReturnValue({
+      isAuthenticated: false,
+      restoreSession: vi.fn(),
+    } as any);
 
-    render(
-      <MemoryRouter initialEntries={['/pdv']}>
-        <App />
-      </MemoryRouter>
+    renderApp('/pdv');
+
+    await vi.runAllTimersAsync();
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('login-page')).toBeInTheDocument();
+      },
+      { timeout: 5000, interval: 50 }
     );
-
-    await waitFor(() => {
-      expect(screen.getByTestId('login-page')).toBeInTheDocument();
-    });
   });
 
   it('should handle F1 hotkey to navigate to tutorials', async () => {
     vi.mocked(useAuthStore).mockReturnValue({
       isAuthenticated: true,
       employee: { role: 'ADMIN' },
-    });
+      restoreSession: vi.fn(),
+    } as any);
 
-    render(
-      <MemoryRouter initialEntries={['/pdv']}>
-        <App />
-      </MemoryRouter>
+    renderApp('/pdv');
+
+    await vi.runAllTimersAsync();
+
+    // Windows requires proper event propagation
+    const event = new KeyboardEvent('keydown', {
+      key: 'F1',
+      bubbles: true,
+      cancelable: true,
+    });
+    window.dispatchEvent(event);
+
+    await vi.runAllTimersAsync();
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('tutorials-page')).toBeInTheDocument();
+      },
+      { timeout: 5000 }
     );
-
-    fireEvent.keyDown(window, { key: 'F1' });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('tutorials-page')).toBeInTheDocument();
-    });
   });
 
   it('should show loading state in AdminCheck', () => {
     vi.mocked(useHasAdmin).mockReturnValue({ data: null, isLoading: true });
 
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <App />
-      </MemoryRouter>
-    );
+    renderApp('/');
 
     expect(screen.getByText(/inicializando/i)).toBeInTheDocument();
   });
@@ -146,54 +189,58 @@ describe.skip('App', () => {
     vi.mocked(useAuthStore).mockReturnValue({
       isAuthenticated: true,
       employee: { role: 'SELLER' },
-    });
+      restoreSession: vi.fn(),
+    } as any);
 
-    render(
-      <MemoryRouter initialEntries={['/employees']}>
-        <App />
-      </MemoryRouter>
+    renderApp('/employees');
+
+    await vi.runAllTimersAsync();
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('pdv-page')).toBeInTheDocument();
+      },
+      { timeout: 5000 }
     );
-
-    await waitFor(() => {
-      expect(screen.getByTestId('pdv-page')).toBeInTheDocument();
-    });
   });
 
   it('should redirect to wizard from RootRedirect when not configured', async () => {
     vi.mocked(useAuthStore).mockReturnValue({
       isAuthenticated: true,
       employee: { role: 'ADMIN' },
-    });
+      restoreSession: vi.fn(),
+    } as any);
     vi.mocked(useBusinessProfile).mockReturnValue({ isConfigured: false });
 
-    // InitialEntries point to dashboard which is protected, and we want to see it hitting RootRedirect
-    // But dashboard is NOT RootRedirect. RootRedirect is at path="".
-    render(
-      <MemoryRouter initialEntries={['/wizard']}>
-        <App />
-      </MemoryRouter>
-    );
+    renderApp('/wizard');
 
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-page')).toBeInTheDocument();
-    });
+    await vi.runAllTimersAsync();
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('wizard-page')).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
   });
 
   it('should handle WizardRoute redirect to PDV when already configured', async () => {
     vi.mocked(useAuthStore).mockReturnValue({
       isAuthenticated: true,
       employee: { role: 'ADMIN' },
-    });
+      restoreSession: vi.fn(),
+    } as any);
     vi.mocked(useBusinessProfile).mockReturnValue({ isConfigured: true });
 
-    render(
-      <MemoryRouter initialEntries={['/wizard']}>
-        <App />
-      </MemoryRouter>
-    );
+    renderApp('/wizard');
 
-    await waitFor(() => {
-      expect(screen.getByTestId('pdv-page')).toBeInTheDocument();
-    });
+    await vi.runAllTimersAsync();
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('pdv-page')).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
   });
 });
