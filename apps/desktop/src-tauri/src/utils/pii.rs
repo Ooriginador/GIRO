@@ -2,9 +2,9 @@
 //!
 //! Encrypts sensitive fields like CPF/CNPJ at rest using AES-256-GCM.
 
+use aes_gcm::aead::Aead;
 use aes_gcm::{Aes256Gcm, KeyInit, Nonce};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
-use rand::rngs::OsRng;
 use rand::RngCore;
 
 use crate::error::{AppError, AppResult};
@@ -45,7 +45,7 @@ pub fn encrypt_optional(value: Option<String>) -> AppResult<Option<String>> {
         .map_err(|e| AppError::Internal(format!("PII cipher error: {e}")))?;
 
     let mut nonce_bytes = [0u8; 12];
-    OsRng.fill_bytes(&mut nonce_bytes);
+    rand::rng().fill_bytes(&mut nonce_bytes);
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     let ciphertext = cipher

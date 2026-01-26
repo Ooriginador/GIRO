@@ -383,7 +383,7 @@ impl<'a> CustomerRepository<'a> {
         let search_term = format!("%{}%", query.to_lowercase());
 
         if pii::is_enabled() {
-            let customers = sqlx::query_as!(
+            let customers: Vec<Customer> = sqlx::query_as!(
                 Customer,
                 r#"
                 SELECT 
