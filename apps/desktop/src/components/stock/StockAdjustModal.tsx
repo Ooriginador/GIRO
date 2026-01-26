@@ -3,7 +3,6 @@
  * @description Permite adicionar ou subtrair quantidade do estoque
  */
 
-import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
