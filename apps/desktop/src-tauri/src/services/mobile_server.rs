@@ -4,9 +4,9 @@
 
 use crate::services::mobile_events::MobileEventService;
 use crate::services::mobile_handlers::{
-    AuthHandler, CategoriesHandler, EnterpriseContextHandler, EnterpriseRequestHandler,
-    EnterpriseTransferHandler, ExpirationHandler, InventoryHandler, ProductsHandler, StockHandler,
-    SyncHandler, SystemHandler,
+    AuthHandler, CategoriesHandler, EnterpriseContextHandler, EnterpriseInventoryHandler,
+    EnterpriseRequestHandler, EnterpriseTransferHandler, ExpirationHandler, InventoryHandler,
+    ProductsHandler, StockHandler, SyncHandler, SystemHandler,
 };
 use crate::services::mobile_protocol::{
     LegacyScannerMessage, LegacyScannerResponse, MobileAction, MobileErrorCode, MobileEvent,
@@ -216,6 +216,7 @@ impl MobileServer {
             let enterprise_request_handler = EnterpriseRequestHandler::new(pool.clone());
             let enterprise_transfer_handler = EnterpriseTransferHandler::new(pool.clone());
             let enterprise_context_handler = EnterpriseContextHandler::new(pool.clone());
+            let enterprise_inventory_handler = EnterpriseInventoryHandler::new(pool.clone());
 
             loop {
                 tokio::select! {
@@ -277,6 +278,7 @@ impl MobileServer {
                                     &enterprise_request_handler,
                                     &enterprise_transfer_handler,
                                     &enterprise_context_handler,
+                                    &enterprise_inventory_handler,
                                 ).await;
 
                                 // Enviar resposta
@@ -379,6 +381,7 @@ async fn process_request(
     enterprise_request_handler: &EnterpriseRequestHandler,
     enterprise_transfer_handler: &EnterpriseTransferHandler,
     enterprise_context_handler: &EnterpriseContextHandler,
+    enterprise_inventory_handler: &EnterpriseInventoryHandler,
 ) -> MobileResponse {
     let id = request.id;
     let action_str = &request.action;
@@ -1113,18 +1116,105 @@ async fn process_request(
         // ══════════════════════════════════════════════════════════════════════
         // ENTERPRISE - INVENTORY (Inventário por Localização)
         // ══════════════════════════════════════════════════════════════════════
-        MobileAction::EnterpriseInventoryLocations
-        | MobileAction::EnterpriseInventoryStart
-        | MobileAction::EnterpriseInventoryCount
-        | MobileAction::EnterpriseInventorySync
-        | MobileAction::EnterpriseInventoryFinish
-        | MobileAction::EnterpriseInventoryCancel => {
-            // TODO: Implementar enterprise inventory handler
-            MobileResponse::error(
-                id,
-                MobileErrorCode::InvalidAction,
-                "Enterprise inventory não implementado ainda",
-            )
+        MobileAction::EnterpriseInventoryLocations => {
+            use crate::services::mobile_handlers::enterprise::InventoryLocationsPayload;
+            let payload: InventoryLocationsPayload =
+                serde_json::from_value(request.payload.clone()).unwrap_or(InventoryLocationsPayload {
+                    contract_id: None,
+                });
+            enterprise_inventory_handler
+                .get_locations(id, payload, &employee_id, &employee_role)
+                .await
+        }
+
+        MobileAction::EnterpriseInventoryStart => {
+            use crate::services::mobile_handlers::enterprise::EnterpriseInventoryStartPayload;
+            let payload: EnterpriseInventoryStartPayload =
+                match serde_json::from_value(request.payload.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return MobileResponse::error(
+                            id,
+                            MobileErrorCode::ValidationError,
+                            format!("Payload inválido: {}", e),
+                        );
+                    }
+                };
+            enterprise_inventory_handler
+                .start(id, payload, &employee_id, &employee_role)
+                .await
+        }
+
+        MobileAction::EnterpriseInventoryCount => {
+            use crate::services::mobile_handlers::enterprise::EnterpriseInventoryCountPayload;
+            let payload: EnterpriseInventoryCountPayload =
+                match serde_json::from_value(request.payload.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return MobileResponse::error(
+                            id,
+                            MobileErrorCode::ValidationError,
+                            format!("Payload inválido: {}", e),
+                        );
+                    }
+                };
+            enterprise_inventory_handler
+                .count(id, payload, &employee_id, &employee_role)
+                .await
+        }
+
+        MobileAction::EnterpriseInventorySync => {
+            use crate::services::mobile_handlers::enterprise::EnterpriseInventorySyncPayload;
+            let payload: EnterpriseInventorySyncPayload =
+                match serde_json::from_value(request.payload.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return MobileResponse::error(
+                            id,
+                            MobileErrorCode::ValidationError,
+                            format!("Payload inválido: {}", e),
+                        );
+                    }
+                };
+            enterprise_inventory_handler
+                .sync(id, payload, &employee_id, &employee_role)
+                .await
+        }
+
+        MobileAction::EnterpriseInventoryFinish => {
+            use crate::services::mobile_handlers::enterprise::EnterpriseInventoryFinishPayload;
+            let payload: EnterpriseInventoryFinishPayload =
+                match serde_json::from_value(request.payload.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return MobileResponse::error(
+                            id,
+                            MobileErrorCode::ValidationError,
+                            format!("Payload inválido: {}", e),
+                        );
+                    }
+                };
+            enterprise_inventory_handler
+                .finish(id, payload, &employee_id, &employee_role)
+                .await
+        }
+
+        MobileAction::EnterpriseInventoryCancel => {
+            use crate::services::mobile_handlers::enterprise::EnterpriseInventoryCancelPayload;
+            let payload: EnterpriseInventoryCancelPayload =
+                match serde_json::from_value(request.payload.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return MobileResponse::error(
+                            id,
+                            MobileErrorCode::ValidationError,
+                            format!("Payload inválido: {}", e),
+                        );
+                    }
+                };
+            enterprise_inventory_handler
+                .cancel(id, payload, &employee_id, &employee_role)
+                .await
         }
 
         // Ações não implementadas
