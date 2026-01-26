@@ -1009,10 +1009,25 @@ pub async fn auto_detect_hardware(
 ) -> AppResult<hardware::AutoDetectResult> {
     app_state.session.require_authenticated()?;
 
-    let manager = hardware::HardwareManager::new();
-    let result = manager.auto_detect_all().await;
+    // Wrap in catch_unwind to prevent panics from crashing the app
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        tokio::runtime::Handle::current().block_on(async {
+            let manager = hardware::HardwareManager::new();
+            manager.auto_detect_all().await
+        })
+    }));
 
-    Ok(result)
+    match result {
+        Ok(r) => Ok(r),
+        Err(_) => {
+            tracing::error!("Hardware auto-detection panicked");
+            Ok(hardware::AutoDetectResult {
+                devices: vec![],
+                errors: vec!["Erro interno na detecção de hardware".to_string()],
+                duration_ms: 0,
+            })
+        }
+    }
 }
 
 /// Retorna visão geral do status de todos os dispositivos
