@@ -52,12 +52,14 @@ import {
   Edit,
   MoreHorizontal,
   Package,
+  PackageMinus,
   Plus,
   Power,
   PowerOff,
   Search,
   Trash2,
 } from 'lucide-react';
+import { StockAdjustModal } from '@/components/stock';
 import { type FC, useEffect, useState, useRef, useMemo } from 'react';
 import { type ExportSummaryItem } from '@/lib/export';
 import { Link, useNavigate } from 'react-router-dom';
@@ -76,6 +78,7 @@ export const ProductsPage: FC = () => {
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [productToDeactivate, setProductToDeactivate] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [productToAdjustStock, setProductToAdjustStock] = useState<Product | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Categories Data
@@ -515,6 +518,10 @@ export const ProductsPage: FC = () => {
                                 <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
                                 Duplicar
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setProductToAdjustStock(product)}>
+                                <PackageMinus className="mr-2 h-4 w-4" aria-hidden="true" />
+                                Ajustar Estoque
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               {product.isActive ? (
                                 <DropdownMenuItem
@@ -653,6 +660,13 @@ export const ProductsPage: FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Ajuste de Estoque */}
+      <StockAdjustModal
+        open={!!productToAdjustStock}
+        onOpenChange={(open) => !open && setProductToAdjustStock(null)}
+        product={productToAdjustStock}
+      />
     </div>
   );
 };
