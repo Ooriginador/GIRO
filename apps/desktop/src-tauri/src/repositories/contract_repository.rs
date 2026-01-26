@@ -239,7 +239,7 @@ impl<'a> ContractRepository<'a> {
         .bind(&data.status)
         .bind(&data.start_date)
         .bind(&data.end_date)
-        .bind(&data.budget)
+        .bind(data.budget)
         .bind(&data.manager_id)
         .bind(&data.address)
         .bind(&data.city)

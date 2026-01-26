@@ -1110,7 +1110,7 @@ pub async fn export_uau_xml(
                 xml_content.push_str("    <MOVIMENTO>\n");
                 xml_content.push_str(&format!("      <ID>{}</ID>\n", escape_xml(&id)));
                 xml_content.push_str(&format!("      <DATA>{}</DATA>\n", escape_xml(&data)));
-                xml_content.push_str(&format!("      <TIPO>CONSUMO</TIPO>\n"));
+                xml_content.push_str("      <TIPO>CONSUMO</TIPO>\n");
                 xml_content.push_str(&format!(
                     "      <CODIGO_INSUMO>{}</CODIGO_INSUMO>\n",
                     escape_xml(&codigo)
