@@ -48,6 +48,7 @@ import { usePDVKeyboard } from '@/hooks/use-keyboard';
 export const PDVPage: FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showQuantityModal, setShowQuantityModal] = useState(false);
@@ -61,6 +62,7 @@ export const PDVPage: FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const discountInputRef = useRef<HTMLInputElement>(null);
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     items,
@@ -92,6 +94,34 @@ export const PDVPage: FC = () => {
     // Carregar vendas em espera ao montar
     loadHeldSales();
   }, [customerId, getCustomerById, selectedCustomer, loadHeldSales]);
+
+  // Debounce para busca de produtos (300ms)
+  useEffect(() => {
+    // Limpar timeout anterior
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    // Se a busca estiver vazia, atualizar imediatamente
+    if (!searchQuery.trim()) {
+      setDebouncedSearchQuery('');
+      setShowSearch(false);
+      return;
+    }
+
+    // Configurar novo timeout
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+      setShowSearch(true);
+    }, 300);
+
+    // Cleanup
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   const handleCustomerSelect = (customer: Customer | null) => {
     setSelectedCustomer(customer);
@@ -195,11 +225,14 @@ export const PDVPage: FC = () => {
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
-    if (query.length >= 1) {
-      setShowSearch(true);
-    } else {
-      setShowSearch(false);
-    }
+    // O debounce effect cuidará de atualizar debouncedSearchQuery e showSearch
+  }, []);
+
+  const handleCloseSearch = useCallback(() => {
+    setShowSearch(false);
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
+    searchInputRef.current?.focus();
   }, []);
 
   const handleProductSelected = useCallback(
@@ -214,14 +247,12 @@ export const PDVPage: FC = () => {
         isWeighted: product.isWeighted,
       });
 
-      setSearchQuery('');
-      setShowSearch(false);
+      // Limpar busca completamente
+      handleCloseSearch();
 
       if (product.isWeighted) {
         // Como o addItem no store gera seu próprio ID e é síncrono (zustand),
         // precisamos encontrar o item recém adicionado.
-        // Uma alternativa melhor seria o addItem aceitar um ID opcional.
-        // Por agora, vamos abrir o modal para o último item se ele coincidir.
         setTimeout(() => {
           const lastItem = usePDVStore.getState().items.slice(-1)[0];
           if (lastItem && lastItem.productId === product.id) {
@@ -235,7 +266,7 @@ export const PDVPage: FC = () => {
         searchInputRef.current?.focus();
       }
     },
-    [addItem]
+    [addItem, handleCloseSearch]
   );
 
   if (!currentSession) {
@@ -295,11 +326,11 @@ export const PDVPage: FC = () => {
             </div>
 
             {/* Resultados da busca de produtos */}
-            {showSearch && searchQuery && (
+            {showSearch && debouncedSearchQuery && (
               <ProductSearchResults
-                query={searchQuery}
+                query={debouncedSearchQuery}
                 onSelect={handleProductSelected}
-                onClose={() => setShowSearch(false)}
+                onClose={handleCloseSearch}
               />
             )}
           </Card>

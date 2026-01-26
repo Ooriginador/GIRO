@@ -38,15 +38,15 @@ export const productKeys = {
 
 /**
  * Busca todos os produtos com filtro opcional
- */
-/**
- * Busca todos os produtos com filtro opcional
+ * Para PDV: usar sem cache (staleTime: 0) para sempre buscar dados frescos
  */
 export function useProducts(filter?: ProductFilter) {
   return useQuery({
     queryKey: ['products', filter],
     queryFn: () => getProducts(filter),
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: 0, // Sem cache - sempre busca dados frescos
+    gcTime: 1000 * 60, // Mantém em cache por 1 minuto apenas para evitar re-fetch imediato
+    refetchOnWindowFocus: false, // Não refetch ao focar janela no PDV
   });
 }
 
@@ -81,12 +81,16 @@ export function useProduct(id: string | undefined) {
 
 /**
  * Busca produto por código de barras
+ * Sem cache para garantir dados sempre frescos no PDV
  */
 export function useProductByBarcode(barcode: string | null) {
   return useQuery({
     queryKey: ['product', 'barcode', barcode],
     queryFn: () => getProductByBarcode(barcode!),
     enabled: !!barcode && barcode.length > 0,
+    staleTime: 0, // Sem cache
+    gcTime: 1000 * 30, // 30 segundos
+    refetchOnWindowFocus: false,
   });
 }
 
