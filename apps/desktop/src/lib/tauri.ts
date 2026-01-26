@@ -2116,6 +2116,23 @@ export async function approveMaterialRequest(id: string): Promise<EnterpriseMate
   return tauriInvoke<EnterpriseMaterialRequest>('approve_material_request', { id });
 }
 
+/** DTO para item aprovado parcialmente */
+export interface ApproveItemInput {
+  itemId: string;
+  approvedQty: number;
+}
+
+/** Aprova requisição com quantidades parciais por item */
+export async function approveMaterialRequestWithItems(
+  id: string,
+  items: ApproveItemInput[]
+): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('approve_material_request_with_items', {
+    id,
+    items,
+  });
+}
+
 export async function rejectMaterialRequest(
   id: string,
   reason: string

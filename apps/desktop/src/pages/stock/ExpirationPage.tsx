@@ -28,6 +28,8 @@ import type { ProductLot } from '@/types';
 import { AlertTriangle, ArrowLeft, Calendar, Clock, Loader2, Package } from 'lucide-react';
 import { type FC, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ExportButtons } from '@/components/shared';
+import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
 
 type FilterType = 'all' | 'expired' | 'critical' | 'warning';
 
@@ -79,6 +81,53 @@ export const ExpirationPage: FC = () => {
       .sort((a, b) => new Date(a.expirationDate).getTime() - new Date(b.expirationDate).getTime());
   }, [expiringLots, filter]);
 
+  // Dados transformados para exportação
+  const exportData = useMemo(
+    () =>
+      filteredLots.map((lot) => ({
+        produto: lot.product?.name || '',
+        codigo: lot.product?.internalCode || '',
+        lote: lot.lotNumber || '',
+        validade: lot.expirationDate,
+        quantidade: lot.quantity,
+        status: getExpirationStatus(lot.expirationDate).label,
+        diasRestantes: daysUntil(new Date(lot.expirationDate)),
+      })),
+    [filteredLots]
+  );
+
+  // Colunas para exportação profissional
+  const exportColumns: ExportColumn<(typeof exportData)[0]>[] = [
+    { key: 'produto', header: 'Produto', width: 180 },
+    { key: 'codigo', header: 'Código', width: 80 },
+    { key: 'lote', header: 'Lote', width: 100 },
+    { key: 'validade', header: 'Validade', formatter: exportFormatters.date, width: 100 },
+    { key: 'quantidade', header: 'Qtd', align: 'right', type: 'number', totalizable: true },
+    { key: 'status', header: 'Status', width: 80 },
+    { key: 'diasRestantes', header: 'Dias Restantes', align: 'right', type: 'number' },
+  ];
+
+  // Summary para exportação profissional
+  const exportSummary: ExportSummaryItem[] = useMemo(
+    () => [
+      { label: 'Total de Lotes', value: String(filteredLots.length), icon: '📦', color: '#3b82f6' },
+      { label: 'Vencidos', value: String(stats.expired), icon: '⛔', color: '#ef4444' },
+      { label: 'Críticos (3 dias)', value: String(stats.critical), icon: '⚠️', color: '#f59e0b' },
+      { label: 'Atenção (7 dias)', value: String(stats.warning), icon: '📅', color: '#8b5cf6' },
+    ],
+    [filteredLots.length, stats]
+  );
+
+  // Filtros para exportação
+  const exportFilters = useMemo(
+    () => ({
+      ...(filter !== 'all' && {
+        Status: filter === 'expired' ? 'Vencidos' : filter === 'critical' ? 'Críticos' : 'Atenção',
+      }),
+    }),
+    [filter]
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -91,10 +140,24 @@ export const ExpirationPage: FC = () => {
         >
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold tracking-tight">Controle de Validades</h1>
           <p className="text-muted-foreground">Monitore produtos próximos ao vencimento</p>
         </div>
+        <ExportButtons
+          data={exportData}
+          columns={exportColumns}
+          filename="controle-validades"
+          title="Controle de Validades"
+          subtitle="Produtos próximos ao vencimento ou já vencidos"
+          variant="dropdown"
+          disabled={isLoading || !exportData.length}
+          orientation="landscape"
+          filters={exportFilters}
+          showTotals={true}
+          summary={exportSummary}
+          primaryColor="#ef4444"
+        />
       </div>
 
       {/* Stats */}

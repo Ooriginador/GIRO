@@ -169,6 +169,23 @@ export function useApproveRequest() {
 }
 
 /**
+ * Hook para aprovar requisição com quantidades parciais por item
+ */
+export function useApproveRequestWithItems() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, items }: { id: string; items: tauri.ApproveItemInput[] }) =>
+      tauri.approveMaterialRequestWithItems(id, items),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: requestKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: requestKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: requestKeys.pending() });
+    },
+  });
+}
+
+/**
  * Hook para rejeitar requisição
  */
 export function useRejectRequest() {

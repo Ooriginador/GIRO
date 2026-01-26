@@ -26,10 +26,10 @@ import { useStockMovements } from '@/hooks/useStock';
 import { cn, formatDateTime } from '@/lib/utils';
 import type { StockMovementType } from '@/types';
 import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Search } from 'lucide-react';
-import { type FC, useState } from 'react';
+import { type FC, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExportButtons } from '@/components/shared';
-import { type ExportColumn, exportFormatters } from '@/lib/export';
+import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
 
 // ────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -67,17 +67,70 @@ export const StockMovementsPage: FC = () => {
     return true;
   });
 
-  // Colunas para exportação
+  // Colunas para exportação profissional
   const exportColumns: ExportColumn<(typeof movements)[0]>[] = [
-    { key: 'createdAt', header: 'Data/Hora', formatter: exportFormatters.datetime },
-    { key: 'product.name', header: 'Produto' },
-    { key: 'product.internalCode', header: 'Código' },
-    { key: 'type', header: 'Tipo', formatter: (v) => MOVEMENT_LABELS[v as StockMovementType]?.label || String(v) },
-    { key: 'quantity', header: 'Quantidade', align: 'right' },
-    { key: 'previousStock', header: 'Estoque Anterior', align: 'right' },
-    { key: 'newStock', header: 'Novo Estoque', align: 'right' },
-    { key: 'reason', header: 'Motivo' },
+    { key: 'createdAt', header: 'Data/Hora', formatter: exportFormatters.datetime, width: 140 },
+    { key: 'product.name', header: 'Produto', width: 180 },
+    { key: 'product.internalCode', header: 'Código', width: 80 },
+    {
+      key: 'type',
+      header: 'Tipo',
+      formatter: (v) => MOVEMENT_LABELS[v as StockMovementType]?.label || String(v),
+      width: 80,
+    },
+    { key: 'quantity', header: 'Quantidade', align: 'right', type: 'number', totalizable: true },
+    { key: 'previousStock', header: 'Estoque Anterior', align: 'right', type: 'number' },
+    { key: 'newStock', header: 'Novo Estoque', align: 'right', type: 'number' },
+    { key: 'reason', header: 'Motivo', width: 150 },
   ];
+
+  // Cálculos para summary profissional
+  const entriesCount = filteredMovements.filter((m) => ['ENTRY', 'RETURN'].includes(m.type)).length;
+  const exitsCount = filteredMovements.filter((m) =>
+    ['EXIT', 'SALE', 'LOSS', 'CONSUMPTION'].includes(m.type)
+  ).length;
+  const adjustmentsCount = filteredMovements.filter((m) => m.type === 'ADJUSTMENT').length;
+
+  const exportSummary: ExportSummaryItem[] = useMemo(
+    () => [
+      {
+        label: 'Total Movimentações',
+        value: String(filteredMovements.length),
+        icon: '📋',
+        color: '#3b82f6',
+      },
+      {
+        label: 'Entradas',
+        value: String(entriesCount),
+        icon: '📥',
+        color: '#10b981',
+      },
+      {
+        label: 'Saídas',
+        value: String(exitsCount),
+        icon: '📤',
+        color: '#ef4444',
+      },
+      {
+        label: 'Ajustes',
+        value: String(adjustmentsCount),
+        icon: '⚙️',
+        color: '#f59e0b',
+      },
+    ],
+    [filteredMovements.length, entriesCount, exitsCount, adjustmentsCount]
+  );
+
+  // Filtros aplicados para exportação
+  const exportFilters = useMemo(
+    () => ({
+      ...(typeFilter !== 'all' && {
+        Tipo: MOVEMENT_LABELS[typeFilter as StockMovementType]?.label,
+      }),
+      ...(searchQuery && { Busca: searchQuery }),
+    }),
+    [typeFilter, searchQuery]
+  );
 
   return (
     <div className="space-y-6">
@@ -101,7 +154,14 @@ export const StockMovementsPage: FC = () => {
           columns={exportColumns}
           filename="movimentacoes-estoque"
           title="Movimentações de Estoque"
+          subtitle="Histórico completo de entradas e saídas"
           variant="dropdown"
+          disabled={isLoading || !filteredMovements.length}
+          orientation="landscape"
+          filters={exportFilters}
+          showTotals={true}
+          summary={exportSummary}
+          primaryColor="#3b82f6"
         />
       </div>
 

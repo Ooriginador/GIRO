@@ -16,7 +16,8 @@ export default defineConfig({
     exclude: ['node_modules/', 'dist/', 'src-tauri/', 'tests/e2e/**', 'tests/debug/**'],
     coverage: {
       provider: 'istanbul', // Alterado de v8 para istanbul (mais estável com imports dinâmicos)
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json-summary', 'html'],
+      reportsDirectory: './coverage',
       all: false,
       clean: true,
       exclude: [

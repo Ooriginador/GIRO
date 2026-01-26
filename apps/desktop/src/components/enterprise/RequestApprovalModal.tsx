@@ -26,7 +26,11 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useApproveRequest, useRejectRequest } from '@/hooks/enterprise/useMaterialRequests';
+import {
+  useApproveRequest,
+  useApproveRequestWithItems,
+  useRejectRequest,
+} from '@/hooks/enterprise/useMaterialRequests';
 import { useToast } from '@/hooks/use-toast';
 import type { MaterialRequestWithDetails, MaterialRequestItem } from '@/lib/tauri';
 import { Check, Loader2, X, AlertTriangle } from 'lucide-react';
@@ -67,9 +71,11 @@ export const RequestApprovalModal: FC<RequestApprovalModalProps> = ({
 
   // Mutations
   const approveRequest = useApproveRequest();
+  const approveRequestWithItems = useApproveRequestWithItems();
   const rejectRequest = useRejectRequest();
 
-  const isLoading = approveRequest.isPending || rejectRequest.isPending;
+  const isLoading =
+    approveRequest.isPending || approveRequestWithItems.isPending || rejectRequest.isPending;
 
   // Initialize approved items when modal opens
   const handleOpenChange = (newOpen: boolean) => {
@@ -109,13 +115,30 @@ export const RequestApprovalModal: FC<RequestApprovalModalProps> = ({
     if (!request) return;
 
     try {
-      // Note: Item-level approval (partial quantities) can be added when backend supports it
-      // Current implementation approves the entire request as-is
-      await approveRequest.mutateAsync(request.id);
+      // Verifica se é aprovação parcial (algum item com qty diferente do solicitado)
+      const hasPartialApproval = approvedItems.some(
+        (item) => item.approvedQty !== item.requestedQty
+      );
+
+      if (hasPartialApproval) {
+        // Usa novo endpoint com quantidades por item
+        await approveRequestWithItems.mutateAsync({
+          id: request.id,
+          items: approvedItems.map((item) => ({
+            itemId: item.itemId,
+            approvedQty: item.approvedQty,
+          })),
+        });
+      } else {
+        // Aprovação total - usa endpoint simples
+        await approveRequest.mutateAsync(request.id);
+      }
 
       toast({
         title: 'Requisição aprovada!',
-        description: `A requisição ${request.code} foi aprovada.`,
+        description: `A requisição ${request.code} foi aprovada${
+          hasPartialApproval ? ' parcialmente' : ''
+        }.`,
       });
 
       onOpenChange(false);
@@ -175,8 +198,7 @@ export const RequestApprovalModal: FC<RequestApprovalModalProps> = ({
         <DialogHeader>
           <DialogTitle>Analisar Requisição</DialogTitle>
           <DialogDescription>
-            Requisição <strong>{request.code}</strong> de{' '}
-            <strong>{request.requesterName}</strong>
+            Requisição <strong>{request.code}</strong> de <strong>{request.requesterName}</strong>
           </DialogDescription>
         </DialogHeader>
 

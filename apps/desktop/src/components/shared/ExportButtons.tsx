@@ -1,8 +1,10 @@
 /**
- * 📦 ExportButtons - Botões de Exportação
+ * 📦 ExportButtons - Botões de Exportação Profissional
  *
  * Componente reutilizável para exportar dados em CSV, Excel e PDF
+ * com layout profissional incluindo dados da empresa
  * @module components/shared/ExportButtons
+ * @version 2.0.0
  */
 
 import { Button } from '@/components/ui/button';
@@ -21,6 +23,7 @@ import {
   exportToPDF,
   type ExportColumn,
   type ExportOptions,
+  type ExportSummaryItem,
 } from '@/lib/export';
 import { useCompany } from '@/stores/settings-store';
 
@@ -47,6 +50,16 @@ export interface ExportButtonsProps<T> {
   variant?: 'default' | 'compact' | 'dropdown';
   /** Classe CSS adicional */
   className?: string;
+  /** Período do relatório */
+  period?: { from?: Date; to?: Date };
+  /** Filtros aplicados */
+  filters?: Record<string, string>;
+  /** Mostrar linha de totais */
+  showTotals?: boolean;
+  /** Cards de resumo no topo */
+  summary?: ExportSummaryItem[];
+  /** Cor primária (hex) - padrão verde GIRO */
+  primaryColor?: string;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -63,22 +76,43 @@ export function ExportButtons<T>({
   orientation = 'portrait',
   variant = 'default',
   className = '',
+  period,
+  filters,
+  showTotals = false,
+  summary,
+  primaryColor,
 }: ExportButtonsProps<T>) {
   const { company } = useCompany();
 
+  // Monta opções completas para exportação profissional
   const exportOptions: ExportOptions = {
     filename,
     title: title || filename,
     subtitle,
     companyName: company.name || 'GIRO',
+    companyCnpj: company.cnpj,
+    companyAddress: company.address
+      ? `${company.address}${company.city ? `, ${company.city}` : ''}${
+          company.state ? ` - ${company.state}` : ''
+        }`
+      : undefined,
+    companyPhone: company.phone,
+    logoUrl: company.logo, // Logo em base64 da empresa
     orientation,
     generatedAt: new Date(),
+    period,
+    filters,
+    showTotals,
+    summary,
+    primaryColor: primaryColor || '#22c55e',
   };
 
   const handleExportCSV = () => {
     try {
       exportToCSV(data, columns, exportOptions);
-      toast.success('Exportado para CSV com sucesso!');
+      toast.success('CSV exportado com sucesso!', {
+        description: `${data.length} registros exportados`,
+      });
     } catch (error) {
       console.error('Erro ao exportar CSV:', error);
       toast.error('Erro ao exportar para CSV');
@@ -88,7 +122,9 @@ export function ExportButtons<T>({
   const handleExportExcel = () => {
     try {
       exportToExcel(data, columns, exportOptions);
-      toast.success('Exportado para Excel com sucesso!');
+      toast.success('Excel exportado com sucesso!', {
+        description: `${data.length} registros exportados`,
+      });
     } catch (error) {
       console.error('Erro ao exportar Excel:', error);
       toast.error('Erro ao exportar para Excel');
@@ -106,6 +142,8 @@ export function ExportButtons<T>({
   };
 
   const isDisabled = disabled || data.length === 0;
+  const recordCount = data.length;
+  const recordText = recordCount === 1 ? '1 registro' : `${recordCount} registros`;
 
   // ══════════════════════════════════════════════════════════════════════════
   // VARIANTE: DROPDOWN (Compacto)
@@ -117,22 +155,34 @@ export function ExportButtons<T>({
           <Button variant="outline" disabled={isDisabled} className={className}>
             <Download className="mr-2 h-4 w-4" />
             Exportar
+            {recordCount > 0 && <span className="ml-1 text-muted-foreground">({recordText})</span>}
             <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={handleExportCSV}>
-            <FileText className="mr-2 h-4 w-4" />
-            Exportar CSV
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
+            <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col">
+              <span>Exportar CSV</span>
+              <span className="text-xs text-muted-foreground">
+                Dados separados por ponto e vírgula
+              </span>
+            </div>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleExportExcel}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
-            Exportar Excel
+          <DropdownMenuItem onClick={handleExportExcel} className="cursor-pointer">
+            <FileSpreadsheet className="mr-2 h-4 w-4 text-green-600" />
+            <div className="flex flex-col">
+              <span>Exportar Excel</span>
+              <span className="text-xs text-muted-foreground">Planilha formatada (.xls)</span>
+            </div>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleExportPDF}>
-            <Printer className="mr-2 h-4 w-4" />
-            Gerar PDF
+          <DropdownMenuItem onClick={handleExportPDF} className="cursor-pointer">
+            <Printer className="mr-2 h-4 w-4 text-red-600" />
+            <div className="flex flex-col">
+              <span>Gerar PDF</span>
+              <span className="text-xs text-muted-foreground">Relatório para impressão</span>
+            </div>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

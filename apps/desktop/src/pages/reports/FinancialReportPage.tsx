@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BaseReportLayout } from '@/components/reports/BaseReportLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useFinancialReport } from '@/hooks/useReports';
 import { formatCurrency } from '@/lib/formatters';
 import { ExportButtons } from '@/components/shared';
-import { type ExportColumn, exportFormatters } from '@/lib/export';
+import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
 import { endOfMonth, format, startOfMonth, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -46,27 +46,63 @@ export const FinancialReportPage: React.FC = () => {
   );
 
   // Dados para exportação (transformar em array)
-  const exportData = report
-    ? [
-        { descricao: 'Receita Bruta', valor: report.revenue },
-        { descricao: 'Custo (CMV)', valor: report.cogs },
-        { descricao: 'Lucro Bruto', valor: report.grossProfit },
-        { descricao: 'Despesas', valor: report.expenses },
-        { descricao: 'Lucro Líquido', valor: report.netProfit },
-        { descricao: 'Margem (%)', valor: report.margin },
-      ]
-    : [];
+  const exportData = useMemo(
+    () =>
+      report
+        ? [
+            { descricao: 'Receita Bruta', valor: report.revenue, tipo: 'entrada' },
+            { descricao: 'Custo (CMV)', valor: report.cogs, tipo: 'custo' },
+            { descricao: 'Lucro Bruto', valor: report.grossProfit, tipo: 'lucro' },
+            { descricao: 'Despesas', valor: report.expenses, tipo: 'despesa' },
+            { descricao: 'Lucro Líquido', valor: report.netProfit, tipo: 'lucro' },
+          ]
+        : [],
+    [report]
+  );
 
   const exportColumns: ExportColumn<(typeof exportData)[0]>[] = [
-    { key: 'descricao', header: 'Descrição' },
-    { key: 'valor', header: 'Valor', formatter: exportFormatters.currency, align: 'right' },
+    { key: 'descricao', header: 'Descrição', width: 200 },
+    {
+      key: 'valor',
+      header: 'Valor (R$)',
+      formatter: exportFormatters.currency,
+      align: 'right',
+      type: 'currency',
+      totalizable: true,
+    },
+    { key: 'tipo', header: 'Tipo', align: 'center' },
   ];
 
-  const handleExportCSV = () => {
-    if (!exportData.length) return;
-    const { exportToCSV } = require('@/lib/export');
-    exportToCSV(exportData, exportColumns, 'relatorio-financeiro');
-  };
+  // Cards de resumo para exportação profissional
+  const exportSummary: ExportSummaryItem[] = useMemo(
+    () => [
+      {
+        label: 'Receita Bruta',
+        value: formatCurrency(report?.revenue ?? 0),
+        icon: '💰',
+        color: '#3b82f6',
+      },
+      {
+        label: 'Lucro Bruto',
+        value: formatCurrency(report?.grossProfit ?? 0),
+        icon: '📈',
+        color: '#10b981',
+      },
+      {
+        label: 'Lucro Líquido',
+        value: formatCurrency(report?.netProfit ?? 0),
+        icon: '✨',
+        color: report?.netProfit && report.netProfit > 0 ? '#10b981' : '#ef4444',
+      },
+      {
+        label: 'Margem',
+        value: `${(report?.margin ?? 0).toFixed(1)}%`,
+        icon: '📊',
+        color: '#8b5cf6',
+      },
+    ],
+    [report]
+  );
 
   const presetRanges = [
     { label: 'Hoje', from: new Date(), to: new Date() },
@@ -216,6 +252,25 @@ export const FinancialReportPage: React.FC = () => {
           </div>
         </PopoverContent>
       </Popover>
+
+      {/* Botões de Exportação Profissional */}
+      <div className="ml-auto">
+        <ExportButtons
+          data={exportData}
+          columns={exportColumns}
+          filename="relatorio-financeiro"
+          title="Demonstrativo de Resultados"
+          subtitle={`Período: ${
+            dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR }) : ''
+          } - ${dateRange?.to ? format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR }) : ''}`}
+          variant="dropdown"
+          disabled={isLoading || !exportData.length}
+          period={{ from: dateRange?.from, to: dateRange?.to }}
+          showTotals={false}
+          summary={exportSummary}
+          primaryColor="#3b82f6"
+        />
+      </div>
     </div>
   );
 
@@ -225,7 +280,6 @@ export const FinancialReportPage: React.FC = () => {
       subtitle="Demonstrativo de resultados e rentabilidade"
       stats={stats}
       filters={filters}
-      onExportCSV={handleExportCSV}
       isLoading={isLoading}
     >
       <div className="grid gap-6 lg:grid-cols-2">

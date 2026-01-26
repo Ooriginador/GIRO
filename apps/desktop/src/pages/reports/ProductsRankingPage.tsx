@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BaseReportLayout } from '@/components/reports/BaseReportLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useTopProductsRank } from '@/hooks/useReports';
 import { formatCurrency } from '@/lib/utils';
 import { TopProduct } from '@/types';
 import { ExportButtons } from '@/components/shared';
-import { type ExportColumn, exportFormatters } from '@/lib/export';
+import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
 import {
   TrendingUp,
   Package,
@@ -30,13 +30,70 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899'
 export const ProductsRankingPage: React.FC = () => {
   const { data: topProducts, isLoading } = useTopProductsRank(50);
 
-  // Colunas para exportação
-  const exportColumns: ExportColumn<TopProduct>[] = [
-    { key: 'product.internalCode', header: 'Código' },
-    { key: 'product.name', header: 'Produto' },
-    { key: 'quantity', header: 'Qtd Vendida', align: 'right' },
-    { key: 'revenue', header: 'Faturamento', formatter: exportFormatters.currency, align: 'right' },
+  // Dados transformados para exportação
+  const exportData = useMemo(
+    () =>
+      topProducts?.map((item: TopProduct) => ({
+        codigo: item.product.internalCode || '',
+        produto: item.product.name,
+        quantidade: item.quantity,
+        faturamento: item.revenue,
+      })) || [],
+    [topProducts]
+  );
+
+  // Colunas para exportação profissional
+  const exportColumns: ExportColumn<(typeof exportData)[0]>[] = [
+    { key: 'codigo', header: 'Código', width: 80 },
+    { key: 'produto', header: 'Produto', width: 200 },
+    { key: 'quantidade', header: 'Qtd Vendida', align: 'right', type: 'number', totalizable: true },
+    {
+      key: 'faturamento',
+      header: 'Faturamento',
+      formatter: exportFormatters.currency,
+      align: 'right',
+      type: 'currency',
+      totalizable: true,
+    },
   ];
+
+  // Cálculos para summary
+  const totalRevenue =
+    topProducts?.reduce((acc: number, curr: TopProduct) => acc + curr.revenue, 0) ?? 0;
+  const totalQuantity =
+    topProducts?.reduce((acc: number, curr: TopProduct) => acc + curr.quantity, 0) ?? 0;
+  const avgTicket = totalRevenue / (topProducts?.length || 1);
+
+  // Summary para exportação profissional
+  const exportSummary: ExportSummaryItem[] = useMemo(
+    () => [
+      {
+        label: 'Top 1 Produto',
+        value: topProducts?.[0]?.product.name || '---',
+        icon: '🏆',
+        color: '#10b981',
+      },
+      {
+        label: 'Faturamento Total',
+        value: formatCurrency(totalRevenue),
+        icon: '💰',
+        color: '#3b82f6',
+      },
+      {
+        label: 'Itens Vendidos',
+        value: String(totalQuantity),
+        icon: '📦',
+        color: '#8b5cf6',
+      },
+      {
+        label: 'Ticket Médio',
+        value: formatCurrency(avgTicket),
+        icon: '📊',
+        color: '#f59e0b',
+      },
+    ],
+    [topProducts, totalRevenue, totalQuantity, avgTicket]
+  );
 
   const chartData =
     topProducts?.slice(0, 10).map((item: TopProduct) => ({
@@ -139,18 +196,36 @@ export const ProductsRankingPage: React.FC = () => {
     </>
   );
 
-  const handleExportCSV = () => {
-    if (!topProducts) return;
-    const { exportToCSV } = require('@/lib/export');
-    exportToCSV(topProducts, exportColumns, 'ranking-produtos');
-  };
+  // Filtros com botão de exportação
+  const filters = (
+    <div className="flex items-center gap-4">
+      <span className="text-sm text-muted-foreground">
+        Mostrando os {topProducts?.length || 0} produtos mais vendidos
+      </span>
+      <div className="ml-auto">
+        <ExportButtons
+          data={exportData}
+          columns={exportColumns}
+          filename="ranking-produtos"
+          title="Ranking de Produtos"
+          subtitle="Produtos que mais geram receita para o negócio"
+          variant="dropdown"
+          disabled={isLoading || !exportData.length}
+          orientation="portrait"
+          showTotals={true}
+          summary={exportSummary}
+          primaryColor="#10b981"
+        />
+      </div>
+    </div>
+  );
 
   return (
     <BaseReportLayout
       title="Ranking de Produtos"
       subtitle="Produtos que mais geram receita para o negócio"
       stats={stats}
-      onExportCSV={handleExportCSV}
+      filters={filters}
       isLoading={isLoading}
     >
       <div className="grid gap-6">

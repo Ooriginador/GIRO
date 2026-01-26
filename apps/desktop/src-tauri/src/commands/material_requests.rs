@@ -129,6 +129,28 @@ pub async fn approve_material_request(
     repo.approve(&id, &info.employee_id).await
 }
 
+/// DTO para item aprovado parcialmente
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ApproveItemInput {
+    pub item_id: String,
+    pub approved_qty: f64,
+}
+
+/// Aprova requisição com quantidades parciais por item
+#[tauri::command]
+#[specta::specta]
+pub async fn approve_material_request_with_items(
+    id: String,
+    items: Vec<ApproveItemInput>,
+    state: State<'_, AppState>,
+) -> AppResult<MaterialRequest> {
+    let info = state.session.require_authenticated()?;
+    let repo = MaterialRequestRepository::new(state.pool());
+    repo.approve_with_items(&id, &info.employee_id, &items)
+        .await
+}
+
 /// Rejeita requisição
 #[tauri::command]
 #[specta::specta]

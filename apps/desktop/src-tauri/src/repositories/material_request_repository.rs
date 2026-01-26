@@ -343,6 +343,47 @@ impl<'a> MaterialRequestRepository<'a> {
             })
     }
 
+    /// Aprova requisição com quantidades parciais por item
+    pub async fn approve_with_items(
+        &self,
+        id: &str,
+        approver_id: &str,
+        items: &[crate::commands::ApproveItemInput],
+    ) -> AppResult<MaterialRequest> {
+        let now = chrono::Utc::now().to_rfc3339();
+
+        // Atualiza approved_qty de cada item
+        for item in items {
+            sqlx::query(
+                "UPDATE MaterialRequestItem SET approvedQty = ?, updatedAt = ? WHERE id = ? AND requestId = ?",
+            )
+            .bind(item.approved_qty)
+            .bind(&now)
+            .bind(&item.item_id)
+            .bind(id)
+            .execute(self.pool)
+            .await?;
+        }
+
+        // Atualiza status da requisição
+        sqlx::query(
+            "UPDATE MaterialRequest SET status = 'APPROVED', approverId = ?, approvedAt = ?, updatedAt = ? WHERE id = ?",
+        )
+        .bind(approver_id)
+        .bind(&now)
+        .bind(&now)
+        .bind(id)
+        .execute(self.pool)
+        .await?;
+
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| AppError::NotFound {
+                entity: "MaterialRequest".into(),
+                id: id.to_string(),
+            })
+    }
+
     /// Rejeita requisição
     pub async fn reject(
         &self,

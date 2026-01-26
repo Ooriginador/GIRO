@@ -34,6 +34,7 @@ import {
   Building2,
   Database,
   FileCode,
+  Image,
   Loader2,
   Monitor,
   Moon,
@@ -47,6 +48,8 @@ import {
   ShieldCheck,
   Smartphone,
   Sun,
+  Trash2,
+  Upload,
   Volume2,
   Cloud,
 } from 'lucide-react';
@@ -102,6 +105,7 @@ export const SettingsPage: FC = () => {
   const [companyCity, setCompanyCity] = useState(company.city || '');
   const [companyState, setCompanyState] = useState(company.state || '');
   const [companyPhone, setCompanyPhone] = useState(company.phone || '');
+  const [companyLogo, setCompanyLogo] = useState(company.logo || '');
 
   const [printerModel, setPrinterModel] = useState(printer.model);
   const [printerPort, setPrinterPort] = useState(printer.port || '');
@@ -328,6 +332,7 @@ export const SettingsPage: FC = () => {
         city: companyCity,
         state: companyState,
         phone: companyPhone,
+        logo: companyLogo,
       });
 
       setPrinter({
@@ -661,6 +666,81 @@ export const SettingsPage: FC = () => {
                       <SelectItem value="TO">Tocantins</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              {/* Logo da Empresa */}
+              <div className="pt-4 border-t">
+                <Label className="text-base font-medium">Logo da Empresa</Label>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Aparece em relatórios, PDFs e exportações
+                </p>
+                <div className="flex items-start gap-4">
+                  {/* Preview do Logo */}
+                  <div className="relative flex-shrink-0">
+                    {companyLogo ? (
+                      <div className="relative group">
+                        <img
+                          src={companyLogo}
+                          alt="Logo da empresa"
+                          className="w-24 h-24 object-contain rounded-lg border bg-white p-2"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => setCompanyLogo('')}
+                          aria-label="Remover logo"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-lg border-2 border-dashed flex items-center justify-center bg-muted/30">
+                        <Image className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload Button */}
+                  <div className="flex-1 space-y-2">
+                    <input
+                      type="file"
+                      id="logo-upload"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          // Limita a 500KB
+                          if (file.size > 500 * 1024) {
+                            toast({
+                              title: 'Arquivo muito grande',
+                              description: 'O logo deve ter no máximo 500KB',
+                              variant: 'destructive',
+                            });
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            setCompanyLogo(event.target?.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('logo-upload')?.click()}
+                      className="w-full"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      {companyLogo ? 'Trocar Logo' : 'Carregar Logo'}
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      PNG, JPG ou WEBP. Máximo 500KB. Recomendado: 200x200px
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>

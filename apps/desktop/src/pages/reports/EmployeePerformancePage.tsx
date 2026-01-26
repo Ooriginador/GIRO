@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BaseReportLayout } from '@/components/reports/BaseReportLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useEmployeePerformance } from '@/hooks/useReports';
 import { formatCurrency } from '@/lib/formatters';
+import { ExportButtons } from '@/components/shared';
+import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
 import { endOfMonth, format, startOfMonth, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -56,6 +58,72 @@ export const EmployeePerformancePage: React.FC = () => {
       total: item.totalAmount,
       sales: item.salesCount,
     })) || [];
+
+  // Dados transformados para exportação
+  const exportData = useMemo(
+    () =>
+      performance?.map((item: EmployeeRanking) => ({
+        funcionario: item.employeeName,
+        vendas: item.salesCount,
+        faturamento: item.totalAmount,
+        comissao: item.totalCommission,
+        ticketMedio: item.salesCount > 0 ? item.totalAmount / item.salesCount : 0,
+      })) || [],
+    [performance]
+  );
+
+  // Colunas para exportação profissional
+  const exportColumns: ExportColumn<(typeof exportData)[0]>[] = [
+    { key: 'funcionario', header: 'Funcionário', width: 180 },
+    { key: 'vendas', header: 'Vendas', align: 'right', type: 'number', totalizable: true },
+    {
+      key: 'faturamento',
+      header: 'Faturamento',
+      formatter: exportFormatters.currency,
+      align: 'right',
+      type: 'currency',
+      totalizable: true,
+    },
+    {
+      key: 'comissao',
+      header: 'Comissão',
+      formatter: exportFormatters.currency,
+      align: 'right',
+      type: 'currency',
+      totalizable: true,
+    },
+    {
+      key: 'ticketMedio',
+      header: 'Ticket Médio',
+      formatter: exportFormatters.currency,
+      align: 'right',
+      type: 'currency',
+    },
+  ];
+
+  // Cálculos para summary
+  const totalSales =
+    performance?.reduce((acc: number, curr: EmployeeRanking) => acc + curr.salesCount, 0) ?? 0;
+  const totalAmount =
+    performance?.reduce((acc: number, curr: EmployeeRanking) => acc + curr.totalAmount, 0) ?? 0;
+  const totalCommission =
+    performance?.reduce((acc: number, curr: EmployeeRanking) => acc + curr.totalCommission, 0) ?? 0;
+
+  // Summary para exportação profissional
+  const exportSummary: ExportSummaryItem[] = useMemo(
+    () => [
+      {
+        label: 'Top Vendedor',
+        value: performance?.[0]?.employeeName || '---',
+        icon: '🏆',
+        color: '#3b82f6',
+      },
+      { label: 'Total Vendas', value: String(totalSales), icon: '📦', color: '#8b5cf6' },
+      { label: 'Faturamento', value: formatCurrency(totalAmount), icon: '💰', color: '#10b981' },
+      { label: 'Comissões', value: formatCurrency(totalCommission), icon: '💵', color: '#f59e0b' },
+    ],
+    [performance, totalSales, totalAmount, totalCommission]
+  );
 
   const stats = (
     <>
@@ -220,6 +288,26 @@ export const EmployeePerformancePage: React.FC = () => {
           </div>
         </PopoverContent>
       </Popover>
+
+      {/* Botões de Exportação Profissional */}
+      <div className="ml-auto">
+        <ExportButtons
+          data={exportData}
+          columns={exportColumns}
+          filename="desempenho-equipe"
+          title="Desempenho da Equipe"
+          subtitle={`Período: ${
+            dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR }) : ''
+          } - ${dateRange?.to ? format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR }) : ''}`}
+          variant="dropdown"
+          disabled={isLoading || !exportData.length}
+          orientation="landscape"
+          period={{ from: dateRange?.from, to: dateRange?.to }}
+          showTotals={true}
+          summary={exportSummary}
+          primaryColor="#3b82f6"
+        />
+      </div>
     </div>
   );
 

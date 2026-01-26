@@ -15,6 +15,10 @@ interface CompanyInfo {
   address?: string;
   city?: string;
   state?: string;
+  /** Logo da empresa em base64 (data:image/png;base64,...) */
+  logo?: string;
+  /** Email da empresa */
+  email?: string;
 }
 
 interface PrinterConfig {
@@ -122,6 +126,8 @@ const defaultCompany: CompanyInfo = {
   address: '',
   city: '',
   state: '',
+  logo: '',
+  email: '',
 };
 
 const defaultPrinter: PrinterConfig = {

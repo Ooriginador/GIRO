@@ -3,14 +3,14 @@
  * @description Relatório detalhado de vendas com filtros e gráficos modernizados
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BaseReportLayout } from '@/components/reports/BaseReportLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ExportButtons } from '@/components/shared';
-import { type ExportColumn, exportFormatters } from '@/lib/export';
+import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
 import {
   Select,
   SelectContent,
@@ -76,19 +76,71 @@ export const SalesReportPage: React.FC = () => {
     { label: 'Este mês', from: startOfMonth(new Date()), to: endOfMonth(new Date()) },
   ];
 
-  // Colunas para exportação
+  // Colunas para exportação profissional
   const exportColumns: ExportColumn<NonNullable<typeof report>['periods'][0]>[] = [
-    { key: 'date', header: 'Período' },
-    { key: 'salesCount', header: 'Vendas', align: 'right' },
-    { key: 'revenue', header: 'Valor', formatter: exportFormatters.currency, align: 'right' },
-    { key: 'percentage', header: 'Porcentagem', formatter: exportFormatters.percent, align: 'right' },
+    { key: 'date', header: 'Período', width: 120 },
+    {
+      key: 'salesCount',
+      header: 'Vendas',
+      align: 'right',
+      type: 'number',
+      totalizable: true,
+    },
+    {
+      key: 'revenue',
+      header: 'Faturamento',
+      formatter: exportFormatters.currency,
+      align: 'right',
+      type: 'currency',
+      totalizable: true,
+    },
+    {
+      key: 'percentage',
+      header: '% Total',
+      formatter: exportFormatters.percent,
+      align: 'right',
+      type: 'percent',
+    },
   ];
 
-  const handleExportCSV = () => {
-    if (!report?.periods) return;
-    const { exportToCSV } = require('@/lib/export');
-    exportToCSV(report.periods, exportColumns, 'relatorio-vendas');
-  };
+  // Cards de resumo para exportação profissional
+  const exportSummary: ExportSummaryItem[] = useMemo(
+    () => [
+      {
+        label: 'Total de Vendas',
+        value: formatCurrency(report?.totalAmount ?? 0),
+        icon: '💰',
+        color: '#10b981',
+      },
+      {
+        label: 'Ticket Médio',
+        value: formatCurrency(report?.averageTicket ?? 0),
+        icon: '📊',
+        color: '#3b82f6',
+      },
+      {
+        label: 'Itens Vendidos',
+        value: String(report?.totalItems ?? 0),
+        icon: '📦',
+        color: '#8b5cf6',
+      },
+      {
+        label: 'Lucro Bruto',
+        value: formatCurrency(report?.grossProfit ?? 0),
+        icon: '📈',
+        color: '#f59e0b',
+      },
+    ],
+    [report]
+  );
+
+  // Filtros para exportação
+  const exportFilters = useMemo(
+    () => ({
+      Agrupamento: groupBy === 'day' ? 'Por Dia' : groupBy === 'week' ? 'Por Semana' : 'Por Mês',
+    }),
+    [groupBy]
+  );
 
   const stats = (
     <>
@@ -242,6 +294,27 @@ export const SalesReportPage: React.FC = () => {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Botões de Exportação Profissional */}
+      <div className="ml-auto">
+        <ExportButtons
+          data={report?.periods || []}
+          columns={exportColumns}
+          filename="relatorio-vendas"
+          title="Relatório de Vendas"
+          subtitle={`Período: ${
+            dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR }) : ''
+          } - ${dateRange?.to ? format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR }) : ''}`}
+          variant="dropdown"
+          disabled={isLoading || !report?.periods?.length}
+          orientation="landscape"
+          period={{ from: dateRange?.from, to: dateRange?.to }}
+          filters={exportFilters}
+          showTotals={true}
+          summary={exportSummary}
+          primaryColor="#10b981"
+        />
+      </div>
     </div>
   );
 
@@ -251,7 +324,6 @@ export const SalesReportPage: React.FC = () => {
       subtitle="Analise tendências e faturamento do período"
       stats={stats}
       filters={filters}
-      onExportCSV={handleExportCSV}
       isLoading={isLoading}
     >
       <div className="grid gap-6">
