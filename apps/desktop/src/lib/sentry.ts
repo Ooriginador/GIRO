@@ -5,6 +5,7 @@
 
 // Constantes de configuração
 const SENTRY_DSN = '';
+const IS_DEV = import.meta.env.DEV;
 // const APP_VERSION = '0.1.0';
 
 /**
@@ -12,10 +13,10 @@ const SENTRY_DSN = '';
  */
 export function initSentry(): void {
   if (!SENTRY_DSN) {
-    console.log('[Sentry] DSN não configurado - crash reports desabilitados');
+    if (IS_DEV) console.log('[Sentry] DSN não configurado - crash reports desabilitados');
     return;
   }
-  console.log('[Sentry] Inicializado');
+  if (IS_DEV) console.log('[Sentry] Inicializado');
 }
 
 /**
@@ -32,19 +33,19 @@ export function captureMessage(
   message: string,
   level: 'info' | 'warning' | 'error' = 'info'
 ): void {
-  console.log(`[Sentry] ${level}: ${message}`);
+  if (IS_DEV) console.log(`[Sentry] ${level}: ${message}`);
 }
 
 /**
  * Define contexto de usuário (sem dados sensíveis)
  */
 export function setUserContext(userId: string, role: string): void {
-  console.log(`[Sentry] User context: ${userId} (${role})`);
+  if (IS_DEV) console.log(`[Sentry] User context: ${userId} (${role})`);
 }
 
 /**
  * Limpa contexto de usuário ao deslogar
  */
 export function clearUserContext(): void {
-  console.log('[Sentry] User context cleared');
+  if (IS_DEV) console.log('[Sentry] User context cleared');
 }

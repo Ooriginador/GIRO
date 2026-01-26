@@ -16,6 +16,7 @@ interface DatePickerProps {
   disabledDates?: (date: Date) => boolean;
   placeholder?: string;
   className?: string;
+  'data-testid'?: string;
 }
 
 export function DatePicker({
@@ -25,6 +26,7 @@ export function DatePicker({
   disabledDates,
   placeholder = 'DD/MM/AAAA',
   className,
+  'data-testid': testId,
 }: DatePickerProps) {
   const [inputValue, setInputValue] = useState('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -49,7 +51,7 @@ export function DatePicker({
 
     // Add slashes
     if (v.length > 4) {
-      newValue = `${v.slice(0, 2)}/${v.slice(0, 2)}/${v.slice(2)}`;
+      newValue = `${v.slice(0, 2)}/${v.slice(2, 4)}/${v.slice(4)}`;
     } else if (v.length > 2) {
       newValue = `${v.slice(0, 2)}/${v.slice(2)}`;
     } else {
@@ -110,6 +112,7 @@ export function DatePicker({
           onBlur={handleBlur}
           disabled={disabled}
           className="pr-10"
+          data-testid={testId}
         />
         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
           <PopoverTrigger asChild>

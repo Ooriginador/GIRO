@@ -281,12 +281,12 @@ export const RequestNewPage: FC = () => {
         await submitRequest.mutateAsync(request.id);
         toast({
           title: 'Requisição enviada!',
-          description: `A requisição ${request.requestNumber} foi criada e enviada para aprovação.`,
+          description: `A requisição ${request.code} foi criada e enviada para aprovação.`,
         });
       } else {
         toast({
           title: 'Requisição salva!',
-          description: `A requisição ${request.requestNumber} foi salva como rascunho.`,
+          description: `A requisição ${request.code} foi salva como rascunho.`,
         });
       }
 

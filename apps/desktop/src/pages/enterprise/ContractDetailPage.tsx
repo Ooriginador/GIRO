@@ -142,7 +142,7 @@ const RequestRow: FC<RequestRowProps> = ({ request, onClick }) => {
           <FileText className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <p className="font-medium">{request.requestNumber}</p>
+          <p className="font-medium">{request.code}</p>
           <p className="text-sm text-muted-foreground">
             {request.requesterName} • {request.itemCount ?? 0} itens
           </p>

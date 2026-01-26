@@ -194,6 +194,7 @@ export const ContractNewPage: FC = () => {
                         placeholder="OBRA-001"
                         {...field}
                         onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        data-testid="contract-code"
                       />
                     </FormControl>
                     <FormDescription>Código único do contrato</FormDescription>
@@ -231,7 +232,11 @@ export const ContractNewPage: FC = () => {
                   <FormItem className="md:col-span-2">
                     <FormLabel>Nome do Contrato *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Construção da Subestação XYZ" {...field} />
+                      <Input
+                        placeholder="Construção da Subestação XYZ"
+                        {...field}
+                        data-testid="contract-name"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -272,7 +277,7 @@ export const ContractNewPage: FC = () => {
                   <FormItem>
                     <FormLabel>Nome/Razão Social *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Empresa XYZ Ltda" {...field} />
+                      <Input placeholder="Empresa XYZ Ltda" {...field} data-testid="client-name" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -290,6 +295,7 @@ export const ContractNewPage: FC = () => {
                         placeholder="00.000.000/0000-00"
                         {...field}
                         onChange={(e) => field.onChange(formatCnpj(e.target.value))}
+                        data-testid="client-document"
                       />
                     </FormControl>
                     <FormMessage />
@@ -304,7 +310,7 @@ export const ContractNewPage: FC = () => {
                   <FormItem>
                     <FormLabel>Centro de Custo *</FormLabel>
                     <FormControl>
-                      <Input placeholder="CC-001" {...field} />
+                      <Input placeholder="CC-001" {...field} data-testid="cost-center" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -324,6 +330,7 @@ export const ContractNewPage: FC = () => {
                         placeholder="0,00"
                         {...field}
                         value={field.value ?? ''}
+                        data-testid="estimated-budget"
                       />
                     </FormControl>
                     <FormMessage />
@@ -394,7 +401,11 @@ export const ContractNewPage: FC = () => {
                   <FormItem>
                     <FormLabel>Data de Início *</FormLabel>
                     <FormControl>
-                      <DatePicker value={field.value} onChange={field.onChange} />
+                      <DatePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        data-testid="estimated-start"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -408,7 +419,11 @@ export const ContractNewPage: FC = () => {
                   <FormItem>
                     <FormLabel>Previsão de Término</FormLabel>
                     <FormControl>
-                      <DatePicker value={field.value} onChange={field.onChange} />
+                      <DatePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        data-testid="estimated-end"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -432,7 +447,7 @@ export const ContractNewPage: FC = () => {
                     <FormLabel>Gerente *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger data-testid="manager-select">
                           <SelectValue placeholder="Selecione o gerente" />
                         </SelectTrigger>
                       </FormControl>
@@ -459,7 +474,11 @@ export const ContractNewPage: FC = () => {
             <Button type="button" variant="outline" onClick={handleBack}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={createContract.isPending}>
+            <Button
+              type="submit"
+              disabled={createContract.isPending}
+              data-testid="save-contract-btn"
+            >
               {createContract.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

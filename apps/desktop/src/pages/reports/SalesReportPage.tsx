@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ExportButtons } from '@/components/shared';
+import { type ExportColumn, exportFormatters } from '@/lib/export';
 import {
   Select,
   SelectContent,
@@ -74,28 +76,13 @@ export const SalesReportPage: React.FC = () => {
     { label: 'Este mês', from: startOfMonth(new Date()), to: endOfMonth(new Date()) },
   ];
 
-  const handleExportCSV = () => {
-    if (!report?.periods || report.periods.length === 0) return;
-
-    const headers = ['Periodo', 'Vendas', 'Valor', 'Ticket Médio', 'Porcentagem'];
-    const rows = report.periods.map((p) => [
-      p.date,
-      p.salesCount,
-      p.revenue.toFixed(2),
-      (p.revenue / (p.salesCount || 1)).toFixed(2),
-      p.percentage.toFixed(1),
-    ]);
-
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `relatorio-vendas-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  // Colunas para exportação
+  const exportColumns: ExportColumn<NonNullable<typeof report>['periods'][0]>[] = [
+    { key: 'date', header: 'Período' },
+    { key: 'salesCount', header: 'Vendas', align: 'right' },
+    { key: 'revenue', header: 'Valor', formatter: exportFormatters.currency, align: 'right' },
+    { key: 'percentage', header: 'Porcentagem', formatter: exportFormatters.percent, align: 'right' },
+  ];
 
   const stats = (
     <>

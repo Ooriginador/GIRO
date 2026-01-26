@@ -115,19 +115,14 @@ export function useVehicles(options: UseVehiclesOptions = {}): UseVehiclesReturn
 
       // Cache existe mas precisa sincronizar (> 7 dias)
       // Recarregar em background sem mostrar loading
-      console.log('[useVehicles] Cache existe, atualizando em background...');
       invoke<VehicleBrand[]>('get_vehicle_brands')
         .then((result) => {
           setBrands(result);
           setCachedBrands(result);
           markFullSyncComplete();
-          console.log('[useVehicles] Marcas atualizadas em background');
         })
-        .catch((err) => {
-          console.warn(
-            '[useVehicles] Falha na sync de background:',
-            (err as Error)?.message ?? String(err)
-          );
+        .catch(() => {
+          // Silenciado em produção - falha de sync em background não é crítica
         });
       return;
     }

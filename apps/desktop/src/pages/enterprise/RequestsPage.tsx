@@ -176,11 +176,12 @@ const RequestRow = ({ request, onView }: RequestRowProps) => {
       onClick={() => onView(request.id)}
       onKeyDown={handleKeyDown}
       tabIndex={0}
-      aria-label={`Requisição ${request.requestNumber}, contrato ${request.contractCode}, status ${
+      data-testid="request-row"
+      aria-label={`Requisição ${request.code}, contrato ${request.contractCode}, status ${
         request.status
       }, prioridade ${request.priority}, ${request.itemCount || 0} itens`}
     >
-      <TableCell className="font-mono text-sm">{request.requestNumber}</TableCell>
+      <TableCell className="font-mono text-sm">{request.code}</TableCell>
       <TableCell>
         <div>
           <p className="font-medium">{request.contractCode}</p>
@@ -290,7 +291,7 @@ export function RequestsPage() {
       const searchLower = search.toLowerCase();
       result = result.filter(
         (r) =>
-          r.requestNumber.toLowerCase().includes(searchLower) ||
+          r.code.toLowerCase().includes(searchLower) ||
           r.contractCode.toLowerCase().includes(searchLower) ||
           r.requesterName.toLowerCase().includes(searchLower) ||
           r.destinationName.toLowerCase().includes(searchLower)
@@ -341,7 +342,7 @@ export function RequestsPage() {
             />
           </Button>
           <PermissionGuard permission="requests.create">
-            <Button onClick={handleNewRequest}>
+            <Button onClick={handleNewRequest} data-testid="new-request-btn">
               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
               Nova Requisição
             </Button>
@@ -389,7 +390,7 @@ export function RequestsPage() {
               value={statusFilter}
               onValueChange={(value) => setStatusFilter(value as MaterialRequestStatus | 'ALL')}
             >
-              <SelectTrigger aria-label="Filtrar por status">
+              <SelectTrigger aria-label="Filtrar por status" data-testid="status-filter">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>

@@ -1,3 +1,5 @@
+import { createLogger } from '@/lib/logger';
+const log = createLogger('License');
 /* Lightweight License Server client for dashboard usage
    - Uses Tauri IPC to communicate with backend
    - Backend handles direct communication with License Server
@@ -44,7 +46,7 @@ export async function transfer(
   // Falling back to throw error for now to enforce backend usage,
   // or we need to add it to backend.
   // Suppressing unused vars logs
-  console.log('Transfer deprecated', licenseKey, targetHardwareId, adminToken);
+  log.debug('Transfer deprecated', licenseKey, targetHardwareId, adminToken);
   throw new Error('Transfer not yet implemented via Tauri backend');
 }
 

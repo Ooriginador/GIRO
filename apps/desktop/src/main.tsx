@@ -1,3 +1,5 @@
+import { createLogger } from '@/lib/logger';
+const log = createLogger('App');
 import { TutorialProvider } from '@/components/tutorial';
 import { Toaster } from '@/components/ui/toaster';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -19,7 +21,7 @@ const queryClient = new QueryClient({
   },
 });
 
-console.log('[main.tsx] Registering global error listeners');
+log.info(' Registering global error listeners');
 window.addEventListener('error', (event) => {
   console.error('[Global Error]', (event.error as Error)?.message ?? String(event.error));
 });
@@ -30,7 +32,7 @@ window.addEventListener('unhandledrejection', (event) => {
   );
 });
 
-console.log('[main.tsx] Starting ReactDOM.render');
+log.info(' Starting ReactDOM.render');
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
@@ -43,4 +45,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </React.StrictMode>
 );
-console.log('[main.tsx] Render called');
+log.info(' Render called');

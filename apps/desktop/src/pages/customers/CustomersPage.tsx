@@ -2,6 +2,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ExportButtons } from '@/components/shared';
+import { type ExportColumn, exportFormatters } from '@/lib/export';
 import {
   Table,
   TableBody,
@@ -68,6 +70,17 @@ export const CustomersPage: FC = () => {
     }
   };
 
+  // Colunas para exportação
+  const exportColumns: ExportColumn<Customer>[] = [
+    { key: 'name', header: 'Nome' },
+    { key: 'cpf', header: 'CPF' },
+    { key: 'phone', header: 'Telefone' },
+    { key: 'email', header: 'E-mail' },
+    { key: 'address', header: 'Endereço' },
+    { key: 'isActive', header: 'Status', formatter: exportFormatters.activeInactive },
+    { key: 'createdAt', header: 'Cadastro', formatter: exportFormatters.date },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -75,15 +88,24 @@ export const CustomersPage: FC = () => {
           <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
           <p className="text-muted-foreground">Gerencie o cadastro de seus clientes e histórico.</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingCustomer(null);
-            setShowCreateDialog(true);
-          }}
-        >
-          <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Novo Cliente
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportButtons
+            data={filteredCustomers}
+            columns={exportColumns}
+            filename="clientes"
+            title="Cadastro de Clientes"
+            variant="dropdown"
+          />
+          <Button
+            onClick={() => {
+              setEditingCustomer(null);
+              setShowCreateDialog(true);
+            }}
+          >
+            <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Novo Cliente
+          </Button>
+        </div>
       </div>
 
       <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">

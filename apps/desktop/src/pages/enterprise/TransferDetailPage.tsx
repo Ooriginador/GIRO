@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-// import { invoke } from '@tauri-apps/api/core'; // TODO: Uncomment when backend is ready
+import { invoke } from '@tauri-apps/api/core';
 import {
   ArrowLeft,
   Edit,
@@ -67,91 +67,13 @@ export function TransferDetailPage() {
     if (!id) return;
     setLoading(true);
     try {
-      // TODO: Replace with actual Tauri invoke
-      // const data = await invoke<StockTransfer>('get_stock_transfer', { id });
-      // const itemsData = await invoke<StockTransferItem[]>('get_stock_transfer_items', { transferId: id });
-
-      // Mock data for development
-      const mockTransfer: StockTransfer = {
-        id,
-        code: 'TRF-2026-0001',
-        sourceLocationId: 'loc-1',
-        destinationLocationId: 'loc-2',
-        requesterId: 'user-1',
-        status: 'IN_TRANSIT',
-        priority: 'NORMAL',
-        notes: 'Transferência de materiais para frente de obra',
-        requestedAt: new Date(Date.now() - 172800000).toISOString(),
-        shippedAt: new Date(Date.now() - 86400000).toISOString(),
-        createdAt: new Date(Date.now() - 172800000).toISOString(),
-        updatedAt: new Date().toISOString(),
-        // Extended info for UI
-        sourceLocation: {
-          id: 'loc-1',
-          code: 'ALM-CENTRAL',
-          name: 'Almoxarifado Central',
-          type: 'CENTRAL',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        destinationLocation: {
-          id: 'loc-2',
-          code: 'FR-001',
-          name: 'Frente A - Obra Industrial',
-          type: 'OBRA',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        requester: { id: 'emp-1', name: 'Maria Santos', role: 'REQUESTER' } as Employee,
-        shipper: { id: 'emp-2', name: 'Carlos Oliveira', role: 'WAREHOUSE' } as Employee,
-      };
-
-      const mockItems: StockTransferItem[] = [
-        {
-          id: 'item-1',
-          transferId: id,
-          productId: 'prod-1',
-          quantity: 50,
-          receivedQuantity: 0,
-          product: {
-            id: 'prod-1',
-            name: 'Cimento Portland CP-II 50kg',
-            internalCode: 'CIM-001',
-            unit: 'SC',
-          } as Product,
-        },
-        {
-          id: 'item-2',
-          transferId: id,
-          productId: 'prod-2',
-          quantity: 100,
-          receivedQuantity: 0,
-          product: {
-            id: 'prod-2',
-            name: 'Tijolo Cerâmico 6 Furos',
-            internalCode: 'TIJ-001',
-            unit: 'UN',
-          } as Product,
-        },
-        {
-          id: 'item-3',
-          transferId: id,
-          productId: 'prod-3',
-          quantity: 25,
-          receivedQuantity: 0,
-          product: {
-            id: 'prod-3',
-            name: 'Vergalhão CA-50 12mm 12m',
-            internalCode: 'VER-001',
-            unit: 'BR',
-          } as Product,
-        },
-      ];
-
-      setTransfer(mockTransfer);
-      setItems(mockItems);
+      // Load transfer from backend
+      const data = await invoke<StockTransfer | null>('get_stock_transfer_by_id', { id });
+      if (data) {
+        setTransfer(data);
+        // Items are embedded in the transfer response from backend
+        setItems(data.items || []);
+      }
     } catch (error) {
       console.error('Failed to load transfer:', error);
     } finally {
@@ -166,9 +88,26 @@ export function TransferDetailPage() {
   async function handleStatusChange(newStatus: string, reason?: string) {
     if (!transfer) return;
     try {
-      // TODO: Replace with actual Tauri invoke
-      // await invoke('update_stock_transfer_status', { id: transfer.id, status: newStatus, reason });
-      console.log('Status changed to:', newStatus, reason ? `Reason: ${reason}` : '');
+      // Map status to appropriate command
+      switch (newStatus) {
+        case 'APPROVED':
+          await invoke('approve_stock_transfer', { id: transfer.id });
+          break;
+        case 'IN_TRANSIT':
+          await invoke('ship_stock_transfer', { id: transfer.id });
+          break;
+        case 'RECEIVED':
+          await invoke('receive_stock_transfer', { id: transfer.id });
+          break;
+        case 'CANCELLED':
+          await invoke('cancel_stock_transfer', { id: transfer.id });
+          break;
+        case 'REJECTED':
+          await invoke('reject_stock_transfer', { id: transfer.id, reason: reason || '' });
+          break;
+        default:
+          console.warn('Unknown status:', newStatus);
+      }
       await loadTransfer();
     } catch (error) {
       console.error('Failed to update status:', error);

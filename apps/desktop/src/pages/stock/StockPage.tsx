@@ -39,6 +39,8 @@ import {
 } from 'lucide-react';
 import { type FC, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ExportButtons } from '@/components/shared';
+import { type ExportColumn, exportFormatters } from '@/lib/export';
 
 // ────────────────────────────────────────────────────────────────────────────
 // COMPONENT
@@ -90,6 +92,26 @@ export const StockPage: FC = () => {
             </Select>
           </div>
 
+          <ExportButtons
+            data={lowStockProducts}
+            columns={
+              [
+                { key: 'code', header: 'Código' },
+                { key: 'name', header: 'Produto' },
+                { key: 'stock', header: 'Estoque Atual', align: 'right' },
+                { key: 'minStock', header: 'Estoque Mín.', align: 'right' },
+                {
+                  key: 'salePrice',
+                  header: 'Preço',
+                  formatter: exportFormatters.currency,
+                  align: 'right',
+                },
+              ] as ExportColumn<(typeof lowStockProducts)[0]>[]
+            }
+            filename="estoque-baixo"
+            title="Produtos com Estoque Baixo"
+            variant="dropdown"
+          />
           <Button variant="outline" asChild aria-label="Ver histórico de movimentações">
             <Link to="/stock/movements">
               <ArrowUpDown className="mr-2 h-4 w-4" />

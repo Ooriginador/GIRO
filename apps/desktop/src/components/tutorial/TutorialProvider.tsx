@@ -1,3 +1,5 @@
+import { createLogger } from '@/lib/logger';
+const log = createLogger('Tutorial');
 /**
  * TutorialProvider - Contexto global de tutoriais
  * Envolve a aplicação e renderiza o spotlight + tooltip
@@ -107,8 +109,8 @@ export const TutorialProvider: FC<TutorialProviderProps> = ({ children }) => {
 
   // LOGS DE DEPURAÇÃO
   useEffect(() => {
-    console.log(
-      `[TutorialProvider] Path=${location.pathname}, Auth=${isAuthenticated}, Active=${activeTutorial}, Paused=${isPaused}`
+    log.debug(
+      ` Path=${location.pathname}, Auth=${isAuthenticated}, Active=${activeTutorial}, Paused=${isPaused}`
     );
   }, [location.pathname, isAuthenticated, activeTutorial, isPaused]);
 
@@ -119,7 +121,7 @@ export const TutorialProvider: FC<TutorialProviderProps> = ({ children }) => {
 
     if (activeTutorial && (!isAuthenticated || isRestricted)) {
       console.warn(
-        `[TutorialProvider] FORCING SKIP: Tutorial ${activeTutorial} is restricted on path ${location.pathname} (Authenticated: ${isAuthenticated})`
+        ` FORCING SKIP: Tutorial ${activeTutorial} is restricted on path ${location.pathname} (Authenticated: ${isAuthenticated})`
       );
       skipTutorial();
     }
@@ -135,11 +137,11 @@ export const TutorialProvider: FC<TutorialProviderProps> = ({ children }) => {
       const timeout = setTimeout(() => {
         const restrictedRoutes = ['/', '/login', '/license', '/setup', '/wizard'];
         if (!restrictedRoutes.includes(location.pathname)) {
-          console.log('[TutorialProvider] Auto-starting welcome tutorial');
+          log.debug(' Auto-starting welcome tutorial');
           startTutorial('welcome');
         } else {
-          console.log(
-            `[TutorialProvider] Skip auto-start on restricted route: ${location.pathname}`
+          log.debug(
+            ` Skip auto-start on restricted route: ${location.pathname}`
           );
         }
       }, 2000); // Increased delay for safety

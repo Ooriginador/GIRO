@@ -1,3 +1,4 @@
+import { setupLogger as log } from '@/lib/logger';
 /**
  * @file InitialSetupPage - Wizard de Configuração Inicial
  * @description Primeira tela após instalação - cria o primeiro admin
@@ -156,14 +157,14 @@ export const InitialSetupPage: FC = () => {
       try {
         const licenseState = useLicenseStore.getState();
         if (licenseState.licenseKey && licenseState.state === 'valid') {
-          console.log('[Setup] Syncing admin to license server...');
+          log.debug(' Syncing admin to license server...');
           await updateLicenseAdmin(licenseState.licenseKey, {
             name: formData.name.trim(),
             email: formData.email.trim(),
             phone: formData.phone,
             pin: formData.pin,
           });
-          console.log('[Setup] Admin synced successfully');
+          log.debug(' Admin synced successfully');
         }
       } catch (e) {
         console.error(
@@ -176,7 +177,7 @@ export const InitialSetupPage: FC = () => {
       // CRITICAL: Invalidate the has-admin query so GlobalSetupGate knows an admin now exists
       // This prevents the race condition where it redirects back to /setup
       await queryClient.invalidateQueries({ queryKey: ['has-admin'] });
-      console.log('[Setup] has-admin query invalidated');
+      log.debug(' has-admin query invalidated');
 
       setStep('success');
 

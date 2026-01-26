@@ -490,6 +490,8 @@ export interface Product {
   barcode?: string | null;
   unit: string;
   price?: number | null;
+  categoryId?: string | null;
+  categoryName?: string | null;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -503,6 +505,51 @@ export interface EnterpriseKPIs {
   inTransitTransfers: number;
   lowStockAlerts: number;
 }
+
+/** Tipo de atividade recente no dashboard */
+export type RecentActivityType = 'request' | 'transfer' | 'inventory' | 'contract' | 'delivery';
+
+/** Item de atividade recente para o dashboard */
+export interface RecentActivityItem {
+  id: string;
+  type: RecentActivityType;
+  title: string;
+  description: string;
+  timestamp: string;
+  entityId: string;
+  entityType: 'request' | 'transfer' | 'contract' | 'location';
+  status?: string;
+  userName?: string;
+}
+
+/** Consumo mensal para gráfico */
+export interface MonthlyConsumptionItem {
+  month: string;
+  value: number;
+  quantity: number;
+}
+
+/** Despesas por categoria para gráfico */
+export interface ExpenseByCategoryItem {
+  category: string;
+  value: number;
+  percentage: number;
+}
+
+export type ContractDashboardStats = {
+  activeContracts: number;
+  totalContracts: number;
+  totalValue: number;
+  expiringContracts: number;
+  pendingRequests: number;
+  inTransitTransfers: number;
+  lowStockAlerts: number;
+  recentActivity: RecentActivityItem[];
+  monthlyConsumption: MonthlyConsumptionItem[];
+  expensesByCategory: ExpenseByCategoryItem[];
+};
+
+export type EnterpriseMaterialRequest = MaterialRequest;
 
 /** Atividade de Frente de Trabalho (resumo) */
 export type WorkFrontActivity = Activity;

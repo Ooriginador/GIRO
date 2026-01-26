@@ -1,3 +1,4 @@
+import { authLogger as log } from '@/lib/logger';
 /**
  * @file LoginPage - Tela de login
  * @description Autenticação por PIN de funcionário
@@ -23,7 +24,7 @@ export const LoginPage: FC = () => {
   const { isConfigured } = useBusinessProfile();
 
   useEffect(() => {
-    console.log('[LoginPage] Mounted');
+    log.debug(' Mounted');
     inputRef.current?.focus();
   }, []);
 

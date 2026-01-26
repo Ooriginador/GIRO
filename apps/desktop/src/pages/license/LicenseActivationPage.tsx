@@ -4,6 +4,7 @@
  * Tela bloqueante que exige a ativação da licença antes de qualquer acesso ao sistema.
  * O usuário deve inserir a license key que comprou para ativar o software.
  */
+import { licenseLogger as log } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -82,14 +83,14 @@ export function LicenseActivationPage() {
             : 'Seu software foi ativado com sucesso.',
         });
 
-        console.log('[LicenseActivationPage] Activation success, redirecting in 1.5s...');
+        log.debug(' Activation success, redirecting in 1.5s...');
 
         // If server says no admin exists, we MUST go to setup
         // If server says admin exists, we go to root (which checks local admin)
         const targetRoute = info.has_admin === false ? '/setup' : '/';
 
         setTimeout(() => {
-          console.log(`[LicenseActivationPage] Executing navigate to ${targetRoute}`);
+          log.debug(` Executing navigate to ${targetRoute}`);
           navigate(targetRoute, { replace: true });
         }, 1500);
       } catch (error) {
@@ -150,20 +151,20 @@ export function LicenseActivationPage() {
       }, 5000);
 
       try {
-        console.log('[LicenseActivationPage] Initializing...');
+        log.debug(' Initializing...');
         // Get hardware ID
         const hwId = await getHardwareId();
-        console.log('[LicenseActivationPage] Hardware ID:', hwId);
+        log.debug(' Hardware ID:', hwId);
         setHardwareId(hwId);
 
         // Initialize from disk/local state
-        console.log('[LicenseActivationPage] Hydrating from disk...');
+        log.debug(' Hydrating from disk...');
         await hydrateFromDisk();
 
         const store = useLicenseStore.getState();
         const currentKey = store.licenseKey;
-        console.log(
-          `[LicenseActivationPage] Post-hydration: key=${currentKey}, state=${store.state}`
+        log.debug(
+          ` Post-hydration: key=${currentKey}, state=${store.state}`
         );
 
         if (currentKey) {
@@ -171,7 +172,7 @@ export function LicenseActivationPage() {
 
           // Check if we are within grace period (7 days) OR if already valid
           if (store.isWithinGracePeriod() || store.state === 'valid') {
-            console.log(
+            log.debug(
               '[LicenseActivationPage] Valid license or within grace period, proceeding to root'
             );
             clearTimeout(timeoutId);
@@ -180,13 +181,13 @@ export function LicenseActivationPage() {
           }
 
           // Not in grace period and not valid, MUST validate online
-          console.log('[LicenseActivationPage] Triggering online validation...');
+          log.debug(' Triggering online validation...');
           await validateStoredLicense(currentKey);
         } else {
           try {
             const restoredKey = await restoreLicense();
             if (restoredKey) {
-              console.log('[LicenseActivationPage] License restored!', restoredKey);
+              log.debug(' License restored!', restoredKey);
               toast({
                 title: 'Licença Restaurada',
                 description: 'Sua licença foi encontrada e recuperada automaticamente!',
@@ -198,7 +199,7 @@ export function LicenseActivationPage() {
               // Trigger activation automatically using the new function
               await performActivation(restoredKey);
             } else {
-              console.log('[LicenseActivationPage] No license to restore.');
+              log.debug(' No license to restore.');
               setState('unlicensed');
               setIsValidating(false);
             }
@@ -284,7 +285,7 @@ export function LicenseActivationPage() {
 
   // Loading state while validating stored license
   if (isValidating) {
-    console.log(`[LicenseActivationPage] Showing loading screen (isValidating=${isValidating})`);
+    log.debug(` Showing loading screen (isValidating=${isValidating})`);
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10">
         <Card className="w-full max-w-md">

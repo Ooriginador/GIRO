@@ -6,6 +6,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useFinancialReport } from '@/hooks/useReports';
 import { formatCurrency } from '@/lib/formatters';
+import { ExportButtons } from '@/components/shared';
+import { type ExportColumn, exportFormatters } from '@/lib/export';
 import { endOfMonth, format, startOfMonth, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -43,29 +45,22 @@ export const FinancialReportPage: React.FC = () => {
     dateRange?.to?.toISOString()
   );
 
-  const handleExportCSV = () => {
-    if (!report) return;
+  // Dados para exportação (transformar em array)
+  const exportData = report
+    ? [
+        { descricao: 'Receita Bruta', valor: report.revenue },
+        { descricao: 'Custo (CMV)', valor: report.cogs },
+        { descricao: 'Lucro Bruto', valor: report.grossProfit },
+        { descricao: 'Despesas', valor: report.expenses },
+        { descricao: 'Lucro Líquido', valor: report.netProfit },
+        { descricao: 'Margem (%)', valor: report.margin },
+      ]
+    : [];
 
-    const headers = ['Descricao', 'Valor'];
-    const rows = [
-      ['Receita Bruta', report.revenue.toFixed(2)],
-      ['Custo (CMV)', report.cogs.toFixed(2)],
-      ['Lucro Bruto', report.grossProfit.toFixed(2)],
-      ['Despesas', report.expenses.toFixed(2)],
-      ['Lucro Liquido', report.netProfit.toFixed(2)],
-      ['Margem (%)', report.margin.toFixed(1)],
-    ];
-
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `relatorio-financeiro-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const exportColumns: ExportColumn<(typeof exportData)[0]>[] = [
+    { key: 'descricao', header: 'Descrição' },
+    { key: 'valor', header: 'Valor', formatter: exportFormatters.currency, align: 'right' },
+  ];
 
   const presetRanges = [
     { label: 'Hoje', from: new Date(), to: new Date() },

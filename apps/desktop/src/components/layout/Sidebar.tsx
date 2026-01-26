@@ -39,6 +39,7 @@ interface NavItem {
   href: string;
   badge?: number;
   tutorialId?: string;
+  testId?: string;
 }
 
 export const Sidebar: FC = () => {
@@ -65,12 +66,38 @@ export const Sidebar: FC = () => {
     // Enterprise Module
     ...(isFeatureEnabled('enterprise')
       ? [
-          { icon: HardHat, label: 'Enterprise', href: '/enterprise', tutorialId: 'nav-enterprise' },
-          { icon: Building2, label: 'Contratos', href: '/enterprise/contracts' },
-          { icon: Construction, label: 'Frentes', href: '/enterprise/work-fronts' },
-          { icon: MapPin, label: 'Locais', href: '/enterprise/locations' },
-          { icon: ClipboardList, label: 'Requisições', href: '/enterprise/requests' },
-          { icon: ArrowLeftRight, label: 'Transferências', href: '/enterprise/transfers' },
+          {
+            icon: HardHat,
+            label: 'Enterprise',
+            href: '/enterprise',
+            tutorialId: 'nav-enterprise',
+            testId: 'nav-enterprise',
+          },
+          {
+            icon: Building2,
+            label: 'Contratos',
+            href: '/enterprise/contracts',
+            testId: 'nav-contracts',
+          },
+          {
+            icon: Construction,
+            label: 'Frentes',
+            href: '/enterprise/work-fronts',
+            testId: 'nav-work-fronts',
+          },
+          { icon: MapPin, label: 'Locais', href: '/enterprise/locations', testId: 'nav-locations' },
+          {
+            icon: ClipboardList,
+            label: 'Requisições',
+            href: '/enterprise/requests',
+            testId: 'nav-requests',
+          },
+          {
+            icon: ArrowLeftRight,
+            label: 'Transferências',
+            href: '/enterprise/transfers',
+            testId: 'nav-transfers',
+          },
         ]
       : []),
     { icon: ShoppingCart, label: 'PDV', href: '/pdv', tutorialId: 'nav-pdv' },
@@ -115,6 +142,7 @@ export const Sidebar: FC = () => {
               key={item.href}
               to={item.href}
               data-tutorial={item.tutorialId}
+              data-testid={item.testId}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 'hover:bg-accent hover:text-accent-foreground',

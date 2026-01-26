@@ -1,3 +1,4 @@
+import { networkLogger as log } from '@/lib/logger';
 import { listen } from '@tauri-apps/api/event';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
@@ -19,14 +20,14 @@ export function useNetworkEvents() {
     async function setupListeners() {
       // Sincronização completa finalizada
       unlistenSync = await listen('network:sync-completed', () => {
-        console.log('🔄 Network Sync Completed. Invaliding all queries.');
+        log.info('🔄 Network Sync Completed. Invaliding all queries.');
         queryClient.invalidateQueries();
         success('Sincronização', 'Dados atualizados via rede');
       });
 
       // Atualização de estoque pontual
       unlistenStock = await listen('network:stock-updated', (event) => {
-        console.log('📦 Network Stock Updated:', event.payload);
+        log.info('📦 Network Stock Updated:', event.payload);
         queryClient.invalidateQueries({ queryKey: productKeys.all });
         // Se quisermos ser mais específicos:
         // queryClient.invalidateQueries({ queryKey: productKeys.detail(event.payload.productId) });

@@ -174,6 +174,7 @@ const TransferRow = ({ transfer, onView }: TransferRowProps) => {
       onClick={() => onView(transfer.id)}
       onKeyDown={handleKeyDown}
       tabIndex={0}
+      data-testid="transfer-row"
       aria-label={`Transferência ${transfer.transferNumber}, de ${
         transfer.sourceLocationName
       } para ${transfer.destinationLocationName}, status ${transfer.status}, ${
@@ -329,7 +330,7 @@ export function TransfersPage() {
             />
           </Button>
           <PermissionGuard permission="transfers.create">
-            <Button onClick={handleNewTransfer}>
+            <Button onClick={handleNewTransfer} data-testid="new-transfer-btn">
               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
               Nova Transferência
             </Button>

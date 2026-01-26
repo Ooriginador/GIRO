@@ -62,6 +62,8 @@ import { type FC, useEffect, useState, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useKeyboard } from '@/hooks/use-keyboard';
 import { useCategories } from '@/hooks/useCategories';
+import { ExportButtons } from '@/components/shared';
+import { type ExportColumn } from '@/lib/export';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 
@@ -142,6 +144,46 @@ export const ProductsPage: FC = () => {
   const products = paginatedResult?.data || [];
   const totalPages = paginatedResult?.totalPages || 1;
   const totalItems = paginatedResult?.total || 0;
+
+  // Colunas para exportação
+  const exportColumns: ExportColumn<Product>[] = useMemo(
+    () => [
+      { key: 'code', header: 'Código' },
+      { key: 'barcode', header: 'Código de Barras' },
+      { key: 'name', header: 'Nome' },
+      {
+        key: 'categoryId',
+        header: 'Categoria',
+        formatter: (value) => categoryMap.get(String(value)) || '-',
+      },
+      { key: 'unit', header: 'Unidade' },
+      {
+        key: 'salePrice',
+        header: 'Preço Venda',
+        align: 'right',
+        formatter: (value) => formatCurrency(Number(value) || 0),
+      },
+      {
+        key: 'costPrice',
+        header: 'Preço Custo',
+        align: 'right',
+        formatter: (value) => formatCurrency(Number(value) || 0),
+      },
+      {
+        key: 'stock',
+        header: 'Estoque',
+        align: 'right',
+        formatter: (value) => String(Number(value) || 0),
+      },
+      { key: 'minStock', header: 'Estoque Mín.', align: 'right' },
+      {
+        key: 'isActive',
+        header: 'Status',
+        formatter: (value) => (value ? 'Ativo' : 'Inativo'),
+      },
+    ],
+    [categoryMap]
+  );
 
   const handleDeactivate = async () => {
     if (!productToDeactivate) return;
@@ -237,6 +279,14 @@ export const ProductsPage: FC = () => {
           <p className="text-muted-foreground">Gerencie seu catálogo de produtos</p>
         </div>
         <div className="flex items-center gap-2">
+          <ExportButtons
+            data={products}
+            columns={exportColumns}
+            filename="produtos"
+            title="Catálogo de Produtos"
+            variant="dropdown"
+            disabled={isLoading || products.length === 0}
+          />
           <Button variant="outline" asChild data-tutorial="categories-link">
             <Link to="/products/categories">Categorias</Link>
           </Button>

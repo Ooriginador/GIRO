@@ -1,3 +1,5 @@
+import { createLogger } from '@/lib/logger';
+const log = createLogger('Tauri');
 /**
  * Wrapper para comandos Tauri IPC
  * Centraliza todas as chamadas ao backend Rust
@@ -48,6 +50,14 @@ import type {
   SalesReport,
   DailyRevenue,
 } from '@/types';
+import type {
+  Contract,
+  EnterpriseMaterialRequest,
+  StockTransfer,
+  StockLocation,
+  ContractDashboardStats,
+  WorkFront,
+} from '@/types/enterprise';
 import { invoke as tauriCoreInvoke } from '@tauri-apps/api/core';
 import { readFile } from '@tauri-apps/plugin-fs';
 
@@ -69,6 +79,11 @@ type WebMockDb = {
   employees: Employee[];
   currentCashSession: CashSession | null;
   cashSessionHistory: CashSession[];
+  contracts: Contract[];
+  workFronts: WorkFront[];
+  materialRequests: EnterpriseMaterialRequest[];
+  stockTransfers: StockTransfer[];
+  stockLocations: StockLocation[];
 };
 
 const WEB_MOCK_DB_KEY = '__giro_web_mock_db__';
@@ -86,7 +101,16 @@ const nowIso = (): string => new Date().toISOString();
 
 const loadWebMockDb = (): WebMockDb => {
   if (typeof window === 'undefined') {
-    return { employees: [], currentCashSession: null, cashSessionHistory: [] };
+    return {
+      employees: [],
+      currentCashSession: null,
+      cashSessionHistory: [],
+      contracts: [],
+      workFronts: [],
+      materialRequests: [],
+      stockTransfers: [],
+      stockLocations: [],
+    };
   }
 
   const raw = window.localStorage.getItem(WEB_MOCK_DB_KEY);
@@ -96,14 +120,39 @@ const loadWebMockDb = (): WebMockDb => {
       employees: [],
       currentCashSession: null,
       cashSessionHistory: [],
+      contracts: [],
+      workFronts: [],
+      materialRequests: [],
+      stockTransfers: [],
+      stockLocations: [],
     };
     return emptyDb;
   }
 
   try {
-    return JSON.parse(raw) as WebMockDb;
+    const parsed = JSON.parse(raw);
+    // Ensure all fields exist (migration for existing mocks)
+    return {
+      employees: parsed.employees || [],
+      currentCashSession: parsed.currentCashSession || null,
+      cashSessionHistory: parsed.cashSessionHistory || [],
+      contracts: parsed.contracts || [],
+      workFronts: parsed.workFronts || [],
+      materialRequests: parsed.materialRequests || [],
+      stockTransfers: parsed.stockTransfers || [],
+      stockLocations: parsed.stockLocations || [],
+    };
   } catch {
-    const reset: WebMockDb = { employees: [], currentCashSession: null, cashSessionHistory: [] };
+    const reset: WebMockDb = {
+      employees: [],
+      currentCashSession: null,
+      cashSessionHistory: [],
+      contracts: [],
+      workFronts: [],
+      materialRequests: [],
+      stockTransfers: [],
+      stockLocations: [],
+    };
     window.localStorage.setItem(WEB_MOCK_DB_KEY, JSON.stringify(reset));
     return reset;
   }
@@ -320,7 +369,82 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
       return null as unknown as T;
     }
     case 'search_products': {
-      return [] as unknown as T;
+      const query = ((args?.query as string) || '').toLowerCase();
+
+      const staticProducts = [
+        { id: 'prod-001', name: 'Cimento', price: 25.0, stock: 1000, category: 'Materiais' },
+        {
+          id: 'prod-001-cp',
+          name: 'Cimento CP-II',
+          price: 28.0,
+          stock: 500,
+          category: 'Materiais',
+        },
+        { id: 'prod-002', name: 'Areia', price: 120.0, stock: 50, category: 'Materiais' },
+        { id: 'prod-002-med', name: 'Areia Média', price: 130.0, stock: 60, category: 'Materiais' },
+        { id: 'prod-003', name: 'Tijolo', price: 1.5, stock: 5000, category: 'Materiais' },
+        {
+          id: 'prod-003-bai',
+          name: 'Tijolo Baiano',
+          price: 1.8,
+          stock: 4000,
+          category: 'Materiais',
+        },
+      ];
+
+      return staticProducts.filter((p) => p.name.toLowerCase().includes(query)) as unknown as T;
+    }
+    case 'get_stock_locations': {
+      return db.stockLocations as unknown as T;
+    }
+    case 'create_stock_transfer': {
+      const input = (args?.input as any) || {};
+      const newTransfer = {
+        id: randomId('trf'),
+        status: 'DRAFT',
+        originLocationId: input.originLocationId,
+        destinationLocationId: input.destinationLocationId,
+        requesterId: input.requesterId || 'admin-1',
+        items: input.items || [],
+        notes: input.notes,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        history: [],
+      };
+      db.stockTransfers = [newTransfer, ...db.stockTransfers];
+      saveWebMockDb(db);
+      return newTransfer as unknown as T;
+    }
+    case 'create_material_request': {
+      const input = (args?.input as any) || {};
+      const newRequest: EnterpriseMaterialRequest = {
+        id: randomId('req'),
+        status: 'DRAFT',
+        priority: input.priority || 'NORMAL',
+        contractId: input.contractId,
+        workFrontId: input.workFrontId,
+        requesterId: input.requesterId || 'admin-1',
+        items: input.items || [],
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        history: [],
+      } as EnterpriseMaterialRequest;
+
+      db.materialRequests = [newRequest, ...db.materialRequests];
+      saveWebMockDb(db);
+      return newRequest as unknown as T;
+    }
+    case 'update_material_request': {
+      const id = args?.id as string;
+      const input = (args?.input as any) || {};
+      const idx = db.materialRequests.findIndex((r) => r.id === id);
+      if (idx === -1) throw new Error('Request not found');
+
+      const current = db.materialRequests[idx];
+      const updated = { ...current, ...input, updatedAt: nowIso() };
+      db.materialRequests[idx] = updated;
+      saveWebMockDb(db);
+      return updated as unknown as T;
     }
     case 'get_categories': {
       return [] as unknown as T;
@@ -334,6 +458,106 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
       } catch {
         return null as unknown as T;
       }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // ENTERPRISE MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'get_contract_dashboard_stats': {
+      const activeContracts = db.contracts.filter((c) => c.status === 'ACTIVE').length;
+      const totalContracts = db.contracts.length;
+      const totalValue = db.contracts.reduce((acc, c) => acc + (c.value || 0), 0);
+      const pendingRequests = db.materialRequests.filter((r) => r.status === 'PENDING').length;
+
+      const stats: ContractDashboardStats = {
+        activeContracts,
+        totalContracts,
+        totalValue,
+        expiringContracts: 0, // Mock fixed
+        pendingRequests,
+        inTransitTransfers: db.stockTransfers.filter((t) => t.status === 'IN_TRANSIT').length,
+        lowStockAlerts: 0,
+        recentActivity: [],
+        monthlyConsumption: [],
+        expensesByCategory: [],
+      };
+      return stats as unknown as T;
+    }
+    case 'get_contracts': {
+      // Simple list, ignoring filters for basic E2E
+      return db.contracts as unknown as T;
+    }
+    case 'create_contract': {
+      const input = (args?.input as any) || {};
+      const newContract: Contract = {
+        id: randomId('cnt'),
+        code: input.code || `CNT-${Date.now()}`,
+        name: input.name || 'Novo Contrato',
+        description: input.description,
+        status: input.status || 'PLANNING',
+        address: input.address,
+        startDate: input.startDate || nowIso(),
+        endDate: input.endDate,
+        value: input.value || 0,
+        budget: input.budget || 0,
+        managerId: input.managerId,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      } as Contract;
+
+      db.contracts = [newContract, ...db.contracts];
+      saveWebMockDb(db);
+      return newContract as unknown as T;
+    }
+    case 'update_contract': {
+      const id = args?.id as string;
+      const input = (args?.input as any) || {};
+      const idx = db.contracts.findIndex((c) => c.id === id);
+      if (idx === -1) throw new Error('Contract not found');
+
+      const current = db.contracts[idx];
+      const updated = {
+        ...current,
+        ...input,
+        updatedAt: nowIso(),
+      };
+
+      db.contracts[idx] = updated;
+      saveWebMockDb(db);
+      return updated as unknown as T;
+    }
+    case 'create_work_front': {
+      const input = (args?.input as any) || {};
+      const newWorkFront: WorkFront = {
+        id: randomId('ft'),
+        code: input.code || `FT-${Date.now()}`,
+        name: input.name || 'Nova Frente',
+        description: input.description,
+        contractId: input.contractId,
+        supervisorId: input.supervisorId,
+        status: 'ACTIVE',
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      } as WorkFront;
+
+      db.workFronts = [newWorkFront, ...db.workFronts];
+      saveWebMockDb(db);
+      return newWorkFront as unknown as T;
+    }
+    case 'get_work_fronts': {
+      const contractId = args?.contractId as string | undefined;
+      const status = args?.status as string | undefined;
+
+      let results = db.workFronts;
+      if (contractId) results = results.filter((w) => w.contractId === contractId);
+      if (status) results = results.filter((w) => w.status === status);
+
+      return results as unknown as T;
+    }
+    case 'get_material_requests': {
+      return db.materialRequests as unknown as T;
+    }
+    case 'get_pending_requests': {
+      return db.materialRequests.filter((r) => r.status === 'PENDING') as unknown as T;
     }
     default:
       throw new Error(`WebMock invoke: comando não suportado: ${command}`);
@@ -1184,11 +1408,11 @@ export async function syncBackupToCloud(
     }
 
     const backupPath = localResult.data;
-    console.log('[Backup] Local backup created at:', backupPath);
+    log.info(' Local backup created at:', backupPath);
 
     // 2. Read the backup file
     const fileData = await readFile(backupPath);
-    console.log('[Backup] Read %d bytes', fileData.length);
+    log.info(' Read %d bytes', fileData.length);
 
     // 3. Convert to Base64
     const dataBase64 = bytesToBase64(fileData);
@@ -1206,7 +1430,7 @@ export async function syncBackupToCloud(
       dataBase64,
     });
 
-    console.log('[Backup] Cloud sync successful:', result);
+    log.info(' Cloud sync successful:', result);
     return result;
   } catch (error) {
     console.error('[Backup] Sync failed:', (error as Error)?.message ?? String(error));
@@ -1741,6 +1965,8 @@ export interface EnterpriseMaterialRequest {
 }
 
 export interface MaterialRequestWithDetails extends EnterpriseMaterialRequest {
+  /** Alias for requestNumber for convenience */
+  code: string;
   contractCode: string;
   contractName: string;
   workFrontCode?: string | null;

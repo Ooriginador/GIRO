@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-// import { invoke } from '@tauri-apps/api/core'; // TODO: Uncomment when backend is ready
+import { invoke } from '@tauri-apps/api/core';
 import {
   ArrowLeft,
   Edit,
@@ -72,137 +72,14 @@ export function WorkFrontDetailPage() {
     if (!id) return;
     setLoading(true);
     try {
-      // TODO: Replace with actual Tauri invoke
-      // const data = await invoke<WorkFront>('get_work_front', { id });
-      // const activitiesData = await invoke<WorkFrontActivity[]>('get_work_front_activities', { workFrontId: id });
-      // const requestsData = await invoke<MaterialRequest[]>('get_work_front_requests', { workFrontId: id });
-
-      // Mock data for development
-      const mockWorkFront: WorkFront = {
-        id,
-        code: 'FR-001',
-        name: 'Frente A - Fundação',
-        contractId: 'contract-1',
-        supervisorId: 'user-1',
-        locationId: 'loc-1',
-        status: 'ACTIVE',
-        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        expectedEndDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-        progress: 35,
-        notes: 'Frente responsável pela execução das fundações do bloco industrial',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        // Extended info (cast for mock data)
-        contract: {
-          id: 'c-1',
-          code: 'OBR-2026-001',
-          name: 'Obra Nova Industrial',
-          clientName: 'Cliente XPTO',
-          startDate: new Date().toISOString(),
-          costCenter: 'CC-001',
-          status: 'ACTIVE',
-          managerId: 'mgr-1',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        } as Contract,
-        supervisor: {
-          id: 'sup-1',
-          name: 'Carlos Ferreira',
-          email: 'carlos@empresa.com',
-          role: 'SUPERVISOR',
-        } as Employee,
-        location: 'Área de Fundações',
-      };
-
-      const now = new Date().toISOString();
-      const mockActivities: WorkFrontActivity[] = [
-        {
-          id: 'act-1',
-          code: 'AT-001',
-          name: 'Escavação',
-          workFrontId: id,
-          status: 'COMPLETED',
-          startDate: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
-          endDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-          progress: 100,
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          id: 'act-2',
-          code: 'AT-002',
-          name: 'Forma e Armação',
-          workFrontId: id,
-          status: 'IN_PROGRESS',
-          startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-          progress: 60,
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          id: 'act-3',
-          code: 'AT-003',
-          name: 'Concretagem',
-          workFrontId: id,
-          status: 'PENDING',
-          progress: 0,
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          id: 'act-4',
-          code: 'AT-004',
-          name: 'Impermeabilização',
-          workFrontId: id,
-          status: 'PENDING',
-          progress: 0,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ];
-
-      const mockRequests: MaterialRequest[] = [
-        {
-          id: 'req-1',
-          code: 'REQ-2026-0001',
-          contractId: 'contract-1',
-          workFrontId: id,
-          requesterId: 'user-1',
-          status: 'DELIVERED',
-          priority: 'NORMAL',
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date().toISOString(),
-          itemCount: 5,
-        },
-        {
-          id: 'req-2',
-          code: 'REQ-2026-0005',
-          contractId: 'contract-1',
-          workFrontId: id,
-          requesterId: 'user-1',
-          status: 'SEPARATING',
-          priority: 'HIGH',
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date().toISOString(),
-          itemCount: 3,
-        },
-        {
-          id: 'req-3',
-          code: 'REQ-2026-0008',
-          contractId: 'contract-1',
-          workFrontId: id,
-          requesterId: 'user-1',
-          status: 'PENDING',
-          priority: 'URGENT',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          itemCount: 2,
-        },
-      ];
-
-      setWorkFront(mockWorkFront);
-      setActivities(mockActivities);
-      setRequests(mockRequests);
+      // Load work front from backend
+      const data = await invoke<WorkFront | null>('get_work_front_by_id', { id });
+      if (data) {
+        setWorkFront(data);
+        // Activities and requests are embedded in the work front response from backend
+        setActivities(data.activities || []);
+        setRequests(data.requests || []);
+      }
     } catch (error) {
       console.error('Failed to load work front:', error);
     } finally {

@@ -459,7 +459,7 @@ export function useEnterpriseCommands(): UseEnterpriseCommandsReturn {
       const requests = await tauri.getPendingRequests();
       return requests.slice(0, 10).map((req) => ({
         id: req.id,
-        code: req.requestNumber,
+        code: req.code,
         status: req.status as MaterialRequestStatus,
         requesterName: req.requesterName,
         contractName: req.contractName,
@@ -612,7 +612,7 @@ export function usePendingRequests() {
       const data = await tauri.getPendingRequests();
       const mapped: RecentRequest[] = data.slice(0, 10).map((req) => ({
         id: req.id,
-        code: req.requestNumber,
+        code: req.code,
         status: req.status as MaterialRequestStatus,
         requesterName: req.requesterName,
         contractName: req.contractName,

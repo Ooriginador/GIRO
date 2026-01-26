@@ -27,6 +27,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { invoke, seedDatabase, setSetting, syncBackupToCloud } from '@/lib/tauri';
+import { createLogger } from '@/lib/logger';
 import { useSettingsStore, useLicenseStore } from '@/stores';
 import {
   Bell,
@@ -85,6 +86,8 @@ const mapScaleModelToProtocol = (model: string): BackendScaleProtocol => {
   return 'generic';
 };
 
+const settingsLogger = createLogger('Settings');
+
 export const SettingsPage: FC = () => {
   const { theme, setTheme, printer, setPrinter, scale, setScale, company, setCompany } =
     useSettingsStore();
@@ -136,7 +139,7 @@ export const SettingsPage: FC = () => {
       const ports = await invoke<SerialPort[]>('list_hardware_ports');
       setAvailablePorts(ports);
     } catch (error) {
-      console.error('Erro ao listar portas:', error);
+      settingsLogger.error('Erro ao listar portas:', error);
     } finally {
       setIsLoadingPorts(false);
     }
@@ -156,7 +159,7 @@ export const SettingsPage: FC = () => {
           setLastScan(code);
         });
       } catch (e) {
-        console.error('Erro ao configurar listener de scan:', e);
+        settingsLogger.error('Erro ao configurar listener de scan:', e);
       }
     };
     setupListener();
@@ -398,10 +401,10 @@ export const SettingsPage: FC = () => {
             company_state: companyState,
             pin: '', // O PIN não deve ser alterado aqui sem validação extra
           },
-        }).catch((e) => console.warn('Erro ao sincronizar com servidor:', e));
+        }).catch((e) => settingsLogger.warn('Erro ao sincronizar com servidor:', e));
       }
     } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
+      settingsLogger.error('Erro ao salvar configurações:', error);
       toast({
         title: 'Erro ao salvar',
         description: 'Não foi possível salvar as configurações. Tente novamente.',

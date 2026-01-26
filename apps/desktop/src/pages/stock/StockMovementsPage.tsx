@@ -28,6 +28,8 @@ import type { StockMovementType } from '@/types';
 import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Search } from 'lucide-react';
 import { type FC, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ExportButtons } from '@/components/shared';
+import { type ExportColumn, exportFormatters } from '@/lib/export';
 
 // ────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -65,6 +67,18 @@ export const StockMovementsPage: FC = () => {
     return true;
   });
 
+  // Colunas para exportação
+  const exportColumns: ExportColumn<(typeof movements)[0]>[] = [
+    { key: 'createdAt', header: 'Data/Hora', formatter: exportFormatters.datetime },
+    { key: 'product.name', header: 'Produto' },
+    { key: 'product.internalCode', header: 'Código' },
+    { key: 'type', header: 'Tipo', formatter: (v) => MOVEMENT_LABELS[v as StockMovementType]?.label || String(v) },
+    { key: 'quantity', header: 'Quantidade', align: 'right' },
+    { key: 'previousStock', header: 'Estoque Anterior', align: 'right' },
+    { key: 'newStock', header: 'Novo Estoque', align: 'right' },
+    { key: 'reason', header: 'Motivo' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -78,10 +92,17 @@ export const StockMovementsPage: FC = () => {
         >
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold tracking-tight">Movimentações de Estoque</h1>
           <p className="text-muted-foreground">Histórico de todas as entradas e saídas</p>
         </div>
+        <ExportButtons
+          data={filteredMovements}
+          columns={exportColumns}
+          filename="movimentacoes-estoque"
+          title="Movimentações de Estoque"
+          variant="dropdown"
+        />
       </div>
 
       {/* Filtros */}

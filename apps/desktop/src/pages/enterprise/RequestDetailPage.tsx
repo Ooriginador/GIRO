@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-// import { invoke } from '@tauri-apps/api/core'; // TODO: Uncomment when backend is ready
+import { invoke } from '@tauri-apps/api/core';
 import {
   ArrowLeft,
   Edit,
@@ -70,90 +70,13 @@ export function RequestDetailPage() {
     if (!id) return;
     setLoading(true);
     try {
-      // TODO: Replace with actual Tauri invoke
-      // const data = await invoke<MaterialRequest>('get_material_request', { id });
-      // const itemsData = await invoke<MaterialRequestItem[]>('get_material_request_items', { requestId: id });
-
-      // Mock data for development
-      const mockRequest: MaterialRequest = {
-        id,
-        code: 'REQ-2026-0001',
-        contractId: 'contract-1',
-        workFrontId: 'wf-1',
-        activityId: 'act-1',
-        sourceLocationId: 'loc-1',
-        requesterId: 'user-1',
-        status: 'PENDING',
-        priority: 'HIGH',
-        requestedAt: new Date().toISOString(),
-        neededByDate: new Date().toISOString(),
-        notes: 'Materiais necessários para a próxima fase da obra',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        // Extended info
-        contract: {
-          id: 'contract-1',
-          code: 'OBR-2026-001',
-          name: 'Obra Nova Industrial',
-          clientName: 'Cliente Industrial',
-          startDate: new Date().toISOString(),
-          costCenter: 'CC-001',
-          status: 'ACTIVE',
-          managerId: 'manager-1',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        workFront: {
-          id: 'wf-1',
-          code: 'FR-001',
-          name: 'Frente A - Fundação',
-          contractId: 'contract-1',
-          supervisorId: 'user-2',
-          status: 'ACTIVE',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        activity: {
-          id: 'act-1',
-          code: 'AT-003',
-          name: 'Concretagem',
-          workFrontId: 'wf-1',
-          status: 'PENDING',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        requester: { id: 'user-1', name: 'João Silva', role: 'REQUESTER' },
-      };
-
-      const mockItems: MaterialRequestItem[] = [
-        {
-          id: 'item-1',
-          requestId: id,
-          productId: 'prod-1',
-          requestedQuantity: 100,
-          approvedQuantity: 100,
-          deliveredQuantity: 0,
-        },
-        {
-          id: 'item-2',
-          requestId: id,
-          productId: 'prod-2',
-          requestedQuantity: 50,
-          approvedQuantity: 50,
-          deliveredQuantity: 0,
-        },
-        {
-          id: 'item-3',
-          requestId: id,
-          productId: 'prod-3',
-          requestedQuantity: 200,
-          approvedQuantity: 200,
-          deliveredQuantity: 0,
-        },
-      ];
-
-      setRequest(mockRequest);
-      setItems(mockItems);
+      // Carregar requisição do backend
+      const data = await invoke<MaterialRequest | null>('get_material_request_by_id', { id });
+      if (data) {
+        setRequest(data);
+        // Items são incorporados na resposta da requisição do backend
+        setItems((data as unknown as { items?: MaterialRequestItem[] }).items || []);
+      }
     } catch (error) {
       console.error('Failed to load request:', error);
     } finally {
@@ -168,9 +91,32 @@ export function RequestDetailPage() {
   async function handleStatusChange(newStatus: string, reason?: string) {
     if (!request) return;
     try {
-      // TODO: Replace with actual Tauri invoke
-      // await invoke('update_material_request_status', { id: request.id, status: newStatus, reason });
-      console.log('Status changed to:', newStatus, reason ? `Reason: ${reason}` : '');
+      // Map status to appropriate command
+      switch (newStatus) {
+        case 'PENDING':
+          await invoke('submit_material_request', { id: request.id });
+          break;
+        case 'APPROVED':
+          await invoke('approve_material_request', { id: request.id });
+          break;
+        case 'SEPARATING':
+          await invoke('start_request_separation', { id: request.id });
+          break;
+        case 'READY':
+          await invoke('complete_request_separation', { id: request.id });
+          break;
+        case 'DELIVERED':
+          await invoke('deliver_material_request', { id: request.id });
+          break;
+        case 'CANCELLED':
+          await invoke('cancel_material_request', { id: request.id });
+          break;
+        case 'REJECTED':
+          await invoke('reject_material_request', { id: request.id, reason: reason || '' });
+          break;
+        default:
+          console.warn('Unknown status:', newStatus);
+      }
       await loadRequest();
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -178,7 +124,7 @@ export function RequestDetailPage() {
   }
 
   async function handlePrint() {
-    // TODO: Implement print functionality
+    // Use browser print for now - can be enhanced with thermal printer support later
     window.print();
   }
 

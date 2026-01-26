@@ -109,13 +109,13 @@ export const RequestApprovalModal: FC<RequestApprovalModalProps> = ({
     if (!request) return;
 
     try {
-      // TODO: Implement item-level approval when backend supports it
-      // For now, approve the entire request
+      // Note: Item-level approval (partial quantities) can be added when backend supports it
+      // Current implementation approves the entire request as-is
       await approveRequest.mutateAsync(request.id);
 
       toast({
         title: 'Requisição aprovada!',
-        description: `A requisição ${request.requestNumber} foi aprovada.`,
+        description: `A requisição ${request.code} foi aprovada.`,
       });
 
       onOpenChange(false);
@@ -149,7 +149,7 @@ export const RequestApprovalModal: FC<RequestApprovalModalProps> = ({
 
       toast({
         title: 'Requisição rejeitada',
-        description: `A requisição ${request.requestNumber} foi rejeitada.`,
+        description: `A requisição ${request.code} foi rejeitada.`,
       });
 
       onOpenChange(false);
@@ -175,7 +175,7 @@ export const RequestApprovalModal: FC<RequestApprovalModalProps> = ({
         <DialogHeader>
           <DialogTitle>Analisar Requisição</DialogTitle>
           <DialogDescription>
-            Requisição <strong>{request.requestNumber}</strong> de{' '}
+            Requisição <strong>{request.code}</strong> de{' '}
             <strong>{request.requesterName}</strong>
           </DialogDescription>
         </DialogHeader>

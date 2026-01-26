@@ -46,11 +46,7 @@ interface CacheMeta {
   totalEntries: number;
 }
 
-type CacheKey =
-  | 'brands'
-  | `models_${string}`
-  | `years_${string}`
-  | `search_${string}`;
+type CacheKey = 'brands' | `models_${string}` | `years_${string}` | `search_${string}`;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FUNÇÕES AUXILIARES
@@ -96,8 +92,8 @@ export function getCacheMeta(): CacheMeta {
 function saveCacheMeta(meta: CacheMeta): void {
   try {
     localStorage.setItem(META_KEY, JSON.stringify(meta));
-  } catch (err) {
-    console.warn('[VehicleCache] Erro ao salvar metadados:', err);
+  } catch {
+    // Silenciado em produção
   }
 }
 
@@ -136,8 +132,8 @@ function getFromCache<T>(key: CacheKey): T | null {
     }
 
     return entry.data;
-  } catch (err) {
-    console.warn('[VehicleCache] Erro ao ler cache:', err);
+  } catch {
+    // Silenciado em produção
     return null;
   }
 }
@@ -160,16 +156,16 @@ function setInCache<T>(key: CacheKey, data: T, ttl: number = DEFAULT_TTL): void 
     const meta = getCacheMeta();
     meta.totalEntries = countCacheEntries();
     saveCacheMeta(meta);
-  } catch (err) {
-    console.warn('[VehicleCache] Erro ao salvar cache:', err);
+  } catch {
+    // Silenciado em produção
   }
 }
 
 export function removeFromCache(key: CacheKey): void {
   try {
     localStorage.removeItem(getFullKey(key));
-  } catch (err) {
-    console.warn('[VehicleCache] Erro ao remover cache:', err);
+  } catch {
+    // Silenciado em produção
   }
 }
 
@@ -308,9 +304,9 @@ export function clearVehicleCache(): void {
     }
 
     keysToRemove.forEach((key) => localStorage.removeItem(key));
-    console.log(`[VehicleCache] Cache limpo: ${keysToRemove.length} entradas removidas`);
-  } catch (err) {
-    console.warn('[VehicleCache] Erro ao limpar cache:', err);
+    // Log removido para produção - use getCacheStats() para debug
+  } catch {
+    // Silenciado em produção
   }
 }
 
@@ -329,9 +325,9 @@ export function clearSearchCache(): void {
     }
 
     keysToRemove.forEach((key) => localStorage.removeItem(key));
-    console.log(`[VehicleCache] Cache de busca limpo: ${keysToRemove.length} entradas`);
-  } catch (err) {
-    console.warn('[VehicleCache] Erro ao limpar cache de busca:', err);
+    // Log removido para produção
+  } catch {
+    // Silenciado em produção
   }
 }
 
@@ -369,10 +365,10 @@ export function cleanExpiredCache(): number {
     }
 
     if (cleaned > 0) {
-      console.log(`[VehicleCache] Limpeza: ${cleaned} entradas expiradas removidas`);
+      // Log removido para produção
     }
-  } catch (err) {
-    console.warn('[VehicleCache] Erro ao limpar cache expirado:', err);
+  } catch {
+    // Silenciado em produção
   }
 
   return cleaned;
@@ -441,15 +437,7 @@ export function getCacheStats(): {
 // Limpar cache expirado na inicialização (após 2 segundos)
 if (typeof window !== 'undefined') {
   setTimeout(() => {
-    const cleaned = cleanExpiredCache();
-    const stats = getCacheStats();
-
-    if (stats.needsSync) {
-      console.log('[VehicleCache] Cache precisa de sincronização (> 7 dias)');
-    } else if (cleaned === 0 && stats.totalEntries > 0) {
-      console.log(
-        `[VehicleCache] Cache OK: ${stats.totalEntries} entradas, ${stats.totalSizeKB}KB`
-      );
-    }
+    cleanExpiredCache();
+    // Logs removidos para produção - use getCacheStats() para debug
   }, 2000);
 }

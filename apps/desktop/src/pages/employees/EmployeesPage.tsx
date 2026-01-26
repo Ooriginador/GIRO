@@ -64,6 +64,8 @@ import {
 import { useState, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { ExportButtons } from '@/components/shared';
+import { type ExportColumn, exportFormatters } from '@/lib/export';
 
 // Schema de validação com Zod
 const employeeFormSchema = z.object({
@@ -278,6 +280,16 @@ export const EmployeesPage: FC = () => {
     return <div>Carregando funcionários...</div>;
   }
 
+  // Colunas para exportação
+  const exportColumns: ExportColumn<Employee>[] = [
+    { key: 'name', header: 'Nome' },
+    { key: 'email', header: 'E-mail' },
+    { key: 'phone', header: 'Telefone' },
+    { key: 'role', header: 'Cargo', formatter: (v) => roleLabels[v as EmployeeRole] || String(v) },
+    { key: 'isActive', header: 'Status', formatter: exportFormatters.activeInactive },
+    { key: 'createdAt', header: 'Cadastro', formatter: exportFormatters.date },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -286,6 +298,13 @@ export const EmployeesPage: FC = () => {
           <p className="text-muted-foreground">Gerencie quem tem acesso ao sistema</p>
         </div>
         <div className="flex items-center gap-2">
+          <ExportButtons
+            data={filteredEmployees}
+            columns={exportColumns}
+            filename="funcionarios"
+            title="Cadastro de Funcionários"
+            variant="dropdown"
+          />
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrar por status" />

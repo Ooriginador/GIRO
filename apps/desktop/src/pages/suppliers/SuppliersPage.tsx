@@ -58,6 +58,8 @@ import { useState, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+import { ExportButtons } from '@/components/shared';
+import { type ExportColumn, exportFormatters } from '@/lib/export';
 
 // Schema de validação com Zod
 const supplierFormSchema = z.object({
@@ -199,6 +201,17 @@ export const SuppliersPage: FC = () => {
       : allSuppliers;
   const isLoading = loadingActive || loadingInactive;
 
+  // Colunas para exportação
+  const exportColumns: ExportColumn<Supplier>[] = [
+    { key: 'name', header: 'Razão Social' },
+    { key: 'tradeName', header: 'Nome Fantasia' },
+    { key: 'cnpj', header: 'CNPJ' },
+    { key: 'phone', header: 'Telefone' },
+    { key: 'email', header: 'E-mail' },
+    { key: 'address', header: 'Endereço' },
+    { key: 'isActive', header: 'Status', formatter: exportFormatters.activeInactive },
+  ];
+
   // React Hook Form com Zod resolver
   const form = useForm<SupplierFormData>({
     resolver: zodResolver(supplierFormSchema),
@@ -298,73 +311,42 @@ export const SuppliersPage: FC = () => {
           <h1 className="text-3xl font-bold tracking-tight">Fornecedores</h1>
           <p className="text-muted-foreground">Gerencie seus fornecedores e parceiros</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Fornecedor
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>{editingSupplier ? 'Editar Fornecedor' : 'Novo Fornecedor'}</DialogTitle>
-              <DialogDescription>
-                {editingSupplier
-                  ? 'Atualize os dados do fornecedor'
-                  : 'Preencha os dados para cadastrar um novo fornecedor'}
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Razão Social *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome da empresa" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="tradeName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome Fantasia</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome comercial" {...field} />
-                      </FormControl>
-                      <FormDescription>Nome pelo qual a empresa é conhecida</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="cnpj"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CNPJ</FormLabel>
-                      <FormControl>
-                        <Input placeholder="00.000.000/0000-00" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
+        <div className="flex items-center gap-2">
+          <ExportButtons
+            data={filteredSuppliers}
+            columns={exportColumns}
+            filename="fornecedores"
+            title="Cadastro de Fornecedores"
+            variant="dropdown"
+          />
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => handleOpenDialog()}>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Fornecedor
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingSupplier ? 'Editar Fornecedor' : 'Novo Fornecedor'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingSupplier
+                    ? 'Atualize os dados do fornecedor'
+                    : 'Preencha os dados para cadastrar um novo fornecedor'}
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="phone"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Telefone</FormLabel>
+                        <FormLabel>Razão Social *</FormLabel>
                         <FormControl>
-                          <Input placeholder="(00) 00000-0000" {...field} />
+                          <Input placeholder="Nome da empresa" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -372,49 +354,91 @@ export const SuppliersPage: FC = () => {
                   />
                   <FormField
                     control={form.control}
-                    name="email"
+                    name="tradeName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>E-mail</FormLabel>
+                        <FormLabel>Nome Fantasia</FormLabel>
                         <FormControl>
-                          <Input placeholder="contato@empresa.com" {...field} />
+                          <Input placeholder="Nome comercial" {...field} />
+                        </FormControl>
+                        <FormDescription>Nome pelo qual a empresa é conhecida</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="cnpj"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>CNPJ</FormLabel>
+                        <FormControl>
+                          <Input placeholder="00.000.000/0000-00" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Endereço</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Rua, número, bairro, cidade" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={handleCloseDialog}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={createSupplier.isPending || updateSupplier.isPending}
-                  >
-                    {(createSupplier.isPending || updateSupplier.isPending) && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Telefone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="(00) 00000-0000" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>E-mail</FormLabel>
+                          <FormControl>
+                            <Input placeholder="contato@empresa.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Endereço</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Rua, número, bairro, cidade" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                    {editingSupplier ? 'Salvar' : 'Cadastrar'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+                  />
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={handleCloseDialog}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={createSupplier.isPending || updateSupplier.isPending}
+                    >
+                      {(createSupplier.isPending || updateSupplier.isPending) && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      {editingSupplier ? 'Salvar' : 'Cadastrar'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Filters */}

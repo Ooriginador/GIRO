@@ -3,11 +3,13 @@ import { AppShell } from '@/components/layout';
 import { BusinessProfileWizard } from '@/components/shared';
 import { UpdateChecker } from '@/components/UpdateChecker';
 import { useHasAdmin } from '@/hooks/useSetup';
+import { useThemeEffect } from '@/hooks/useThemeEffect';
 /* force refresh */
 import { useAuthStore } from '@/stores/auth-store';
 import { useLicenseStore } from '@/stores/license-store';
 import { useBusinessProfile } from '@/stores/useBusinessProfile';
 import { useNetworkEvents } from '@/hooks/use-network-events';
+import { navLogger, setupLogger } from '@/lib/logger';
 import { type FC, useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes, useNavigate, useLocation } from 'react-router-dom';
 // ... existing imports ...
@@ -15,7 +17,7 @@ import { Navigate, Outlet, Route, Routes, useNavigate, useLocation } from 'react
 const NavigationLogger: FC = () => {
   const location = useLocation();
   useEffect(() => {
-    console.warn('🚩 [Navigation] Path changed to:', location.pathname);
+    navLogger.debug('Path changed to:', location.pathname);
   }, [location.pathname]);
   return null;
 };
@@ -139,9 +141,7 @@ const GlobalSetupGate: FC<{ children: React.ReactNode }> = ({ children }) => {
     if (hasAdmin === false) {
       // Logic from AdminCheck: Purge frontend if backend is clean
       if (isAuthenticated || isConfigured) {
-        console.warn(
-          '❌ [GlobalSetupGate] State mismatch: No admin in DB but frontend has state. PURGING.'
-        );
+        setupLogger.warn('State mismatch: No admin in DB but frontend has state. PURGING.');
         logout();
         resetProfile();
       }
@@ -162,8 +162,8 @@ const GlobalSetupGate: FC<{ children: React.ReactNode }> = ({ children }) => {
   const adminMissing = hasAdmin === false && !isE2E;
 
   if (adminMissing && !isBypass) {
-    console.warn(
-      `[GlobalSetupGate] No Admin detected (hasAdmin=${hasAdmin}). Forcing redirect from ${location.pathname} to /setup`
+    setupLogger.warn(
+      `No Admin detected (hasAdmin=${hasAdmin}). Forcing redirect from ${location.pathname} to /setup`
     );
     return <Navigate to="/setup" replace />;
   }
@@ -181,6 +181,7 @@ const App: FC = () => {
   const { isAuthenticated, restoreSession, isRestoring } = useAuthStore();
   useHelpHotkey();
   useNetworkEvents();
+  useThemeEffect(); // Aplica tema no load inicial
 
   useEffect(() => {
     restoreSession();

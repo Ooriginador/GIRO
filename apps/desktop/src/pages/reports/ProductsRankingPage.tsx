@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useTopProductsRank } from '@/hooks/useReports';
 import { formatCurrency } from '@/lib/utils';
 import { TopProduct } from '@/types';
+import { ExportButtons } from '@/components/shared';
+import { type ExportColumn, exportFormatters } from '@/lib/export';
 import {
   TrendingUp,
   Package,
@@ -27,6 +29,14 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899'
 
 export const ProductsRankingPage: React.FC = () => {
   const { data: topProducts, isLoading } = useTopProductsRank(50);
+
+  // Colunas para exportação
+  const exportColumns: ExportColumn<TopProduct>[] = [
+    { key: 'product.internalCode', header: 'Código' },
+    { key: 'product.name', header: 'Produto' },
+    { key: 'quantity', header: 'Qtd Vendida', align: 'right' },
+    { key: 'revenue', header: 'Faturamento', formatter: exportFormatters.currency, align: 'right' },
+  ];
 
   const chartData =
     topProducts?.slice(0, 10).map((item: TopProduct) => ({

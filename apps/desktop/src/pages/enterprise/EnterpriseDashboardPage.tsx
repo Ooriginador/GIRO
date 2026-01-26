@@ -309,7 +309,7 @@ export const EnterpriseDashboardPage: FC = () => {
   // Transform pending requests to recent requests format
   const recentRequests: RecentRequest[] = (pendingRequests || []).slice(0, 5).map((r) => ({
     id: r.id,
-    code: r.requestNumber,
+    code: r.code,
     status: r.status as RecentRequest['status'],
     requesterName: r.requesterName,
     contractName: r.contractName,
@@ -345,7 +345,7 @@ export const EnterpriseDashboardPage: FC = () => {
   }, [refetchDashboard, refetchRequests]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="enterprise-dashboard">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

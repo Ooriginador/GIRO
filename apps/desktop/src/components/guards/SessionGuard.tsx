@@ -1,3 +1,5 @@
+import { createLogger } from '@/lib/logger';
+const log = createLogger('Session');
 import { useAuthStore } from '@/stores/auth-store';
 import { type FC, type ReactNode, useCallback, useEffect } from 'react';
 
@@ -36,7 +38,7 @@ export const SessionGuard: FC<SessionGuardProps> = ({ children, timeoutMinutes =
     const interval = setInterval(() => {
       const now = Date.now();
       if (now - lastActivity > timeoutMs) {
-        console.log('Session timed out due to inactivity');
+        log.debug('Session timed out due to inactivity');
         logout();
       }
     }, 30000); // Check every 30 seconds

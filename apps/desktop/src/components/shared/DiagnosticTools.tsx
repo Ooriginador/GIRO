@@ -1,3 +1,5 @@
+import { createLogger } from '@/lib/logger';
+const log = createLogger('Diagnostic');
 import { Component, ReactNode, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -54,7 +56,7 @@ export class ErrorBoundary extends Component<Props, State> {
 export const RouteMonitor = () => {
   const location = useLocation();
   useEffect(() => {
-    console.log(
+    log.debug(
       `[RouteMonitor] 🧭 Navigation: ${location.pathname}${location.search}${location.hash}`
     );
 
