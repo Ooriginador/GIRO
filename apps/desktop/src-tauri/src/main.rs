@@ -545,13 +545,33 @@ async fn main() {
     let license_server_url =
         std::env::var("LICENSE_SERVER_URL").unwrap_or_else(|_| default_server_url.to_string());
 
-    // API Key: obrigatório em produção
-    #[cfg(debug_assertions)]
-    let api_key = std::env::var("LICENSE_API_KEY").unwrap_or_else(|_| "dev-key".to_string());
+    // API Key: usa valor padrão se não configurado
+    // Em produção, o instalador deve configurar via arquivo .env ou registry
+    // Se não encontrar, usa chave de fallback que permite modo offline
+    let api_key = std::env::var("LICENSE_API_KEY").unwrap_or_else(|_| {
+        #[cfg(debug_assertions)]
+        {
+            "dev-key".to_string()
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            // Tenta ler de arquivo de configuração local
+            let config_key = std::fs::read_to_string(
+                dirs::config_dir()
+                    .unwrap_or_default()
+                    .join("GIRO")
+                    .join("license.key"),
+            )
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
 
-    #[cfg(not(debug_assertions))]
-    let api_key = std::env::var("LICENSE_API_KEY")
-        .expect("LICENSE_API_KEY environment variable is required in production");
+            config_key.unwrap_or_else(|| {
+                tracing::warn!("LICENSE_API_KEY not found - running in offline/demo mode");
+                "offline-mode".to_string()
+            })
+        }
+    });
 
     let event_service = Arc::new(giro_lib::services::mobile_events::MobileEventService::new());
 

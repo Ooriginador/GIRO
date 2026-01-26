@@ -99,9 +99,7 @@ describe('useActivities', () => {
 
   describe('useActivitiesByCostCenter', () => {
     it('deve buscar atividades por centro de custo', async () => {
-      const mockActivities = [
-        { id: '1', costCenter: 'cc-100', description: 'Atividade A' },
-      ];
+      const mockActivities = [{ id: '1', costCenter: 'cc-100', description: 'Atividade A' }];
 
       vi.mocked(tauri.getActivitiesByCostCenter).mockResolvedValue(mockActivities as any);
 

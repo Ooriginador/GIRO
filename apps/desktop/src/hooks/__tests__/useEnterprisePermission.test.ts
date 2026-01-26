@@ -132,9 +132,7 @@ describe('useEnterprisePermission', () => {
       } as any);
       vi.mocked(useBusinessProfile).mockReturnValue({ businessType: 'ENTERPRISE' } as any);
 
-      const { result } = renderHook(() =>
-        useEnterprisePermissions(['contracts.view'])
-      );
+      const { result } = renderHook(() => useEnterprisePermissions(['contracts.view']));
 
       expect(result.current['contracts.view']).toBe(true);
     });
@@ -145,9 +143,7 @@ describe('useEnterprisePermission', () => {
       } as any);
       vi.mocked(useBusinessProfile).mockReturnValue({ businessType: 'ENTERPRISE' } as any);
 
-      const { result } = renderHook(() =>
-        useEnterprisePermissions(['contracts.view'])
-      );
+      const { result } = renderHook(() => useEnterprisePermissions(['contracts.view']));
 
       expect(result.current['contracts.view']).toBe(false);
     });
@@ -158,9 +154,7 @@ describe('useEnterprisePermission', () => {
       } as any);
       vi.mocked(useBusinessProfile).mockReturnValue({ businessType: 'ENTERPRISE' } as any);
 
-      const { result } = renderHook(() =>
-        useEnterprisePermissions(['contracts.view'])
-      );
+      const { result } = renderHook(() => useEnterprisePermissions(['contracts.view']));
 
       expect(result.current['contracts.view']).toBe(true);
     });
@@ -329,8 +323,6 @@ describe('useEnterprisePermission', () => {
       expect(result.current.isRequester).toBe(true);
       expect(result.current.isSupervisor).toBe(false);
     });
-
-
 
     it('deve retornar isEnterpriseRole false para VENDEDOR', () => {
       vi.mocked(useAuthStore).mockReturnValue({
