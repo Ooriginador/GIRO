@@ -1,11 +1,41 @@
 ; ═══════════════════════════════════════════════════════════════════════════
 ; GIRO - Installer Hooks (NSIS)
 ; Descrição: Hooks customizados para instalação e desinstalação
+; Version: 2.0.0 - Windows Hardening
 ; ═══════════════════════════════════════════════════════════════════════════
+
+!include "WinVer.nsh"
+!include "x64.nsh"
+
+; ═══════════════════════════════════════════════════════════════════════════
+; SYSTEM REQUIREMENTS CHECK
+; ═══════════════════════════════════════════════════════════════════════════
+
+!macro CheckSystemRequirements
+    ; Check Windows Version (minimum Windows 10)
+    ${IfNot} ${AtLeastWin10}
+        MessageBox MB_OK|MB_ICONSTOP \
+            "GIRO requer Windows 10 ou superior.$\r$\n$\r$\n\
+            Seu sistema operacional não é compatível.$\r$\n\
+            Por favor, atualize o Windows e tente novamente."
+        Abort
+    ${EndIf}
+    
+    ; Check 64-bit
+    ${IfNot} ${RunningX64}
+        MessageBox MB_OK|MB_ICONSTOP \
+            "GIRO requer um sistema operacional de 64 bits.$\r$\n$\r$\n\
+            Seu sistema é de 32 bits e não é compatível."
+        Abort
+    ${EndIf}
+!macroend
 
 !macro customInit
     ; Executado antes da instalação
-    DetailPrint "Verificando instalação anterior..."
+    DetailPrint "Verificando requisitos do sistema..."
+    
+    ; Check system requirements
+    !insertmacro CheckSystemRequirements
     
     ; Verificar se já existe instalação
     ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\{com.arkheion.giro}" "UninstallString"
@@ -17,11 +47,27 @@
         
         UninstallPrevious:
             DetailPrint "Desinstalando versão anterior..."
+            ; Kill running process first
+            nsExec::ExecToLog 'taskkill /F /IM "giro-desktop.exe" /T'
+            Sleep 2000
             ExecWait '$0 _?=$INSTDIR'
             Delete $0
             RMDir $INSTDIR
         
         SkipUninstall:
+    ${EndIf}
+    
+    ; Check and warn about WebView2 (informational - Tauri handles installation)
+    DetailPrint "Verificando WebView2..."
+    ReadRegStr $1 HKLM "SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" "pv"
+    ${If} $1 == ""
+        ReadRegStr $1 HKCU "SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" "pv"
+    ${EndIf}
+    
+    ${If} $1 == ""
+        DetailPrint "WebView2 não detectado - será instalado automaticamente"
+    ${Else}
+        DetailPrint "✓ WebView2 versão $1 detectado"
     ${EndIf}
 !macroend
 
@@ -29,18 +75,42 @@
     ; Executado após a instalação dos arquivos
     DetailPrint "Configurando GIRO..."
     
-    ; Criar diretório de dados do usuário
+    ; ═══════════════════════════════════════════════════════════════════════════
+    ; VERIFY WEBVIEW2 INSTALLATION (Post-install check)
+    ; ═══════════════════════════════════════════════════════════════════════════
+    DetailPrint "Verificando instalação do WebView2..."
+    ReadRegStr $0 HKLM "SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" "pv"
+    ${If} $0 == ""
+        ReadRegStr $0 HKCU "SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" "pv"
+    ${EndIf}
+    
+    ${If} $0 == ""
+        MessageBox MB_OK|MB_ICONWARNING \
+            "⚠️ ATENÇÃO: WebView2 Runtime$\r$\n$\r$\n\
+            O WebView2 não foi detectado após a instalação.$\r$\n$\r$\n\
+            O GIRO tentará instalar automaticamente na primeira execução,$\r$\n\
+            mas se houver problemas, baixe manualmente em:$\r$\n$\r$\n\
+            https://developer.microsoft.com/microsoft-edge/webview2/$\r$\n$\r$\n\
+            Selecione 'Evergreen Bootstrapper' e execute."
+    ${Else}
+        DetailPrint "✓ WebView2 Runtime versão $0 confirmado"
+    ${EndIf}
+    
+    ; ═══════════════════════════════════════════════════════════════════════════
+    ; CREATE USER DATA DIRECTORIES
+    ; ═══════════════════════════════════════════════════════════════════════════
     SetShellVarContext current
     CreateDirectory "$LOCALAPPDATA\GIRO"
     CreateDirectory "$LOCALAPPDATA\GIRO\backups"
+    CreateDirectory "$LOCALAPPDATA\GIRO\logs"
     
-    ; Copiar banco de dados inicial (se não existir)
-    ${IfNot} ${FileExists} "$LOCALAPPDATA\GIRO\giro.db"
-        DetailPrint "Inicializando banco de dados..."
-        ; O banco será criado na primeira execução pelo Rust
-    ${EndIf}
+    ; Set proper permissions (allow write for current user)
+    DetailPrint "Configurando permissões..."
+    nsExec::ExecToLog 'icacls "$LOCALAPPDATA\GIRO" /grant:r "%USERNAME%":(OI)(CI)F /T /Q'
     
-    ; Criar atalho no Desktop (opcional)
+    ; ═══════════════════════════════════════════════════════════════════════════
+    ; CREATE DESKTOP SHORTCUT
+    ; ═══════════════════════════════════════════════════════════════════════════
     MessageBox MB_YESNO|MB_ICONQUESTION \
         "Deseja criar um atalho no Desktop?" \
         IDYES CreateDesktopShortcut IDNO SkipDesktopShortcut
@@ -53,27 +123,45 @@
     
     SkipDesktopShortcut:
     
-    ; Registrar no Windows
+    ; ═══════════════════════════════════════════════════════════════════════════
+    ; REGISTER APPLICATION
+    ; ═══════════════════════════════════════════════════════════════════════════
     DetailPrint "Registrando aplicação no sistema..."
     WriteRegStr HKLM "Software\GIRO" "InstallPath" "$INSTDIR"
     WriteRegStr HKLM "Software\GIRO" "Version" "${VERSION}"
     WriteRegStr HKLM "Software\GIRO" "DataPath" "$LOCALAPPDATA\GIRO"
 
     ; ═══════════════════════════════════════════════════════════════════════════
-    ; AUTO CONFIGURE FIREWALL
+    ; CONFIGURE WINDOWS FIREWALL (Silent, no prompts)
     ; ═══════════════════════════════════════════════════════════════════════════
     DetailPrint "Configurando Firewall do Windows..."
 
-    ; 1. Allow Port 3847 (TCP) - Private & Public
+    ; Remove old rules first (if exist)
+    nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="GIRO Mobile Sync" 2>nul'
+    nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="GIRO Desktop App" 2>nul'
+    nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="GIRO Desktop App Out" 2>nul'
+
+    ; Add inbound rule for port 3847 (TCP) - Mobile Sync
     nsExec::ExecToLog 'netsh advfirewall firewall add rule name="GIRO Mobile Sync" dir=in action=allow protocol=TCP localport=3847 profile=private,public'
 
-    ; 2. Allow Application Executable - Private & Public
+    ; Add inbound rule for the application
     nsExec::ExecToLog 'netsh advfirewall firewall add rule name="GIRO Desktop App" dir=in action=allow program="$INSTDIR\giro-desktop.exe" profile=private,public'
+
+    ; Add outbound rule (for updates and license server)
+    nsExec::ExecToLog 'netsh advfirewall firewall add rule name="GIRO Desktop App Out" dir=out action=allow program="$INSTDIR\giro-desktop.exe" profile=private,public'
 
     DetailPrint "✓ Firewall configurado!"
 
+    ; ═══════════════════════════════════════════════════════════════════════════
+    ; ADD WINDOWS DEFENDER EXCLUSION (Prevents false positives)
+    ; ═══════════════════════════════════════════════════════════════════════════
+    DetailPrint "Adicionando exclusão no Windows Defender..."
+    nsExec::ExecToLog 'powershell -Command "Add-MpPreference -ExclusionPath \"$INSTDIR\" -ErrorAction SilentlyContinue"'
+    nsExec::ExecToLog 'powershell -Command "Add-MpPreference -ExclusionPath \"$LOCALAPPDATA\GIRO\" -ErrorAction SilentlyContinue"'
     
-    ; Criar entrada no menu Iniciar
+    ; ═══════════════════════════════════════════════════════════════════════════
+    ; CREATE START MENU SHORTCUTS
+    ; ═══════════════════════════════════════════════════════════════════════════
     CreateDirectory "$SMPROGRAMS\GIRO"
     CreateShortcut "$SMPROGRAMS\GIRO\GIRO.lnk" "$INSTDIR\giro-desktop.exe" \
         "" "$INSTDIR\giro-desktop.exe" 0 SW_SHOWNORMAL \
@@ -82,7 +170,9 @@
         "" "$INSTDIR\uninstall.exe" 0 SW_SHOWNORMAL \
         "" "Desinstalar GIRO"
     
-    DetailPrint "✓ Instalação concluída!"
+    DetailPrint "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    DetailPrint "✓ Instalação concluída com sucesso!"
+    DetailPrint "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 !macroend
 
 !macro customUnInstall

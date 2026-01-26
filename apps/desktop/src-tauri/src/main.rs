@@ -353,22 +353,63 @@ async fn main() {
             .expect("Failed to export typescript bindings");
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 1. CRITICAL: Windows WebView2 Pre-Check (BEFORE anything else)
+    // ═══════════════════════════════════════════════════════════════════════════
+    #[cfg(target_os = "windows")]
+    {
+        if let Err(e) = check_webview2_availability() {
+            show_windows_error(
+                "WebView2 Não Encontrado",
+                &format!(
+                    "O componente WebView2 é necessário para executar o GIRO.\n\n\
+                    Erro: {}\n\n\
+                    O WebView2 será instalado automaticamente.\n\
+                    Por favor, reinicie o GIRO após a instalação.",
+                    e
+                ),
+            );
+            // The Tauri embedBootstrapper should handle this, but we warn early
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 2. Setup App Data Directory (with safer fallback)
+    // ═══════════════════════════════════════════════════════════════════════════
     let app_data = dirs::data_local_dir()
         .map(|p| p.join("GIRO"))
+        .or_else(|| {
+            // Safer fallback: use user's home directory
+            dirs::home_dir().map(|h| h.join(".giro"))
+        })
         .unwrap_or_else(|| {
-            cfg_if::cfg_if! {
-                if #[cfg(windows)] {
-                    // Fallback para C:\GIRO se AppData estiver inacessível (raro)
-                    PathBuf::from("C:\\GIRO")
-                } else {
-                    PathBuf::from("GIRO")
-                }
-            }
+            // Last resort: current directory (not ideal but prevents crash)
+            std::env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .join(".giro")
         });
+
+    // Verify we can write to app_data BEFORE proceeding
+    if let Err(e) = std::fs::create_dir_all(&app_data) {
+        #[cfg(target_os = "windows")]
+        show_windows_error(
+            "Erro de Permissão",
+            &format!(
+                "Não foi possível criar o diretório de dados:\n{}\n\nErro: {}\n\n\
+                Execute o GIRO como Administrador ou verifique as permissões.",
+                app_data.display(),
+                e
+            ),
+        );
+        panic!("Cannot create app data directory: {}", e);
+    }
+
     let log_dir = app_data.join("logs");
     std::fs::create_dir_all(&log_dir).ok();
 
-    // 1. Setup File Logging
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 3. Setup File Logging (EARLY - to catch all errors)
+    // ═══════════════════════════════════════════════════════════════════════════
     let file_appender = tracing_appender::rolling::daily(&log_dir, "giro.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
@@ -382,17 +423,39 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer().with_writer(non_blocking)) // Log to file
         .init();
 
-    // 2. Setup Panic Hook for Windows
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 4. Setup Enhanced Panic Hook for Windows
+    // ═══════════════════════════════════════════════════════════════════════════
     #[cfg(target_os = "windows")]
     {
-        std::panic::set_hook(Box::new(|info| {
-            let message = format!("CRITICAL ERROR (Panic):\n\n{}", info);
+        let log_dir_clone = log_dir.clone();
+        std::panic::set_hook(Box::new(move |info| {
+            let backtrace = std::backtrace::Backtrace::capture();
+            let message = format!(
+                "CRITICAL ERROR (Panic):\n\n{}\n\nBacktrace:\n{}",
+                info, backtrace
+            );
+
+            // Log to file
             tracing::error!("{}", message);
 
-            // Try to show a message box if possible
-            // Note: Since we are in a panic, we can't use complex Tauri calls easily
-            // but we can at least ensure it's in the log file above.
-            println!("{}", message);
+            // Save crash dump
+            let crash_file = log_dir_clone.join(format!(
+                "crash_{}.log",
+                chrono::Local::now().format("%Y%m%d_%H%M%S")
+            ));
+            let _ = std::fs::write(&crash_file, &message);
+
+            // Show native Windows message box
+            show_windows_error(
+                "GIRO - Erro Crítico",
+                &format!(
+                    "O GIRO encontrou um erro crítico e precisa fechar.\n\n\
+                    Um log de erro foi salvo em:\n{}\n\n\
+                    Por favor, envie este arquivo ao suporte técnico.",
+                    crash_file.display()
+                ),
+            );
         }));
     }
 
@@ -1149,4 +1212,101 @@ fn get_primary_mac_address() -> String {
     }
 
     "00-00-00-00-00-00".to_string()
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WINDOWS-SPECIFIC HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Check if WebView2 runtime is available on Windows
+#[cfg(target_os = "windows")]
+fn check_webview2_availability() -> Result<String, String> {
+    use std::process::Command;
+
+    // Method 1: Check via Tauri's built-in detection
+    if let Ok(version) = tauri::webview_version() {
+        return Ok(version);
+    }
+
+    // Method 2: Check registry for WebView2 installation
+    let reg_check = Command::new("reg")
+        .args([
+            "query",
+            r"HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
+            "/v",
+            "pv",
+        ])
+        .output();
+
+    if let Ok(output) = reg_check {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains("pv") && !stdout.contains("0.0.0.0") {
+                return Ok("Registry check passed".to_string());
+            }
+        }
+    }
+
+    // Method 3: Check for user-level installation
+    let user_reg_check = Command::new("reg")
+        .args([
+            "query",
+            r"HKCU\SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
+            "/v",
+            "pv",
+        ])
+        .output();
+
+    if let Ok(output) = user_reg_check {
+        if output.status.success() {
+            return Ok("User-level WebView2 found".to_string());
+        }
+    }
+
+    Err("WebView2 runtime not found. Please install Microsoft Edge WebView2 Runtime.".to_string())
+}
+
+/// Show a native Windows message box (works even during panic)
+#[cfg(target_os = "windows")]
+fn show_windows_error(title: &str, message: &str) {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+    use std::ptr::null_mut;
+
+    // Convert strings to wide strings for Windows API
+    fn to_wide(s: &str) -> Vec<u16> {
+        OsStr::new(s)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect()
+    }
+
+    let title_wide = to_wide(title);
+    let message_wide = to_wide(message);
+
+    // MB_OK | MB_ICONERROR | MB_SYSTEMMODAL
+    const MB_OK: u32 = 0x00000000;
+    const MB_ICONERROR: u32 = 0x00000010;
+    const MB_SYSTEMMODAL: u32 = 0x00001000;
+
+    #[link(name = "user32")]
+    extern "system" {
+        fn MessageBoxW(hwnd: *mut (), text: *const u16, caption: *const u16, utype: u32) -> i32;
+    }
+
+    unsafe {
+        MessageBoxW(
+            null_mut(),
+            message_wide.as_ptr(),
+            title_wide.as_ptr(),
+            MB_OK | MB_ICONERROR | MB_SYSTEMMODAL,
+        );
+    }
+}
+
+/// Dummy function for non-Windows platforms
+#[cfg(not(target_os = "windows"))]
+#[allow(dead_code)]
+fn show_windows_error(_title: &str, _message: &str) {
+    // No-op on non-Windows
 }
