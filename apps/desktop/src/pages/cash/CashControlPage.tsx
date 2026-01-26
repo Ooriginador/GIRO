@@ -110,6 +110,7 @@ export const CashControlPage: FC = () => {
 
   // Sincronizar estado do caixa com a store global quando carregar do backend
   useEffect(() => {
+    // Se o backend retorna sessão, verificar se precisa sincronizar
     if (sessionData) {
       const backendIsOpen = sessionData.status === 'OPEN';
       const storeIsOpen = currentSession?.status === 'OPEN';
@@ -126,10 +127,15 @@ export const CashControlPage: FC = () => {
           closingBalance: sessionData.actualBalance,
           status: 'OPEN',
         });
-      } else if (!backendIsOpen && storeIsOpen) {
+      } else if (!backendIsOpen && currentSession) {
+        // Backend diz que não está aberto mas store tem sessão - limpar
         console.warn('🔄 [CashControl] Syncing closed session to AuthStore');
         clearCashStore?.();
       }
+    } else if (currentSession) {
+      // Backend retornou null (sem sessão aberta) mas store tem sessão - limpar
+      console.warn('🔄 [CashControl] No backend session but store has one - clearing');
+      clearCashStore?.();
     }
   }, [sessionData, employee, currentSession, openCashSession, clearCashStore]);
 

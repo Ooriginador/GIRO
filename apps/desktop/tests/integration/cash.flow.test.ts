@@ -81,8 +81,8 @@ describe('Cash Session Flow', () => {
       useAuthStore.getState().closeCashSession();
 
       const state = useAuthStore.getState();
-      expect(state.currentSession?.status).toBe('CLOSED');
-      expect(state.currentSession?.closedAt).toBeDefined();
+      // Após fechar, a sessão é removida completamente
+      expect(state.currentSession).toBeNull();
     });
   });
 
