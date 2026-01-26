@@ -87,6 +87,11 @@ const roleLabels: Record<EmployeeRole, string> = {
   CASHIER: 'Operador de Caixa',
   STOCKER: 'Estoquista',
   VIEWER: 'Visualizador',
+  // Enterprise roles
+  CONTRACT_MANAGER: 'Gestor de Contratos',
+  SUPERVISOR: 'Supervisor de Frente',
+  WAREHOUSE: 'Almoxarife',
+  REQUESTER: 'Solicitante',
 };
 
 const roleColors: Record<EmployeeRole, string> = {
@@ -95,6 +100,11 @@ const roleColors: Record<EmployeeRole, string> = {
   CASHIER: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   STOCKER: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
   VIEWER: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
+  // Enterprise roles
+  CONTRACT_MANAGER: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+  SUPERVISOR: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400',
+  WAREHOUSE: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+  REQUESTER: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400',
 };
 
 type StatusFilter = 'active' | 'inactive' | 'all';
@@ -216,11 +226,15 @@ export const EmployeesPage: FC = () => {
 
   const handleEdit = (employee: Employee) => {
     setEditingEmployee(employee);
+    // Cast role to form-compatible type, enterprise roles will be treated as VIEWER
+    const formRole = ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER', 'VIEWER'].includes(employee.role)
+      ? (employee.role as 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STOCKER' | 'VIEWER')
+      : 'VIEWER';
     form.reset({
       name: employee.name,
       email: employee.email || '',
       phone: employee.phone || '',
-      role: employee.role,
+      role: formRole,
       pin: '', // PIN não é editado aqui
     });
     setIsDialogOpen(true);

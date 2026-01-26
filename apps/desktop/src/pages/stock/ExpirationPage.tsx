@@ -83,8 +83,13 @@ export const ExpirationPage: FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/stock')}>
-          <ArrowLeft className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/stock')}
+          aria-label="Voltar para estoque"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Controle de Validades</h1>
@@ -93,38 +98,60 @@ export const ExpirationPage: FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-destructive/50">
+      <div
+        className="grid gap-4 md:grid-cols-3"
+        role="region"
+        aria-label="Estatísticas de validade"
+      >
+        <Card className="border-destructive/50" aria-labelledby="stat-expired-label">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Vencidos</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <CardTitle id="stat-expired-label" className="text-sm font-medium">
+              Vencidos
+            </CardTitle>
+            <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive" data-testid="stat-expired">
+            <div
+              className="text-2xl font-bold text-destructive"
+              data-testid="stat-expired"
+              aria-describedby="stat-expired-label"
+            >
               {stats.expired}
             </div>
             <p className="text-xs text-muted-foreground">Retirar do estoque</p>
           </CardContent>
         </Card>
-        <Card className="border-warning/50">
+        <Card className="border-warning/50" aria-labelledby="stat-critical-label">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Críticos (3 dias)</CardTitle>
-            <Clock className="h-4 w-4 text-warning" />
+            <CardTitle id="stat-critical-label" className="text-sm font-medium">
+              Críticos (3 dias)
+            </CardTitle>
+            <Clock className="h-4 w-4 text-warning" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning" data-testid="stat-critical">
+            <div
+              className="text-2xl font-bold text-warning"
+              data-testid="stat-critical"
+              aria-describedby="stat-critical-label"
+            >
               {stats.critical}
             </div>
             <p className="text-xs text-muted-foreground">Vender com urgência</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card aria-labelledby="stat-warning-label">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Atenção (7 dias)</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle id="stat-warning-label" className="text-sm font-medium">
+              Atenção (7 dias)
+            </CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="stat-warning">
+            <div
+              className="text-2xl font-bold"
+              data-testid="stat-warning"
+              aria-describedby="stat-warning-label"
+            >
               {stats.warning}
             </div>
             <p className="text-xs text-muted-foreground">Considerar promoção</p>
@@ -135,7 +162,7 @@ export const ExpirationPage: FC = () => {
       {/* Filter */}
       <div className="flex justify-end">
         <Select value={filter} onValueChange={(v) => setFilter(v as FilterType)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px]" aria-label="Filtrar por status de validade">
             <SelectValue placeholder="Filtrar" />
           </SelectTrigger>
           <SelectContent>
@@ -149,15 +176,20 @@ export const ExpirationPage: FC = () => {
 
       {/* Loading */}
       {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div
+          className="flex items-center justify-center py-12"
+          role="status"
+          aria-label="Carregando dados de validade"
+        >
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
+          <span className="sr-only">Carregando...</span>
         </div>
       )}
 
       {/* Empty State */}
       {!isLoading && filteredLots.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Package className="h-12 w-12 text-muted-foreground/50" />
+        <div className="flex flex-col items-center justify-center py-12 text-center" role="status">
+          <Package className="h-12 w-12 text-muted-foreground/50" aria-hidden="true" />
           <h3 className="mt-4 text-lg font-medium">Nenhum produto encontrado</h3>
           <p className="mt-2 text-muted-foreground">
             {filter === 'all'
@@ -171,7 +203,7 @@ export const ExpirationPage: FC = () => {
       {!isLoading && filteredLots.length > 0 && (
         <Card>
           <CardContent className="p-0" data-tutorial="expiration-list">
-            <Table>
+            <Table aria-label="Lista de produtos por validade">
               <TableHeader>
                 <TableRow>
                   <TableHead>Produto</TableHead>

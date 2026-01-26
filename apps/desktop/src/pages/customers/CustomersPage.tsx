@@ -81,7 +81,7 @@ export const CustomersPage: FC = () => {
             setShowCreateDialog(true);
           }}
         >
-          <UserPlus className="mr-2 h-4 w-4" />
+          <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
           Novo Cliente
         </Button>
       </div>
@@ -89,37 +89,43 @@ export const CustomersPage: FC = () => {
       <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
         <CardHeader>
           <CardTitle>Listagem de Clientes</CardTitle>
-          <div className="relative mt-2">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <div className="relative mt-2" role="search" aria-label="Buscar clientes">
+            <Search
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
             <Input
               placeholder="Buscar por nome, CPF ou telefone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
+              aria-label="Buscar cliente por nome, CPF ou telefone"
             />
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
+          <Table aria-label="Lista de clientes">
             <TableHeader>
               <TableRow>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead>CPF</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="text-right">
+                  <span className="sr-only">Ações</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center" role="status">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : filteredCustomers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center" role="status">
                     Nenhum cliente encontrado.
                   </TableCell>
                 </TableRow>
@@ -128,7 +134,10 @@ export const CustomersPage: FC = () => {
                   <TableRow key={customer.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <div
+                          className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center"
+                          aria-hidden="true"
+                        >
                           <User className="h-4 w-4 text-primary" />
                         </div>
                         {customer.name}
@@ -138,40 +147,47 @@ export const CustomersPage: FC = () => {
                       <div className="flex flex-col text-sm">
                         {customer.phone && (
                           <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" /> {customer.phone}
+                            <Phone className="h-3 w-3" aria-hidden="true" /> {customer.phone}
                           </span>
                         )}
                         {customer.email && (
                           <span className="flex items-center gap-1 text-muted-foreground">
-                            <Mail className="h-3 w-3" /> {customer.email}
+                            <Mail className="h-3 w-3" aria-hidden="true" /> {customer.email}
                           </span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>{customer.cpf || '-'}</TableCell>
                     <TableCell>
-                      <Badge variant={customer.isActive ? 'default' : 'secondary'}>
+                      <Badge
+                        variant={customer.isActive ? 'default' : 'secondary'}
+                        aria-label={`Status: ${customer.isActive ? 'ativo' : 'inativo'}`}
+                      >
                         {customer.isActive ? 'Ativo' : 'Inativo'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Ações para ${customer.name}`}
+                          >
+                            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => handleEdit(customer)}>
-                            <Edit className="mr-2 h-4 w-4" /> Editar
+                            <Edit className="mr-2 h-4 w-4" aria-hidden="true" /> Editar
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() => handleDelete(customer.id)}
                           >
-                            <Trash2 className="mr-2 h-4 w-4" /> Desativar
+                            <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Desativar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

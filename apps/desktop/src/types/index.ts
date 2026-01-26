@@ -7,6 +7,7 @@
 export * from './business-profile';
 export * from './motoparts';
 export * from './nfce';
+export * from './enterprise';
 
 import type { Customer } from './motoparts';
 
@@ -26,7 +27,17 @@ export type ProductUnit =
   | 'BOX'
   | 'DOZEN';
 
-export type EmployeeRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'VIEWER' | 'STOCKER';
+export type EmployeeRole =
+  | 'ADMIN'
+  | 'MANAGER'
+  | 'CASHIER'
+  | 'VIEWER'
+  | 'STOCKER'
+  // Enterprise específicos
+  | 'CONTRACT_MANAGER' // Gerente de contrato/obra
+  | 'SUPERVISOR' // Supervisor de frente de trabalho
+  | 'WAREHOUSE' // Almoxarife/Estoquista industrial
+  | 'REQUESTER'; // Requisitante comum
 
 export type PaymentMethod = 'CASH' | 'PIX' | 'CREDIT' | 'DEBIT' | 'VOUCHER' | 'OTHER';
 
@@ -87,6 +98,7 @@ export interface Product {
   id: string;
   barcode?: string;
   internalCode: string;
+  code?: string; // Alias para internalCode
   name: string;
   description?: string;
   categoryId: string;

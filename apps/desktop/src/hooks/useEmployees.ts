@@ -48,11 +48,25 @@ export function useInactiveEmployees() {
 // MUTATIONS
 // ────────────────────────────────────────────────────────────────────────────
 
+/** Input para criar funcionário */
+export type CreateEmployeeInput = {
+  name: string;
+  role: string; // Aceita todos os roles incluindo Enterprise
+  pin?: string;
+  phone?: string;
+  email?: string;
+  isActive?: boolean;
+  cpf?: string | null;
+  password?: string | null;
+  commissionRate?: number | null;
+};
+
 export function useCreateEmployee() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>) => createEmployee(input),
+    mutationFn: (input: CreateEmployeeInput) =>
+      createEmployee(input as unknown as Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.all });
     },

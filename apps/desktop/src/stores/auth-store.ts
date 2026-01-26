@@ -61,6 +61,39 @@ export const PERMISSIONS = {
 
   // Estoque
   'stock.view_value': ['ADMIN', 'MANAGER', 'STOCKER'],
+
+  // ════════════════════════════════════════════════════════════════════════
+  // ENTERPRISE - Contratos
+  // ════════════════════════════════════════════════════════════════════════
+  'enterprise.contracts.view': ['ADMIN', 'MANAGER', 'CONTRACT_MANAGER', 'SUPERVISOR'],
+  'enterprise.contracts.create': ['ADMIN', 'CONTRACT_MANAGER'],
+  'enterprise.contracts.edit': ['ADMIN', 'CONTRACT_MANAGER'],
+  'enterprise.contracts.delete': ['ADMIN'],
+
+  // ENTERPRISE - Requisições
+  'enterprise.requests.view': [
+    'ADMIN',
+    'MANAGER',
+    'CONTRACT_MANAGER',
+    'SUPERVISOR',
+    'WAREHOUSE',
+    'REQUESTER',
+  ],
+  'enterprise.requests.create': ['ADMIN', 'SUPERVISOR', 'REQUESTER'],
+  'enterprise.requests.approve': ['ADMIN', 'CONTRACT_MANAGER', 'SUPERVISOR'],
+  'enterprise.requests.separate': ['ADMIN', 'WAREHOUSE'],
+  'enterprise.requests.deliver': ['ADMIN', 'WAREHOUSE'],
+
+  // ENTERPRISE - Transferências
+  'enterprise.transfers.view': ['ADMIN', 'MANAGER', 'CONTRACT_MANAGER', 'WAREHOUSE'],
+  'enterprise.transfers.create': ['ADMIN', 'WAREHOUSE'],
+  'enterprise.transfers.approve': ['ADMIN', 'CONTRACT_MANAGER'],
+  'enterprise.transfers.execute': ['ADMIN', 'WAREHOUSE'],
+
+  // ENTERPRISE - Inventário
+  'enterprise.inventory.view': ['ADMIN', 'MANAGER', 'CONTRACT_MANAGER', 'WAREHOUSE'],
+  'enterprise.inventory.count': ['ADMIN', 'WAREHOUSE'],
+  'enterprise.inventory.adjust': ['ADMIN', 'WAREHOUSE'],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -104,17 +137,25 @@ interface AuthState {
 
 const roleHierarchy: Record<EmployeeRole, number> = {
   VIEWER: 0,
+  REQUESTER: 1, // Enterprise
   STOCKER: 1,
   CASHIER: 1,
+  WAREHOUSE: 2, // Enterprise
+  SUPERVISOR: 2, // Enterprise
   MANAGER: 2,
-  ADMIN: 3,
+  CONTRACT_MANAGER: 3, // Enterprise
+  ADMIN: 4,
 };
 
 const discountLimits: Record<EmployeeRole, number> = {
   VIEWER: 0,
+  REQUESTER: 0, // Enterprise - sem desconto
   STOCKER: 5,
   CASHIER: 5,
+  WAREHOUSE: 0, // Enterprise - sem desconto
+  SUPERVISOR: 10, // Enterprise
   MANAGER: 20,
+  CONTRACT_MANAGER: 20, // Enterprise
   ADMIN: 100,
 };
 

@@ -1,89 +1,166 @@
+/**
+ * 🎨 GIRO Desktop - Estilos Globais
+ * 
+ * Design System Unificado - Arkheion Corp
+ * @version 2.0.0
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Tema Claro - Cores do Varejo (Verde como primário) */
+    /* ═══════════════════════════════════════════════════════════════════════════
+       🎨 GIRO BRAND COLORS
+       ═══════════════════════════════════════════════════════════════════════════ */
+
+    /* Primary - Verde GIRO (#22c55e) */
+    --giro-green-50: 142 100% 97%;
+    --giro-green-100: 141 93% 93%;
+    --giro-green-200: 141 88% 86%;
+    --giro-green-300: 142 79% 73%;
+    --giro-green-400: 142 69% 58%;
+    --giro-green-500: 142 71% 45%;
+    --giro-green-600: 142 76% 36%;
+    --giro-green-700: 142 72% 29%;
+    --giro-green-800: 143 64% 24%;
+    --giro-green-900: 144 61% 20%;
+
+    /* Accent - Laranja GIRO (#f97316) */
+    --giro-orange-50: 33 100% 96%;
+    --giro-orange-100: 34 100% 91%;
+    --giro-orange-200: 32 98% 83%;
+    --giro-orange-300: 31 97% 72%;
+    --giro-orange-400: 27 96% 61%;
+    --giro-orange-500: 25 95% 53%;
+    --giro-orange-600: 21 90% 48%;
+    --giro-orange-700: 17 88% 40%;
+    --giro-orange-800: 15 79% 34%;
+    --giro-orange-900: 15 75% 28%;
+
+    /* Neutral - Gray Scale */
+    --giro-gray-50: 210 40% 98%;
+    --giro-gray-100: 210 40% 96%;
+    --giro-gray-200: 214 32% 91%;
+    --giro-gray-300: 213 27% 84%;
+    --giro-gray-400: 215 20% 65%;
+    --giro-gray-500: 215 16% 47%;
+    --giro-gray-600: 215 19% 35%;
+    --giro-gray-700: 215 25% 27%;
+    --giro-gray-800: 217 33% 17%;
+    --giro-gray-900: 222 47% 11%;
+    --giro-gray-950: 229 84% 5%;
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       🎯 SHADCN/UI MAPPING - LIGHT THEME
+       ═══════════════════════════════════════════════════════════════════════════ */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Verde Varejo como cor primária */
-    --primary: 142.1 76.2% 36.3%;
-    --primary-foreground: 355.7 100% 97.3%;
+    /* Primary = Verde GIRO */
+    --primary: 142 71% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent = Laranja GIRO */
+    --accent: 25 95% 53%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 142.1 76.2% 36.3%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 142 71% 45%;
 
     --radius: 0.5rem;
 
-    /* Cores adicionais para o varejo */
-    --success: 142.1 76.2% 36.3%;
-    --success-foreground: 355.7 100% 97.3%;
+    /* ═══════════════════════════════════════════════════════════════════════════
+       ✅ SEMANTIC COLORS
+       ═══════════════════════════════════════════════════════════════════════════ */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
+    --warning-foreground: 222 47% 11%;
 
-    --info: 199 89% 48%;
-    --info-foreground: 213 100% 96%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       📝 TYPOGRAPHY
+       ═══════════════════════════════════════════════════════════════════════════ */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   }
 
+  /* ═══════════════════════════════════════════════════════════════════════════
+     🌙 DARK THEME
+     ═══════════════════════════════════════════════════════════════════════════ */
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 229 84% 5%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 11%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 142.1 70.6% 45.3%;
-    --primary-foreground: 144.9 80.4% 10%;
+    --primary: 142 71% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 25 95% 53%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 62% 30%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142.4 71.8% 29.2%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 142 71% 45%;
 
-    --success: 142.1 70.6% 45.3%;
-    --success-foreground: 144.9 80.4% 10%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 5%;
+    --warning-foreground: 222 47% 11%;
 
-    --info: 199 89% 48%;
-    --info-foreground: 213 100% 6%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     🏢 ENTERPRISE THEME (Azul Industrial)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .theme-enterprise {
+    --primary: 217 91% 60%;
+    --ring: 217 91% 60%;
+  }
+
+  .theme-enterprise.dark {
+    --primary: 213 94% 68%;
+    --ring: 213 94% 68%;
   }
 }
 
@@ -128,18 +205,77 @@
 }
 
 @layer components {
-  /* Padrões do PDV */
+  /* ═══════════════════════════════════════════════════════════════════════════
+     📦 GIRO CARDS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-card {
+    @apply bg-card text-card-foreground rounded-lg border shadow-sm;
+  }
+
+  .giro-card-padded {
+    @apply giro-card p-4;
+  }
+
+  .giro-card-interactive {
+    @apply giro-card transition-shadow duration-200 hover:shadow-md cursor-pointer;
+  }
+
+  /* Legacy alias */
   .pdv-card {
-    @apply bg-card rounded-lg border shadow-sm p-4;
+    @apply giro-card-padded;
   }
 
+  /* ═══════════════════════════════════════════════════════════════════════════
+     🔘 GIRO BUTTONS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-btn {
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2 rounded-md font-medium
+           transition-colors duration-200
+           focus-visible:outline-none focus-visible:ring-2 
+           focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .giro-btn-primary {
+    @apply giro-btn bg-primary text-primary-foreground 
+           hover:bg-primary/90 active:bg-primary/80;
+  }
+
+  .giro-btn-secondary {
+    @apply giro-btn bg-secondary text-secondary-foreground 
+           hover:bg-secondary/80 active:bg-secondary/70;
+  }
+
+  .giro-btn-outline {
+    @apply giro-btn bg-transparent border border-input 
+           hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .giro-btn-ghost {
+    @apply giro-btn bg-transparent 
+           hover:bg-accent/10 hover:text-accent-foreground;
+  }
+
+  .giro-btn-destructive {
+    @apply giro-btn bg-destructive text-destructive-foreground 
+           hover:bg-destructive/90 active:bg-destructive/80;
+  }
+
+  .giro-btn-success {
+    @apply giro-btn bg-success text-success-foreground 
+           hover:bg-success/90 active:bg-success/80;
+  }
+
+  /* Legacy alias */
   .pdv-button-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 
-           px-4 py-2 rounded-md font-medium transition-colors
-           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+    @apply giro-btn-primary;
   }
 
-  .pdv-input {
+  /* ═══════════════════════════════════════════════════════════════════════════
+     📝 GIRO INPUTS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-input {
     @apply flex h-10 w-full rounded-md border border-input bg-background 
            px-3 py-2 text-sm ring-offset-background 
            file:border-0 file:bg-transparent file:text-sm file:font-medium 
@@ -149,43 +285,199 @@
            disabled:cursor-not-allowed disabled:opacity-50;
   }
 
-  /* Status badges */
+  .giro-input-lg {
+    @apply giro-input h-12 text-base px-4;
+  }
+
+  .giro-input-error {
+    @apply giro-input border-destructive focus-visible:ring-destructive;
+  }
+
+  /* Legacy alias */
+  .pdv-input {
+    @apply giro-input;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     🏷️ GIRO BADGES
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-badge {
+    @apply inline-flex items-center gap-1
+           px-2.5 py-0.5 rounded-full 
+           text-xs font-medium;
+  }
+
+  .giro-badge-default {
+    @apply giro-badge bg-secondary text-secondary-foreground;
+  }
+
+  .giro-badge-primary {
+    @apply giro-badge bg-primary/10 text-primary border border-primary/20;
+  }
+
+  .giro-badge-success {
+    @apply giro-badge bg-success/10 text-success border border-success/20;
+  }
+
+  .giro-badge-warning {
+    @apply giro-badge bg-warning/10 text-warning border border-warning/20;
+  }
+
+  .giro-badge-error {
+    @apply giro-badge bg-destructive/10 text-destructive border border-destructive/20;
+  }
+
+  .giro-badge-info {
+    @apply giro-badge bg-info/10 text-info border border-info/20;
+  }
+
+  /* Legacy aliases */
   .badge-success {
-    @apply bg-success/10 text-success border border-success/20 
-           px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply giro-badge-success;
   }
 
   .badge-warning {
-    @apply bg-warning/10 text-warning border border-warning/20 
-           px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply giro-badge-warning;
   }
 
   .badge-destructive {
-    @apply bg-destructive/10 text-destructive border border-destructive/20 
-           px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply giro-badge-error;
   }
 
   .badge-info {
-    @apply bg-info/10 text-info border border-info/20 
-           px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply giro-badge-info;
   }
 
-  /* Atalhos de teclado */
-  .kbd {
-    @apply inline-flex items-center justify-center px-1.5 py-0.5 
-           text-xs font-mono font-medium bg-muted rounded 
-           border border-border shadow-sm;
-  }
-}
-
-@layer utilities {
-  /* Utilitários para o PDV */
-  .text-money {
+  /* ═══════════════════════════════════════════════════════════════════════════
+     💰 PRICE DISPLAY (PDV)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-price {
+    @apply font-mono;
     font-feature-settings: 'tnum' 1, 'lnum' 1;
     font-variant-numeric: tabular-nums;
   }
 
+  .giro-price-lg {
+    @apply giro-price text-3xl font-bold;
+  }
+
+  .giro-price-xl {
+    @apply giro-price text-4xl font-bold;
+  }
+
+  .giro-price-xxl {
+    @apply giro-price text-5xl font-bold;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     ⌨️ KEYBOARD SHORTCUTS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-kbd {
+    @apply inline-flex items-center justify-center px-1.5 py-0.5 
+           text-xs font-mono font-medium bg-muted rounded 
+           border border-border shadow-sm;
+  }
+
+  /* Legacy alias */
+  .kbd {
+    @apply giro-kbd;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     🏢 ENTERPRISE STATUS BADGES
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-status-pending {
+    @apply giro-badge bg-yellow-100 text-yellow-800 border-yellow-200;
+  }
+
+  .giro-status-approved {
+    @apply giro-badge bg-green-100 text-green-800 border-green-200;
+  }
+
+  .giro-status-rejected {
+    @apply giro-badge bg-red-100 text-red-800 border-red-200;
+  }
+
+  .giro-status-delivered {
+    @apply giro-badge bg-blue-100 text-blue-800 border-blue-200;
+  }
+
+  .giro-status-in-transit {
+    @apply giro-badge bg-purple-100 text-purple-800 border-purple-200;
+  }
+}
+
+@layer utilities {
+  /* ═══════════════════════════════════════════════════════════════════════════
+     🛠️ GIRO UTILITIES
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Números tabulares para preços */
+  .giro-tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+
+  .text-money {
+    @apply giro-tabular-nums;
+  }
+
+  /* Hide scrollbar */
+  .giro-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .giro-no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Truncate multiline */
+  .giro-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .giro-truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Animation classes */
+  .giro-animate-in {
+    animation: giro-fade-in 0.2s ease-out;
+  }
+
+  .giro-animate-pulse-success {
+    animation: giro-pulse-success 1s ease-in-out infinite;
+  }
+
   .animate-success-pulse {
-    @apply animate-pulse-success;
+    @apply giro-animate-pulse-success;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🎬 KEYFRAMES
+   ═══════════════════════════════════════════════════════════════════════════ */
+@keyframes giro-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes giro-pulse-success {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--success) / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px hsl(var(--success) / 0);
   }
 }

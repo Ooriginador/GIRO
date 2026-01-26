@@ -138,7 +138,7 @@ export const CategoryForm: FC<CategoryFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2">
-                  <FolderTree className="h-4 w-4" />
+                  <FolderTree className="h-4 w-4" aria-hidden="true" />
                   Categoria Pai (Sub-categoria)
                 </FormLabel>
                 <Select
@@ -146,7 +146,7 @@ export const CategoryForm: FC<CategoryFormProps> = ({
                   value={field.value || 'none'}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Selecionar categoria pai">
                       <SelectValue placeholder="Nenhuma (Principal)" />
                     </SelectTrigger>
                   </FormControl>
@@ -172,23 +172,29 @@ export const CategoryForm: FC<CategoryFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2">
-                  <Palette className="h-4 w-4" />
+                  <Palette className="h-4 w-4" aria-hidden="true" />
                   Cor de Identificação
                 </FormLabel>
-                <div className="flex flex-wrap gap-2 pt-1">
+                <div
+                  className="flex flex-wrap gap-2 pt-1"
+                  role="radiogroup"
+                  aria-label="Selecionar cor da categoria"
+                >
                   {CATEGORY_COLORS.map((color) => (
                     <button
                       key={color.value}
                       type="button"
+                      role="radio"
+                      aria-checked={field.value === color.value}
+                      aria-label={`Cor ${color.name}`}
                       className={cn(
-                        'h-7 w-7 rounded-full transition-all hover:scale-110 shadow-sm border border-black/5',
+                        'h-7 w-7 rounded-full transition-all hover:scale-110 shadow-sm border border-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
                         field.value === color.value
                           ? 'ring-2 ring-primary ring-offset-2 scale-105'
                           : 'opacity-80 hover:opacity-100'
                       )}
                       style={{ backgroundColor: color.value }}
                       onClick={() => field.onChange(color.value)}
-                      title={color.name}
                     />
                   ))}
                 </div>
@@ -199,20 +205,27 @@ export const CategoryForm: FC<CategoryFormProps> = ({
         </div>
 
         {/* Rodapé de Ações */}
-        <div className="flex justify-end gap-3 pt-4 border-t">
+        <div
+          className="flex justify-end gap-3 pt-4 border-t"
+          role="group"
+          aria-label="Ações do formulário"
+        >
           <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-            <X className="h-4 w-4 mr-2" />
+            <X className="h-4 w-4 mr-2" aria-hidden="true" />
             Cancelar
           </Button>
           <Button type="submit" disabled={isLoading}>
             {isLoading ? (
               <div className="flex items-center">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                <div
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"
+                  aria-hidden="true"
+                />
                 Salvando...
               </div>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-4 w-4 mr-2" aria-hidden="true" />
                 {initialData ? 'Salvar Alterações' : 'Criar Categoria'}
               </>
             )}

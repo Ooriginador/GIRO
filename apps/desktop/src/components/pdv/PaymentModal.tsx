@@ -275,13 +275,14 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
   };
 
   const renderPaymentSelection = () => (
-    <div className="grid gap-4">
+    <div className="grid gap-4" role="group" aria-label="Selecione a forma de pagamento">
       <Button
         variant="outline"
         className="h-20 text-lg justify-start gap-4"
         onClick={() => setPaymentMethod('CASH')}
+        aria-label="Pagar em dinheiro"
       >
-        <Banknote className="h-8 w-8 text-success" />
+        <Banknote className="h-8 w-8 text-success" aria-hidden="true" />
         <div className="text-left">
           <div className="font-semibold">Dinheiro</div>
           <div className="text-sm text-muted-foreground">Informe o valor recebido</div>
@@ -295,8 +296,9 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
           setPaymentMethod('PIX');
           setAmountPaid(total.toFixed(2));
         }}
+        aria-label="Pagar via PIX"
       >
-        <QrCode className="h-8 w-8 text-info" />
+        <QrCode className="h-8 w-8 text-info" aria-hidden="true" />
         <div className="text-left">
           <div className="font-semibold">PIX</div>
           <div className="text-sm text-muted-foreground">Pagamento instantâneo</div>
@@ -310,8 +312,9 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
           setPaymentMethod('CREDIT');
           setAmountPaid(total.toFixed(2));
         }}
+        aria-label="Pagar com cartão de crédito"
       >
-        <CreditCard className="h-8 w-8 text-primary" />
+        <CreditCard className="h-8 w-8 text-primary" aria-hidden="true" />
         <div className="text-left">
           <div className="font-semibold">Cartão de Crédito</div>
           <div className="text-sm text-muted-foreground">Parcelado ou à vista</div>
@@ -325,8 +328,9 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
           setPaymentMethod('DEBIT');
           setAmountPaid(total.toFixed(2));
         }}
+        aria-label="Pagar com cartão de débito"
       >
-        <CreditCard className="h-8 w-8 text-secondary-foreground" />
+        <CreditCard className="h-8 w-8 text-secondary-foreground" aria-hidden="true" />
         <div className="text-left">
           <div className="font-semibold">Cartão de Débito</div>
           <div className="text-sm text-muted-foreground">Débito na hora</div>
@@ -340,8 +344,9 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
           setPaymentMethod('VOUCHER');
           setAmountPaid(total.toFixed(2));
         }}
+        aria-label="Pagar com vale alimentação ou refeição"
       >
-        <Ticket className="h-8 w-8 text-warning" />
+        <Ticket className="h-8 w-8 text-warning" aria-hidden="true" />
         <div className="text-left">
           <div className="font-semibold">Vale Alimentação/Refeição</div>
           <div className="text-sm text-muted-foreground">VR, VA, Ticket, Sodexo, etc.</div>
@@ -354,8 +359,9 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
         variant="outline"
         className="h-16 text-lg justify-start gap-4 border-dashed"
         onClick={() => setIsSplitMode(true)}
+        aria-label="Dividir pagamento entre múltiplas formas"
       >
-        <Split className="h-6 w-6 text-muted-foreground" />
+        <Split className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
         <div className="text-left">
           <div className="font-semibold">Pagamento Múltiplo</div>
           <div className="text-sm text-muted-foreground">Dividir entre diferentes formas</div>
@@ -367,11 +373,16 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
   const renderCashPayment = () => (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => setPaymentMethod(null)}>
-          <ArrowLeft className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setPaymentMethod(null)}
+          aria-label="Voltar para seleção de pagamento"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Button>
         <div className="flex items-center gap-2">
-          <Banknote className="h-5 w-5 text-success" />
+          <Banknote className="h-5 w-5 text-success" aria-hidden="true" />
           <span className="font-semibold">Pagamento em Dinheiro</span>
         </div>
       </div>
@@ -380,7 +391,10 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
         <div>
           <Label htmlFor="amount">Valor Recebido</Label>
           <div className="relative mt-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-medium text-muted-foreground">
+            <span
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-medium text-muted-foreground"
+              aria-hidden="true"
+            >
               R$
             </span>
             <Input
@@ -393,22 +407,39 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
               className="h-14 pl-10 text-2xl text-money font-bold"
               placeholder="0,00"
               data-tutorial="cash-amount-input"
+              aria-describedby="amount-help"
             />
           </div>
         </div>
 
         {/* Botões de valor rápido */}
-        <div className="grid grid-cols-4 gap-2">
-          <Button variant="outline" onClick={() => handleQuickAmount(10)}>
+        <div className="grid grid-cols-4 gap-2" role="group" aria-label="Valores rápidos">
+          <Button
+            variant="outline"
+            onClick={() => handleQuickAmount(10)}
+            aria-label="Inserir 10 reais"
+          >
             R$ 10
           </Button>
-          <Button variant="outline" onClick={() => handleQuickAmount(20)}>
+          <Button
+            variant="outline"
+            onClick={() => handleQuickAmount(20)}
+            aria-label="Inserir 20 reais"
+          >
             R$ 20
           </Button>
-          <Button variant="outline" onClick={() => handleQuickAmount(50)}>
+          <Button
+            variant="outline"
+            onClick={() => handleQuickAmount(50)}
+            aria-label="Inserir 50 reais"
+          >
             R$ 50
           </Button>
-          <Button variant="outline" onClick={() => handleQuickAmount(100)}>
+          <Button
+            variant="outline"
+            onClick={() => handleQuickAmount(100)}
+            aria-label="Inserir 100 reais"
+          >
             R$ 100
           </Button>
         </div>
@@ -421,7 +452,12 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
       <Separator />
 
       {/* Resumo */}
-      <div className="space-y-2 rounded-lg bg-muted p-4">
+      <div
+        className="space-y-2 rounded-lg bg-muted p-4"
+        role="region"
+        aria-label="Resumo do pagamento"
+        aria-live="polite"
+      >
         <div className="flex justify-between">
           <span className="text-muted-foreground">Total</span>
           <span className="text-money font-medium">{formatCurrency(total)}</span>
@@ -439,6 +475,8 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
               change >= 0 ? 'text-success' : 'text-destructive'
             )}
             data-testid="change-amount"
+            role="status"
+            aria-label={`Troco: ${formatCurrency(amountPaidNum - total)}`}
           >
             {formatCurrency(amountPaidNum - total)}
           </span>
@@ -450,14 +488,23 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
   const renderOtherPayment = () => (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => setPaymentMethod(null)}>
-          <ArrowLeft className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setPaymentMethod(null)}
+          aria-label="Voltar para seleção de pagamento"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Button>
         <div className="flex items-center gap-2">
-          {paymentMethod === 'PIX' && <QrCode className="h-5 w-5 text-info" />}
-          {paymentMethod === 'CREDIT' && <CreditCard className="h-5 w-5 text-primary" />}
-          {paymentMethod === 'DEBIT' && <CreditCard className="h-5 w-5" />}
-          {paymentMethod === 'VOUCHER' && <Ticket className="h-5 w-5 text-warning" />}
+          {paymentMethod === 'PIX' && <QrCode className="h-5 w-5 text-info" aria-hidden="true" />}
+          {paymentMethod === 'CREDIT' && (
+            <CreditCard className="h-5 w-5 text-primary" aria-hidden="true" />
+          )}
+          {paymentMethod === 'DEBIT' && <CreditCard className="h-5 w-5" aria-hidden="true" />}
+          {paymentMethod === 'VOUCHER' && (
+            <Ticket className="h-5 w-5 text-warning" aria-hidden="true" />
+          )}
           <span className="font-semibold">
             {paymentMethod === 'PIX' && 'Pagamento via PIX'}
             {paymentMethod === 'CREDIT' && 'Cartão de Crédito'}
@@ -467,8 +514,17 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
         </div>
       </div>
 
-      <div className="flex flex-col items-center justify-center gap-4 py-8">
-        <div className="text-4xl font-bold text-money text-primary">{formatCurrency(total)}</div>
+      <div
+        className="flex flex-col items-center justify-center gap-4 py-8"
+        role="status"
+        aria-live="polite"
+      >
+        <div
+          className="text-4xl font-bold text-money text-primary"
+          aria-label={`Total a pagar: ${formatCurrency(total)}`}
+        >
+          {formatCurrency(total)}
+        </div>
         <p className="text-center text-muted-foreground">
           {paymentMethod === 'PIX' && 'Aguarde o cliente escanear o QR Code ou digitar a chave PIX'}
           {(paymentMethod === 'CREDIT' || paymentMethod === 'DEBIT') &&
@@ -487,11 +543,16 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
   const renderSplitPayment = () => (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => setIsSplitMode(false)}>
-          <ArrowLeft className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsSplitMode(false)}
+          aria-label="Voltar para seleção de pagamento"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Button>
         <div className="flex items-center gap-2">
-          <Split className="h-5 w-5" />
+          <Split className="h-5 w-5" aria-hidden="true" />
           <span className="font-semibold">Pagamento Múltiplo</span>
         </div>
       </div>
@@ -640,15 +701,16 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
               }
               className="gap-2"
               data-tutorial="confirm-sale-button"
+              aria-label={isProcessing ? 'Processando pagamento' : 'Confirmar pagamento'}
             >
               {isProcessing ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   Processando...
                 </>
               ) : (
                 <>
-                  <Check className="h-4 w-4" />
+                  <Check className="h-4 w-4" aria-hidden="true" />
                   Confirmar Pagamento
                 </>
               )}

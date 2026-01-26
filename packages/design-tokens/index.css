@@ -1,0 +1,15 @@
+/**
+ * 🎨 GIRO Design System - Entry Point
+ * 
+ * Importar este arquivo em qualquer projeto GIRO para ter acesso
+ * ao sistema de design completo.
+ * 
+ * Uso:
+ *   @import '@giro/design-tokens';
+ * 
+ * Ou diretamente:
+ *   @import 'packages/design-tokens/index.css';
+ */
+
+@import './giro-tokens.css';
+@import './giro-components.css';

@@ -37,12 +37,18 @@ export const ProductsRankingPage: React.FC = () => {
 
   const stats = (
     <>
-      <Card className="border-none shadow-none bg-emerald-500/5">
+      <Card
+        className="border-none shadow-none bg-emerald-500/5"
+        role="article"
+        aria-label={`Top 1 Produto: ${
+          topProducts?.[0]?.product.name || 'Nenhum'
+        }. Líder em faturamento`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-emerald-600 uppercase">
             Top 1 Produto
           </CardTitle>
-          <TrendingUp className="h-4 w-4 text-emerald-500" />
+          <TrendingUp className="h-4 w-4 text-emerald-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-xl font-bold text-emerald-600 truncate">
@@ -52,12 +58,18 @@ export const ProductsRankingPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-sky-500/5">
+      <Card
+        className="border-none shadow-none bg-sky-500/5"
+        role="article"
+        aria-label={`Total Valor Top 50: ${formatCurrency(
+          topProducts?.reduce((acc: number, curr: TopProduct) => acc + curr.revenue, 0) ?? 0
+        )}. Faturamento acumulado`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-sky-600 uppercase">
             Total Valor (Top 50)
           </CardTitle>
-          <DollarSign className="h-4 w-4 text-sky-500" />
+          <DollarSign className="h-4 w-4 text-sky-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-sky-600">
@@ -69,12 +81,18 @@ export const ProductsRankingPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-violet-500/5">
+      <Card
+        className="border-none shadow-none bg-violet-500/5"
+        role="article"
+        aria-label={`Itens Vendidos: ${
+          topProducts?.reduce((acc: number, curr: TopProduct) => acc + curr.quantity, 0) ?? 0
+        }. Volume total do ranking`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-violet-600 uppercase">
             Itens Vendidos
           </CardTitle>
-          <ShoppingCart className="h-4 w-4 text-violet-500" />
+          <ShoppingCart className="h-4 w-4 text-violet-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-violet-600">
@@ -84,12 +102,19 @@ export const ProductsRankingPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-amber-500/5">
+      <Card
+        className="border-none shadow-none bg-amber-500/5"
+        role="article"
+        aria-label={`Ticket Médio no Ranking: ${formatCurrency(
+          (topProducts?.reduce((acc: number, curr: TopProduct) => acc + curr.revenue, 0) ?? 0) /
+            (topProducts?.length || 1)
+        )}. Média por SKU`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-amber-600 uppercase">
             Ticket Médio (Ranking)
           </CardTitle>
-          <BarChart3 className="h-4 w-4 text-amber-500" />
+          <BarChart3 className="h-4 w-4 text-amber-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-amber-600">
@@ -119,7 +144,7 @@ export const ProductsRankingPage: React.FC = () => {
               <CardTitle className="text-xl font-bold">Faturamento por Produto (Top 10)</CardTitle>
               <CardDescription>Comparativo de contribuição financeira</CardDescription>
             </div>
-            <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
+            <ArrowUpRight className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
           </CardHeader>
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -172,7 +197,10 @@ export const ProductsRankingPage: React.FC = () => {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table
+                className="w-full text-left"
+                aria-label="Ranking detalhado dos 50 produtos mais vendidos"
+              >
                 <thead className="bg-muted/30 border-b">
                   <tr>
                     <th className="p-4 uppercase text-xs font-bold tracking-widest pl-8">#</th>
@@ -215,8 +243,12 @@ export const ProductsRankingPage: React.FC = () => {
                   ))}
                   {(!topProducts || topProducts.length === 0) && (
                     <tr>
-                      <td colSpan={5} className="p-12 text-center text-muted-foreground">
-                        <Package className="h-12 w-12 mx-auto mb-4 opacity-10" />
+                      <td
+                        colSpan={5}
+                        className="p-12 text-center text-muted-foreground"
+                        role="status"
+                      >
+                        <Package className="h-12 w-12 mx-auto mb-4 opacity-10" aria-hidden="true" />
                         Nenhum produto vendido no período.
                       </td>
                     </tr>

@@ -19,6 +19,14 @@ pub mod supplier_repository;
 pub mod vehicle_repository;
 pub mod warranty_repository;
 
+// Enterprise Module
+pub mod activity_repository;
+pub mod contract_repository;
+pub mod material_request_repository;
+pub mod stock_location_repository;
+pub mod stock_transfer_repository;
+pub mod work_front_repository;
+
 #[cfg(test)]
 mod service_order_repository_test;
 #[cfg(test)]
@@ -42,6 +50,14 @@ pub use stock_repository::StockRepository;
 pub use supplier_repository::SupplierRepository;
 pub use vehicle_repository::VehicleRepository;
 pub use warranty_repository::WarrantyRepository;
+
+// Enterprise Module
+pub use activity_repository::ActivityRepository;
+pub use contract_repository::ContractRepository;
+pub use material_request_repository::MaterialRequestRepository;
+pub use stock_location_repository::StockLocationRepository;
+pub use stock_transfer_repository::StockTransferRepository;
+pub use work_front_repository::WorkFrontRepository;
 
 /// Gera um novo UUID
 pub fn new_id() -> String {

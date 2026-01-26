@@ -15,10 +15,10 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['node_modules/', 'dist/', 'src-tauri/', 'tests/e2e/**'],
     coverage: {
-      provider: 'v8',
+      provider: 'istanbul', // Alterado de v8 para istanbul (mais estável com imports dinâmicos)
       reporter: ['text', 'json', 'html'],
-      all: true,
-      clean: false,
+      all: false,
+      clean: true,
       exclude: [
         'node_modules/',
         'dist/**',
@@ -44,7 +44,7 @@ export default defineConfig({
     },
     testTimeout: 10000,
     hookTimeout: 10000,
-    pool: 'forks',
+    pool: 'threads', // Alterado de forks para threads (melhor para coverage)
   },
   resolve: {
     alias: {

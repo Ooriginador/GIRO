@@ -4,6 +4,7 @@
 // Permite que o mesmo sistema atenda diferentes tipos de negócio:
 // - GROCERY: Mercearias, mercadinhos, padarias
 // - MOTOPARTS: Motopeças, oficinas mecânicas
+// - ENTERPRISE: Almoxarifado industrial, obras, EPC
 // - GENERAL: Varejo genérico
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -13,6 +14,7 @@
 export type BusinessType =
   | 'GROCERY' // Mercearia, mercadinho, padaria
   | 'MOTOPARTS' // Motopeças, autopeças, oficina mecânica
+  | 'ENTERPRISE' // Almoxarifado industrial, obras, EPC
   | 'GENERAL'; // Varejo genérico
 
 /**
@@ -22,10 +24,10 @@ export interface BusinessFeatures {
   // ══════════════════════════════════════════════════════════════════════════
   // Core Features (sempre habilitadas)
   // ══════════════════════════════════════════════════════════════════════════
-  pdv: true;
+  pdv: boolean;
   inventory: true;
   employees: true;
-  cashControl: true;
+  cashControl: boolean;
   reports: true;
   backup: true;
 
@@ -44,6 +46,15 @@ export interface BusinessFeatures {
   warranties: boolean; // Controle de garantias
   customerVehicles: boolean; // Veículos do cliente
   vehicleHistory: boolean; // Histórico por veículo
+
+  // Enterprise/Almoxarifado Industrial
+  enterprise: boolean; // Módulo Enterprise ativo
+  contracts: boolean; // Gestão de contratos/obras
+  workFronts: boolean; // Frentes de trabalho
+  materialRequests: boolean; // Requisições de material
+  stockTransfers: boolean; // Transferências entre locais
+  multiLocation: boolean; // Múltiplos almoxarifados
+  costAppropriation: boolean; // Apropriação de custos
 }
 
 /**
@@ -119,6 +130,14 @@ export const GROCERY_PROFILE: BusinessProfile = {
     warranties: false,
     customerVehicles: false,
     vehicleHistory: false,
+    // Enterprise - Desabilitadas
+    enterprise: false,
+    contracts: false,
+    workFronts: false,
+    materialRequests: false,
+    stockTransfers: false,
+    multiLocation: false,
+    costAppropriation: false,
   },
   labels: {
     product: 'Produto',
@@ -172,6 +191,14 @@ export const MOTOPARTS_PROFILE: BusinessProfile = {
     expirationControl: false,
     weightedProducts: false,
     lotTracking: false,
+    // Enterprise - Desabilitadas
+    enterprise: false,
+    contracts: false,
+    workFronts: false,
+    materialRequests: false,
+    stockTransfers: false,
+    multiLocation: false,
+    costAppropriation: false,
   },
   labels: {
     product: 'Peça',
@@ -224,6 +251,14 @@ export const GENERAL_PROFILE: BusinessProfile = {
     warranties: true,
     customerVehicles: true,
     vehicleHistory: true,
+    // Enterprise - Desabilitadas
+    enterprise: false,
+    contracts: false,
+    workFronts: false,
+    materialRequests: false,
+    stockTransfers: false,
+    multiLocation: false,
+    costAppropriation: false,
   },
   labels: {
     product: 'Produto',
@@ -243,6 +278,67 @@ export const GENERAL_PROFILE: BusinessProfile = {
   ],
 };
 
+/**
+ * Perfil: Enterprise / Almoxarifado Industrial
+ */
+export const ENTERPRISE_PROFILE: BusinessProfile = {
+  type: 'ENTERPRISE',
+  name: 'Enterprise',
+  description: 'Almoxarifado industrial, obras de engenharia, EPC',
+  icon: 'HardHat',
+  features: {
+    // Core
+    pdv: false, // Sem PDV - requisições internas
+    inventory: true,
+    employees: true,
+    cashControl: false, // Sem caixa
+    reports: true,
+    backup: true,
+    // Grocery - Desabilitadas
+    expirationControl: false,
+    weightedProducts: false,
+    lotTracking: true, // Lotes são importantes
+    // Motopeças - Desabilitadas
+    vehicleCompatibility: false,
+    serviceOrders: false,
+    warranties: false,
+    customerVehicles: false,
+    vehicleHistory: false,
+    // Enterprise - Habilitadas
+    enterprise: true,
+    contracts: true,
+    workFronts: true,
+    materialRequests: true,
+    stockTransfers: true,
+    multiLocation: true,
+    costAppropriation: true,
+  },
+  labels: {
+    product: 'Material',
+    products: 'Materiais',
+    customer: 'Colaborador',
+    customers: 'Colaboradores',
+    sale: 'Requisição',
+    sales: 'Requisições',
+    addProduct: 'Adicionar Material',
+    newSale: 'Nova Requisição',
+    barcode: 'Código',
+    category: 'Classe',
+  },
+  defaultCategories: [
+    { name: 'Elétricos', icon: 'Zap', color: '#F59E0B' },
+    { name: 'Hidráulicos', icon: 'Droplet', color: '#3B82F6' },
+    { name: 'Mecânicos', icon: 'Cog', color: '#6B7280' },
+    { name: 'Civil', icon: 'Building2', color: '#8B5CF6' },
+    { name: 'Instrumentação', icon: 'Gauge', color: '#06B6D4' },
+    { name: 'Estruturas', icon: 'Layers', color: '#EF4444' },
+    { name: 'Pintura', icon: 'Paintbrush', color: '#EC4899' },
+    { name: 'EPI/EPC', icon: 'Shield', color: '#22C55E' },
+    { name: 'Ferramentas', icon: 'Wrench', color: '#D97706' },
+    { name: 'Consumíveis', icon: 'Package', color: '#14B8A6' },
+  ],
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // MAPA DE PERFIS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -253,13 +349,18 @@ export const GENERAL_PROFILE: BusinessProfile = {
 export const BUSINESS_PROFILES: Record<BusinessType, BusinessProfile> = {
   GROCERY: GROCERY_PROFILE,
   MOTOPARTS: MOTOPARTS_PROFILE,
+  ENTERPRISE: ENTERPRISE_PROFILE,
   GENERAL: GENERAL_PROFILE,
 };
 
 /**
  * Lista de perfis para exibição no wizard
  */
-export const AVAILABLE_PROFILES: BusinessProfile[] = [GROCERY_PROFILE, MOTOPARTS_PROFILE];
+export const AVAILABLE_PROFILES: BusinessProfile[] = [
+  GROCERY_PROFILE,
+  MOTOPARTS_PROFILE,
+  ENTERPRISE_PROFILE,
+];
 
 /**
  * Perfil padrão

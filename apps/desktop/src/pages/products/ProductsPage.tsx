@@ -242,9 +242,12 @@ export const ProductsPage: FC = () => {
           </Button>
           <Button asChild data-tutorial="new-product-button">
             <Link to="/products/new">
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
               <span>Novo Produto</span>
-              <span className="kbd ml-2 text-[10px] bg-primary-foreground/20 border-primary-foreground/30">
+              <span
+                className="kbd ml-2 text-[10px] bg-primary-foreground/20 border-primary-foreground/30"
+                aria-hidden="true"
+              >
                 F2
               </span>
             </Link>
@@ -256,11 +259,16 @@ export const ProductsPage: FC = () => {
       <Card
         className="border-none bg-card/50 backdrop-blur-sm shadow-md"
         data-tutorial="products-filters"
+        role="search"
+        aria-label="Filtros de produtos"
       >
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
               <Input
                 ref={searchInputRef}
                 placeholder="Buscar por nome, código ou código de barras... (F3)"
@@ -268,6 +276,7 @@ export const ProductsPage: FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
                 data-tutorial="products-search"
+                aria-label="Buscar produto por nome, código ou código de barras"
               />
             </div>
 
@@ -279,7 +288,7 @@ export const ProductsPage: FC = () => {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[200px]" aria-label="Filtrar por categoria">
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -299,7 +308,7 @@ export const ProductsPage: FC = () => {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40" aria-label="Filtrar por status">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -316,14 +325,16 @@ export const ProductsPage: FC = () => {
       <Card className="border-none bg-card/50 backdrop-blur-sm shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
+            <Package className="h-5 w-5" aria-hidden="true" />
             Lista de Produtos
-            <Badge variant="secondary">{totalItems}</Badge>
+            <Badge variant="secondary" aria-label={`Total: ${totalItems} produtos`}>
+              {totalItems}
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent data-tutorial="products-table">
           <div className="space-y-4">
-            <Table>
+            <Table aria-label="Lista de produtos">
               <TableHeader>
                 <TableRow>
                   <TableHead>Código</TableHead>
@@ -333,19 +344,25 @@ export const ProductsPage: FC = () => {
                   <TableHead className="text-right">Atual</TableHead>
                   <TableHead className="text-right">Máx.</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead className="w-[50px]">
+                    <span className="sr-only">Ações</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
+                    <TableCell colSpan={8} className="h-24 text-center" role="status">
                       Carregando produtos...
                     </TableCell>
                   </TableRow>
                 ) : products?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={8}
+                      className="h-24 text-center text-muted-foreground"
+                      role="status"
+                    >
                       Nenhum produto encontrado.
                     </TableCell>
                   </TableRow>
@@ -398,17 +415,18 @@ export const ProductsPage: FC = () => {
                                 size="icon-sm"
                                 data-testid={`product-menu-${product.id}`}
                                 data-tutorial="product-edit"
+                                aria-label={`Ações para ${product.name}`}
                               >
-                                <MoreHorizontal className="h-4 w-4" />
+                                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => handleEdit(product)}>
-                                <Edit className="mr-2 h-4 w-4" />
+                                <Edit className="mr-2 h-4 w-4" aria-hidden="true" />
                                 Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleDuplicate(product)}>
-                                <Copy className="mr-2 h-4 w-4" />
+                                <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
                                 Duplicar
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
@@ -418,7 +436,7 @@ export const ProductsPage: FC = () => {
                                   onClick={() => setProductToDeactivate(product)}
                                   data-tutorial="product-status"
                                 >
-                                  <PowerOff className="mr-2 h-4 w-4" />
+                                  <PowerOff className="mr-2 h-4 w-4" aria-hidden="true" />
                                   Desativar
                                 </DropdownMenuItem>
                               ) : (
@@ -427,7 +445,7 @@ export const ProductsPage: FC = () => {
                                   onClick={() => handleReactivate(product)}
                                   data-tutorial="product-status"
                                 >
-                                  <Power className="mr-2 h-4 w-4" />
+                                  <Power className="mr-2 h-4 w-4" aria-hidden="true" />
                                   Reativar
                                 </DropdownMenuItem>
                               )}
@@ -436,7 +454,7 @@ export const ProductsPage: FC = () => {
                                 className="text-destructive"
                                 onClick={() => setProductToDelete(product)}
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
+                                <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
                                 Excluir
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -450,8 +468,12 @@ export const ProductsPage: FC = () => {
             </Table>
 
             {/* Paginação UI */}
-            <div className="flex items-center justify-between border-t pt-4">
-              <div className="text-sm text-muted-foreground">
+            <nav
+              className="flex items-center justify-between border-t pt-4"
+              role="navigation"
+              aria-label="Paginação de produtos"
+            >
+              <div className="text-sm text-muted-foreground" aria-live="polite">
                 Página {page} de {totalPages} • Total: {totalItems} itens
               </div>
               <div className="flex items-center space-x-2">
@@ -460,10 +482,11 @@ export const ProductsPage: FC = () => {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1 || isLoading}
+                  aria-label="Página anterior"
                 >
                   Anterior
                 </Button>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" role="group" aria-label="Páginas">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let p = i + 1;
                     if (totalPages > 5 && page > 3) {
@@ -479,6 +502,8 @@ export const ProductsPage: FC = () => {
                         size="sm"
                         className="w-8 h-8 p-0"
                         onClick={() => setPage(p)}
+                        aria-label={`Página ${p}`}
+                        aria-current={p === page ? 'page' : undefined}
                       >
                         {p}
                       </Button>
@@ -490,11 +515,12 @@ export const ProductsPage: FC = () => {
                   size="sm"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages || isLoading}
+                  aria-label="Próxima página"
                 >
                   Próxima
                 </Button>
               </div>
-            </div>
+            </nav>
           </div>
         </CardContent>
       </Card>
@@ -514,7 +540,7 @@ export const ProductsPage: FC = () => {
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleDeactivate}>
-              <PowerOff className="mr-2 h-4 w-4" />
+              <PowerOff className="mr-2 h-4 w-4" aria-hidden="true" />
               Desativar
             </Button>
           </DialogFooter>
@@ -535,7 +561,7 @@ export const ProductsPage: FC = () => {
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
-              <Trash2 className="mr-2 h-4 w-4" />
+              <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
               Excluir Permanentemente
             </Button>
           </DialogFooter>

@@ -138,7 +138,7 @@ interface BusinessTypeGateProps {
   /**
    * Tipos de negócio que podem ver o conteúdo
    */
-  types: Array<'GROCERY' | 'MOTOPARTS' | 'GENERAL'>;
+  types: Array<'GROCERY' | 'MOTOPARTS' | 'GENERAL' | 'ENTERPRISE'>;
 
   children: ReactNode;
   fallback?: ReactNode;
@@ -155,7 +155,7 @@ interface BusinessTypeGateProps {
 export function BusinessTypeGate({ types, children, fallback = null }: BusinessTypeGateProps) {
   const { businessType } = useBusinessProfile();
 
-  if (!types.includes(businessType)) {
+  if (!types.includes(businessType as (typeof types)[number])) {
     return <>{fallback}</>;
   }
 

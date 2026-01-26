@@ -89,12 +89,16 @@ export const FinancialReportPage: React.FC = () => {
 
   const stats = (
     <>
-      <Card className="border-none shadow-none bg-sky-500/5">
+      <Card
+        className="border-none shadow-none bg-sky-500/5"
+        role="article"
+        aria-label={`Receita Bruta: ${formatCurrency(report?.revenue ?? 0)}. Total de entradas`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-sky-600 uppercase">
             Receita Bruta
           </CardTitle>
-          <DollarSign className="h-4 w-4 text-sky-500" />
+          <DollarSign className="h-4 w-4 text-sky-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-sky-600">
@@ -104,10 +108,14 @@ export const FinancialReportPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-rose-500/5">
+      <Card
+        className="border-none shadow-none bg-rose-500/5"
+        role="article"
+        aria-label={`Custo CMV: ${formatCurrency(report?.cogs ?? 0)}. Custo das mercadorias`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-rose-600 uppercase">Custo (CMV)</CardTitle>
-          <TrendingDown className="h-4 w-4 text-rose-500" />
+          <TrendingDown className="h-4 w-4 text-rose-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-rose-600">
@@ -117,12 +125,16 @@ export const FinancialReportPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-emerald-500/5">
+      <Card
+        className="border-none shadow-none bg-emerald-500/5"
+        role="article"
+        aria-label={`Lucro Líquido: ${formatCurrency(report?.netProfit ?? 0)}. Resultado final`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-emerald-600 uppercase">
             Lucro Líquido
           </CardTitle>
-          <TrendingUp className="h-4 w-4 text-emerald-500" />
+          <TrendingUp className="h-4 w-4 text-emerald-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-emerald-600">
@@ -132,10 +144,14 @@ export const FinancialReportPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-violet-500/5">
+      <Card
+        className="border-none shadow-none bg-violet-500/5"
+        role="article"
+        aria-label={`Margem: ${report?.margin?.toFixed(1) ?? 0}%. Rentabilidade`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-violet-600 uppercase">Margem</CardTitle>
-          <Percent className="h-4 w-4 text-violet-500" />
+          <Percent className="h-4 w-4 text-violet-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-violet-600">
@@ -157,8 +173,9 @@ export const FinancialReportPage: React.FC = () => {
           <Button
             variant="outline"
             className="min-w-[240px] justify-start text-left font-normal border-dashed"
+            aria-label="Selecionar período fiscal"
           >
-            <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+            <CalendarIcon className="mr-2 h-4 w-4 opacity-50" aria-hidden="true" />
             {dateRange?.from ? (
               dateRange.to ? (
                 <>
@@ -214,7 +231,7 @@ export const FinancialReportPage: React.FC = () => {
         {/* Distribuição de Receita */}
         <Card className="border-none shadow-sm bg-card/50">
           <CardHeader className="flex flex-row items-center gap-2">
-            <PieChartIcon className="h-5 w-5 text-sky-500" />
+            <PieChartIcon className="h-5 w-5 text-sky-500" aria-hidden="true" />
             <div>
               <CardTitle className="text-xl font-bold">Distribuição de Receita</CardTitle>
               <CardDescription>Onde seu dinheiro está indo</CardDescription>
@@ -249,8 +266,11 @@ export const FinancialReportPage: React.FC = () => {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <PieChartIcon className="h-8 w-8 mb-2 opacity-20" />
+              <div
+                className="flex flex-col items-center justify-center h-full text-muted-foreground"
+                role="status"
+              >
+                <PieChartIcon className="h-8 w-8 mb-2 opacity-20" aria-hidden="true" />
                 <p className="text-sm">Sem dados para o período</p>
               </div>
             )}
@@ -260,7 +280,7 @@ export const FinancialReportPage: React.FC = () => {
         {/* Comparativo de Margem */}
         <Card className="border-none shadow-sm bg-card/50">
           <CardHeader className="flex flex-row items-center gap-2">
-            <Wallet className="h-5 w-5 text-emerald-500" />
+            <Wallet className="h-5 w-5 text-emerald-500" aria-hidden="true" />
             <div>
               <CardTitle className="text-xl font-bold">Resumo Financeiro</CardTitle>
               <CardDescription>Valores totais do período</CardDescription>

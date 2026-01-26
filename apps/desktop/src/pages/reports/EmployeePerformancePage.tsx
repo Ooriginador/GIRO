@@ -59,10 +59,16 @@ export const EmployeePerformancePage: React.FC = () => {
 
   const stats = (
     <>
-      <Card className="border-none shadow-none bg-sky-500/5">
+      <Card
+        className="border-none shadow-none bg-sky-500/5"
+        role="article"
+        aria-label={`Top Vendedor: ${
+          performance?.[0]?.employeeName || 'Nenhum'
+        }. Líder em vendas no período`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-sky-600 uppercase">Top Vendedor</CardTitle>
-          <Trophy className="h-4 w-4 text-sky-500" />
+          <Trophy className="h-4 w-4 text-sky-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-xl font-bold text-sky-600 truncate">
@@ -72,12 +78,21 @@ export const EmployeePerformancePage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-emerald-500/5">
+      <Card
+        className="border-none shadow-none bg-emerald-500/5"
+        role="article"
+        aria-label={`Total Comissões: ${formatCurrency(
+          performance?.reduce(
+            (acc: number, curr: EmployeeRanking) => acc + curr.totalCommission,
+            0
+          ) ?? 0
+        )}. Valor a ser pago`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-emerald-600 uppercase">
             Total Comissões
           </CardTitle>
-          <DollarSign className="h-4 w-4 text-emerald-500" />
+          <DollarSign className="h-4 w-4 text-emerald-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-emerald-600">
@@ -92,12 +107,18 @@ export const EmployeePerformancePage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-violet-500/5">
+      <Card
+        className="border-none shadow-none bg-violet-500/5"
+        role="article"
+        aria-label={`Total Vendas: ${
+          performance?.reduce((acc: number, curr: EmployeeRanking) => acc + curr.salesCount, 0) ?? 0
+        }. Volume de transações`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-violet-600 uppercase">
             Total Vendas
           </CardTitle>
-          <ShoppingCart className="h-4 w-4 text-violet-500" />
+          <ShoppingCart className="h-4 w-4 text-violet-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-violet-600">
@@ -110,12 +131,23 @@ export const EmployeePerformancePage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-amber-500/5">
+      <Card
+        className="border-none shadow-none bg-amber-500/5"
+        role="article"
+        aria-label={`Ticket Médio Geral: ${formatCurrency(
+          (performance?.reduce((acc: number, curr: EmployeeRanking) => acc + curr.totalAmount, 0) ??
+            0) /
+            (performance?.reduce(
+              (acc: number, curr: EmployeeRanking) => acc + curr.salesCount,
+              0
+            ) || 1)
+        )}. Média por atendimento`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-amber-600 uppercase">
             Ticket Médio (Geral)
           </CardTitle>
-          <TrendingUp className="h-4 w-4 text-amber-500" />
+          <TrendingUp className="h-4 w-4 text-amber-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-amber-600">
@@ -146,8 +178,9 @@ export const EmployeePerformancePage: React.FC = () => {
           <Button
             variant="outline"
             className="min-w-[240px] justify-start text-left font-normal border-dashed"
+            aria-label="Selecionar período de apuração"
           >
-            <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+            <CalendarIcon className="mr-2 h-4 w-4 opacity-50" aria-hidden="true" />
             {dateRange?.from ? (
               dateRange.to ? (
                 <>
@@ -203,13 +236,13 @@ export const EmployeePerformancePage: React.FC = () => {
         <Card className="border-none shadow-sm bg-card/50">
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-sky-500" />
+              <Users className="h-5 w-5 text-sky-500" aria-hidden="true" />
               <div>
                 <CardTitle className="text-xl font-bold">Faturamento por Vendedor</CardTitle>
                 <CardDescription>Volume financeiro processado por cada membro</CardDescription>
               </div>
             </div>
-            <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
+            <ArrowUpRight className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
           </CardHeader>
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -263,7 +296,10 @@ export const EmployeePerformancePage: React.FC = () => {
             <CardDescription>Valores acumulados para fechamento de folha</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <table className="w-full text-left">
+            <table
+              className="w-full text-left"
+              aria-label="Detalhamento de comissões e vendas por funcionário"
+            >
               <thead className="bg-muted/30 border-b">
                 <tr>
                   <th className="p-4 uppercase text-xs font-bold tracking-widest pl-8">
@@ -310,8 +346,12 @@ export const EmployeePerformancePage: React.FC = () => {
                 ))}
                 {(!performance || performance.length === 0) && (
                   <tr>
-                    <td colSpan={5} className="p-12 text-center text-muted-foreground">
-                      <Users className="h-12 w-12 mx-auto mb-4 opacity-10" />
+                    <td
+                      colSpan={5}
+                      className="p-12 text-center text-muted-foreground"
+                      role="status"
+                    >
+                      <Users className="h-12 w-12 mx-auto mb-4 opacity-10" aria-hidden="true" />
                       Nenhuma atividade registrada no período.
                     </td>
                   </tr>

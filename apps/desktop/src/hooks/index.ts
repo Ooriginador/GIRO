@@ -62,3 +62,12 @@ export * from './useSuppliers';
 
 // Price History
 export * from './usePriceHistory';
+
+// Enterprise Permissions
+export {
+  useEnterprisePermission,
+  useEnterprisePermissions,
+  useCanDo,
+  useIsEnterprise,
+  useCurrentRole,
+} from './useEnterprisePermission';

@@ -99,12 +99,18 @@ export const SalesReportPage: React.FC = () => {
 
   const stats = (
     <>
-      <Card className="border-none shadow-none bg-emerald-500/5">
+      <Card
+        className="border-none shadow-none bg-emerald-500/5"
+        role="article"
+        aria-label={`Total de Vendas: ${formatCurrency(report?.totalAmount ?? 0)}, ${
+          report?.salesCount ?? 0
+        } transações`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-emerald-600 uppercase">
             Total de Vendas
           </CardTitle>
-          <DollarSign className="h-4 w-4 text-emerald-500" />
+          <DollarSign className="h-4 w-4 text-emerald-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-emerald-600">
@@ -114,10 +120,14 @@ export const SalesReportPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-sky-500/5">
+      <Card
+        className="border-none shadow-none bg-sky-500/5"
+        role="article"
+        aria-label={`Ticket Médio: ${formatCurrency(report?.averageTicket ?? 0)}`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-sky-600 uppercase">Ticket Médio</CardTitle>
-          <BarChart3 className="h-4 w-4 text-sky-500" />
+          <BarChart3 className="h-4 w-4 text-sky-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-sky-600">
@@ -127,12 +137,16 @@ export const SalesReportPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-violet-500/5">
+      <Card
+        className="border-none shadow-none bg-violet-500/5"
+        role="article"
+        aria-label={`Itens Vendidos: ${report?.totalItems ?? 0}`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-violet-600 uppercase">
             Itens Vendidos
           </CardTitle>
-          <ShoppingCart className="h-4 w-4 text-violet-500" />
+          <ShoppingCart className="h-4 w-4 text-violet-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-violet-600">{report?.totalItems ?? 0}</div>
@@ -140,12 +154,18 @@ export const SalesReportPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-amber-500/5">
+      <Card
+        className="border-none shadow-none bg-amber-500/5"
+        role="article"
+        aria-label={`Lucro Bruto: ${formatCurrency(report?.grossProfit ?? 0)}, Margem de ${
+          report?.profitMargin?.toFixed(1) ?? 0
+        }%`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-amber-600 uppercase">
             Lucro Bruto
           </CardTitle>
-          <TrendingUp className="h-4 w-4 text-amber-500" />
+          <TrendingUp className="h-4 w-4 text-amber-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-amber-600">
@@ -170,8 +190,9 @@ export const SalesReportPage: React.FC = () => {
             <Button
               variant="outline"
               className="min-w-[240px] justify-start text-left font-normal border-dashed"
+              aria-label="Selecionar período"
             >
-              <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+              <CalendarIcon className="mr-2 h-4 w-4 opacity-50" aria-hidden="true" />
               {dateRange?.from ? (
                 dateRange.to ? (
                   <>
@@ -218,7 +239,7 @@ export const SalesReportPage: React.FC = () => {
           Agrupar:
         </span>
         <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
-          <SelectTrigger className="w-[140px] border-dashed">
+          <SelectTrigger className="w-[140px] border-dashed" aria-label="Agrupar por período">
             <SelectValue placeholder="Agrupar por" />
           </SelectTrigger>
           <SelectContent>
@@ -251,7 +272,7 @@ export const SalesReportPage: React.FC = () => {
                 {groupBy === 'day' ? 'dia' : groupBy === 'week' ? 'semana' : 'mês'}
               </p>
             </div>
-            <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
+            <ArrowUpRight className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
           </CardHeader>
           <CardContent className="h-[350px] p-0 pr-4">
             <ResponsiveContainer width="100%" height="100%">
@@ -305,7 +326,7 @@ export const SalesReportPage: React.FC = () => {
           {/* Vendas por Pagamento */}
           <Card className="border-none shadow-sm bg-card/50">
             <CardHeader className="flex flex-row items-center gap-2">
-              <CreditCard className="h-5 w-5 text-sky-500" />
+              <CreditCard className="h-5 w-5 text-sky-500" aria-hidden="true" />
               <CardTitle className="text-xl font-bold">Meios de Pagamento</CardTitle>
             </CardHeader>
             <CardContent className="h-[300px]">
@@ -341,11 +362,11 @@ export const SalesReportPage: React.FC = () => {
           {/* Top Produtos */}
           <Card className="border-none shadow-sm bg-card/50">
             <CardHeader className="flex flex-row items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-violet-500" />
+              <ShoppingCart className="h-5 w-5 text-violet-500" aria-hidden="true" />
               <CardTitle className="text-xl font-bold">Produtos de Destaque</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6 mt-2">
+              <div className="space-y-6 mt-2" role="list" aria-label="Top 5 produtos do período">
                 {(report?.topProducts || [])
                   .slice(0, 5)
                   .map(
@@ -380,7 +401,7 @@ export const SalesReportPage: React.FC = () => {
             <CardTitle>Detalhamento por Período</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
+            <Table aria-label="Detalhamento de vendas por período">
               <TableHeader className="bg-muted/30">
                 <TableRow>
                   <TableHead className="pl-6 uppercase text-xs font-bold tracking-widest">

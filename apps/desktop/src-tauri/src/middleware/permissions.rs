@@ -234,6 +234,40 @@ impl Permission {
                     Permission::ManageSystem,
                 ]
             }
+            // Enterprise Roles
+            EmployeeRole::ContractManager => {
+                // Gestor de Contratos: full access ao módulo Enterprise
+                vec![
+                    Permission::ViewProducts,
+                    Permission::ViewStock,
+                    Permission::ViewStockValue,
+                    Permission::ViewReports,
+                    Permission::ViewEmployees,
+                    Permission::ManageSystem,
+                ]
+            }
+            EmployeeRole::Supervisor => {
+                // Supervisor de Frente: gerencia requisições da sua frente
+                vec![
+                    Permission::ViewProducts,
+                    Permission::ViewStock,
+                    Permission::ViewReports,
+                ]
+            }
+            EmployeeRole::Warehouse => {
+                // Almoxarife: gerencia estoque e transferências
+                vec![
+                    Permission::ViewProducts,
+                    Permission::ViewStock,
+                    Permission::ManageStock,
+                    Permission::AdjustStock,
+                    Permission::ViewStockValue,
+                ]
+            }
+            EmployeeRole::Requester => {
+                // Solicitante: apenas visualização e criação de requisições
+                vec![Permission::ViewProducts, Permission::ViewStock]
+            }
         }
     }
 

@@ -93,7 +93,7 @@ impl<'a> SaleRepository<'a> {
     }
 
     pub async fn find_today(&self) -> AppResult<Vec<Sale>> {
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
         let query = format!(
             "SELECT {} FROM sales WHERE date(created_at) = ? ORDER BY created_at DESC",
             Self::SALE_COLS

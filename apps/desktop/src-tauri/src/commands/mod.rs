@@ -29,6 +29,16 @@ pub mod system;
 pub mod vehicles;
 pub mod warranties;
 
+// Enterprise Module
+pub mod activities;
+pub mod catalog_import;
+pub mod contracts;
+pub mod enterprise_mobile;
+pub mod material_requests;
+pub mod stock_locations;
+pub mod stock_transfers;
+pub mod work_fronts;
+
 // Re-export hardware commands (original)
 pub use hardware::*;
 
@@ -57,3 +67,15 @@ pub use vehicles::*;
 pub use warranties::*;
 pub mod reports_motoparts;
 pub use reports_motoparts::*;
+pub mod reports_enterprise;
+pub use reports_enterprise::*;
+
+// Enterprise Module re-exports
+pub use activities::*;
+pub use catalog_import::*;
+pub use contracts::*;
+pub use enterprise_mobile::*;
+pub use material_requests::*;
+pub use stock_locations::*;
+pub use stock_transfers::*;
+pub use work_fronts::*;
