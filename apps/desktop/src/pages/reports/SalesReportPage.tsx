@@ -84,6 +84,12 @@ export const SalesReportPage: React.FC = () => {
     { key: 'percentage', header: 'Porcentagem', formatter: exportFormatters.percent, align: 'right' },
   ];
 
+  const handleExportCSV = () => {
+    if (!report?.periods) return;
+    const { exportToCSV } = require('@/lib/export');
+    exportToCSV(report.periods, exportColumns, 'relatorio-vendas');
+  };
+
   const stats = (
     <>
       <Card

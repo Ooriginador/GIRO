@@ -139,11 +139,18 @@ export const ProductsRankingPage: React.FC = () => {
     </>
   );
 
+  const handleExportCSV = () => {
+    if (!topProducts) return;
+    const { exportToCSV } = require('@/lib/export');
+    exportToCSV(topProducts, exportColumns, 'ranking-produtos');
+  };
+
   return (
     <BaseReportLayout
       title="Ranking de Produtos"
       subtitle="Produtos que mais geram receita para o negócio"
       stats={stats}
+      onExportCSV={handleExportCSV}
       isLoading={isLoading}
     >
       <div className="grid gap-6">

@@ -62,6 +62,12 @@ export const FinancialReportPage: React.FC = () => {
     { key: 'valor', header: 'Valor', formatter: exportFormatters.currency, align: 'right' },
   ];
 
+  const handleExportCSV = () => {
+    if (!exportData.length) return;
+    const { exportToCSV } = require('@/lib/export');
+    exportToCSV(exportData, exportColumns, 'relatorio-financeiro');
+  };
+
   const presetRanges = [
     { label: 'Hoje', from: new Date(), to: new Date() },
     { label: 'Últimos 7 dias', from: subDays(new Date(), 7), to: new Date() },
