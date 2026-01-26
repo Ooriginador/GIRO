@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { invoke } from '@tauri-apps/api/core';
 import {
   ArrowLeft,
   Edit,
@@ -9,6 +10,8 @@ import {
   AlertTriangle,
   ArrowUpDown,
   Download,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,6 +32,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 import type { StockLocation, StockBalance } from '@/types/enterprise';
 
 // Type badge colors
@@ -54,6 +64,7 @@ function formatCurrency(value: number): string {
 export function LocationStockPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [location, setLocation] = useState<StockLocation | null>(null);
   const [balances, setBalances] = useState<StockBalance[]>([]);
@@ -68,110 +79,16 @@ export function LocationStockPage() {
     if (!id) return;
     setLoading(true);
     try {
-      // TODO: Replace with actual Tauri invoke
-      // const locationData = await invoke<StockLocation>('get_stock_location', { id });
-      // const balancesData = await invoke<StockBalance[]>('get_location_balances', { locationId: id });
+      // Load from Tauri backend
+      const locationData = await invoke<StockLocation | null>('get_stock_location_by_id', { id });
+      const balancesData = await invoke<StockBalance[]>('get_location_balances', {
+        locationId: id,
+      });
 
-      // Mock data for development
-      const mockLocation: StockLocation = {
-        id,
-        code: 'ALM-CENTRAL',
-        name: 'Almoxarifado Central',
-        type: 'CENTRAL',
-        description: 'Almoxarifado central da empresa',
-        address: 'Rua das Indústrias, 500 - Distrito Industrial',
-        managerId: 'user-1',
-        contractId: null,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        manager: {
-          id: 'user-1',
-          name: 'José Almoxarife',
-          role: 'WAREHOUSE',
-        } as StockLocation['manager'],
-      };
-
-      const mockBalances: StockBalance[] = [
-        {
-          id: 'bal-1',
-          locationId: id,
-          productId: 'prod-1',
-          quantity: 150,
-          reservedQuantity: 0,
-          availableQuantity: 150,
-          updatedAt: new Date().toISOString(),
-          product: {
-            id: 'prod-1',
-            name: 'Cimento Portland CP-II 50kg',
-            sku: 'CIM-001',
-            unit: 'SC',
-          },
-        },
-        {
-          id: 'bal-2',
-          locationId: id,
-          productId: 'prod-2',
-          quantity: 25,
-          reservedQuantity: 0,
-          availableQuantity: 25,
-          updatedAt: new Date(Date.now() - 86400000).toISOString(),
-          product: {
-            id: 'prod-2',
-            name: 'Areia Média Lavada M³',
-            sku: 'ARE-001',
-            unit: 'M³',
-          },
-        },
-        {
-          id: 'bal-3',
-          locationId: id,
-          productId: 'prod-3',
-          quantity: 500,
-          reservedQuantity: 0,
-          availableQuantity: 500,
-          updatedAt: new Date(Date.now() - 172800000).toISOString(),
-          product: {
-            id: 'prod-3',
-            name: 'Vergalhão CA-50 10mm 12m',
-            sku: 'VER-001',
-            unit: 'BR',
-          },
-        },
-        {
-          id: 'bal-4',
-          locationId: id,
-          productId: 'prod-4',
-          quantity: 80,
-          reservedQuantity: 0,
-          availableQuantity: 80,
-          updatedAt: new Date(Date.now() - 259200000).toISOString(),
-          product: {
-            id: 'prod-4',
-            name: 'Tinta Acrílica Premium 18L',
-            sku: 'TIN-001',
-            unit: 'GL',
-          },
-        },
-        {
-          id: 'bal-5',
-          locationId: id,
-          productId: 'prod-5',
-          quantity: 0,
-          reservedQuantity: 0,
-          availableQuantity: 0,
-          updatedAt: new Date(Date.now() - 432000000).toISOString(),
-          product: {
-            id: 'prod-5',
-            name: 'Tijolo Cerâmico 6 Furos',
-            sku: 'TIJ-001',
-            unit: 'UN',
-          },
-        },
-      ];
-
-      setLocation(mockLocation);
-      setBalances(mockBalances);
+      if (locationData) {
+        setLocation(locationData);
+      }
+      setBalances(balancesData || []);
     } catch (error) {
       console.error('Failed to load location stock:', error);
     } finally {
@@ -196,10 +113,9 @@ export function LocationStockPage() {
       );
     }
 
-    // Apply category filter - TODO: Add category to Product type
+    // Apply category filter
     if (categoryFilter !== 'all') {
-      // Category filter disabled until Product type includes category
-      // filtered = filtered.filter((b) => b.product?.category === categoryFilter);
+      filtered = filtered.filter((b) => b.product?.categoryName === categoryFilter);
     }
 
     // Apply sorting
@@ -238,9 +154,132 @@ export function LocationStockPage() {
     }
   }
 
-  async function handleExport() {
-    // TODO: Implement export functionality
-    console.log('Exporting stock balances...');
+  async function handleExport(format: 'csv' | 'txt' = 'csv') {
+    try {
+      if (filteredBalances.length === 0) {
+        toast({
+          title: 'Nenhum dado para exportar',
+          description: 'Não há itens de estoque para exportar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      const locationCode = location?.code || 'local';
+      let content: string;
+      let mimeType: string;
+      let extension: string;
+
+      if (format === 'csv') {
+        // CSV format with proper escaping
+        const escapeCSV = (value: string | number) => {
+          const str = String(value);
+          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+          }
+          return str;
+        };
+
+        const headers = [
+          'Código',
+          'Produto',
+          'Quantidade',
+          'Unidade',
+          'Custo Médio',
+          'Valor Total',
+          'Estoque Mínimo',
+          'Estoque Máximo',
+          'Status',
+        ];
+        const rows = filteredBalances.map((b) => {
+          const product = b.product;
+          const status =
+            b.quantity === 0
+              ? 'Sem Estoque'
+              : b.minQuantity && b.quantity < b.minQuantity
+              ? 'Estoque Baixo'
+              : 'Normal';
+          const itemTotalValue = b.quantity * (b.averageCost || 0);
+          return [
+            escapeCSV(product?.sku || ''),
+            escapeCSV(product?.name || ''),
+            b.quantity,
+            escapeCSV(product?.unit || ''),
+            (b.averageCost || 0).toFixed(2).replace('.', ','),
+            itemTotalValue.toFixed(2).replace('.', ','),
+            b.minQuantity || '',
+            b.maxQuantity || '',
+            status,
+          ].join(';'); // Use semicolon for Brazilian Excel compatibility
+        });
+
+        content = '\uFEFF' + headers.join(';') + '\n' + rows.join('\n'); // BOM for UTF-8
+        mimeType = 'text/csv;charset=utf-8';
+        extension = 'csv';
+      } else {
+        // Plain text report format
+        const lines = [
+          `RELATÓRIO DE ESTOQUE - ${location?.name || 'Local'}`,
+          `Código: ${location?.code || '-'}`,
+          `Data: ${new Date().toLocaleDateString('pt-BR')}`,
+          `Hora: ${new Date().toLocaleTimeString('pt-BR')}`,
+          '='.repeat(80),
+          '',
+          `Total de Itens: ${filteredBalances.length}`,
+          `Quantidade Total: ${filteredBalances
+            .reduce((sum, b) => sum + b.quantity, 0)
+            .toLocaleString('pt-BR')}`,
+          `Valor Total: ${formatCurrency(
+            filteredBalances.reduce((sum, b) => sum + b.quantity * (b.averageCost || 0), 0)
+          )}`,
+          '',
+          '-'.repeat(80),
+          '',
+        ];
+
+        filteredBalances.forEach((b, index) => {
+          const product = b.product;
+          const itemValue = b.quantity * (b.averageCost || 0);
+          lines.push(`${index + 1}. ${product?.sku || '-'} - ${product?.name || '-'}`);
+          lines.push(
+            `   Qtd: ${b.quantity} ${product?.unit || ''} | Custo: ${formatCurrency(
+              b.averageCost || 0
+            )} | Total: ${formatCurrency(itemValue)}`
+          );
+          if (b.minQuantity || b.maxQuantity) {
+            lines.push(`   Mín: ${b.minQuantity || '-'} | Máx: ${b.maxQuantity || '-'}`);
+          }
+          lines.push('');
+        });
+
+        content = lines.join('\n');
+        mimeType = 'text/plain;charset=utf-8';
+        extension = 'txt';
+      }
+
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `estoque_${locationCode}_${timestamp}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Exportação concluída!',
+        description: `${filteredBalances.length} itens exportados para ${extension.toUpperCase()}.`,
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({
+        title: 'Erro na exportação',
+        description: 'Não foi possível exportar os dados. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
   }
 
   if (loading) {
@@ -270,8 +309,14 @@ export function LocationStockPage() {
   const lowStockCount = balances.filter((b) => b.minQuantity && b.quantity < b.minQuantity).length;
   const outOfStockCount = balances.filter((b) => b.quantity === 0).length;
 
-  // Get unique categories for filter - TODO: Add category to Product type
-  const categories: string[] = [];
+  // Get unique categories for filter
+  const categories = [
+    ...new Set(
+      balances
+        .map((b) => b.product?.categoryName)
+        .filter((c): c is string => c != null && c.length > 0)
+    ),
+  ].sort();
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -297,10 +342,24 @@ export function LocationStockPage() {
             <Edit className="h-4 w-4 mr-2" />
             Detalhes do Local
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('csv')}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Exportar CSV (Excel)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('txt')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Exportar Relatório (TXT)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
