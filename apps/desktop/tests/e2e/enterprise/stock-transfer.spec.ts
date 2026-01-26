@@ -3,7 +3,7 @@
  * Playwright tests for complete stock transfer workflow
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { ensureLicensePresent, dismissTutorialIfPresent, loginWithPin } from '../e2e-helpers';
 
 test.describe('Stock Transfer E2E Flow', () => {

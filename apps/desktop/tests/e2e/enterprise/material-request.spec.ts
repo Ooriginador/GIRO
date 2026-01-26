@@ -3,14 +3,8 @@
  * Playwright tests for complete material request workflow
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { ensureLicensePresent, dismissTutorialIfPresent, loginWithPin } from '../e2e-helpers';
-
-// Helper: Click a ShadCN Select and choose an option by text
-async function selectOption(page: Page, triggerTestId: string, optionText: string) {
-  await page.locator(`[data-testid="${triggerTestId}"]`).click();
-  await page.getByRole('option', { name: optionText }).click();
-}
 
 test.describe('Material Request E2E Flow', () => {
   test.beforeEach(async ({ page }) => {

@@ -142,7 +142,7 @@ export const ProductsPage: FC = () => {
     statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined
   );
 
-  const products = paginatedResult?.data || [];
+  const products = useMemo(() => paginatedResult?.data || [], [paginatedResult?.data]);
   const totalPages = paginatedResult?.totalPages || 1;
   const totalItems = paginatedResult?.total || 0;
 

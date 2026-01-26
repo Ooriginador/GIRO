@@ -369,3 +369,42 @@ const scrollToSelected = (index: number) => {
 **Implementado por:** GitHub Copilot (Debugger Mode)  
 **Data:** 26 de Janeiro de 2026  
 **Tempo:** ~45min
+
+---
+
+## 🔧 Correções de Lint Adicionais
+
+### Warnings Corrigidos (13 → 10)
+
+**ProductsPage.tsx** - useMemo Hook exhaustive-deps ✅
+
+```typescript
+// ❌ Antes
+const products = paginatedResult?.data || [];
+
+// ✅ Depois
+const products = useMemo(() => paginatedResult?.data || [], [paginatedResult?.data]);
+```
+
+**material-request.spec.ts** - Função não usada ✅
+
+```typescript
+// Removido: async function selectOption() - não utilizada
+```
+
+**stock-transfer.spec.ts** - Import não usado ✅
+
+```typescript
+// ❌ Antes
+import { test, expect, Page } from '@playwright/test';
+
+// ✅ Depois
+import { test, expect } from '@playwright/test';
+```
+
+### Warnings Restantes (10)
+
+- `tauri.ts` - 8 warnings de `any` type (infraestrutura, baixa prioridade)
+- `setup.ts` - 2 warnings de `any` type (testes, baixa prioridade)
+
+**Status Final:** ✅ 0 errors, 10 warnings (não críticos)
