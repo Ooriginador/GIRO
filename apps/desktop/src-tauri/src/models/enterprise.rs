@@ -34,7 +34,7 @@ impl ContractStatus {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse_status(s: &str) -> Option<Self> {
         match s {
             "PLANNING" => Some(Self::Planning),
             "ACTIVE" => Some(Self::Active),

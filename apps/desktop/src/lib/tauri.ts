@@ -402,7 +402,8 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
       return db.stockLocations as unknown as T;
     }
     case 'create_stock_transfer': {
-      const input = (args?.input as Record<string, unknown>) || {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const input = (args?.input as any) || {};
       const newTransfer: StockTransfer = {
         id: randomId('trf'),
         code: `TRF-${Date.now()}`,
@@ -416,12 +417,14 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
         createdAt: nowIso(),
         updatedAt: nowIso(),
       } as StockTransfer;
-      db.stockTransfers = [newTransfer, ...db.stockTransfers];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      db.stockTransfers = [newTransfer as any, ...db.stockTransfers];
       saveWebMockDb(db);
       return newTransfer as unknown as T;
     }
     case 'create_material_request': {
-      const input = (args?.input as Record<string, unknown>) || {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const input = (args?.input as any) || {};
       const newRequest = {
         id: randomId('req'),
         code: `REQ-${Date.now()}`,
@@ -436,15 +439,17 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
         createdAt: nowIso(),
         updatedAt: nowIso(),
         history: [],
-      };
+      } as EnterpriseMaterialRequest;
 
-      db.materialRequests = [newRequest, ...db.materialRequests];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      db.materialRequests = [newRequest as any, ...db.materialRequests];
       saveWebMockDb(db);
       return newRequest as unknown as T;
     }
     case 'update_material_request': {
       const id = args?.id as string;
-      const input = (args?.input as Record<string, unknown>) || {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const input = (args?.input as any) || {};
       const idx = db.materialRequests.findIndex((r) => r.id === id);
       if (idx === -1) throw new Error('Request not found');
 
@@ -495,7 +500,8 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
       return db.contracts as unknown as T;
     }
     case 'create_contract': {
-      const input = (args?.input as Record<string, unknown>) || {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const input = (args?.input as any) || {};
       const newContract: Contract = {
         id: randomId('cnt'),
         code: input.code || `CNT-${Date.now()}`,
@@ -519,7 +525,8 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
     }
     case 'update_contract': {
       const id = args?.id as string;
-      const input = (args?.input as Record<string, unknown>) || {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const input = (args?.input as any) || {};
       const idx = db.contracts.findIndex((c) => c.id === id);
       if (idx === -1) throw new Error('Contract not found');
 
@@ -535,7 +542,8 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
       return updated as unknown as T;
     }
     case 'create_work_front': {
-      const input = (args?.input as Record<string, unknown>) || {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const input = (args?.input as any) || {};
       const newWorkFront: WorkFront = {
         id: randomId('ft'),
         code: input.code || `FT-${Date.now()}`,
