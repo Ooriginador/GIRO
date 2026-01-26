@@ -246,11 +246,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       closeCashSession: () => {
-        set((state) => ({
-          currentSession: state.currentSession
-            ? { ...state.currentSession, status: 'CLOSED', closedAt: new Date().toISOString() }
-            : null,
-        }));
+        // Ao fechar o caixa, removemos a sessão da store completamente
+        // O backend já tem o registro, não precisamos manter localmente
+        set({ currentSession: null });
       },
 
       hasPermission: (required) => {

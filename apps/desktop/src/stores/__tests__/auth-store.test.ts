@@ -124,8 +124,8 @@ describe('Auth Store', () => {
       useAuthStore.getState().closeCashSession();
 
       const state = useAuthStore.getState();
-      expect(state.currentSession?.status).toBe('CLOSED');
-      expect(state.currentSession?.closedAt).toBeDefined();
+      // Após fechar, a sessão é removida completamente da store
+      expect(state.currentSession).toBeNull();
     });
   });
 });
