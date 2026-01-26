@@ -12,6 +12,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/hooks/useStock', () => ({
   useStockReport: vi.fn(),
   useLowStockProducts: vi.fn(),
+  useAdjustStock: vi.fn(() => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  })),
 }));
 
 // Mock useAuth (hook) diretamente pois é o que a página usa
