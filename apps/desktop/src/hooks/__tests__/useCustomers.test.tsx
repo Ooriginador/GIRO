@@ -158,15 +158,17 @@ describe('useCustomers', () => {
     });
   });
 
-  describe.skip('createCustomer', () => {
+  describe('createCustomer', () => {
     it('should create customer and update state', async () => {
       mockInvoke.mockResolvedValueOnce(mockCustomer);
 
       const { result } = renderHook(() => useCustomers());
 
-      const created = await result.current.createCustomer({
-        name: 'João Silva',
-        cpf: '12345678900',
+      const created = await act(async () => {
+        return await result.current.createCustomer({
+          name: 'João Silva',
+          cpf: '12345678900',
+        });
       });
 
       expect(mockInvoke).toHaveBeenCalledWith('create_customer', {
@@ -199,7 +201,7 @@ describe('useCustomers', () => {
     });
   });
 
-  describe.skip('updateCustomer', () => {
+  describe('updateCustomer', () => {
     it('should update customer and refresh state', async () => {
       const updatedCustomer = { ...mockCustomer, name: 'João Silva Jr' };
       mockInvoke.mockResolvedValueOnce([mockCustomer]); // loadCustomers
@@ -211,7 +213,9 @@ describe('useCustomers', () => {
         await result.current.loadCustomers();
       });
 
-      const updated = await result.current.updateCustomer('cust-1', { name: 'João Silva Jr' });
+      const updated = await act(async () => {
+        return await result.current.updateCustomer('cust-1', { name: 'João Silva Jr' });
+      });
 
       expect(mockInvoke).toHaveBeenCalledWith('update_customer', {
         id: 'cust-1',
@@ -223,7 +227,7 @@ describe('useCustomers', () => {
   });
 
   describe('deactivateCustomer', () => {
-    it.skip('should deactivate customer and remove from state', async () => {
+    it('should deactivate customer and remove from state', async () => {
       mockInvoke.mockResolvedValueOnce([mockCustomer, mockCustomer2]); // loadCustomers
       mockInvoke.mockResolvedValueOnce(undefined); // deactivateCustomer
 
@@ -235,7 +239,9 @@ describe('useCustomers', () => {
 
       expect(result.current.customers).toHaveLength(2);
 
-      const success = await result.current.deactivateCustomer('cust-1');
+      const success = await act(async () => {
+        return await result.current.deactivateCustomer('cust-1');
+      });
 
       expect(success).toBe(true);
       expect(result.current.customers).toHaveLength(1);
@@ -324,7 +330,7 @@ describe('useCustomerVehicles', () => {
     );
   });
 
-  it.skip('should update km', async () => {
+  it('should update km', async () => {
     mockInvoke.mockResolvedValueOnce([mockVehicle]); // load
     mockInvoke.mockResolvedValueOnce(undefined); // update km
 
@@ -332,13 +338,15 @@ describe('useCustomerVehicles', () => {
 
     await waitFor(() => expect(result.current.vehicles).toHaveLength(1));
 
-    const success = await result.current.updateKm('veh-1', 15000);
+    const success = await act(async () => {
+      return await result.current.updateKm('veh-1', 15000);
+    });
 
     expect(success).toBe(true);
     expect(result.current.vehicles[0].currentKm).toBe(15000);
   });
 
-  it.skip('should remove vehicle', async () => {
+  it('should remove vehicle', async () => {
     mockInvoke.mockResolvedValueOnce([mockVehicle]); // load
     mockInvoke.mockResolvedValueOnce(undefined); // deactivate
 
@@ -351,9 +359,7 @@ describe('useCustomerVehicles', () => {
       expect(success).toBe(true);
     });
 
-    await waitFor(() => {
-      expect(result.current.vehicles).toHaveLength(0);
-    });
+    expect(result.current.vehicles).toHaveLength(0);
   });
 });
 

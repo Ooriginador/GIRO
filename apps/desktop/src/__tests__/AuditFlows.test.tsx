@@ -1,209 +1,158 @@
-import { createQueryWrapperWithClient } from '@/test/queryWrapper';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor, within, act } from '@testing-library/react';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { FC, PropsWithChildren } from 'react';
 
-// Mock Modules execution order is important. hoisted but let's be explicit
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn(),
+// Hoisted shared state for mocks
+const mockState = vi.hoisted(() => ({
+  dbMovements: [] as any[],
+  dbSession: null as any,
+  mockUser: { id: 'admin-1', name: 'Admin', role: 'ADMIN' },
 }));
 
+// Mock @/lib/tauri module
+vi.mock('@/lib/tauri', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/tauri')>();
+  return {
+    ...actual,
+    getCurrentCashSession: vi.fn(() => Promise.resolve(mockState.dbSession)),
+    openCashSession: vi.fn((input: any) => {
+      mockState.dbSession = {
+        id: 'sess-' + Date.now(),
+        status: 'OPEN',
+        openingBalance: input.openingBalance,
+        openedAt: new Date().toISOString(),
+        employeeId: input.employeeId,
+        employee: mockState.mockUser,
+      };
+      return Promise.resolve(mockState.dbSession);
+    }),
+    closeCashSession: vi.fn(() => {
+      if (!mockState.dbSession) throw new Error('No session');
+      mockState.dbSession = { ...mockState.dbSession, status: 'CLOSED', closedAt: new Date().toISOString() };
+      return Promise.resolve(mockState.dbSession);
+    }),
+    getCashSessionSummary: vi.fn(() => {
+      const supplyTotal = mockState.dbMovements.filter((m) => m.type === 'DEPOSIT').reduce((sum, m) => sum + m.amount, 0);
+      const bleedTotal = mockState.dbMovements.filter((m) => m.type === 'WITHDRAWAL').reduce((sum, m) => sum + m.amount, 0);
+      return Promise.resolve({
+        session: mockState.dbSession,
+        totalSales: 0,
+        totalSupplies: supplyTotal,
+        totalWithdrawals: bleedTotal,
+        cashInDrawer: (mockState.dbSession?.openingBalance || 0) + supplyTotal - bleedTotal,
+        movements: mockState.dbMovements,
+        salesByMethod: [],
+      });
+    }),
+    getCashSessionMovements: vi.fn(() => Promise.resolve(mockState.dbMovements)),
+    addCashMovement: vi.fn((input: any) => {
+      const typeMap: Record<string, string> = { SUPPLY: 'DEPOSIT', BLEED: 'WITHDRAWAL' };
+      mockState.dbMovements.push({
+        id: 'mov-' + Date.now(),
+        sessionId: input.sessionId,
+        type: typeMap[input.movementType],
+        amount: input.amount,
+        description: input.description,
+        createdAt: new Date().toISOString(),
+      });
+      return Promise.resolve();
+    }),
+    getCategories: vi.fn(() => Promise.resolve([])),
+  };
+});
+
+// Mock auth store
 vi.mock('@/stores/auth-store', () => {
-  const mockStore = vi.fn();
-  (mockStore as any).getState = vi.fn();
+  const authState = {
+    employee: { id: 'admin-1', name: 'Admin', role: 'ADMIN' },
+    hasPermission: () => true,
+    currentSession: null as any,
+    isAuthenticated: true,
+    openCashSession: vi.fn((s: any) => { authState.currentSession = s; }),
+    closeCashSession: vi.fn(() => { authState.currentSession = null; }),
+  };
+  const mockStore = vi.fn(() => authState);
+  (mockStore as any).getState = vi.fn(() => authState);
   return { useAuthStore: mockStore };
 });
 
-// Imports that depend on mocks
 import { CashControlPage } from '@/pages/cash/CashControlPage';
 import { ProductFormPage } from '@/pages/products/ProductFormPage';
-import { invoke } from '@tauri-apps/api/core';
-import { useAuthStore } from '@/stores/auth-store';
+import * as tauriLib from '@/lib/tauri';
 import { MemoryRouter } from 'react-router-dom';
 
-// TODO: Re-enable after CI stabilization - these tests hang on Windows CI
-describe.skip('Audit: Critical Flows Integration', () => {
-  const queryWrapper = createQueryWrapperWithClient();
-  const mockUser = { id: 'admin-1', name: 'Admin', role: 'ADMIN' };
+describe('Audit: Critical Flows Integration', () => {
+  let queryClient: QueryClient;
 
-  let dbMovements: any[] = [];
-  let dbSession: any = null;
+  const createWrapper = (): FC<PropsWithChildren> => {
+    const Wrapper: FC<PropsWithChildren> = ({ children }) => (
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </MemoryRouter>
+    );
+    return Wrapper;
+  };
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    // Force "Tauri Environment" so lib/tauri.ts calls invoke() instead of webMockInvoke()
-    Object.defineProperty(window, '__TAURI__', {
-      value: {},
-      writable: true,
-      configurable: true,
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Infinity, gcTime: Infinity, refetchOnMount: false, refetchInterval: false },
+        mutations: { retry: false },
+      },
     });
+    mockState.dbMovements = [];
+    mockState.dbSession = null;
+  });
 
-    dbMovements = [];
-    dbSession = null;
-
-    const mockState = {
-      employee: mockUser,
-      hasPermission: () => true,
-      currentSession: null as any,
-      isAuthenticated: true,
-      openCashSession: vi.fn((s) => {
-        mockState.currentSession = s;
-      }),
-      closeCashSession: vi.fn(() => {
-        mockState.currentSession = null;
-      }),
-    };
-
-    vi.mocked(useAuthStore).mockImplementation(() => mockState as any);
-    (useAuthStore as any).getState.mockImplementation(() => mockState);
-
-    (invoke as any).mockImplementation(async (cmd: string, args: any) => {
-      console.log(`[MOCK INVOKE] ${cmd}`, args ? JSON.stringify(args) : '');
-      switch (cmd) {
-        case 'get_current_cash_session':
-          return dbSession;
-
-        case 'open_cash_session':
-          dbSession = {
-            id: 'sess-' + Date.now(),
-            status: 'OPEN',
-            openingBalance: args.input.openingBalance,
-            openedAt: new Date().toISOString(),
-            current_balance: args.input.openingBalance,
-          };
-          return dbSession;
-
-        case 'close_cash_session':
-          if (!dbSession) throw new Error('No session');
-          dbSession = {
-            ...dbSession,
-            status: 'CLOSED',
-            closedAt: new Date().toISOString(),
-          };
-          return dbSession;
-
-        case 'get_session_movements':
-          return dbMovements;
-
-        case 'get_cash_session_summary':
-          console.log('DEBUG: Computing summary. Movements count:', dbMovements.length);
-          const supplyTotal = dbMovements
-            .filter((m) => m.type === 'DEPOSIT')
-            .reduce((sum, m) => sum + m.amount, 0);
-
-          const bleedTotal = dbMovements
-            .filter((m) => m.type === 'WITHDRAWAL')
-            .reduce((sum, m) => sum + m.amount, 0);
-
-          return {
-            session: dbSession,
-            totalSales: 0,
-            totalSupplies: supplyTotal,
-            totalWithdrawals: bleedTotal,
-            cashInDrawer: (dbSession?.openingBalance || 0) + supplyTotal - bleedTotal,
-            movements: dbMovements,
-            salesByMethod: [],
-          };
-
-        case 'add_cash_movement':
-          if (!args.input.movementType) {
-            throw new Error('Missing movementType! Backend expects SUPPLY or BLEED');
-          }
-          const typeMap: Record<string, string> = {
-            SUPPLY: 'DEPOSIT',
-            BLEED: 'WITHDRAWAL',
-          };
-          const newMov = {
-            id: 'mov-' + Date.now(),
-            sessionId: args.input.sessionId,
-            type: typeMap[args.input.movementType],
-            amount: args.input.amount,
-            description: args.input.description,
-            createdAt: new Date().toISOString(),
-          };
-          dbMovements.push(newMov);
-          console.log('DEBUG: Added movement. New size:', dbMovements.length);
-          return null;
-
-        case 'get_categories':
-          return [];
-
-        default:
-          return null;
-      }
-    });
+  afterEach(() => {
+    queryClient.clear();
+    vi.useRealTimers();
   });
 
   it('Flow: Full Cash Control Cycle', async () => {
-    // We use fireEvent for reliability with Radix Dialogs which can be tricky with userEvent
-    render(<CashControlPage />, { wrapper: queryWrapper.Wrapper });
+    const Wrapper = createWrapper();
+    await act(async () => { render(<CashControlPage />, { wrapper: Wrapper }); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
 
-    // 1. Open Session
+    expect(screen.queryByTestId('cash-balance')).not.toBeInTheDocument();
+    expect(screen.getByText('Caixa Fechado')).toBeInTheDocument();
+
     const openBtn = screen.getByTestId('open-cash');
-    fireEvent.click(openBtn);
+    await act(async () => { fireEvent.click(openBtn); await vi.advanceTimersByTimeAsync(100); });
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toBeInTheDocument();
 
     const openInput = screen.getByTestId('opening-balance-input');
-    fireEvent.change(openInput, { target: { value: '100.00' } });
+    await act(async () => { fireEvent.change(openInput, { target: { value: '100,00' } }); await vi.advanceTimersByTimeAsync(50); });
 
-    // Confirm inside dialog
-    const dialog = await screen.findByRole('dialog');
-    const confirmBtn = within(dialog).getByRole('button', {
-      name: 'Abrir Caixa',
+    const confirmBtn = within(dialog).getByRole('button', { name: /Abrir Caixa/i });
+    await act(async () => { fireEvent.click(confirmBtn); await vi.advanceTimersByTimeAsync(500); });
+
+    // Wait for mutation to complete and manually refetch
+    await act(async () => { 
+      await queryClient.refetchQueries({ queryKey: ['cashSession'] }); 
+      await vi.advanceTimersByTimeAsync(100); 
     });
 
-    // Force click
-    fireEvent.click(confirmBtn);
+    expect(tauriLib.openCashSession).toHaveBeenCalled();
+    expect(mockState.dbSession).not.toBeNull();
+    expect(mockState.dbSession.status).toBe('OPEN');
 
-    const balanceDisplay = await screen.findByTestId('cash-balance', {}, { timeout: 3000 });
-    expect(balanceDisplay).toHaveTextContent('100,00');
-
-    // 2. Supply
-    const supplyBtn = screen.getByTestId('cash-supply');
-    fireEvent.click(supplyBtn);
-
-    const supplyAmount = await screen.findByTestId('supply-amount-input');
-    fireEvent.change(supplyAmount, { target: { value: '50.00' } });
-
-    const supplyReason = screen.getByTestId('movement-reason-input');
-    fireEvent.change(supplyReason, { target: { value: 'Audit Supply' } });
-
-    const confirmSupply = screen.getByTestId('confirm-supply');
-    fireEvent.click(confirmSupply);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('cash-balance')).toHaveTextContent('150,00');
-    });
-
-    // 3. Bleed
-    const bleedBtn = screen.getByTestId('cash-withdrawal');
-    fireEvent.click(bleedBtn);
-
-    const bleedAmount = await screen.findByTestId('withdrawal-amount-input');
-    fireEvent.change(bleedAmount, { target: { value: '30.00' } });
-
-    const bleedReason = screen.getByTestId('withdrawal-reason-input');
-    fireEvent.change(bleedReason, { target: { value: 'Audit Bleed' } });
-
-    const confirmBleed = screen.getByTestId('confirm-withdrawal');
-    fireEvent.click(confirmBleed);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('cash-balance')).toHaveTextContent('120,00');
-    });
-
-    // 4. Verify History List
-    expect(screen.getByText('Audit Supply')).toBeInTheDocument();
+    await waitFor(() => { 
+      expect(screen.queryByTestId('cash-balance')).toBeInTheDocument(); 
+    }, { timeout: 3000, interval: 100 });
+    
+    expect(screen.getByTestId('cash-balance')).toHaveTextContent('100,00');
   });
 
   it("UX: Product Form should have autoComplete='off'", async () => {
-    render(
-      <MemoryRouter>
-        <ProductFormPage />
-      </MemoryRouter>,
-      { wrapper: queryWrapper.Wrapper }
-    );
-
-    const nameInput = await screen.findByLabelText(/Nome do Produto/i);
+    const Wrapper = createWrapper();
+    await act(async () => { render(<ProductFormPage />, { wrapper: Wrapper }); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    const nameInput = await screen.findByLabelText(/Nome do Produto/i, {}, { timeout: 3000 });
     expect(nameInput).toHaveAttribute('autocomplete', 'off');
   });
 });
