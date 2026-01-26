@@ -1,0 +1,17 @@
+# Rust formatting configuration for GIRO Desktop
+# Ensures consistent formatting between local and CI
+
+# Stable features only
+edition = "2021"
+
+# Line width
+max_width = 100
+
+# Use Unix line endings
+newline_style = "Unix"
+
+# Reorder imports
+reorder_imports = true
+
+# Reorder modules
+reorder_modules = true
