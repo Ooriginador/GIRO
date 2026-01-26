@@ -2394,7 +2394,7 @@ export type EmployeeRanking = { employeeId: string; employeeName: string; salesC
 /**
  * Papel do funcionário
  */
-export type EmployeeRole = "ADMIN" | "MANAGER" | "CASHIER" | "STOCKER" | "VIEWER"
+export type EmployeeRole = "ADMIN" | "MANAGER" | "CASHIER" | "STOCKER" | "VIEWER" | "CONTRACT_MANAGER" | "SUPERVISOR" | "WAREHOUSE" | "REQUESTER"
 export type FinancialReport = { revenue: number; cogs: number; grossProfit: number; expenses: number; netProfit: number; margin: number }
 /**
  * Resultado simples de verificação de saúde de um dispositivo de hardware

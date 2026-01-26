@@ -43,12 +43,18 @@ export const StockReportPage: React.FC = () => {
 
   const stats = (
     <>
-      <Card className="border-none shadow-none bg-emerald-500/5">
+      <Card
+        className="border-none shadow-none bg-emerald-500/5"
+        role="article"
+        aria-label={`Valor Total em Estoque: ${formatCurrency(report?.totalValue ?? 0)}. ${
+          report?.totalProducts ?? 0
+        } produtos ativos`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-emerald-600 uppercase">
             Valor Total em Estoque
           </CardTitle>
-          <BarChart3 className="h-4 w-4 text-emerald-500" />
+          <BarChart3 className="h-4 w-4 text-emerald-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-emerald-600">
@@ -60,12 +66,16 @@ export const StockReportPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-amber-500/5">
+      <Card
+        className="border-none shadow-none bg-amber-500/5"
+        role="article"
+        aria-label={`Estoque Baixo: ${report?.lowStockCount ?? 0} produtos abaixo do mínimo`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-amber-600 uppercase">
             Estoque Baixo
           </CardTitle>
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertTriangle className="h-4 w-4 text-amber-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-amber-600">{report?.lowStockCount ?? 0}</div>
@@ -73,10 +83,14 @@ export const StockReportPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-rose-500/5">
+      <Card
+        className="border-none shadow-none bg-rose-500/5"
+        role="article"
+        aria-label={`Esgotados: ${report?.outOfStockCount ?? 0} produtos com saldo zero`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-rose-600 uppercase">Esgotados</CardTitle>
-          <XCircle className="h-4 w-4 text-rose-500" />
+          <XCircle className="h-4 w-4 text-rose-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-rose-600">{report?.outOfStockCount ?? 0}</div>
@@ -84,10 +98,14 @@ export const StockReportPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-none bg-sky-500/5">
+      <Card
+        className="border-none shadow-none bg-sky-500/5"
+        role="article"
+        aria-label={`Vencendo: ${report?.expiringCount ?? 0} produtos nos próximos 30 dias`}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-sky-600 uppercase">Vencendo</CardTitle>
-          <Clock className="h-4 w-4 text-sky-500" />
+          <Clock className="h-4 w-4 text-sky-500" aria-hidden="true" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-sky-600">{report?.expiringCount ?? 0}</div>
@@ -108,7 +126,7 @@ export const StockReportPage: React.FC = () => {
         {/* Valorização por Categoria */}
         <Card className="border-none shadow-sm bg-card/50">
           <CardHeader className="flex flex-row items-center gap-2">
-            <PieChartIcon className="h-5 w-5 text-emerald-500" />
+            <PieChartIcon className="h-5 w-5 text-emerald-500" aria-hidden="true" />
             <div>
               <CardTitle className="text-xl font-bold">Valorização por Categoria</CardTitle>
               <CardDescription>Distribuição financeira do seu estoque</CardDescription>
@@ -143,8 +161,11 @@ export const StockReportPage: React.FC = () => {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <Package className="h-8 w-8 mb-2 opacity-20" />
+              <div
+                className="flex flex-col items-center justify-center h-full text-muted-foreground"
+                role="status"
+              >
+                <Package className="h-8 w-8 mb-2 opacity-20" aria-hidden="true" />
                 <p className="text-sm">Nenhum produto em estoque</p>
               </div>
             )}
@@ -154,7 +175,7 @@ export const StockReportPage: React.FC = () => {
         {/* Resumo de Alertas */}
         <Card className="border-none shadow-sm bg-card/50">
           <CardHeader className="flex flex-row items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <AlertTriangle className="h-5 w-5 text-amber-500" aria-hidden="true" />
             <div>
               <CardTitle className="text-xl font-bold">Resumo de Saúde do Estoque</CardTitle>
               <CardDescription>Principais pontos de atenção</CardDescription>

@@ -30,12 +30,22 @@ export const StatCard: FC<StatCardProps> = ({
     blue: 'bg-blue-500/10 text-blue-500',
   };
 
+  const trendLabel = trend
+    ? `${trend.isPositive ? 'Aumento' : 'Redução'} de ${trend.value}% em relação a ontem`
+    : '';
+
   return (
-    <Card className="overflow-hidden border-none bg-card/50 backdrop-blur-sm shadow-md transition-all hover:shadow-lg hover:translate-y-[-2px]">
+    <Card
+      className="overflow-hidden border-none bg-card/50 backdrop-blur-sm shadow-md transition-all hover:shadow-lg hover:translate-y-[-2px]"
+      role="article"
+      aria-label={`${title}: ${value}${description ? `, ${description}` : ''}${
+        trendLabel ? `. ${trendLabel}` : ''
+      }`}
+    >
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className={`rounded-lg p-2.5 ${variantStyles[variant]}`}>
-          <Icon className="h-4.5 w-4.5" />
+        <div className={`rounded-lg p-2.5 ${variantStyles[variant]}`} aria-hidden="true">
+          <Icon className="h-4.5 w-4.5" aria-hidden="true" />
         </div>
       </CardHeader>
       <CardContent>
@@ -47,15 +57,19 @@ export const StatCard: FC<StatCardProps> = ({
               className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                 trend.isPositive ? 'bg-green-500/15 text-green-600' : 'bg-red-500/15 text-red-600'
               }`}
+              role="status"
+              aria-label={trendLabel}
             >
               {trend.isPositive ? (
-                <ArrowUpRight className="h-3 w-3" />
+                <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
               ) : (
-                <ArrowDownRight className="h-3 w-3" />
+                <ArrowDownRight className="h-3 w-3" aria-hidden="true" />
               )}
               {trend.value}%
             </div>
-            <span className="text-[11px] text-muted-foreground font-medium">vs ontem</span>
+            <span className="text-[11px] text-muted-foreground font-medium" aria-hidden="true">
+              vs ontem
+            </span>
           </div>
         ) : (
           description && (
@@ -78,6 +92,7 @@ export const StatCard: FC<StatCardProps> = ({
             ? 'bg-red-500'
             : 'bg-blue-500'
         }`}
+        aria-hidden="true"
       />
     </Card>
   );

@@ -44,6 +44,24 @@ import { InitialSetupPage } from '@/pages/setup';
 import { ExpirationPage, StockEntryPage, StockMovementsPage, StockPage } from '@/pages/stock';
 import { SuppliersPage } from '@/pages/suppliers';
 import { TutorialsPage } from '@/pages/tutorials';
+import {
+  EnterpriseDashboardPage,
+  ContractsPage,
+  ContractDetailPage,
+  ContractNewPage,
+  RequestsPage,
+  RequestDetailPage,
+  RequestNewPage,
+  TransfersPage,
+  TransferDetailPage,
+  TransferNewPage,
+  WorkFrontsPage,
+  WorkFrontDetailPage,
+  LocationsPage,
+  LocationStockPage,
+  ActivitiesPage,
+  InventoryPage,
+} from '@/pages/enterprise';
 
 // Componente de rota protegida
 interface ProtectedRouteProps {
@@ -233,6 +251,27 @@ const App: FC = () => {
             <Route path="motoparts/dashboard" element={<MotopartsDashboardPage />} />
             <Route path="service-orders" element={<ServiceOrdersPage />} />
             <Route path="warranties" element={<WarrantiesPage />} />
+
+            {/* Enterprise - Almoxarifado Industrial */}
+            <Route path="enterprise" element={<EnterpriseDashboardPage />} />
+            <Route path="enterprise/contracts" element={<ContractsPage />} />
+            <Route path="enterprise/contracts/new" element={<ContractNewPage />} />
+            <Route path="enterprise/contracts/:id" element={<ContractDetailPage />} />
+            <Route path="enterprise/work-fronts" element={<WorkFrontsPage />} />
+            <Route path="enterprise/work-fronts/new" element={<WorkFrontsPage />} />
+            <Route path="enterprise/work-fronts/:id" element={<WorkFrontDetailPage />} />
+            <Route path="enterprise/locations" element={<LocationsPage />} />
+            <Route path="enterprise/locations/new" element={<LocationsPage />} />
+            <Route path="enterprise/locations/:id" element={<LocationsPage />} />
+            <Route path="enterprise/locations/:id/stock" element={<LocationStockPage />} />
+            <Route path="enterprise/activities" element={<ActivitiesPage />} />
+            <Route path="enterprise/requests" element={<RequestsPage />} />
+            <Route path="enterprise/requests/new" element={<RequestNewPage />} />
+            <Route path="enterprise/requests/:id" element={<RequestDetailPage />} />
+            <Route path="enterprise/transfers" element={<TransfersPage />} />
+            <Route path="enterprise/transfers/new" element={<TransferNewPage />} />
+            <Route path="enterprise/transfers/:id" element={<TransferDetailPage />} />
+            <Route path="enterprise/inventory" element={<InventoryPage />} />
 
             {/* PDV */}
             <Route path="pdv" element={<PDVPage />} />

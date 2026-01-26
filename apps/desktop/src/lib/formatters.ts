@@ -210,6 +210,11 @@ export function getRoleLabel(role: EmployeeRole): string {
     CASHIER: 'Operador de Caixa',
     STOCKER: 'Estoquista',
     VIEWER: 'Visualizador',
+    // Enterprise roles
+    CONTRACT_MANAGER: 'Gestor de Contratos',
+    SUPERVISOR: 'Supervisor de Frente',
+    WAREHOUSE: 'Almoxarife',
+    REQUESTER: 'Solicitante',
   };
   return labels[role];
 }
@@ -224,6 +229,11 @@ export function getRoleBadgeColor(role: EmployeeRole): string {
     CASHIER: 'secondary',
     STOCKER: 'info',
     VIEWER: 'outline',
+    // Enterprise roles
+    CONTRACT_MANAGER: 'default',
+    SUPERVISOR: 'secondary',
+    WAREHOUSE: 'info',
+    REQUESTER: 'outline',
   };
   return colors[role];
 }

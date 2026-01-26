@@ -1364,3 +1364,670 @@ export type ConnectionDiagnostic = {
 export async function testLicenseConnection(): Promise<ConnectionDiagnostic> {
   return tauriInvoke<ConnectionDiagnostic>('test_license_connection');
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// ENTERPRISE MODULE - CONTRACTS
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface EnterpriseContract {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  clientName: string;
+  clientCnpj?: string | null;
+  startDate: string;
+  endDate?: string | null;
+  budget?: number | null;
+  costCenter: string;
+  status: string;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  managerId: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+export interface ContractWithManager extends EnterpriseContract {
+  managerName: string;
+}
+
+export interface ContractDashboard {
+  activeContracts: number;
+  totalContracts: number;
+  pendingRequests: number;
+  inTransitTransfers: number;
+  lowStockAlerts: number;
+}
+
+export interface CreateContractInput {
+  code: string;
+  name: string;
+  description?: string;
+  clientName: string;
+  clientCnpj?: string;
+  startDate: string;
+  endDate?: string;
+  budget?: number;
+  costCenter: string;
+  status: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  managerId: string;
+}
+
+export async function createContract(input: CreateContractInput): Promise<EnterpriseContract> {
+  return tauriInvoke<EnterpriseContract>('create_contract', { input });
+}
+
+export async function getContractById(id: string): Promise<ContractWithManager | null> {
+  return tauriInvoke<ContractWithManager | null>('get_contract_by_id', { id });
+}
+
+export async function getContracts(
+  status?: string,
+  managerId?: string
+): Promise<ContractWithManager[]> {
+  return tauriInvoke<ContractWithManager[]>('get_contracts', { status, managerId });
+}
+
+export async function getContractDashboard(): Promise<ContractDashboard> {
+  return tauriInvoke<ContractDashboard>('get_contract_dashboard');
+}
+
+export async function updateContract(
+  id: string,
+  input: Partial<CreateContractInput>
+): Promise<EnterpriseContract> {
+  return tauriInvoke<EnterpriseContract>('update_contract', { id, input });
+}
+
+export async function deleteContract(id: string): Promise<void> {
+  return tauriInvoke<void>('delete_contract', { id });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// ENTERPRISE MODULE - WORK FRONTS
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface EnterpriseWorkFront {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  contractId: string;
+  supervisorId: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+export interface WorkFrontWithDetails extends EnterpriseWorkFront {
+  contractCode: string;
+  contractName: string;
+  supervisorName: string;
+  // UI extras
+  activityCount?: number;
+  progress?: number;
+  location?: string | null;
+}
+
+export interface CreateWorkFrontInput {
+  code: string;
+  name: string;
+  description?: string;
+  contractId: string;
+  supervisorId: string;
+  status?: string;
+}
+
+export async function createWorkFront(input: CreateWorkFrontInput): Promise<EnterpriseWorkFront> {
+  return tauriInvoke<EnterpriseWorkFront>('create_work_front', { input });
+}
+
+export async function getWorkFrontById(id: string): Promise<WorkFrontWithDetails | null> {
+  return tauriInvoke<WorkFrontWithDetails | null>('get_work_front_by_id', { id });
+}
+
+export async function getWorkFronts(
+  contractId?: string,
+  status?: string
+): Promise<WorkFrontWithDetails[]> {
+  return tauriInvoke<WorkFrontWithDetails[]>('get_work_fronts', { contractId, status });
+}
+
+export async function getWorkFrontsByContract(contractId: string): Promise<WorkFrontWithDetails[]> {
+  return tauriInvoke<WorkFrontWithDetails[]>('get_work_fronts_by_contract', { contractId });
+}
+
+export async function getWorkFrontsBySupervisor(
+  supervisorId: string
+): Promise<WorkFrontWithDetails[]> {
+  return tauriInvoke<WorkFrontWithDetails[]>('get_work_fronts_by_supervisor', { supervisorId });
+}
+
+export async function updateWorkFront(
+  id: string,
+  input: Partial<CreateWorkFrontInput>
+): Promise<EnterpriseWorkFront> {
+  return tauriInvoke<EnterpriseWorkFront>('update_work_front', { id, input });
+}
+
+export async function deleteWorkFront(id: string): Promise<void> {
+  return tauriInvoke<void>('delete_work_front', { id });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// ENTERPRISE MODULE - ACTIVITIES
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface EnterpriseActivity {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  workFrontId: string;
+  costCenter?: string | null;
+  plannedQty: number;
+  executedQty: number;
+  unit: string;
+  status: string;
+  plannedStartDate?: string | null;
+  plannedEndDate?: string | null;
+  actualStartDate?: string | null;
+  actualEndDate?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+export interface ActivityWithDetails extends EnterpriseActivity {
+  workFrontCode: string;
+  workFrontName: string;
+}
+
+export interface CreateActivityInput {
+  code: string;
+  name: string;
+  description?: string;
+  workFrontId: string;
+  costCenter?: string;
+  plannedQty?: number;
+  unit?: string;
+  plannedStartDate?: string;
+  plannedEndDate?: string;
+}
+
+export async function createActivity(input: CreateActivityInput): Promise<EnterpriseActivity> {
+  return tauriInvoke<EnterpriseActivity>('create_activity', { input });
+}
+
+export async function getActivityById(id: string): Promise<ActivityWithDetails | null> {
+  return tauriInvoke<ActivityWithDetails | null>('get_activity_by_id', { id });
+}
+
+export async function getActivities(
+  workFrontId?: string,
+  status?: string
+): Promise<ActivityWithDetails[]> {
+  return tauriInvoke<ActivityWithDetails[]>('get_activities', { workFrontId, status });
+}
+
+export async function getActivitiesByWorkFront(
+  workFrontId: string
+): Promise<ActivityWithDetails[]> {
+  return tauriInvoke<ActivityWithDetails[]>('get_activities_by_work_front', { workFrontId });
+}
+
+export async function getActivitiesByCostCenter(
+  costCenter: string
+): Promise<ActivityWithDetails[]> {
+  return tauriInvoke<ActivityWithDetails[]>('get_activities_by_cost_center', { costCenter });
+}
+
+export async function updateActivity(
+  id: string,
+  input: Partial<CreateActivityInput>
+): Promise<EnterpriseActivity> {
+  return tauriInvoke<EnterpriseActivity>('update_activity', { id, input });
+}
+
+export async function updateActivityProgress(
+  id: string,
+  executedQty: number
+): Promise<EnterpriseActivity> {
+  return tauriInvoke<EnterpriseActivity>('update_activity_progress', { id, executedQty });
+}
+
+export async function deleteActivity(id: string): Promise<void> {
+  return tauriInvoke<void>('delete_activity', { id });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// ENTERPRISE MODULE - STOCK LOCATIONS
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface EnterpriseStockLocation {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  locationType: string;
+  contractId?: string | null;
+  managerId?: string | null;
+  address?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+export interface StockLocationWithDetails extends EnterpriseStockLocation {
+  contractCode?: string | null;
+  contractName?: string | null;
+  managerName?: string | null;
+  // UI extras
+  itemCount?: number;
+  totalValue?: number;
+}
+
+export interface StockBalance {
+  id: string;
+  locationId: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  productUnit: string;
+  quantity: number;
+  reservedQty: number;
+  availableQty: number;
+  minQuantity: number;
+  maxQuantity?: number | null;
+  lastMovementAt?: string | null;
+}
+
+export interface CreateStockLocationInput {
+  code: string;
+  name: string;
+  description?: string;
+  locationType: string;
+  contractId?: string;
+  managerId?: string;
+  address?: string;
+}
+
+export async function createStockLocation(
+  input: CreateStockLocationInput
+): Promise<EnterpriseStockLocation> {
+  return tauriInvoke<EnterpriseStockLocation>('create_stock_location', { input });
+}
+
+export async function getStockLocationById(id: string): Promise<StockLocationWithDetails | null> {
+  return tauriInvoke<StockLocationWithDetails | null>('get_stock_location_by_id', { id });
+}
+
+export async function getStockLocations(
+  contractId?: string,
+  locationType?: string
+): Promise<StockLocationWithDetails[]> {
+  return tauriInvoke<StockLocationWithDetails[]>('get_stock_locations', {
+    contractId,
+    locationType,
+  });
+}
+
+export async function getStockLocationsByType(
+  locationType: string
+): Promise<StockLocationWithDetails[]> {
+  return tauriInvoke<StockLocationWithDetails[]>('get_stock_locations_by_type', { locationType });
+}
+
+export async function getStockLocationsByContract(
+  contractId: string
+): Promise<StockLocationWithDetails[]> {
+  return tauriInvoke<StockLocationWithDetails[]>('get_stock_locations_by_contract', { contractId });
+}
+
+export async function getStockBalances(locationId: string): Promise<StockBalance[]> {
+  return tauriInvoke<StockBalance[]>('get_stock_balances', { locationId });
+}
+
+export async function adjustStockBalance(
+  locationId: string,
+  productId: string,
+  quantity: number,
+  reason: string
+): Promise<void> {
+  return tauriInvoke<void>('adjust_stock_balance', { locationId, productId, quantity, reason });
+}
+
+export async function deleteStockLocation(id: string): Promise<void> {
+  return tauriInvoke<void>('delete_stock_location', { id });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// ENTERPRISE MODULE - MATERIAL REQUESTS
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface EnterpriseMaterialRequest {
+  id: string;
+  requestNumber: string;
+  contractId: string;
+  workFrontId?: string | null;
+  activityId?: string | null;
+  requesterId: string;
+  destinationId: string;
+  status: string;
+  priority: string;
+  neededByDate?: string | null;
+  notes?: string | null;
+  submittedAt?: string | null;
+  approvedAt?: string | null;
+  approvedById?: string | null;
+  rejectedAt?: string | null;
+  rejectedById?: string | null;
+  rejectionReason?: string | null;
+  separationStartedAt?: string | null;
+  separatedById?: string | null;
+  deliveredAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+export interface MaterialRequestWithDetails extends EnterpriseMaterialRequest {
+  contractCode: string;
+  contractName: string;
+  workFrontCode?: string | null;
+  workFrontName?: string | null;
+  requesterName: string;
+  destinationName: string;
+  approvedByName?: string | null;
+  itemCount: number;
+}
+
+export interface MaterialRequestItem {
+  id: string;
+  requestId: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  productUnit: string;
+  requestedQty: number;
+  approvedQty?: number | null;
+  deliveredQty: number;
+  notes?: string | null;
+  // UI extras
+  quantity?: number;
+  separatedQuantity?: number;
+}
+
+export interface CreateMaterialRequestInput {
+  contractId: string;
+  workFrontId?: string;
+  activityId?: string;
+  destinationId: string;
+  priority?: string;
+  neededByDate?: string;
+  notes?: string;
+}
+
+export interface AddRequestItemInput {
+  productId: string;
+  requestedQty: number;
+  notes?: string;
+}
+
+export async function createMaterialRequest(
+  input: CreateMaterialRequestInput
+): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('create_material_request', { input });
+}
+
+export async function getMaterialRequestById(
+  id: string
+): Promise<MaterialRequestWithDetails | null> {
+  return tauriInvoke<MaterialRequestWithDetails | null>('get_material_request_by_id', { id });
+}
+
+export async function getMaterialRequests(
+  contractId?: string,
+  status?: string,
+  requesterId?: string
+): Promise<MaterialRequestWithDetails[]> {
+  return tauriInvoke<MaterialRequestWithDetails[]>('get_material_requests', {
+    contractId,
+    status,
+    requesterId,
+  });
+}
+
+export interface RequestFilters {
+  search?: string | null;
+  contractId?: string | null;
+  workFrontId?: string | null;
+  status?: string | null;
+  priority?: string | null;
+  requesterId?: string | null;
+  approverId?: string | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+}
+
+export async function getMaterialRequestsPaginated(
+  page: number,
+  perPage: number,
+  filters: RequestFilters
+): Promise<{ data: MaterialRequestWithDetails[]; total: number; page: number; perPage: number }> {
+  return tauriInvoke<{
+    data: MaterialRequestWithDetails[];
+    total: number;
+    page: number;
+    perPage: number;
+  }>('get_material_requests_paginated', { page, perPage, filters });
+}
+
+export async function getPendingRequests(
+  approverId?: string
+): Promise<MaterialRequestWithDetails[]> {
+  return tauriInvoke<MaterialRequestWithDetails[]>('get_pending_requests', {
+    approverId: approverId ?? null,
+  });
+}
+
+export async function getRequestItems(requestId: string): Promise<MaterialRequestItem[]> {
+  return tauriInvoke<MaterialRequestItem[]>('get_request_items', { requestId });
+}
+
+export async function addRequestItem(
+  requestId: string,
+  input: AddRequestItemInput
+): Promise<MaterialRequestItem> {
+  return tauriInvoke<MaterialRequestItem>('add_request_item', { requestId, input });
+}
+
+export async function submitRequest(requestId: string): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('submit_request', { requestId });
+}
+
+export async function approveRequest(
+  requestId: string,
+  approvedItems: Array<{ itemId: string; approvedQty: number }>
+): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('approve_request', { requestId, approvedItems });
+}
+
+export async function rejectRequest(
+  requestId: string,
+  reason: string
+): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('reject_request', { requestId, reason });
+}
+
+export async function startSeparation(requestId: string): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('start_separation', { requestId });
+}
+
+export async function completeSeparation(requestId: string): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('complete_separation', { requestId });
+}
+
+export async function deliverRequest(requestId: string): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('deliver_request', { requestId });
+}
+
+// Aliases para bindings
+export async function submitMaterialRequest(id: string): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('submit_material_request', { id });
+}
+
+export async function approveMaterialRequest(id: string): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('approve_material_request', { id });
+}
+
+export async function rejectMaterialRequest(
+  id: string,
+  reason: string
+): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('reject_material_request', { id, reason });
+}
+
+export async function startRequestSeparation(id: string): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('start_request_separation', { id });
+}
+
+export async function completeRequestSeparation(id: string): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('complete_request_separation', { id });
+}
+
+export async function deliverMaterialRequest(id: string): Promise<EnterpriseMaterialRequest> {
+  return tauriInvoke<EnterpriseMaterialRequest>('deliver_material_request', { id });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// ENTERPRISE MODULE - STOCK TRANSFERS
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface EnterpriseStockTransfer {
+  id: string;
+  transferNumber: string;
+  sourceLocationId: string;
+  destinationLocationId: string;
+  requesterId: string;
+  status: string;
+  notes?: string | null;
+  approvedAt?: string | null;
+  approvedById?: string | null;
+  rejectedAt?: string | null;
+  rejectedById?: string | null;
+  rejectionReason?: string | null;
+  shippedAt?: string | null;
+  shippedById?: string | null;
+  receivedAt?: string | null;
+  receivedById?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+export interface StockTransferWithDetails extends EnterpriseStockTransfer {
+  sourceLocationName: string;
+  destinationLocationName: string;
+  requesterName: string;
+  approvedByName?: string | null;
+  itemCount: number;
+  // UI extras
+  priority?: string;
+  origin?: string;
+  destination?: string;
+}
+
+export interface StockTransferItem {
+  id: string;
+  transferId: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  productUnit: string;
+  requestedQty: number;
+  shippedQty?: number | null;
+  receivedQty?: number | null;
+}
+
+export interface CreateStockTransferInput {
+  sourceLocationId: string;
+  destinationLocationId: string;
+  notes?: string;
+}
+
+export interface AddTransferItemInput {
+  productId: string;
+  requestedQty: number;
+}
+
+export async function createStockTransfer(
+  input: CreateStockTransferInput
+): Promise<EnterpriseStockTransfer> {
+  return tauriInvoke<EnterpriseStockTransfer>('create_stock_transfer', { input });
+}
+
+export async function getStockTransferById(id: string): Promise<StockTransferWithDetails | null> {
+  return tauriInvoke<StockTransferWithDetails | null>('get_stock_transfer_by_id', { id });
+}
+
+export async function getStockTransfers(
+  sourceLocationId?: string,
+  destinationLocationId?: string,
+  status?: string
+): Promise<StockTransferWithDetails[]> {
+  return tauriInvoke<StockTransferWithDetails[]>('get_stock_transfers', {
+    sourceLocationId,
+    destinationLocationId,
+    status,
+  });
+}
+
+export async function getTransferItems(transferId: string): Promise<StockTransferItem[]> {
+  return tauriInvoke<StockTransferItem[]>('get_transfer_items', { transferId });
+}
+
+export async function addTransferItem(
+  transferId: string,
+  input: AddTransferItemInput
+): Promise<StockTransferItem> {
+  return tauriInvoke<StockTransferItem>('add_transfer_item', { transferId, input });
+}
+
+export async function approveTransfer(transferId: string): Promise<EnterpriseStockTransfer> {
+  return tauriInvoke<EnterpriseStockTransfer>('approve_transfer', { transferId });
+}
+
+export async function rejectTransfer(
+  transferId: string,
+  reason: string
+): Promise<EnterpriseStockTransfer> {
+  return tauriInvoke<EnterpriseStockTransfer>('reject_transfer', { transferId, reason });
+}
+
+export async function shipTransfer(
+  transferId: string,
+  shippedItems: Array<{ itemId: string; shippedQty: number }>
+): Promise<EnterpriseStockTransfer> {
+  return tauriInvoke<EnterpriseStockTransfer>('ship_transfer', { transferId, shippedItems });
+}
+
+export async function receiveTransfer(
+  transferId: string,
+  receivedItems: Array<{ itemId: string; receivedQty: number }>
+): Promise<EnterpriseStockTransfer> {
+  return tauriInvoke<EnterpriseStockTransfer>('receive_transfer', { transferId, receivedItems });
+}
+
+export async function cancelTransfer(transferId: string): Promise<EnterpriseStockTransfer> {
+  return tauriInvoke<EnterpriseStockTransfer>('cancel_transfer', { transferId });
+}

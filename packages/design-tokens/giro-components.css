@@ -1,0 +1,359 @@
+/**
+ * 🎨 GIRO Component Classes - Classes CSS Unificadas
+ * 
+ * Nomenclatura padronizada para todo o ecossistema GIRO.
+ * Prefixo: .giro-*
+ * 
+ * @version 2.0.0
+ * @author Arkheion Corp
+ */
+
+@layer components {
+  /* ═══════════════════════════════════════════════════════════════════════════
+     📦 CARDS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-card {
+    @apply bg-card text-card-foreground rounded-lg border shadow-sm;
+  }
+
+  .giro-card-padded {
+    @apply giro-card p-4;
+  }
+
+  .giro-card-interactive {
+    @apply giro-card transition-shadow duration-200 hover:shadow-md cursor-pointer;
+  }
+
+  .giro-card-selected {
+    @apply giro-card ring-2 ring-primary;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     🔘 BUTTONS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-btn {
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2 rounded-md font-medium
+           transition-colors duration-200
+           focus-visible:outline-none focus-visible:ring-2 
+           focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .giro-btn-primary {
+    @apply giro-btn bg-primary text-primary-foreground 
+           hover:bg-primary/90 active:bg-primary/80;
+  }
+
+  .giro-btn-secondary {
+    @apply giro-btn bg-secondary text-secondary-foreground 
+           hover:bg-secondary/80 active:bg-secondary/70;
+  }
+
+  .giro-btn-outline {
+    @apply giro-btn bg-transparent border border-input 
+           hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .giro-btn-ghost {
+    @apply giro-btn bg-transparent 
+           hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .giro-btn-destructive {
+    @apply giro-btn bg-destructive text-destructive-foreground 
+           hover:bg-destructive/90 active:bg-destructive/80;
+  }
+
+  .giro-btn-success {
+    @apply giro-btn bg-success text-success-foreground 
+           hover:bg-success/90 active:bg-success/80;
+  }
+
+  /* Tamanhos */
+  .giro-btn-sm {
+    @apply h-8 px-3 text-sm;
+  }
+
+  .giro-btn-lg {
+    @apply h-12 px-6 text-lg;
+  }
+
+  .giro-btn-icon {
+    @apply h-10 w-10 p-0;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     📝 INPUTS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-input {
+    @apply flex h-10 w-full rounded-md border border-input 
+           bg-background px-3 py-2 text-sm
+           ring-offset-background
+           placeholder:text-muted-foreground
+           focus-visible:outline-none focus-visible:ring-2 
+           focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .giro-input-lg {
+    @apply giro-input h-12 text-base px-4;
+  }
+
+  .giro-input-error {
+    @apply giro-input border-destructive focus-visible:ring-destructive;
+  }
+
+  .giro-textarea {
+    @apply giro-input min-h-[80px] py-2;
+  }
+
+  .giro-select {
+    @apply giro-input appearance-none cursor-pointer
+           bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')]
+           bg-no-repeat bg-[right_0.5rem_center] bg-[length:1.25rem] pr-10;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     🏷️ BADGES
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-badge {
+    @apply inline-flex items-center gap-1
+           px-2.5 py-0.5 rounded-full 
+           text-xs font-medium;
+  }
+
+  .giro-badge-default {
+    @apply giro-badge bg-secondary text-secondary-foreground;
+  }
+
+  .giro-badge-primary {
+    @apply giro-badge bg-primary/10 text-primary border border-primary/20;
+  }
+
+  .giro-badge-success {
+    @apply giro-badge bg-success/10 text-success border border-success/20;
+  }
+
+  .giro-badge-warning {
+    @apply giro-badge bg-warning/10 text-warning border border-warning/20;
+  }
+
+  .giro-badge-error {
+    @apply giro-badge bg-destructive/10 text-destructive border border-destructive/20;
+  }
+
+  .giro-badge-info {
+    @apply giro-badge bg-info/10 text-info border border-info/20;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     ⌨️ KEYBOARD SHORTCUTS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-kbd {
+    @apply inline-flex items-center justify-center 
+           px-1.5 py-0.5 min-w-[1.5rem]
+           text-xs font-mono font-medium 
+           bg-muted rounded border border-border shadow-sm;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     📊 TABLES
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-table {
+    @apply w-full caption-bottom text-sm;
+  }
+
+  .giro-table-header {
+    @apply border-b bg-muted/50;
+  }
+
+  .giro-table-row {
+    @apply border-b transition-colors hover:bg-muted/50;
+  }
+
+  .giro-table-head {
+    @apply h-12 px-4 text-left align-middle font-medium text-muted-foreground;
+  }
+
+  .giro-table-cell {
+    @apply p-4 align-middle;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     💰 PRICE DISPLAY (PDV)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-price {
+    @apply font-mono tabular-nums;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+
+  .giro-price-lg {
+    @apply giro-price text-3xl font-bold;
+  }
+
+  .giro-price-xl {
+    @apply giro-price text-4xl font-bold;
+  }
+
+  .giro-price-xxl {
+    @apply giro-price text-5xl font-bold;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     📋 LISTS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-list {
+    @apply space-y-1;
+  }
+
+  .giro-list-item {
+    @apply flex items-center gap-3 p-3 rounded-lg
+           transition-colors hover:bg-muted cursor-pointer;
+  }
+
+  .giro-list-item-selected {
+    @apply giro-list-item bg-primary/10 text-primary;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     📱 MOBILE SPECIFIC (React Native / NativeWind)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .giro-safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     🏢 ENTERPRISE SPECIFIC
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .giro-enterprise-header {
+    @apply bg-primary text-primary-foreground px-6 py-4;
+  }
+
+  .giro-enterprise-sidebar {
+    @apply w-64 bg-card border-r h-screen;
+  }
+
+  .giro-enterprise-main {
+    @apply flex-1 p-6 bg-background;
+  }
+
+  /* Status de Requisição */
+  .giro-status-pending {
+    @apply giro-badge bg-yellow-100 text-yellow-800 border-yellow-200;
+  }
+
+  .giro-status-approved {
+    @apply giro-badge bg-green-100 text-green-800 border-green-200;
+  }
+
+  .giro-status-rejected {
+    @apply giro-badge bg-red-100 text-red-800 border-red-200;
+  }
+
+  .giro-status-delivered {
+    @apply giro-badge bg-blue-100 text-blue-800 border-blue-200;
+  }
+
+  .giro-status-in-transit {
+    @apply giro-badge bg-purple-100 text-purple-800 border-purple-200;
+  }
+}
+
+/* =============================================================================
+   🛠️ UTILITIES
+   ============================================================================= */
+@layer utilities {
+  /* Números tabulares para preços e quantidades */
+  .giro-tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+
+  /* Hide scrollbar */
+  .giro-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .giro-no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Truncate text */
+  .giro-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .giro-truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Animation classes */
+  .giro-animate-in {
+    animation: giro-fade-in 0.2s ease-out;
+  }
+
+  .giro-animate-out {
+    animation: giro-fade-out 0.15s ease-in;
+  }
+
+  .giro-animate-slide-in {
+    animation: giro-slide-in 0.3s ease-out;
+  }
+
+  .giro-animate-pulse-success {
+    animation: giro-pulse-success 1s ease-in-out infinite;
+  }
+}
+
+/* =============================================================================
+   🎬 KEYFRAMES
+   ============================================================================= */
+@keyframes giro-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes giro-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes giro-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes giro-pulse-success {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--success) / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px hsl(var(--success) / 0);
+  }
+}

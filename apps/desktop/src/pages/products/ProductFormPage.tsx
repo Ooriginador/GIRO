@@ -138,8 +138,16 @@ export const ProductFormPage: FC = () => {
 
   if (isEditing && isLoadingProduct) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div
+        className="flex items-center justify-center h-full"
+        role="status"
+        aria-label="Carregando produto"
+      >
+        <div
+          className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"
+          aria-hidden="true"
+        />
+        <span className="sr-only">Carregando informações do produto...</span>
       </div>
     );
   }
@@ -148,9 +156,9 @@ export const ProductFormPage: FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild aria-label="Voltar para lista de produtos">
           <Link to="/products">
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </Link>
         </Button>
         <div>
@@ -168,7 +176,7 @@ export const ProductFormPage: FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
+                <Package className="h-5 w-5" aria-hidden="true" />
                 Informações Básicas
               </CardTitle>
             </CardHeader>
@@ -181,10 +189,15 @@ export const ProductFormPage: FC = () => {
                     {...register('name')}
                     placeholder="Ex: Arroz Tio João 5kg"
                     aria-invalid={!!errors.name}
+                    aria-describedby={errors.name ? 'name-error' : undefined}
                     autoComplete="off"
                     data-tutorial="product-name"
                   />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+                  {errors.name && (
+                    <p id="name-error" className="text-sm text-destructive">
+                      {errors.name.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -206,7 +219,10 @@ export const ProductFormPage: FC = () => {
                     control={control}
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger data-tutorial="product-category">
+                        <SelectTrigger
+                          data-tutorial="product-category"
+                          aria-label="Selecionar categoria"
+                        >
                           <SelectValue
                             placeholder={isLoadingCategories ? 'Carregando...' : 'Selecione...'}
                           />
@@ -233,7 +249,10 @@ export const ProductFormPage: FC = () => {
                     control={control}
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger data-tutorial="product-unit">
+                        <SelectTrigger
+                          data-tutorial="product-unit"
+                          aria-label="Selecionar unidade de medida"
+                        >
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -280,7 +299,7 @@ export const ProductFormPage: FC = () => {
           <Card>
             <CardHeader data-tutorial="product-prices">
               <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
+                <DollarSign className="h-5 w-5" aria-hidden="true" />
                 Preços
               </CardTitle>
             </CardHeader>
@@ -289,7 +308,10 @@ export const ProductFormPage: FC = () => {
                 <div className="space-y-2">
                   <Label htmlFor="salePrice">Preço de Venda *</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <span
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      aria-hidden="true"
+                    >
                       R$
                     </span>
                     <Input
@@ -300,17 +322,23 @@ export const ProductFormPage: FC = () => {
                       className="pl-10"
                       {...register('salePrice', { valueAsNumber: true })}
                       placeholder="0,00"
+                      aria-describedby={errors.salePrice ? 'salePrice-error' : undefined}
                     />
                   </div>
                   {errors.salePrice && (
-                    <p className="text-sm text-destructive">{errors.salePrice.message}</p>
+                    <p id="salePrice-error" className="text-sm text-destructive">
+                      {errors.salePrice.message}
+                    </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="costPrice">Preço de Custo</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <span
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      aria-hidden="true"
+                    >
                       R$
                     </span>
                     <Input
@@ -356,34 +384,45 @@ export const ProductFormPage: FC = () => {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Resumo */}
-          <Card>
+          <Card role="region" aria-label="Resumo do produto">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
+                <BarChart3 className="h-5 w-5" aria-hidden="true" />
                 Resumo
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Preço de Venda</span>
-                <span className="font-medium">{formatCurrency(salePrice)}</span>
+                <span
+                  className="font-medium"
+                  aria-label={`Preço de venda: ${formatCurrency(salePrice)}`}
+                >
+                  {formatCurrency(salePrice)}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Preço de Custo</span>
-                <span className="font-medium">{formatCurrency(costPrice)}</span>
+                <span
+                  className="font-medium"
+                  aria-label={`Preço de custo: ${formatCurrency(costPrice)}`}
+                >
+                  {formatCurrency(costPrice)}
+                </span>
               </div>
-              <div className="h-px bg-border" />
+              <div className="h-px bg-border" aria-hidden="true" />
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Margem de Lucro</span>
                 <span
                   className={`font-medium ${margin >= 0 ? 'text-green-600' : 'text-red-600'}`}
                   data-tutorial="product-margin"
+                  aria-label={`Margem de lucro: ${margin.toFixed(1)} por cento`}
                 >
                   {margin.toFixed(1)}%
                 </span>
               </div>
               {isWeighted && (
-                <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg">
+                <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg" role="note">
                   <p className="text-sm text-amber-700 dark:text-amber-300">
                     Produto pesável - será solicitada a quantidade na balança no PDV
                   </p>
@@ -445,9 +484,9 @@ export const ProductFormPage: FC = () => {
           </Card>
 
           {/* Ações */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" role="group" aria-label="Ações do formulário">
             <Button type="submit" disabled={isSubmitting} data-tutorial="product-save">
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="h-4 w-4 mr-2" aria-hidden="true" />
               {isSubmitting ? 'Salvando...' : 'Salvar Produto'}
             </Button>
             <Button variant="outline" type="button" asChild>

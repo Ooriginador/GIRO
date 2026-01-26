@@ -11,7 +11,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./mercearias.db"
+  url      = env("DATABASE_URL")
 }
 
 // NOTE FOR OPERATIONS:
@@ -107,6 +107,12 @@ model Product {
   compatibilities   ProductCompatibility[]
   serviceOrderItems ServiceOrderItem[]
 
+  // Enterprise Relations
+  stockBalances StockBalance[]
+  requestItems  MaterialRequestItem[]
+  transferItems StockTransferItem[]
+  consumptions  MaterialConsumption[]
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -162,6 +168,9 @@ model ProductLot {
 
   saleItems SaleItem[]
   alerts    Alert[]
+
+  // Enterprise Relations
+  transferItems StockTransferItem[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -244,6 +253,19 @@ model Employee {
   auditLogs       AuditLog[]
   settingsUpdated Setting[]
 
+  // Enterprise Relations
+  managedContracts     Contract[]            @relation("ContractManager")
+  supervisedWorkFronts WorkFront[]           @relation("WorkFrontSupervisor")
+  managedLocations     StockLocation[]       @relation("LocationManager")
+  requestsCreated      MaterialRequest[]     @relation("RequestRequester")
+  requestsApproved     MaterialRequest[]     @relation("RequestApprover")
+  requestsDelivered    MaterialRequest[]     @relation("RequestDeliverer")
+  transfersRequested   StockTransfer[]       @relation("TransferRequester")
+  transfersApproved    StockTransfer[]       @relation("TransferApprover")
+  transfersShipped     StockTransfer[]       @relation("TransferShipper")
+  transfersReceived    StockTransfer[]       @relation("TransferReceiver")
+  materialConsumptions MaterialConsumption[] @relation("ConsumptionEmployee")
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -265,6 +287,11 @@ enum EmployeeRole {
   CASHIER // Operador de caixa
   STOCKER // Estoquista (gerenciamento de estoque)
   VIEWER // Apenas visualização
+  // Enterprise específicos
+  CONTRACT_MANAGER // Gerente de contrato/obra
+  SUPERVISOR // Supervisor de frente de trabalho
+  WAREHOUSE // Almoxarife/Estoquista industrial
+  REQUESTER // Requisitante comum
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -619,6 +646,7 @@ enum BusinessType {
   MOTOPARTS // Motopeças, oficina mecânica
   PETSHOP // Pet shop (futuro)
   GENERAL // Varejo genérico
+  ENTERPRISE // Almoxarifado para empresas de engenharia/EPC
 }
 
 /// Configuração do perfil do negócio
@@ -1002,4 +1030,505 @@ model WarrantyClaim {
   @@index([status])
   @@index([sourceType])
   @@index([createdAt])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MÓDULO ENTERPRISE - ENUMS
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Status de contrato/obra
+enum ContractStatus {
+  PLANNING // Em planejamento
+  ACTIVE // Em execução
+  SUSPENDED // Suspenso
+  COMPLETED // Concluído
+  CANCELLED // Cancelado
+}
+
+/// Status de frente de trabalho
+enum WorkFrontStatus {
+  ACTIVE // Em operação
+  SUSPENDED // Paralisada
+  COMPLETED // Concluída
+}
+
+/// Status de atividade de obra
+enum ActivityStatus {
+  PENDING // Não iniciada
+  IN_PROGRESS // Em andamento
+  COMPLETED // Concluída
+  CANCELLED // Cancelada
+}
+
+/// Tipo de local de estoque
+enum StockLocationType {
+  CENTRAL // Almoxarifado central
+  OBRA // Almoxarifado de obra
+  FRENTE // Almoxarifado de frente
+  CONTAINER // Container/Módulo
+  TERCEIRO // Em poder de terceiros
+}
+
+/// Status de requisição de material
+enum MaterialRequestStatus {
+  DRAFT // Rascunho
+  PENDING // Aguardando aprovação
+  APPROVED // Aprovada
+  PARTIALLY_APPROVED // Aprovada parcialmente
+  REJECTED // Rejeitada
+  SEPARATING // Em separação
+  DELIVERED // Entregue
+  CANCELLED // Cancelada
+}
+
+/// Prioridade de requisição
+enum RequestPriority {
+  LOW // Baixa
+  NORMAL // Normal
+  HIGH // Alta
+  URGENT // Urgente
+}
+
+/// Status de transferência de estoque
+enum TransferStatus {
+  PENDING // Aguardando aprovação
+  APPROVED // Aprovada
+  REJECTED // Rejeitada
+  IN_TRANSIT // Em trânsito
+  COMPLETED // Concluída
+  CANCELLED // Cancelada
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MÓDULO ENTERPRISE - CONTRATOS E ESTRUTURA
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Contratos/Obras
+model Contract {
+  id          String  @id @default(cuid())
+  code        String  @unique // CTR-2026-001
+  name        String
+  description String?
+
+  // Cliente
+  clientName String
+  clientCNPJ String?
+
+  // Período
+  startDate DateTime
+  endDate   DateTime?
+
+  // Financeiro
+  budget     Decimal?
+  costCenter String // Centro de custo principal
+
+  // Status
+  status ContractStatus @default(PLANNING)
+
+  // Localização
+  address String?
+  city    String?
+  state   String?
+
+  // Gerente responsável
+  managerId String
+  manager   Employee @relation("ContractManager", fields: [managerId], references: [id])
+
+  // Relações
+  workFronts WorkFront[]
+  locations  StockLocation[]
+  requests   MaterialRequest[]
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([code])
+  @@index([status])
+  @@index([managerId])
+  @@index([deletedAt])
+}
+
+/// Frentes de Trabalho
+model WorkFront {
+  id          String  @id @default(cuid())
+  code        String // FT-001
+  name        String
+  description String?
+
+  // Contrato
+  contractId String
+  contract   Contract @relation(fields: [contractId], references: [id])
+
+  // Supervisor
+  supervisorId String
+  supervisor   Employee @relation("WorkFrontSupervisor", fields: [supervisorId], references: [id])
+
+  // Status
+  status WorkFrontStatus @default(ACTIVE)
+
+  // Relações
+  activities Activity[]
+  requests   MaterialRequest[]
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([contractId, code])
+  @@index([contractId])
+  @@index([supervisorId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+/// Atividades de Obra
+model Activity {
+  id          String  @id @default(cuid())
+  code        String // ATV-001
+  name        String
+  description String?
+
+  // Frente
+  workFrontId String
+  workFront   WorkFront @relation(fields: [workFrontId], references: [id])
+
+  // Medição
+  unit        String  @default("UN") // M, M2, M3, UN, etc.
+  plannedQty  Decimal @default(0)
+  executedQty Decimal @default(0)
+
+  // Status
+  status ActivityStatus @default(PENDING)
+
+  // Período
+  startDate DateTime?
+  endDate   DateTime?
+
+  // Relações
+  requests     MaterialRequest[]
+  consumptions MaterialConsumption[]
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([workFrontId, code])
+  @@index([workFrontId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MÓDULO ENTERPRISE - ESTOQUE MULTI-LOCALIZAÇÃO
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Locais de Estoque
+model StockLocation {
+  id          String  @id @default(cuid())
+  code        String  @unique // ALM-CENTRAL, ALM-OBR-001
+  name        String
+  description String?
+
+  // Tipo
+  type StockLocationType @default(CENTRAL)
+
+  // Vínculo com contrato (para tipo OBRA/FRENTE)
+  contractId String?
+  contract   Contract? @relation(fields: [contractId], references: [id])
+
+  // Responsável
+  managerId String
+  manager   Employee @relation("LocationManager", fields: [managerId], references: [id])
+
+  // Localização física
+  address String?
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Relações
+  balances      StockBalance[]
+  requestsTo    MaterialRequest[]     @relation("RequestDestination")
+  transfersFrom StockTransfer[]       @relation("TransferOrigin")
+  transfersTo   StockTransfer[]       @relation("TransferDestination")
+  consumptions  MaterialConsumption[]
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([code])
+  @@index([type])
+  @@index([contractId])
+  @@index([managerId])
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+/// Saldo de Estoque por Local
+model StockBalance {
+  id String @id @default(cuid())
+
+  // Produto
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  // Local
+  locationId String
+  location   StockLocation @relation(fields: [locationId], references: [id])
+
+  // Quantidades
+  quantity     Decimal @default(0) // Saldo atual
+  reservedQty  Decimal @default(0) // Reservado para requisições
+  availableQty Decimal @default(0) // Disponível = quantity - reservedQty
+
+  // Parâmetros
+  minStock Decimal  @default(0)
+  maxStock Decimal?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, locationId])
+  @@index([productId])
+  @@index([locationId])
+  @@index([quantity])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MÓDULO ENTERPRISE - REQUISIÇÕES DE MATERIAL
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Requisições de Material
+model MaterialRequest {
+  id            String   @id @default(cuid())
+  requestNumber Int // Sequencial por contrato
+  requestDate   DateTime @default(now())
+
+  // Solicitante
+  requesterId String
+  requester   Employee @relation("RequestRequester", fields: [requesterId], references: [id])
+
+  // Destino
+  contractId    String
+  contract      Contract      @relation(fields: [contractId], references: [id])
+  workFrontId   String?
+  workFront     WorkFront?    @relation(fields: [workFrontId], references: [id])
+  activityId    String?
+  activity      Activity?     @relation(fields: [activityId], references: [id])
+  destinationId String
+  destination   StockLocation @relation("RequestDestination", fields: [destinationId], references: [id])
+
+  // Status
+  status   MaterialRequestStatus @default(DRAFT)
+  priority RequestPriority       @default(NORMAL)
+
+  // Aprovação
+  approvedById    String?
+  approvedBy      Employee? @relation("RequestApprover", fields: [approvedById], references: [id])
+  approvedAt      DateTime?
+  rejectionReason String?
+
+  // Entrega
+  deliveredById String?
+  deliveredBy   Employee? @relation("RequestDeliverer", fields: [deliveredById], references: [id])
+  deliveredAt   DateTime?
+
+  // Observações
+  notes         String?
+  internalNotes String?
+
+  // Itens
+  items MaterialRequestItem[]
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([requestNumber])
+  @@index([requesterId])
+  @@index([contractId])
+  @@index([workFrontId])
+  @@index([destinationId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+/// Itens de Requisição
+model MaterialRequestItem {
+  id String @id @default(cuid())
+
+  // Requisição
+  requestId String
+  request   MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  // Produto
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  // Quantidades
+  requestedQty Decimal // Quantidade solicitada
+  approvedQty  Decimal? // Quantidade aprovada (pode ser menor)
+  deliveredQty Decimal  @default(0) // Quantidade entregue
+
+  // Unidade
+  unit String @default("UN")
+
+  // Observações
+  notes String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([requestId])
+  @@index([productId])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MÓDULO ENTERPRISE - TRANSFERÊNCIAS DE ESTOQUE
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Transferências de Estoque
+model StockTransfer {
+  id             String @id @default(cuid())
+  transferNumber Int // Sequencial
+
+  // Origem e Destino
+  fromLocationId String
+  fromLocation   StockLocation @relation("TransferOrigin", fields: [fromLocationId], references: [id])
+  toLocationId   String
+  toLocation     StockLocation @relation("TransferDestination", fields: [toLocationId], references: [id])
+
+  // Solicitante
+  requesterId String
+  requester   Employee @relation("TransferRequester", fields: [requesterId], references: [id])
+
+  // Status
+  status TransferStatus @default(PENDING)
+
+  // Aprovação
+  approvedById    String?
+  approvedBy      Employee? @relation("TransferApprover", fields: [approvedById], references: [id])
+  approvedAt      DateTime?
+  rejectionReason String?
+
+  // Expedição
+  shippedById String?
+  shippedBy   Employee? @relation("TransferShipper", fields: [shippedById], references: [id])
+  shippedAt   DateTime?
+
+  // Recebimento
+  receivedById String?
+  receivedBy   Employee? @relation("TransferReceiver", fields: [receivedById], references: [id])
+  receivedAt   DateTime?
+
+  // Observações
+  notes         String?
+  internalNotes String?
+
+  // Itens
+  items StockTransferItem[]
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([transferNumber])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@index([requesterId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+/// Itens de Transferência
+model StockTransferItem {
+  id String @id @default(cuid())
+
+  // Transferência
+  transferId String
+  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  // Produto
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  // Lote (opcional)
+  lotId String?
+  lot   ProductLot? @relation(fields: [lotId], references: [id])
+
+  // Quantidades
+  requestedQty Decimal // Quantidade solicitada
+  shippedQty   Decimal? // Quantidade expedida
+  receivedQty  Decimal? // Quantidade recebida
+
+  // Unidade
+  unit String @default("UN")
+
+  // Observações
+  notes String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([transferId])
+  @@index([productId])
+  @@index([lotId])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MÓDULO ENTERPRISE - APROPRIAÇÃO DE CONSUMO
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Apropriação de Consumo de Material
+model MaterialConsumption {
+  id String @id @default(cuid())
+
+  // Produto
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  // Local de baixa
+  locationId String
+  location   StockLocation @relation(fields: [locationId], references: [id])
+
+  // Apropriação (para onde o custo vai)
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id])
+
+  // Quantidade e custo
+  quantity  Decimal
+  unitCost  Decimal // Custo unitário no momento
+  totalCost Decimal // quantity * unitCost
+
+  // Quem baixou
+  consumedById String
+  consumedBy   Employee @relation("ConsumptionEmployee", fields: [consumedById], references: [id])
+  consumedAt   DateTime @default(now())
+
+  // Observações
+  notes String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([locationId])
+  @@index([activityId])
+  @@index([consumedById])
+  @@index([consumedAt])
 }

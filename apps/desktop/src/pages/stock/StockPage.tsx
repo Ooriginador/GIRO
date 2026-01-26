@@ -225,21 +225,26 @@ export const StockPage: FC = () => {
         </CardHeader>
         <CardContent>
           {lowStockProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Package className="h-12 w-12 text-muted-foreground/50" />
+            <div
+              className="flex flex-col items-center justify-center py-8 text-center"
+              role="status"
+            >
+              <Package className="h-12 w-12 text-muted-foreground/50" aria-hidden="true" />
               <p className="mt-2 text-muted-foreground">
                 Todos os produtos estão com estoque adequado
               </p>
             </div>
           ) : (
-            <Table>
+            <Table aria-labelledby="low-stock-table-title">
               <TableHeader>
                 <TableRow>
                   <TableHead>Produto</TableHead>
                   <TableHead className="text-center">Atual</TableHead>
                   <TableHead className="text-center">Mínimo</TableHead>
                   <TableHead>Situação</TableHead>
-                  <TableHead className="w-[100px]"></TableHead>
+                  <TableHead className="w-[100px]">
+                    <span className="sr-only">Ações</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -259,7 +264,12 @@ export const StockPage: FC = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant={isZero ? 'destructive' : 'warning'}>
+                        <Badge
+                          variant={isZero ? 'destructive' : 'warning'}
+                          aria-label={`Estoque atual: ${product.currentStock} ${
+                            isZero ? ', zerado' : ', baixo'
+                          }`}
+                        >
                           {product.currentStock}
                         </Badge>
                       </TableCell>
@@ -275,16 +285,22 @@ export const StockPage: FC = () => {
                               isZero && '[&>div]:bg-destructive',
                               !isZero && percent < 50 && '[&>div]:bg-warning'
                             )}
+                            aria-label={`Nível de estoque: ${percent.toFixed(0)}% do mínimo`}
                           />
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-sm text-muted-foreground" aria-hidden="true">
                             {percent.toFixed(0)}%
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button variant="outline" size="sm" asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          aria-label={`Registrar entrada para ${product.name}`}
+                        >
                           <Link to={`/stock/entry?product=${product.id}`}>
-                            <PackagePlus className="mr-1 h-4 w-4" />
+                            <PackagePlus className="mr-1 h-4 w-4" aria-hidden="true" />
                             Entrada
                           </Link>
                         </Button>
@@ -300,12 +316,16 @@ export const StockPage: FC = () => {
 
       {/* Vencimentos Próximos */}
       {report.expiringCount > 0 && (
-        <Card className="border-warning">
+        <Card className="border-warning" role="alert">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-warning" />
+              <Clock className="h-5 w-5 text-warning" aria-hidden="true" />
               Produtos Próximos do Vencimento
-              <Badge variant="warning" data-testid="expiring-count">
+              <Badge
+                variant="warning"
+                data-testid="expiring-count"
+                aria-label={`${report.expiringCount} produtos próximos do vencimento`}
+              >
                 {report.expiringCount}
               </Badge>
             </CardTitle>

@@ -240,8 +240,8 @@ export const PDVPage: FC = () => {
 
   if (!currentSession) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4">
-        <AlertCircle className="h-16 w-16 text-warning" />
+      <div className="flex h-full flex-col items-center justify-center gap-4" role="alert">
+        <AlertCircle className="h-16 w-16 text-warning" aria-hidden="true" />
         <h2 className="text-2xl font-bold">Caixa Fechado</h2>
         <p className="text-muted-foreground">Abra o caixa para iniciar as vendas</p>
         <Button size="lg" className="mt-4" onClick={() => navigate('/cash')}>
@@ -257,14 +257,21 @@ export const PDVPage: FC = () => {
         {/* Área de Itens (60%) */}
         <section role="region" aria-label="Área de itens" className="flex flex-[3] flex-col gap-4">
           {/* Barra de Busca */}
-          <Card className="relative z-20 p-4 border-none bg-card/50 backdrop-blur-sm shadow-md">
+          <Card
+            className="relative z-20 p-4 border-none bg-card/50 backdrop-blur-sm shadow-md"
+            role="search"
+            aria-label="Busca de produtos"
+          >
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <Search
+                className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
               <Input
                 ref={searchInputRef}
                 type="text"
                 placeholder="Buscar produto por nome ou código (F2)"
-                aria-label="Buscar produto"
+                aria-label="Buscar produto por nome ou código de barras"
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="h-12 pl-10 text-lg"
@@ -277,11 +284,13 @@ export const PDVPage: FC = () => {
                   size="icon"
                   className="h-8 w-8 text-muted-foreground"
                   onClick={() => setShowHelpModal(true)}
-                  title="Ajuda (F1)"
+                  aria-label="Ajuda e atalhos de teclado (F1)"
                 >
-                  <HelpCircle className="h-5 w-5" />
+                  <HelpCircle className="h-5 w-5" aria-hidden="true" />
                 </Button>
-                <span className="kbd text-xs">F2</span>
+                <span className="kbd text-xs" aria-hidden="true">
+                  F2
+                </span>
               </div>
             </div>
 
@@ -314,10 +323,13 @@ export const PDVPage: FC = () => {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" />
+                  <ShoppingCart className="h-5 w-5" aria-hidden="true" />
                   Itens da Venda
                   {itemCount > 0 && (
-                    <Badge variant="secondary">
+                    <Badge
+                      variant="secondary"
+                      aria-label={`${itemCount} ${itemCount === 1 ? 'item' : 'itens'} no carrinho`}
+                    >
                       {itemCount} {itemCount === 1 ? 'item' : 'itens'}
                     </Badge>
                   )}
@@ -328,8 +340,9 @@ export const PDVPage: FC = () => {
                     size="sm"
                     className="text-destructive hover:text-destructive"
                     onClick={() => setShowClearConfirm(true)}
+                    aria-label="Limpar carrinho"
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
+                    <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
                     Limpar
                   </Button>
                 )}
@@ -337,8 +350,12 @@ export const PDVPage: FC = () => {
             </CardHeader>
             <CardContent className="h-[calc(100%-60px)] p-0" data-tutorial="cart-items">
               {items.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                  <ShoppingCart className="h-12 w-12 opacity-50" />
+                <div
+                  className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground"
+                  role="status"
+                  aria-label="Carrinho vazio"
+                >
+                  <ShoppingCart className="h-12 w-12 opacity-50" aria-hidden="true" />
                   <p>Nenhum produto adicionado</p>
                   <p className="text-sm">Use a busca ou leia um código de barras</p>
                 </div>
@@ -375,9 +392,13 @@ export const PDVPage: FC = () => {
 
               {/* Desconto */}
               {discount > 0 && (
-                <div className="flex justify-between text-lg text-destructive">
+                <div
+                  className="flex justify-between text-lg text-destructive"
+                  role="status"
+                  aria-label={`Desconto aplicado: ${formatCurrency(discount)}`}
+                >
                   <span className="flex items-center gap-1">
-                    <Percent className="h-4 w-4" />
+                    <Percent className="h-4 w-4" aria-hidden="true" />
                     Desconto
                   </span>
                   <span className="text-money">-{formatCurrency(discount)}</span>
@@ -407,10 +428,13 @@ export const PDVPage: FC = () => {
                 disabled={items.length === 0}
                 onClick={() => setShowPaymentModal(true)}
                 data-tutorial="finalize-button"
+                aria-label="Finalizar venda em dinheiro (F10)"
               >
-                <Banknote className="mr-2 h-5 w-5" />
+                <Banknote className="mr-2 h-5 w-5" aria-hidden="true" />
                 Dinheiro
-                <span className="kbd ml-auto">F10</span>
+                <span className="kbd ml-auto" aria-hidden="true">
+                  F10
+                </span>
               </Button>
 
               <Button
@@ -419,8 +443,9 @@ export const PDVPage: FC = () => {
                 className="h-14 text-lg"
                 disabled={items.length === 0}
                 onClick={() => setShowPaymentModal(true)}
+                aria-label="Finalizar venda via PIX"
               >
-                <QrCode className="mr-2 h-5 w-5" />
+                <QrCode className="mr-2 h-5 w-5" aria-hidden="true" />
                 PIX
               </Button>
 
@@ -430,8 +455,9 @@ export const PDVPage: FC = () => {
                 className="h-14 text-lg"
                 disabled={items.length === 0}
                 onClick={() => setShowPaymentModal(true)}
+                aria-label="Finalizar venda no cartão"
               >
-                <CreditCard className="mr-2 h-5 w-5" />
+                <CreditCard className="mr-2 h-5 w-5" aria-hidden="true" />
                 Cartão
               </Button>
 
@@ -441,8 +467,9 @@ export const PDVPage: FC = () => {
                   className="w-full text-destructive hover:text-destructive"
                   disabled={items.length === 0}
                   onClick={() => setShowClearConfirm(true)}
+                  aria-label="Cancelar venda atual (Esc)"
                 >
-                  <X className="mr-2 h-4 w-4" />
+                  <X className="mr-2 h-4 w-4" aria-hidden="true" />
                   Cancelar Venda (Esc)
                 </Button>
               </div>
@@ -450,42 +477,45 @@ export const PDVPage: FC = () => {
           </Card>
 
           {/* Atalhos de Teclado */}
-          <Card className="p-3 border-none bg-card/50 backdrop-blur-sm shadow-md">
-            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <span className="kbd">F2</span>
+          <Card
+            className="p-3 border-none bg-card/50 backdrop-blur-sm shadow-md"
+            aria-label="Atalhos de teclado disponíveis"
+          >
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground" role="list">
+              <div className="flex items-center gap-1" role="listitem">
+                <kbd className="kbd">F2</kbd>
                 <span>Buscar</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="kbd">F4</span>
+              <div className="flex items-center gap-1" role="listitem">
+                <kbd className="kbd">F4</kbd>
                 <span>Quantidade</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="kbd text-[10px]">F6</span>
+              <div className="flex items-center gap-1" role="listitem">
+                <kbd className="kbd text-[10px]">F6</kbd>
                 <span>Desc.</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="kbd text-[10px]">F8</span>
+              <div className="flex items-center gap-1" role="listitem">
+                <kbd className="kbd text-[10px]">F8</kbd>
                 <span>Pause</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="kbd text-[10px]">F9</span>
+              <div className="flex items-center gap-1" role="listitem">
+                <kbd className="kbd text-[10px]">F9</kbd>
                 <span>Recup.</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="kbd text-[10px]">F10</span>
+              <div className="flex items-center gap-1" role="listitem">
+                <kbd className="kbd text-[10px]">F10</kbd>
                 <span>Fim</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="kbd text-[10px]">F11</span>
+              <div className="flex items-center gap-1" role="listitem">
+                <kbd className="kbd text-[10px]">F11</kbd>
                 <span>Gaveta</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="kbd text-[10px]">F12</span>
+              <div className="flex items-center gap-1" role="listitem">
+                <kbd className="kbd text-[10px]">F12</kbd>
                 <span>Rem.</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="kbd text-[10px]">Esc</span>
+              <div className="flex items-center gap-1" role="listitem">
+                <kbd className="kbd text-[10px]">Esc</kbd>
                 <span>Canc.</span>
               </div>
             </div>
@@ -585,7 +615,7 @@ export const PDVPage: FC = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-primary" />
+              <HelpCircle className="h-5 w-5 text-primary" aria-hidden="true" />
               Atalhos do Teclado
             </DialogTitle>
             <DialogDescription>
@@ -638,14 +668,16 @@ export const PDVPage: FC = () => {
           </DialogHeader>
           <div className="py-4">
             {heldSales.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">Nenhuma venda pausada.</p>
+              <p className="text-center text-muted-foreground py-8" role="status">
+                Nenhuma venda pausada.
+              </p>
             ) : (
               <ScrollArea className="h-64">
-                <div className="space-y-2">
+                <div className="space-y-2" role="list" aria-label="Lista de vendas pausadas">
                   {heldSales.map((sale) => (
                     <div
                       key={sale.id}
-                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted cursor-pointer"
+                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
                       onClick={() => {
                         if (items.length > 0) {
                           alert('O carrinho deve estar vazio para recuperar uma venda.');
@@ -654,6 +686,24 @@ export const PDVPage: FC = () => {
                         resumeSale(sale.id);
                         setShowRecoverModal(false);
                       }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          if (items.length > 0) {
+                            alert('O carrinho deve estar vazio para recuperar uma venda.');
+                            return;
+                          }
+                          resumeSale(sale.id);
+                          setShowRecoverModal(false);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="listitem"
+                      aria-label={`Venda pausada com ${
+                        sale.items.length
+                      } itens, total ${formatCurrency(sale.total)}, criada às ${new Date(
+                        sale.createdAt
+                      ).toLocaleTimeString()}`}
                     >
                       <div>
                         <p className="font-medium">{sale.items.length} itens</p>
@@ -671,8 +721,9 @@ export const PDVPage: FC = () => {
                             e.stopPropagation();
                             removeHeldSale(sale.id);
                           }}
+                          aria-label={`Remover venda pausada de ${formatCurrency(sale.total)}`}
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-3 w-3" aria-hidden="true" />
                         </Button>
                       </div>
                     </div>

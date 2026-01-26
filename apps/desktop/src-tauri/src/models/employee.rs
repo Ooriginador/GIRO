@@ -16,6 +16,11 @@ pub enum EmployeeRole {
     Cashier,
     Stocker, // Estoquista - novo role para mobile
     Viewer,
+    // Enterprise roles
+    ContractManager, // Gestor de Contratos
+    Supervisor,      // Supervisor de Frente
+    Warehouse,       // Almoxarife
+    Requester,       // Solicitante
 }
 
 impl std::fmt::Display for EmployeeRole {
@@ -26,6 +31,11 @@ impl std::fmt::Display for EmployeeRole {
             Self::Cashier => write!(f, "Operador"),
             Self::Stocker => write!(f, "Estoquista"),
             Self::Viewer => write!(f, "Visualizador"),
+            // Enterprise roles
+            Self::ContractManager => write!(f, "Gestor de Contratos"),
+            Self::Supervisor => write!(f, "Supervisor de Frente"),
+            Self::Warehouse => write!(f, "Almoxarife"),
+            Self::Requester => write!(f, "Solicitante"),
         }
     }
 }

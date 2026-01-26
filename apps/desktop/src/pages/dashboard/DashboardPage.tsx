@@ -17,7 +17,15 @@ export const DashboardPage: FC = () => {
   const { data: stats, isLoading } = useDashboardStats();
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Carregando dashboard...</div>;
+    return (
+      <div
+        className="p-8 text-center text-muted-foreground"
+        role="status"
+        aria-label="Carregando dashboard"
+      >
+        Carregando dashboard...
+      </div>
+    );
   }
 
   // Fallback if data loading failed or is null
@@ -41,14 +49,18 @@ export const DashboardPage: FC = () => {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Resumo das operações de hoje</p>
         </div>
-        <Button onClick={() => navigate('/pdv')}>
-          <ShoppingCart className="mr-2 h-4 w-4" />
+        <Button onClick={() => navigate('/pdv')} aria-label="Ir para o ponto de venda">
+          <ShoppingCart className="mr-2 h-4 w-4" aria-hidden="true" />
           Ir para PDV
         </Button>
       </div>
 
       {/* KPIs */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+        role="region"
+        aria-label="Indicadores de desempenho"
+      >
         <StatCard
           title="Vendas Hoje"
           value={data.countSalesToday}
@@ -98,14 +110,24 @@ export const DashboardPage: FC = () => {
             <CardDescription>Últimas vendas realizadas</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-4" role="list" aria-label="Lista de vendas recentes">
               {data.recentSales.length > 0 ? (
                 data.recentSales.map(
                   (sale: { id: string; items: number; time: string; total: number }) => (
-                    <div key={sale.id} className="flex items-center justify-between">
+                    <div
+                      key={sale.id}
+                      className="flex items-center justify-between"
+                      role="listitem"
+                      aria-label={`Venda ${sale.id.slice(0, 8)}, ${
+                        sale.items
+                      } itens, ${formatCurrency(sale.total)}`}
+                    >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
-                          <ShoppingCart className="h-4 w-4" />
+                        <div
+                          className="flex h-9 w-9 items-center justify-center rounded-full bg-muted"
+                          aria-hidden="true"
+                        >
+                          <ShoppingCart className="h-4 w-4" aria-hidden="true" />
                         </div>
                         <div>
                           <p className="text-sm font-medium">Venda #{sale.id.slice(0, 8)}</p>
@@ -119,7 +141,7 @@ export const DashboardPage: FC = () => {
                   )
                 )
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
+                <p className="text-sm text-muted-foreground text-center py-4" role="status">
                   Nenhuma venda hoje.
                 </p>
               )}
@@ -134,13 +156,23 @@ export const DashboardPage: FC = () => {
             <CardDescription>Top 5 do dia</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-4" role="list" aria-label="Lista dos produtos mais vendidos">
               {data.topProducts.length > 0 ? (
                 data.topProducts.map(
                   (product: { name: string; quantity: number; revenue: number }, index: number) => (
-                    <div key={product.name} className="flex items-center justify-between">
+                    <div
+                      key={product.name}
+                      className="flex items-center justify-between"
+                      role="listitem"
+                      aria-label={`${index + 1}º lugar: ${product.name}, ${
+                        product.quantity
+                      } vendidos, ${formatCurrency(product.revenue)}`}
+                    >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-medium">
+                        <div
+                          className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-medium"
+                          aria-hidden="true"
+                        >
                           {index + 1}
                         </div>
                         <div>
@@ -155,7 +187,7 @@ export const DashboardPage: FC = () => {
                   )
                 )
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
+                <p className="text-sm text-muted-foreground text-center py-4" role="status">
                   Sem dados de produtos.
                 </p>
               )}
@@ -170,21 +202,21 @@ export const DashboardPage: FC = () => {
           <CardTitle>Ações Rápidas</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Ações rápidas do sistema">
             <Button variant="outline" onClick={() => navigate('/products/new')}>
-              <Package className="mr-2 h-4 w-4" />
+              <Package className="mr-2 h-4 w-4" aria-hidden="true" />
               Novo Produto
             </Button>
             <Button variant="outline" onClick={() => navigate('/stock/entry')}>
-              <Package className="mr-2 h-4 w-4" />
+              <Package className="mr-2 h-4 w-4" aria-hidden="true" />
               Entrada de Estoque
             </Button>
             <Button variant="outline" onClick={() => navigate('/reports')}>
-              <TrendingUp className="mr-2 h-4 w-4" />
+              <TrendingUp className="mr-2 h-4 w-4" aria-hidden="true" />
               Ver Relatórios
             </Button>
             <Button variant="outline" onClick={() => navigate('/alerts')}>
-              <AlertTriangle className="mr-2 h-4 w-4" />
+              <AlertTriangle className="mr-2 h-4 w-4" aria-hidden="true" />
               Ver Alertas
             </Button>
           </div>

@@ -47,7 +47,7 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Cores específicas do varejo
+        // Cores semânticas GIRO
         success: {
           DEFAULT: 'hsl(var(--success))',
           foreground: 'hsl(var(--success-foreground))',
@@ -59,6 +59,46 @@ const config: Config = {
         info: {
           DEFAULT: 'hsl(var(--info))',
           foreground: 'hsl(var(--info-foreground))',
+        },
+        // Cores GIRO Brand
+        giro: {
+          green: {
+            50: 'hsl(142, 100%, 97%)',
+            100: 'hsl(141, 93%, 93%)',
+            200: 'hsl(141, 88%, 86%)',
+            300: 'hsl(142, 79%, 73%)',
+            400: 'hsl(142, 69%, 58%)',
+            500: 'hsl(142, 71%, 45%)',
+            600: 'hsl(142, 76%, 36%)',
+            700: 'hsl(142, 72%, 29%)',
+            800: 'hsl(143, 64%, 24%)',
+            900: 'hsl(144, 61%, 20%)',
+          },
+          orange: {
+            50: 'hsl(33, 100%, 96%)',
+            100: 'hsl(34, 100%, 91%)',
+            200: 'hsl(32, 98%, 83%)',
+            300: 'hsl(31, 97%, 72%)',
+            400: 'hsl(27, 96%, 61%)',
+            500: 'hsl(25, 95%, 53%)',
+            600: 'hsl(21, 90%, 48%)',
+            700: 'hsl(17, 88%, 40%)',
+            800: 'hsl(15, 79%, 34%)',
+            900: 'hsl(15, 75%, 28%)',
+          },
+        },
+        // Cores Enterprise (Azul Industrial)
+        enterprise: {
+          50: 'hsl(214, 100%, 97%)',
+          100: 'hsl(214, 95%, 93%)',
+          200: 'hsl(213, 97%, 87%)',
+          300: 'hsl(212, 96%, 78%)',
+          400: 'hsl(213, 94%, 68%)',
+          500: 'hsl(217, 91%, 60%)',
+          600: 'hsl(221, 83%, 53%)',
+          700: 'hsl(224, 76%, 48%)',
+          800: 'hsl(226, 71%, 40%)',
+          900: 'hsl(224, 64%, 33%)',
         },
       },
       borderRadius: {

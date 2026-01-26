@@ -1,25 +1,108 @@
 # GIRO — Overview Refinado
 
-Objetivo: consolidar e polir a visão arquitetural do sistema GIRO, aprofundar as camadas técnicas, aumentar a acessibilidade e definir a matriz de integrações para implementação e auditoria.
+> **Versão:** 2.0.0  
+> **Status:** Aprovado  
+> **Última Atualização:** 25 de Janeiro de 2026
 
-**Resumo**
+Objetivo: consolidar e polir a visão arquitetural do ecossistema GIRO, aprofundar as camadas técnicas, aumentar a acessibilidade e definir a matriz de integrações para implementação e auditoria.
 
-- **Escopo:** Desktop Tauri (React + Rust) como núcleo offline-first, com sincronização segura com serviços cloud (License Server, Dashboard).
+---
+
+## 🌐 Ecossistema GIRO
+
+O GIRO evoluiu de um único produto para um **ecossistema de aplicações** servindo diferentes segmentos de mercado, compartilhando código e infraestrutura comum.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           ECOSSISTEMA GIRO                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐        │
+│   │   GIRO Desktop  │    │ GIRO Enterprise │    │   GIRO Mobile   │        │
+│   │     (Varejo)    │    │  (Almoxarifado) │    │   (Inventário)  │        │
+│   │                 │    │                 │    │                 │        │
+│   │ • Mercearias    │    │ • Construtoras  │    │ • Scanner PWA   │        │
+│   │ • Motopeças     │    │ • Indústrias    │    │ • Contagem      │        │
+│   │ • Varejo Geral  │    │ • EPC/Obras     │    │ • Sync Local    │        │
+│   │                 │    │                 │    │                 │        │
+│   │ R$ 99,90/caixa  │    │ R$ 199,90/user  │    │   Incluído      │        │
+│   └────────┬────────┘    └────────┬────────┘    └────────┬────────┘        │
+│            │                      │                      │                 │
+│            └──────────────────────┼──────────────────────┘                 │
+│                                   │                                        │
+│                                   ▼                                        │
+│   ┌───────────────────────────────────────────────────────────────────┐   │
+│   │                     PACKAGES COMPARTILHADOS                        │   │
+│   │                                                                    │   │
+│   │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐          │   │
+│   │  │ database │  │    ui    │  │   core   │  │  config  │          │   │
+│   │  │ (Prisma) │  │(Shadcn)  │  │ (Hooks)  │  │ (Types)  │          │   │
+│   │  └──────────┘  └──────────┘  └──────────┘  └──────────┘          │   │
+│   │                                                                    │   │
+│   └───────────────────────────────────────────────────────────────────┘   │
+│                                   │                                        │
+│                                   ▼                                        │
+│   ┌───────────────────────────────────────────────────────────────────┐   │
+│   │                      INFRAESTRUTURA CLOUD                          │   │
+│   │                                                                    │   │
+│   │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │   │
+│   │  │   License    │  │  Dashboard   │  │   Website    │            │   │
+│   │  │    Server    │  │   (Owner)    │  │  (Landing)   │            │   │
+│   │  └──────────────┘  └──────────────┘  └──────────────┘            │   │
+│   │                                                                    │   │
+│   └───────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Produtos do Ecossistema
+
+| Produto             | Segmento     | Descrição                            | Status             |
+| ------------------- | ------------ | ------------------------------------ | ------------------ |
+| **GIRO Desktop**    | Varejo       | PDV, estoque, validade, funcionários | ✅ Produção        |
+| **GIRO Enterprise** | Industrial   | Almoxarifado, contratos, requisições | 🔄 Desenvolvimento |
+| **GIRO Mobile**     | Complementar | Scanner PWA, inventário offline      | ✅ Produção        |
+| **License Server**  | Infra        | Licenciamento, métricas              | ✅ Produção        |
+| **Dashboard**       | Admin        | Painel do proprietário               | ✅ Produção        |
+
+---
+
+**Resumo Técnico**
+
+- **Escopo:** Monorepo com múltiplas apps Tauri (React + Rust), offline-first, sincronização segura com serviços cloud.
+- **Arquitetura:** Packages compartilhados + Apps especializadas por segmento.
 - **Foco deste documento:** aprofundar camadas internas (presentation, application, backend, data, hardware), acessibilidade (WCAG) e integração completa (IPC, WebSocket, Backup, Licenciamento).
 
 **Relação com outros documentos**
 
-- Arquitetura detalhada: [docs/01-ARQUITETURA.md](docs/01-ARQUITETURA.md)
-- Schema do banco: [docs/02-DATABASE-SCHEMA.md](docs/02-DATABASE-SCHEMA.md)
-- Features e requisitos: [docs/03-FEATURES-CORE.md](docs/03-FEATURES-CORE.md)
+- Arquitetura detalhada: [01-ARQUITETURA.md](01-ARQUITETURA.md)
+- Schema do banco: [02-DATABASE-SCHEMA.md](02-DATABASE-SCHEMA.md)
+- Features e requisitos: [03-FEATURES-CORE.md](03-FEATURES-CORE.md)
+- Modelo de negócio: [04-BUSINESS-MODEL.md](04-BUSINESS-MODEL.md)
+- **Módulo Enterprise: [05-ENTERPRISE-MODULE.md](05-ENTERPRISE-MODULE.md)** ← NOVO
 
-**Visão High-Level (resumida)**
+---
 
-- Frontend (Renderer): React + TypeScript + Tailwind (UI acessível).
-- Bridge: Tauri IPC (commands/events) — limite superfície pública, validar tipos.
-- Backend: Rust (serviços, repositórios, drivers de hardware).
-- DB local: SQLite (migrations via Prisma, queries runtime com SQLx).
-- Integrações: Google Drive backup, License Server (ativação/sync), Mobile Scanner (WebSocket local), Impressora/Balança (Serial/USB/HID).
+## 🔧 Visão High-Level (resumida)
+
+- **Frontend (Renderer):** React + TypeScript + Tailwind (UI acessível).
+- **Bridge:** Tauri IPC (commands/events) — limite superfície pública, validar tipos.
+- **Backend:** Rust (serviços, repositórios, drivers de hardware).
+- **DB local:** SQLite (migrations via Prisma, queries runtime com SQLx).
+- **Integrações:** Google Drive backup, License Server (ativação/sync), Mobile Scanner (WebSocket local), Impressora/Balança (Serial/USB/HID).
+
+### Diferenças por Produto
+
+| Aspecto               | GIRO Desktop                 | GIRO Enterprise                |
+| --------------------- | ---------------------------- | ------------------------------ |
+| **Foco**              | PDV, vendas rápidas          | Requisições, controle de custo |
+| **Caixa**             | ✅ Central                   | ❌ Não aplicável               |
+| **Contratos**         | ❌ N/A                       | ✅ Gestão completa             |
+| **Multi-localização** | ❌ Local único               | ✅ Central + Obras             |
+| **Hardware**          | Impressora, balança, scanner | Scanner, impressora            |
+| **Workflow**          | Venda direta                 | Aprovação hierárquica          |
+
+---
 
 **Refinamento por Camada**
 

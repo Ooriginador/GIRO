@@ -69,8 +69,14 @@ export const StockMovementsPage: FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} data-testid="back-button">
-          <ArrowLeft className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate(-1)}
+          data-testid="back-button"
+          aria-label="Voltar para página anterior"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Movimentações de Estoque</h1>
@@ -81,18 +87,22 @@ export const StockMovementsPage: FC = () => {
       {/* Filtros */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4" role="search" aria-label="Filtrar movimentações">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
               <Input
                 placeholder="Buscar por produto..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
+                aria-label="Buscar movimentação por nome do produto"
               />
             </div>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48" aria-label="Filtrar por tipo de movimentação">
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -113,25 +123,33 @@ export const StockMovementsPage: FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ArrowUpDown className="h-5 w-5" />
+            <ArrowUpDown className="h-5 w-5" aria-hidden="true" />
             Histórico
-            <Badge variant="secondary">{filteredMovements.length}</Badge>
+            <Badge
+              variant="secondary"
+              aria-label={`Total: ${filteredMovements.length} movimentações`}
+            >
+              {filteredMovements.length}
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="space-y-2">
+            <div className="space-y-2" role="status" aria-label="Carregando movimentações">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-12 animate-pulse rounded bg-muted" />
+                <div key={i} className="h-12 animate-pulse rounded bg-muted" aria-hidden="true" />
               ))}
             </div>
           ) : filteredMovements.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <ArrowUpDown className="h-12 w-12 text-muted-foreground/50" />
+            <div
+              className="flex flex-col items-center justify-center py-12 text-center"
+              role="status"
+            >
+              <ArrowUpDown className="h-12 w-12 text-muted-foreground/50" aria-hidden="true" />
               <p className="mt-2 text-muted-foreground">Nenhuma movimentação encontrada</p>
             </div>
           ) : (
-            <Table>
+            <Table aria-label="Histórico de movimentações de estoque">
               <TableHeader>
                 <TableRow>
                   <TableHead>Data/Hora</TableHead>
@@ -172,11 +190,14 @@ export const StockMovementsPage: FC = () => {
                             'flex items-center justify-center gap-1 font-medium',
                             isPositive ? 'text-success' : 'text-destructive'
                           )}
+                          aria-label={`${isPositive ? 'Entrada' : 'Saída'} de ${
+                            movement.quantity
+                          } unidades`}
                         >
                           {isPositive ? (
-                            <ArrowUp className="h-4 w-4" />
+                            <ArrowUp className="h-4 w-4" aria-hidden="true" />
                           ) : (
-                            <ArrowDown className="h-4 w-4" />
+                            <ArrowDown className="h-4 w-4" aria-hidden="true" />
                           )}
                           {movement.quantity}
                         </span>

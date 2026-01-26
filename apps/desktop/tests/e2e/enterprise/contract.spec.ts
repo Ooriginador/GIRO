@@ -1,0 +1,222 @@
+/**
+ * E2E Tests - Contract Management Flow
+ * Playwright tests for complete contract lifecycle
+ */
+
+import { test, expect } from '@playwright/test';
+
+test.describe('Contract Management E2E Flow', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/enterprise');
+    await expect(page.locator('[data-testid="enterprise-dashboard"]')).toBeVisible();
+  });
+
+  test('should create a new contract', async ({ page }) => {
+    await page.click('[data-testid="nav-contracts"]');
+    await page.click('[data-testid="new-contract-btn"]');
+
+    // Fill contract form
+    await page.fill('[data-testid="contract-code"]', 'OBRA-2026-001');
+    await page.fill('[data-testid="contract-name"]', 'Construção Hospital Municipal');
+    await page.fill('[data-testid="client-name"]', 'Prefeitura de Recife');
+    await page.fill('[data-testid="client-document"]', '12.345.678/0001-90');
+
+    // Select manager
+    await page.selectOption('[data-testid="manager-select"]', { label: 'João Gerente' });
+
+    // Set estimated dates
+    await page.fill('[data-testid="estimated-start"]', '2026-02-01');
+    await page.fill('[data-testid="estimated-end"]', '2027-02-01');
+
+    // Set budget
+    await page.fill('[data-testid="estimated-budget"]', '5000000');
+
+    // Save
+    await page.click('[data-testid="save-contract-btn"]');
+
+    // Verify success
+    await expect(page.locator('[data-testid="toast-success"]')).toContainText('Contrato criado');
+
+    // Verify contract appears in list
+    await expect(page.locator('[data-testid="contract-list"]')).toContainText('OBRA-2026-001');
+  });
+
+  test('should start a contract (PLANNING -> ACTIVE)', async ({ page }) => {
+    await page.click('[data-testid="nav-contracts"]');
+    await page.selectOption('[data-testid="status-filter"]', 'PLANNING');
+    await page.click('[data-testid="contract-row"]');
+
+    // Verify current status
+    await expect(page.locator('[data-testid="contract-status"]')).toContainText('PLANEJAMENTO');
+
+    // Click start button
+    await page.click('[data-testid="start-contract-btn"]');
+
+    // Confirm start
+    await page.click('[data-testid="confirm-start-btn"]');
+
+    // Verify status changed
+    await expect(page.locator('[data-testid="contract-status"]')).toContainText('ATIVO');
+  });
+
+  test('should add work fronts to a contract', async ({ page }) => {
+    await page.click('[data-testid="nav-contracts"]');
+    await page.click('[data-testid="contract-row"]');
+    await page.click('[data-testid="manage-work-fronts-btn"]');
+
+    // Add work front
+    await page.click('[data-testid="add-work-front-btn"]');
+    await page.fill('[data-testid="work-front-code"]', 'FT-01');
+    await page.fill('[data-testid="work-front-name"]', 'Fundação');
+    await page.fill('[data-testid="work-front-description"]', 'Frente de fundação do hospital');
+    await page.selectOption('[data-testid="work-front-supervisor"]', {
+      label: 'Carlos Supervisor',
+    });
+    await page.click('[data-testid="save-work-front-btn"]');
+
+    // Verify work front added
+    await expect(page.locator('[data-testid="work-fronts-list"]')).toContainText('FT-01');
+    await expect(page.locator('[data-testid="work-fronts-list"]')).toContainText('Fundação');
+  });
+
+  test('should suspend an active contract', async ({ page }) => {
+    await page.click('[data-testid="nav-contracts"]');
+    await page.selectOption('[data-testid="status-filter"]', 'ACTIVE');
+    await page.click('[data-testid="contract-row"]');
+
+    // Click suspend button
+    await page.click('[data-testid="suspend-contract-btn"]');
+
+    // Fill reason
+    await page.fill('[data-testid="suspension-reason"]', 'Aguardando liberação de verba');
+
+    // Confirm
+    await page.click('[data-testid="confirm-suspend-btn"]');
+
+    // Verify status
+    await expect(page.locator('[data-testid="contract-status"]')).toContainText('SUSPENSO');
+  });
+
+  test('should resume a suspended contract', async ({ page }) => {
+    await page.click('[data-testid="nav-contracts"]');
+    await page.selectOption('[data-testid="status-filter"]', 'SUSPENDED');
+    await page.click('[data-testid="contract-row"]');
+
+    // Click resume button
+    await page.click('[data-testid="resume-contract-btn"]');
+
+    // Confirm
+    await page.click('[data-testid="confirm-resume-btn"]');
+
+    // Verify status
+    await expect(page.locator('[data-testid="contract-status"]')).toContainText('ATIVO');
+  });
+
+  test('should complete a contract', async ({ page }) => {
+    await page.click('[data-testid="nav-contracts"]');
+    await page.selectOption('[data-testid="status-filter"]', 'ACTIVE');
+    await page.click('[data-testid="contract-row"]');
+
+    // Click complete button
+    await page.click('[data-testid="complete-contract-btn"]');
+
+    // Add completion notes
+    await page.fill('[data-testid="completion-notes"]', 'Obra finalizada conforme especificações');
+
+    // Confirm
+    await page.click('[data-testid="confirm-complete-btn"]');
+
+    // Verify status
+    await expect(page.locator('[data-testid="contract-status"]')).toContainText('CONCLUÍDO');
+    await expect(page.locator('[data-testid="completed-at"]')).toBeVisible();
+  });
+
+  test('should show contract dashboard with metrics', async ({ page }) => {
+    await page.click('[data-testid="nav-contracts"]');
+    await page.click('[data-testid="contract-row"]');
+    await page.click('[data-testid="view-dashboard-btn"]');
+
+    // Verify dashboard elements
+    await expect(page.locator('[data-testid="contract-progress"]')).toBeVisible();
+    await expect(page.locator('[data-testid="budget-consumed"]')).toBeVisible();
+    await expect(page.locator('[data-testid="pending-requests"]')).toBeVisible();
+    await expect(page.locator('[data-testid="active-activities"]')).toBeVisible();
+  });
+
+  test('should validate unique contract code', async ({ page }) => {
+    await page.click('[data-testid="nav-contracts"]');
+    await page.click('[data-testid="new-contract-btn"]');
+
+    // Use existing code
+    await page.fill('[data-testid="contract-code"]', 'OBRA-001'); // Already exists
+    await page.fill('[data-testid="contract-name"]', 'Teste Duplicado');
+    await page.click('[data-testid="save-contract-btn"]');
+
+    // Verify error message
+    await expect(page.locator('[data-testid="error-message"]')).toContainText('já existe');
+  });
+
+  test('should filter contracts by multiple criteria', async ({ page }) => {
+    await page.click('[data-testid="nav-contracts"]');
+
+    // Apply filters
+    await page.selectOption('[data-testid="status-filter"]', 'ACTIVE');
+    await page.fill('[data-testid="search-input"]', 'Hospital');
+    await page.click('[data-testid="apply-filters-btn"]');
+
+    // Verify filtered results
+    const rows = page.locator('[data-testid="contract-row"]');
+    const count = await rows.count();
+
+    for (let i = 0; i < count; i++) {
+      await expect(rows.nth(i)).toContainText('ATIVO');
+    }
+  });
+});
+
+test.describe('Contract Reports', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/enterprise/reports');
+  });
+
+  test('should generate contract consumption report', async ({ page }) => {
+    await page.click('[data-testid="report-type-consumption"]');
+    await page.selectOption('[data-testid="contract-select"]', { label: 'OBRA-001' });
+    await page.fill('[data-testid="report-date-from"]', '2026-01-01');
+    await page.fill('[data-testid="report-date-to"]', '2026-01-31');
+
+    await page.click('[data-testid="generate-report-btn"]');
+
+    // Verify report
+    await expect(page.locator('[data-testid="report-results"]')).toBeVisible();
+    await expect(page.locator('[data-testid="consumption-chart"]')).toBeVisible();
+  });
+
+  test('should generate budget vs actual report', async ({ page }) => {
+    await page.click('[data-testid="report-type-budget"]');
+    await page.selectOption('[data-testid="contract-select"]', { label: 'OBRA-001' });
+
+    await page.click('[data-testid="generate-report-btn"]');
+
+    // Verify report
+    await expect(page.locator('[data-testid="budget-chart"]')).toBeVisible();
+    await expect(page.locator('[data-testid="variance-table"]')).toBeVisible();
+  });
+
+  test('should export contract report to PDF', async ({ page }) => {
+    await page.click('[data-testid="report-type-consumption"]');
+    await page.selectOption('[data-testid="contract-select"]', { label: 'OBRA-001' });
+    await page.click('[data-testid="generate-report-btn"]');
+
+    await expect(page.locator('[data-testid="report-results"]')).toBeVisible();
+
+    // Export to PDF
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('[data-testid="export-pdf-btn"]'),
+    ]);
+
+    expect(download.suggestedFilename()).toContain('relatorio');
+    expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+  });
+});

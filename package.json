@@ -21,6 +21,7 @@
     "lint": "eslint . --ext .ts,.tsx,.js --report-unused-disable-directives"
   },
   "devDependencies": {
+    "@axe-core/cli": "^4.11.0",
     "@types/node": "^25.0.9",
     "@types/react": "^18.3.27",
     "eslint": "^8.0.0",

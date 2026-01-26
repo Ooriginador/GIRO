@@ -10,11 +10,15 @@ import {
   BarChart3,
   Bell,
   Boxes,
+  Building2,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
   Contact,
   HelpCircle,
+  HardHat,
   LayoutDashboard,
+  MapPin,
   Package,
   Settings,
   ShieldCheck,
@@ -23,6 +27,8 @@ import {
   Users,
   Wallet,
   Wrench,
+  ArrowLeftRight,
+  Construction,
 } from 'lucide-react';
 import { useState, type FC } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -55,6 +61,17 @@ export const Sidebar: FC = () => {
       : []),
     ...(isFeatureEnabled('warranties')
       ? [{ icon: ShieldCheck, label: 'Garantias', href: '/warranties' }]
+      : []),
+    // Enterprise Module
+    ...(isFeatureEnabled('enterprise')
+      ? [
+          { icon: HardHat, label: 'Enterprise', href: '/enterprise', tutorialId: 'nav-enterprise' },
+          { icon: Building2, label: 'Contratos', href: '/enterprise/contracts' },
+          { icon: Construction, label: 'Frentes', href: '/enterprise/work-fronts' },
+          { icon: MapPin, label: 'Locais', href: '/enterprise/locations' },
+          { icon: ClipboardList, label: 'Requisições', href: '/enterprise/requests' },
+          { icon: ArrowLeftRight, label: 'Transferências', href: '/enterprise/transfers' },
+        ]
       : []),
     { icon: ShoppingCart, label: 'PDV', href: '/pdv', tutorialId: 'nav-pdv' },
     { icon: Contact, label: 'Clientes', href: '/customers' },

@@ -486,15 +486,19 @@ export const SettingsPage: FC = () => {
             Configure o sistema de acordo com suas necessidades
           </p>
         </div>
-        <Button onClick={handleSave} disabled={isSaving}>
+        <Button
+          onClick={handleSave}
+          disabled={isSaving}
+          aria-label="Salvar alterações nas configurações"
+        >
           {isSaving ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               Salvando...
             </>
           ) : (
             <>
-              <Save className="mr-2 h-4 w-4" />
+              <Save className="mr-2 h-4 w-4" aria-hidden="true" />
               Salvar Alterações
             </>
           )}
@@ -502,33 +506,36 @@ export const SettingsPage: FC = () => {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 lg:w-[900px]">
+        <TabsList
+          className="grid w-full grid-cols-7 lg:w-[900px]"
+          aria-label="Seções de configuração"
+        >
           <TabsTrigger value="general">
-            <Building2 className="mr-2 h-4 w-4" />
+            <Building2 className="mr-2 h-4 w-4" aria-hidden="true" />
             Empresa
           </TabsTrigger>
           <TabsTrigger value="license">
-            <ShieldCheck className="mr-2 h-4 w-4" />
+            <ShieldCheck className="mr-2 h-4 w-4" aria-hidden="true" />
             Licença
           </TabsTrigger>
           <TabsTrigger value="fiscal">
-            <FileCode className="mr-2 h-4 w-4" />
+            <FileCode className="mr-2 h-4 w-4" aria-hidden="true" />
             Fiscal
           </TabsTrigger>
           <TabsTrigger value="hardware">
-            <Printer className="mr-2 h-4 w-4" />
+            <Printer className="mr-2 h-4 w-4" aria-hidden="true" />
             Hardware
           </TabsTrigger>
           <TabsTrigger value="mobile">
-            <Smartphone className="mr-2 h-4 w-4" />
+            <Smartphone className="mr-2 h-4 w-4" aria-hidden="true" />
             Mobile
           </TabsTrigger>
           <TabsTrigger value="network">
-            <Network className="mr-2 h-4 w-4" />
+            <Network className="mr-2 h-4 w-4" aria-hidden="true" />
             Rede (PC Sync)
           </TabsTrigger>
           <TabsTrigger value="appearance">
-            <Palette className="mr-2 h-4 w-4" />
+            <Palette className="mr-2 h-4 w-4" aria-hidden="true" />
             Aparência
           </TabsTrigger>
           {/*          
@@ -554,7 +561,7 @@ export const SettingsPage: FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
+                <Building2 className="h-5 w-5" aria-hidden="true" />
                 Dados da Empresa
               </CardTitle>
               <CardDescription>Informações que aparecem nos cupons e relatórios</CardDescription>
@@ -663,7 +670,7 @@ export const SettingsPage: FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
+                <Database className="h-5 w-5" aria-hidden="true" />
                 Sincronização Avançada
               </CardTitle>
               <CardDescription>Gerencie seus dados na nuvem</CardDescription>
@@ -675,11 +682,12 @@ export const SettingsPage: FC = () => {
                   onClick={handleSyncLicense}
                   disabled={isSyncingLicense}
                   className="w-full justify-start"
+                  aria-label="Forçar sincronização de licença e dados com servidor"
                 >
                   {isSyncingLicense ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                   ) : (
-                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
                   )}
                   Forçar Sincronização de Licença e Dados
                 </Button>
@@ -700,8 +708,9 @@ export const SettingsPage: FC = () => {
                     }
                   }}
                   className="w-full justify-start"
+                  aria-label="Criar backup local do banco de dados"
                 >
-                  <Database className="mr-2 h-4 w-4" />
+                  <Database className="mr-2 h-4 w-4" aria-hidden="true" />
                   Criar Backup Local
                 </Button>
 
@@ -710,11 +719,16 @@ export const SettingsPage: FC = () => {
                   onClick={handleSyncCloud}
                   disabled={isSyncingCloud}
                   className="w-full justify-start bg-primary/90 hover:bg-primary shadow-sm"
+                  aria-label={
+                    cloudToken
+                      ? 'Sincronizar com GIRO Cloud - conectado'
+                      : 'Sincronizar com GIRO Cloud - não conectado'
+                  }
                 >
                   {isSyncingCloud ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                   ) : (
-                    <Cloud className="mr-2 h-4 w-4" />
+                    <Cloud className="mr-2 h-4 w-4" aria-hidden="true" />
                   )}
                   Sincronizar com GIRO Cloud
                   {cloudToken && (
@@ -745,12 +759,16 @@ export const SettingsPage: FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <Printer className="h-5 w-5" />
+                    <Printer className="h-5 w-5" aria-hidden="true" />
                     Impressora Térmica
                   </CardTitle>
                   <CardDescription>Configure a impressora de cupons</CardDescription>
                 </div>
-                <Switch checked={printerEnabled} onCheckedChange={setPrinterEnabled} />
+                <Switch
+                  checked={printerEnabled}
+                  onCheckedChange={setPrinterEnabled}
+                  aria-label="Habilitar impressora térmica"
+                />
               </div>
             </CardHeader>
             <CardContent
@@ -856,13 +874,23 @@ export const SettingsPage: FC = () => {
                 </div>
               </div>
               <div className="grid gap-2 pt-2">
-                <Button variant="outline" className="w-full" onClick={handleTestPrinter}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleTestPrinter}
+                  aria-label="Testar comunicação com impressora"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
                   Testar Comunicação
                 </Button>
 
-                <Button variant="outline" className="w-full" onClick={handlePrintTestDocuments}>
-                  <FileCode className="mr-2 h-4 w-4" />
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handlePrintTestDocuments}
+                  aria-label="Imprimir documentos de teste"
+                >
+                  <FileCode className="mr-2 h-4 w-4" aria-hidden="true" />
                   Imprimir Documentos de Teste
                 </Button>
               </div>
@@ -873,7 +901,7 @@ export const SettingsPage: FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <QrCode className="h-5 w-5" />
+                <QrCode className="h-5 w-5" aria-hidden="true" />
                 QR Code (Teste de Leitura)
               </CardTitle>
               <CardDescription>
@@ -881,8 +909,13 @@ export const SettingsPage: FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button variant="outline" className="w-full" onClick={handleGenerateTestQr}>
-                <QrCode className="mr-2 h-4 w-4" />
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleGenerateTestQr}
+                aria-label="Gerar QR Code de teste"
+              >
+                <QrCode className="mr-2 h-4 w-4" aria-hidden="true" />
                 Gerar QR de Teste
               </Button>
 
@@ -908,12 +941,16 @@ export const SettingsPage: FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <Scale className="h-5 w-5" />
+                    <Scale className="h-5 w-5" aria-hidden="true" />
                     Balança
                   </CardTitle>
                   <CardDescription>Configure a balança para produtos pesáveis</CardDescription>
                 </div>
-                <Switch checked={scaleEnabled} onCheckedChange={setScaleEnabled} />
+                <Switch
+                  checked={scaleEnabled}
+                  onCheckedChange={setScaleEnabled}
+                  aria-label="Habilitar balança"
+                />
               </div>
             </CardHeader>
             <CardContent
@@ -950,8 +987,13 @@ export const SettingsPage: FC = () => {
                   </Select>
                 </div>
               </div>
-              <Button variant="outline" className="w-full" onClick={handleTestScale}>
-                <RefreshCw className="mr-2 h-4 w-4" />
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleTestScale}
+                aria-label="Testar comunicação com balança"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
                 Testar Comunicação da Balança
               </Button>
             </CardContent>
@@ -963,12 +1005,16 @@ export const SettingsPage: FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <QrCode className="h-5 w-5" />
+                    <QrCode className="h-5 w-5" aria-hidden="true" />
                     Leitor de Código de Barras
                   </CardTitle>
                   <CardDescription>Configure o scanner C3Tech LB-129 ou genérico</CardDescription>
                 </div>
-                <Switch checked={scannerEnabled} onCheckedChange={setScannerEnabled} />
+                <Switch
+                  checked={scannerEnabled}
+                  onCheckedChange={setScannerEnabled}
+                  aria-label="Habilitar leitor de código de barras"
+                />
               </div>
             </CardHeader>
             <CardContent
@@ -1013,6 +1059,7 @@ export const SettingsPage: FC = () => {
                 <Button
                   variant="outline"
                   className="w-full"
+                  aria-label="Iniciar leitor de código de barras em modo serial"
                   onClick={async () => {
                     try {
                       await invoke('start_serial_scanner', {
@@ -1033,7 +1080,7 @@ export const SettingsPage: FC = () => {
                     }
                   }}
                 >
-                  <RefreshCw className="mr-2 h-4 w-4" />
+                  <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
                   Iniciar Leitor Serial
                 </Button>
               )}
@@ -1063,44 +1110,60 @@ export const SettingsPage: FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
+                <Palette className="h-5 w-5" aria-hidden="true" />
                 Tema
               </CardTitle>
               <CardDescription>Personalize a aparência do sistema</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div
+                className="grid gap-4 sm:grid-cols-3"
+                role="radiogroup"
+                aria-label="Selecionar tema do sistema"
+              >
                 <button
                   onClick={() => setTheme('light')}
-                  className={`p-4 rounded-lg border-2 transition-colors ${
+                  role="radio"
+                  aria-checked={theme === 'light'}
+                  aria-label="Tema claro"
+                  className={`p-4 rounded-lg border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                     theme === 'light'
                       ? 'border-primary bg-primary/5'
                       : 'border-border hover:border-primary/50'
                   }`}
                 >
-                  <Sun className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
+                  <Sun className="h-8 w-8 mx-auto mb-2 text-yellow-500" aria-hidden="true" />
                   <p className="font-medium">Claro</p>
                 </button>
                 <button
                   onClick={() => setTheme('dark')}
-                  className={`p-4 rounded-lg border-2 transition-colors ${
+                  role="radio"
+                  aria-checked={theme === 'dark'}
+                  aria-label="Tema escuro"
+                  className={`p-4 rounded-lg border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                     theme === 'dark'
                       ? 'border-primary bg-primary/5'
                       : 'border-border hover:border-primary/50'
                   }`}
                 >
-                  <Moon className="h-8 w-8 mx-auto mb-2 text-blue-500" />
+                  <Moon className="h-8 w-8 mx-auto mb-2 text-blue-500" aria-hidden="true" />
                   <p className="font-medium">Escuro</p>
                 </button>
                 <button
                   onClick={() => setTheme('system')}
-                  className={`p-4 rounded-lg border-2 transition-colors ${
+                  role="radio"
+                  aria-checked={theme === 'system'}
+                  aria-label="Tema do sistema"
+                  className={`p-4 rounded-lg border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                     theme === 'system'
                       ? 'border-primary bg-primary/5'
                       : 'border-border hover:border-primary/50'
                   }`}
                 >
-                  <Monitor className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <Monitor
+                    className="h-8 w-8 mx-auto mb-2 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                   <p className="font-medium">Sistema</p>
                 </button>
               </div>
@@ -1113,7 +1176,7 @@ export const SettingsPage: FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
+                <Bell className="h-5 w-5" aria-hidden="true" />
                 Alertas e Notificações
               </CardTitle>
               <CardDescription>Configure quando e como receber notificações</CardDescription>
@@ -1139,7 +1202,7 @@ export const SettingsPage: FC = () => {
               </div>
               <div className="flex items-center justify-between p-4 rounded-lg border">
                 <div className="flex items-center gap-3">
-                  <Volume2 className="h-5 w-5 text-muted-foreground" />
+                  <Volume2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                   <div>
                     <p className="font-medium">Sons</p>
                     <p className="text-sm text-muted-foreground">Reproduzir sons em ações do PDV</p>
@@ -1155,7 +1218,7 @@ export const SettingsPage: FC = () => {
           <Card className="border-red-200 bg-red-50/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-red-800">
-                <Database className="h-5 w-5" />
+                <Database className="h-5 w-5" aria-hidden="true" />
                 Área de Perigo (Desenvolvedor)
               </CardTitle>
               <CardDescription className="text-red-600">

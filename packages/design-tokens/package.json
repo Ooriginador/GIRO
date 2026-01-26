@@ -1,0 +1,19 @@
+{
+  "name": "@giro/design-tokens",
+  "version": "2.0.0",
+  "description": "Sistema de design unificado para o ecossistema GIRO",
+  "main": "index.css",
+  "files": [
+    "*.css",
+    "README.md"
+  ],
+  "keywords": [
+    "giro",
+    "design-system",
+    "css",
+    "tokens",
+    "tailwind"
+  ],
+  "author": "Arkheion Corp",
+  "license": "MIT"
+}
