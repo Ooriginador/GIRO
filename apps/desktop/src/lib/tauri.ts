@@ -2032,9 +2032,14 @@ export async function getMaterialRequestsPaginated(
   page: number,
   perPage: number,
   filters: RequestFilters
-): Promise<{ data: EnterpriseMaterialRequestWithDetails[]; total: number; page: number; perPage: number }> {
+): Promise<{
+  data: MaterialRequestWithDetails[];
+  total: number;
+  page: number;
+  perPage: number;
+}> {
   return tauriInvoke<{
-    data: EnterpriseMaterialRequestWithDetails[];
+    data: MaterialRequestWithDetails[];
     total: number;
     page: number;
     perPage: number;
@@ -2071,7 +2076,10 @@ export async function approveRequest(
   return tauriInvoke<EnterpriseMaterialRequest>('approve_request', { requestId, approvedItems });
 }
 
-export async function rejectRequest(requestId: string, reason: string): Promise<EnterpriseMaterialRequest> {
+export async function rejectRequest(
+  requestId: string,
+  reason: string
+): Promise<EnterpriseMaterialRequest> {
   return tauriInvoke<EnterpriseMaterialRequest>('reject_request', { requestId, reason });
 }
 
@@ -2113,7 +2121,10 @@ export async function approveMaterialRequestWithItems(
   });
 }
 
-export async function rejectMaterialRequest(id: string, reason: string): Promise<EnterpriseMaterialRequest> {
+export async function rejectMaterialRequest(
+  id: string,
+  reason: string
+): Promise<EnterpriseMaterialRequest> {
   return tauriInvoke<EnterpriseMaterialRequest>('reject_material_request', { id, reason });
 }
 
