@@ -155,14 +155,29 @@ impl AuthHandler {
 
     /// Processa login de sistema (PC-to-PC)
     pub async fn system_login(&self, id: u64, payload: AuthSystemPayload) -> MobileResponse {
-        // Buscar segredo da rede
+        // Buscar segredo da rede - OBRIGATÓRIO em produção
         let settings_repo = crate::repositories::SettingsRepository::new(&self.pool);
-        let expected_secret = settings_repo
-            .get_value("network.secret")
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| "giro-default-secret".to_string());
+        let expected_secret = match settings_repo.get_value("network.secret").await {
+            Ok(Some(secret)) => secret,
+            _ => {
+                // Em dev, permite fallback; em prod, requer configuração
+                #[cfg(debug_assertions)]
+                {
+                    tracing::warn!(
+                        "network.secret não configurado, usando fallback de desenvolvimento"
+                    );
+                    "giro-dev-secret".to_string()
+                }
+                #[cfg(not(debug_assertions))]
+                {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::AuthInvalid,
+                        "Rede não configurada: network.secret ausente",
+                    );
+                }
+            }
+        };
 
         if payload.secret != expected_secret {
             return MobileResponse::error(

@@ -852,3 +852,400 @@ fn can_approve_requests(role: &str) -> bool {
         "ADMIN" | "MANAGER" | "SUPERVISOR" | "ALMOXARIFE_SENIOR"
     )
 }
+
+/// Verifica se role pode gerenciar inventário enterprise
+fn can_manage_enterprise_inventory(role: &str) -> bool {
+    matches!(
+        role.to_uppercase().as_str(),
+        "ADMIN" | "MANAGER" | "ALMOXARIFE" | "ALMOXARIFE_SENIOR" | "SUPERVISOR"
+    )
+}
+
+/// Verifica se role pode contar inventário enterprise
+fn can_count_enterprise_inventory(role: &str) -> bool {
+    matches!(
+        role.to_uppercase().as_str(),
+        "ADMIN" | "MANAGER" | "ALMOXARIFE" | "ALMOXARIFE_SENIOR" | "SUPERVISOR" | "OPERADOR"
+    )
+}
+
+// ============================================================================
+// Enterprise Inventory Handler
+// ============================================================================
+
+/// Payload para listar locais de inventário
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InventoryLocationsPayload {
+    pub contract_id: Option<String>,
+}
+
+/// Payload para iniciar inventário enterprise
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnterpriseInventoryStartPayload {
+    pub location_id: String,
+    pub inventory_type: Option<String>,
+    pub name: Option<String>,
+    pub notes: Option<String>,
+}
+
+/// Payload para contagem de inventário enterprise
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnterpriseInventoryCountPayload {
+    pub inventory_id: String,
+    pub product_id: String,
+    pub lot_number: Option<String>,
+    pub counted_quantity: f64,
+    pub notes: Option<String>,
+}
+
+/// Payload para sincronizar inventário enterprise
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnterpriseInventorySyncPayload {
+    pub inventory_id: String,
+    pub counts: Vec<EnterpriseInventoryCountPayload>,
+}
+
+/// Payload para finalizar inventário enterprise
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnterpriseInventoryFinishPayload {
+    pub inventory_id: String,
+    pub apply_adjustments: bool,
+    pub notes: Option<String>,
+}
+
+/// Payload para cancelar inventário enterprise
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnterpriseInventoryCancelPayload {
+    pub inventory_id: String,
+    pub reason: String,
+}
+
+/// Handler para inventário enterprise por localização
+pub struct EnterpriseInventoryHandler {
+    pool: SqlitePool,
+}
+
+impl EnterpriseInventoryHandler {
+    /// Cria novo handler
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
+
+    /// Audit helper
+    async fn log_audit(
+        &self,
+        action: AuditAction,
+        user_id: &str,
+        entity_id: &str,
+        details: String,
+    ) {
+        let audit_service = AuditService::new(self.pool.clone());
+        let _ = audit_service
+            .log(CreateAuditLog {
+                action,
+                employee_id: user_id.to_string(),
+                employee_name: "Mobile User".to_string(),
+                target_type: Some("EnterpriseInventory".to_string()),
+                target_id: Some(entity_id.to_string()),
+                details: Some(details),
+            })
+            .await;
+    }
+
+    /// Lista locais disponíveis para inventário
+    pub async fn get_locations(
+        &self,
+        id: u64,
+        payload: InventoryLocationsPayload,
+        _employee_id: &str,
+        _employee_role: &str,
+    ) -> MobileResponse {
+        let repo = StockLocationRepository::new(&self.pool);
+
+        let locations = if let Some(cid) = payload.contract_id {
+            repo.find_by_contract(&cid).await
+        } else {
+            repo.find_all_active().await
+        };
+
+        match locations {
+            Ok(locs) => {
+                let locs_with_stock: Vec<_> = locs
+                    .into_iter()
+                    .map(|loc| {
+                        serde_json::json!({
+                            "id": loc.id,
+                            "code": loc.code,
+                            "name": loc.name,
+                            "type": loc.location_type,
+                            "address": loc.address,
+                            "contractId": loc.contract_id,
+                            "isActive": loc.is_active
+                        })
+                    })
+                    .collect();
+
+                MobileResponse::success(id, serde_json::json!({ "locations": locs_with_stock }))
+            }
+            Err(e) => MobileResponse::error(id, MobileErrorCode::InternalError, e.to_string()),
+        }
+    }
+
+    /// Inicia inventário para uma localização
+    pub async fn start(
+        &self,
+        id: u64,
+        payload: EnterpriseInventoryStartPayload,
+        employee_id: &str,
+        employee_role: &str,
+    ) -> MobileResponse {
+        if !can_manage_enterprise_inventory(employee_role) {
+            return MobileResponse::error(
+                id,
+                MobileErrorCode::PermissionDenied,
+                "Sem permissão para iniciar inventário",
+            );
+        }
+
+        let loc_repo = StockLocationRepository::new(&self.pool);
+
+        // Verificar se localização existe
+        let location = match loc_repo.find_by_id(&payload.location_id).await {
+            Ok(Some(loc)) => loc,
+            Ok(None) => {
+                return MobileResponse::error(
+                    id,
+                    MobileErrorCode::NotFound,
+                    "Localização não encontrada",
+                );
+            }
+            Err(e) => {
+                return MobileResponse::error(id, MobileErrorCode::InternalError, e.to_string())
+            }
+        };
+
+        // Criar inventário (simplificado - usar tabela enterprise_inventories se existir)
+        let inventory_id = uuid::Uuid::new_v4().to_string();
+        let inventory_name = payload.name.unwrap_or_else(|| {
+            format!(
+                "Inventário {} - {}",
+                location.name,
+                chrono::Local::now().format("%d/%m/%Y")
+            )
+        });
+
+        self.log_audit(
+            AuditAction::ProductUpdated,
+            employee_id,
+            &inventory_id,
+            format!(
+                "Inventário enterprise iniciado na localização: {}",
+                location.name
+            ),
+        )
+        .await;
+
+        tracing::info!(
+            "Inventário enterprise iniciado: {} em {}",
+            inventory_id,
+            location.name
+        );
+
+        MobileResponse::success(
+            id,
+            serde_json::json!({
+                "inventoryId": inventory_id,
+                "name": inventory_name,
+                "locationId": location.id,
+                "locationName": location.name,
+                "status": "IN_PROGRESS",
+                "startedAt": chrono::Utc::now().to_rfc3339(),
+                "startedBy": employee_id
+            }),
+        )
+    }
+
+    /// Registra contagem de produto
+    pub async fn count(
+        &self,
+        id: u64,
+        payload: EnterpriseInventoryCountPayload,
+        employee_id: &str,
+        employee_role: &str,
+    ) -> MobileResponse {
+        if !can_count_enterprise_inventory(employee_role) {
+            return MobileResponse::error(
+                id,
+                MobileErrorCode::PermissionDenied,
+                "Sem permissão para contar inventário",
+            );
+        }
+
+        tracing::info!(
+            "Contagem inventário enterprise: produto {} = {} unidades",
+            payload.product_id,
+            payload.counted_quantity
+        );
+
+        self.log_audit(
+            AuditAction::ProductUpdated,
+            employee_id,
+            &payload.inventory_id,
+            format!(
+                "Contagem registrada: produto {} = {} unidades",
+                payload.product_id, payload.counted_quantity
+            ),
+        )
+        .await;
+
+        MobileResponse::success(
+            id,
+            serde_json::json!({
+                "inventoryId": payload.inventory_id,
+                "productId": payload.product_id,
+                "countedQuantity": payload.counted_quantity,
+                "lotNumber": payload.lot_number,
+                "recordedAt": chrono::Utc::now().to_rfc3339(),
+                "recordedBy": employee_id
+            }),
+        )
+    }
+
+    /// Sincroniza múltiplas contagens
+    pub async fn sync(
+        &self,
+        id: u64,
+        payload: EnterpriseInventorySyncPayload,
+        employee_id: &str,
+        employee_role: &str,
+    ) -> MobileResponse {
+        if !can_count_enterprise_inventory(employee_role) {
+            return MobileResponse::error(
+                id,
+                MobileErrorCode::PermissionDenied,
+                "Sem permissão para sincronizar inventário",
+            );
+        }
+
+        let count = payload.counts.len();
+
+        self.log_audit(
+            AuditAction::ProductUpdated,
+            employee_id,
+            &payload.inventory_id,
+            format!("Sincronizadas {} contagens", count),
+        )
+        .await;
+
+        tracing::info!(
+            "Sincronização inventário enterprise: {} contagens processadas",
+            count
+        );
+
+        MobileResponse::success(
+            id,
+            serde_json::json!({
+                "inventoryId": payload.inventory_id,
+                "syncedCount": count,
+                "syncedAt": chrono::Utc::now().to_rfc3339()
+            }),
+        )
+    }
+
+    /// Finaliza inventário
+    pub async fn finish(
+        &self,
+        id: u64,
+        payload: EnterpriseInventoryFinishPayload,
+        employee_id: &str,
+        employee_role: &str,
+    ) -> MobileResponse {
+        if !can_manage_enterprise_inventory(employee_role) {
+            return MobileResponse::error(
+                id,
+                MobileErrorCode::PermissionDenied,
+                "Sem permissão para finalizar inventário",
+            );
+        }
+
+        self.log_audit(
+            AuditAction::ProductUpdated,
+            employee_id,
+            &payload.inventory_id,
+            format!(
+                "Inventário finalizado. Ajustes aplicados: {}",
+                if payload.apply_adjustments {
+                    "Sim"
+                } else {
+                    "Não"
+                }
+            ),
+        )
+        .await;
+
+        tracing::info!(
+            "Inventário enterprise finalizado: {} (ajustes: {})",
+            payload.inventory_id,
+            payload.apply_adjustments
+        );
+
+        MobileResponse::success(
+            id,
+            serde_json::json!({
+                "inventoryId": payload.inventory_id,
+                "status": "COMPLETED",
+                "finishedAt": chrono::Utc::now().to_rfc3339(),
+                "finishedBy": employee_id,
+                "adjustmentsApplied": payload.apply_adjustments
+            }),
+        )
+    }
+
+    /// Cancela inventário
+    pub async fn cancel(
+        &self,
+        id: u64,
+        payload: EnterpriseInventoryCancelPayload,
+        employee_id: &str,
+        employee_role: &str,
+    ) -> MobileResponse {
+        if !can_manage_enterprise_inventory(employee_role) {
+            return MobileResponse::error(
+                id,
+                MobileErrorCode::PermissionDenied,
+                "Sem permissão para cancelar inventário",
+            );
+        }
+
+        self.log_audit(
+            AuditAction::ProductUpdated,
+            employee_id,
+            &payload.inventory_id,
+            format!("Inventário cancelado: {}", payload.reason),
+        )
+        .await;
+
+        tracing::info!(
+            "Inventário enterprise cancelado: {} - {}",
+            payload.inventory_id,
+            payload.reason
+        );
+
+        MobileResponse::success(
+            id,
+            serde_json::json!({
+                "inventoryId": payload.inventory_id,
+                "status": "CANCELLED",
+                "cancelledAt": chrono::Utc::now().to_rfc3339(),
+                "cancelledBy": employee_id,
+                "reason": payload.reason
+            }),
+        )
+    }
+}

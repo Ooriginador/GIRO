@@ -14,7 +14,8 @@ pub mod system;
 pub use auth::AuthHandler;
 pub use categories::CategoriesHandler;
 pub use enterprise::{
-    EnterpriseContextHandler, EnterpriseRequestHandler, EnterpriseTransferHandler,
+    EnterpriseContextHandler, EnterpriseInventoryHandler, EnterpriseRequestHandler,
+    EnterpriseTransferHandler,
 };
 pub use expiration::ExpirationHandler;
 pub use inventory::InventoryHandler;
