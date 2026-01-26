@@ -27,6 +27,14 @@ import {
   Users,
   Warehouse,
   Zap,
+  // Enterprise Icons
+  Building2,
+  FileText,
+  Hammer,
+  ClipboardList,
+  ArrowLeftRight,
+  MapPin,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useMemo, useState, type FC } from 'react';
 import { useTutorialStore } from './tutorial-store';
@@ -45,6 +53,14 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
   Users,
   Bell,
+  // Enterprise Icons
+  Building2,
+  FileText,
+  Hammer,
+  ClipboardList,
+  ArrowLeftRight,
+  MapPin,
+  ClipboardCheck,
 };
 
 interface TutorialCardProps {
@@ -264,11 +280,15 @@ export const TutorialHub: FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-        <TabsList className="grid grid-cols-5 w-full max-w-xl">
+        <TabsList className="grid grid-cols-6 w-full max-w-2xl">
           <TabsTrigger value="all">Todos</TabsTrigger>
           <TabsTrigger value="getting-started">Início</TabsTrigger>
           <TabsTrigger value="operations">Operações</TabsTrigger>
           <TabsTrigger value="management">Gestão</TabsTrigger>
+          <TabsTrigger value="enterprise" className="text-blue-600">
+            <Building2 className="h-3 w-3 mr-1" />
+            Enterprise
+          </TabsTrigger>
           <TabsTrigger value="advanced">Avançado</TabsTrigger>
         </TabsList>
 

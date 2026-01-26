@@ -840,6 +840,11 @@ async fn main() {
             commands::restore_license,
             commands::update_license_admin,
             commands::test_license_connection,
+            // LGPD Compliance
+            commands::lgpd_hard_delete_customer,
+            commands::lgpd_hard_delete_employee,
+            commands::lgpd_export_customer_data,
+            commands::lgpd_export_employee_data,
             // Enterprise Module - Contracts
             commands::get_contracts,
             commands::get_contracts_paginated,

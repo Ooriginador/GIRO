@@ -13,8 +13,17 @@ import { reportsTutorial } from './reports';
 import { settingsTutorial } from './settings';
 import { stockTutorial } from './stock';
 import { welcomeTutorial } from './welcome';
+// Enterprise Tutorials
+import { enterpriseIntroTutorial } from './enterprise-intro';
+import { enterpriseContractsTutorial } from './enterprise-contracts';
+import { enterpriseWorkfrontsTutorial } from './enterprise-workfronts';
+import { enterpriseRequestsTutorial } from './enterprise-requests';
+import { enterpriseTransfersTutorial } from './enterprise-transfers';
+import { enterpriseLocationsTutorial } from './enterprise-locations';
+import { enterpriseInventoryTutorial } from './enterprise-inventory';
 
 export const tutorials: Record<TutorialId, Tutorial> = {
+  // Core Tutorials
   welcome: welcomeTutorial,
   'pdv-basic': pdvBasicTutorial,
   'pdv-advanced': pdvAdvancedTutorial,
@@ -25,6 +34,14 @@ export const tutorials: Record<TutorialId, Tutorial> = {
   settings: settingsTutorial,
   employees: employeesTutorial,
   alerts: alertsTutorial,
+  // Enterprise Tutorials
+  'enterprise-intro': enterpriseIntroTutorial,
+  'enterprise-contracts': enterpriseContractsTutorial,
+  'enterprise-workfronts': enterpriseWorkfrontsTutorial,
+  'enterprise-requests': enterpriseRequestsTutorial,
+  'enterprise-transfers': enterpriseTransfersTutorial,
+  'enterprise-locations': enterpriseLocationsTutorial,
+  'enterprise-inventory': enterpriseInventoryTutorial,
 };
 
 export const getTutorialById = (id: TutorialId): Tutorial | undefined => {
@@ -47,6 +64,7 @@ export const searchTutorials = (query: string): Tutorial[] => {
 
 // Re-export tutorials individuais
 export {
+  // Core
   alertsTutorial,
   cashTutorial,
   employeesTutorial,
@@ -57,4 +75,12 @@ export {
   settingsTutorial,
   stockTutorial,
   welcomeTutorial,
+  // Enterprise
+  enterpriseIntroTutorial,
+  enterpriseContractsTutorial,
+  enterpriseWorkfrontsTutorial,
+  enterpriseRequestsTutorial,
+  enterpriseTransfersTutorial,
+  enterpriseLocationsTutorial,
+  enterpriseInventoryTutorial,
 };

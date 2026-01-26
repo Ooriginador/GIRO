@@ -37,10 +37,10 @@ import {
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
-import { type FC, useState } from 'react';
+import { type FC, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ExportButtons } from '@/components/shared';
-import { type ExportColumn, exportFormatters } from '@/lib/export';
+import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
 
 // ────────────────────────────────────────────────────────────────────────────
 // COMPONENT
@@ -56,6 +56,34 @@ export const StockPage: FC = () => {
   const { data: lowStockProducts = [] } = useLowStockProducts(filterId);
 
   const canViewValue = hasPermission('stock.view_value');
+
+  // Summary para exportação profissional
+  const exportSummary: ExportSummaryItem[] = useMemo(() => {
+    if (!report) return [];
+    const totalUnits = lowStockProducts.reduce(
+      (sum, p) => sum + (p.stock ?? p.currentStock ?? 0),
+      0
+    );
+    const criticalCount = lowStockProducts.filter(
+      (p) => (p.stock ?? p.currentStock ?? 0) <= 0
+    ).length;
+    return [
+      {
+        label: 'Produtos c/ Estoque Baixo',
+        value: String(lowStockProducts.length),
+        icon: '⚠️',
+        color: '#f59e0b',
+      },
+      { label: 'Críticos (Zerado)', value: String(criticalCount), icon: '🚨', color: '#ef4444' },
+      { label: 'Unidades Restantes', value: String(totalUnits), icon: '📦', color: '#3b82f6' },
+      {
+        label: 'Total Produtos',
+        value: String(report.totalProducts || 0),
+        icon: '📊',
+        color: '#10b981',
+      },
+    ];
+  }, [lowStockProducts, report]);
 
   if (isLoading || !report) {
     return (
@@ -96,21 +124,40 @@ export const StockPage: FC = () => {
             data={lowStockProducts}
             columns={
               [
-                { key: 'code', header: 'Código' },
-                { key: 'name', header: 'Produto' },
-                { key: 'stock', header: 'Estoque Atual', align: 'right' },
-                { key: 'minStock', header: 'Estoque Mín.', align: 'right' },
+                { key: 'code', header: 'Código', width: 100 },
+                { key: 'name', header: 'Produto', width: 200 },
+                {
+                  key: 'stock',
+                  header: 'Estoque Atual',
+                  align: 'right',
+                  width: 100,
+                  type: 'number',
+                  totalizable: true,
+                },
+                {
+                  key: 'minStock',
+                  header: 'Estoque Mín.',
+                  align: 'right',
+                  width: 100,
+                  type: 'number',
+                },
                 {
                   key: 'salePrice',
                   header: 'Preço',
                   formatter: exportFormatters.currency,
                   align: 'right',
+                  width: 100,
+                  type: 'currency',
                 },
               ] as ExportColumn<(typeof lowStockProducts)[0]>[]
             }
             filename="estoque-baixo"
             title="Produtos com Estoque Baixo"
+            subtitle="Produtos abaixo do estoque mínimo configurado"
             variant="dropdown"
+            summary={exportSummary}
+            showTotals={true}
+            primaryColor="#f59e0b"
           />
           <Button variant="outline" asChild aria-label="Ver histórico de movimentações">
             <Link to="/stock/movements">

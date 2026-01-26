@@ -27,13 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type {
-  WorkFront,
-  WorkFrontActivity,
-  MaterialRequest,
-  Contract,
-  Employee,
-} from '@/types/enterprise';
+import type { WorkFront, WorkFrontActivity, MaterialRequest } from '@/types/enterprise';
 
 // Status badge colors
 const statusColors: Record<string, string> = {

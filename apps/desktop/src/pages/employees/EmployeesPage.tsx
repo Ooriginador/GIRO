@@ -61,11 +61,11 @@ import {
   Trash2,
   User,
 } from 'lucide-react';
-import { useState, type FC } from 'react';
+import { useState, useMemo, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ExportButtons } from '@/components/shared';
-import { type ExportColumn, exportFormatters } from '@/lib/export';
+import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
 
 // Schema de validação com Zod
 const employeeFormSchema = z.object({
@@ -156,6 +156,39 @@ export const EmployeesPage: FC = () => {
       emp.name.toLowerCase().includes(search.toLowerCase()) ||
       (emp.email && emp.email.toLowerCase().includes(search.toLowerCase()))
   );
+
+  // Colunas para exportação
+  const exportColumns: ExportColumn<Employee>[] = [
+    { key: 'name', header: 'Nome', width: 200 },
+    { key: 'email', header: 'E-mail', width: 180 },
+    { key: 'phone', header: 'Telefone', width: 120 },
+    {
+      key: 'role',
+      header: 'Cargo',
+      width: 140,
+      formatter: (v) => roleLabels[v as EmployeeRole] || String(v),
+    },
+    { key: 'isActive', header: 'Status', width: 70, formatter: exportFormatters.activeInactive },
+    { key: 'createdAt', header: 'Cadastro', width: 100, formatter: exportFormatters.date },
+  ];
+
+  // Summary para exportação profissional
+  const exportSummary: ExportSummaryItem[] = useMemo(() => {
+    const activeCount = filteredEmployees.filter((e) => e.isActive).length;
+    const admins = filteredEmployees.filter((e) => e.role === 'ADMIN').length;
+    const cashiers = filteredEmployees.filter((e) => e.role === 'CASHIER').length;
+    return [
+      {
+        label: 'Total Funcionários',
+        value: String(filteredEmployees.length),
+        icon: '👤',
+        color: '#3b82f6',
+      },
+      { label: 'Ativos', value: String(activeCount), icon: '✅', color: '#10b981' },
+      { label: 'Administradores', value: String(admins), icon: '👑', color: '#8b5cf6' },
+      { label: 'Operadores', value: String(cashiers), icon: '💳', color: '#f59e0b' },
+    ];
+  }, [filteredEmployees]);
 
   const onSubmit = async (data: EmployeeFormData) => {
     try {
@@ -280,16 +313,6 @@ export const EmployeesPage: FC = () => {
     return <div>Carregando funcionários...</div>;
   }
 
-  // Colunas para exportação
-  const exportColumns: ExportColumn<Employee>[] = [
-    { key: 'name', header: 'Nome' },
-    { key: 'email', header: 'E-mail' },
-    { key: 'phone', header: 'Telefone' },
-    { key: 'role', header: 'Cargo', formatter: (v) => roleLabels[v as EmployeeRole] || String(v) },
-    { key: 'isActive', header: 'Status', formatter: exportFormatters.activeInactive },
-    { key: 'createdAt', header: 'Cadastro', formatter: exportFormatters.date },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -304,6 +327,8 @@ export const EmployeesPage: FC = () => {
             filename="funcionarios"
             title="Cadastro de Funcionários"
             variant="dropdown"
+            summary={exportSummary}
+            primaryColor="#8b5cf6"
           />
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
             <SelectTrigger className="w-[180px]">

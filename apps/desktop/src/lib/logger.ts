@@ -5,8 +5,6 @@
 
 const IS_DEV = import.meta.env.DEV;
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-
 interface LoggerOptions {
   prefix?: string;
   enabled?: boolean;
@@ -21,33 +19,33 @@ class Logger {
     this.enabled = options.enabled ?? IS_DEV;
   }
 
-  private formatMessage(level: LogLevel, message: string): string {
-    const timestamp = new Date().toISOString().split('T')[1].slice(0, 8);
+  private formatMessage(message: string): string {
+    const timestamp = new Date().toISOString().split('T')[1]?.slice(0, 8) ?? '00:00:00';
     const prefix = this.prefix ? `[${this.prefix}]` : '';
     return `${timestamp} ${prefix} ${message}`;
   }
 
   debug(message: string, ...args: unknown[]): void {
     if (this.enabled) {
-      console.debug(this.formatMessage('debug', message), ...args);
+      console.debug(this.formatMessage(message), ...args);
     }
   }
 
   info(message: string, ...args: unknown[]): void {
     if (this.enabled) {
-      console.info(this.formatMessage('info', message), ...args);
+      console.info(this.formatMessage(message), ...args);
     }
   }
 
   warn(message: string, ...args: unknown[]): void {
     if (this.enabled) {
-      console.warn(this.formatMessage('warn', message), ...args);
+      console.warn(this.formatMessage(message), ...args);
     }
   }
 
   error(message: string, ...args: unknown[]): void {
     // Errors sempre logam, mesmo em produção
-    console.error(this.formatMessage('error', message), ...args);
+    console.error(this.formatMessage(message), ...args);
   }
 }
 

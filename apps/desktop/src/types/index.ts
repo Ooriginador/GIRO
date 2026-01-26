@@ -108,6 +108,7 @@ export interface Product {
   costPrice: number;
   minStock: number;
   currentStock: number;
+  stock?: number; // Alias para currentStock (Enterprise)
   maxStock?: number;
   isWeighted: boolean;
   isActive: boolean;

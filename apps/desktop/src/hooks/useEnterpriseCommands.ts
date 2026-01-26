@@ -63,22 +63,22 @@ interface UseEnterpriseCommandsReturn {
   getMaterialRequestById: (id: string) => Promise<tauri.MaterialRequestWithDetails | null>;
   createMaterialRequest: (
     input: tauri.CreateMaterialRequestInput
-  ) => Promise<tauri.EnterpriseMaterialRequest>;
+  ) => Promise<tauri.MaterialRequest>;
   getPendingRequests: () => Promise<tauri.MaterialRequestWithDetails[]>;
   getRequestItems: (requestId: string) => Promise<tauri.MaterialRequestItem[]>;
   addRequestItem: (
     requestId: string,
     input: tauri.AddRequestItemInput
   ) => Promise<tauri.MaterialRequestItem>;
-  submitRequest: (requestId: string) => Promise<tauri.EnterpriseMaterialRequest>;
+  submitRequest: (requestId: string) => Promise<tauri.MaterialRequest>;
   approveRequest: (
     requestId: string,
     approvedItems: Array<{ itemId: string; approvedQty: number }>
-  ) => Promise<tauri.EnterpriseMaterialRequest>;
-  rejectRequest: (requestId: string, reason: string) => Promise<tauri.EnterpriseMaterialRequest>;
-  startSeparation: (requestId: string) => Promise<tauri.EnterpriseMaterialRequest>;
-  completeSeparation: (requestId: string) => Promise<tauri.EnterpriseMaterialRequest>;
-  deliverRequest: (requestId: string) => Promise<tauri.EnterpriseMaterialRequest>;
+  ) => Promise<tauri.MaterialRequest>;
+  rejectRequest: (requestId: string, reason: string) => Promise<tauri.MaterialRequest>;
+  startSeparation: (requestId: string) => Promise<tauri.MaterialRequest>;
+  completeSeparation: (requestId: string) => Promise<tauri.MaterialRequest>;
+  deliverRequest: (requestId: string) => Promise<tauri.MaterialRequest>;
 
   // Stock Transfers
   getStockTransfers: (
