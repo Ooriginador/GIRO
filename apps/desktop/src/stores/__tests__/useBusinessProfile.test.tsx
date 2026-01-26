@@ -15,9 +15,9 @@ describe('useBusinessProfileStore', () => {
   });
 
   describe('Initial State', () => {
-    it.skip('should have default business type', () => {
+    it('should have default business type', () => {
       const { result } = renderHook(() => useBusinessProfileStore());
-      expect(result.current.businessType).toBe('motoparts');
+      expect(result.current.businessType).toBe('GROCERY'); // DEFAULT_BUSINESS_TYPE é GROCERY
     });
 
     it('should not be configured initially', () => {
@@ -38,15 +38,15 @@ describe('useBusinessProfileStore', () => {
     });
   });
 
-  describe.skip('setBusinessType', () => {
+  describe('setBusinessType', () => {
     it('should update business type', () => {
       const { result } = renderHook(() => useBusinessProfileStore());
 
       act(() => {
-        result.current.setBusinessType('retail');
+        result.current.setBusinessType('MOTOPARTS');
       });
 
-      expect(result.current.businessType).toBe('retail');
+      expect(result.current.businessType).toBe('MOTOPARTS');
     });
 
     it('should update profile when type changes', () => {
@@ -55,17 +55,18 @@ describe('useBusinessProfileStore', () => {
       const originalProfile = result.current.profile.name;
 
       act(() => {
-        result.current.setBusinessType('petshop');
+        result.current.setBusinessType('ENTERPRISE');
       });
 
       expect(result.current.profile.name).not.toBe(originalProfile);
+      expect(result.current.profile.name).toBe('Enterprise'); // Nome correto do perfil
     });
 
     it('should update features when type changes', () => {
       const { result } = renderHook(() => useBusinessProfileStore());
 
       act(() => {
-        result.current.setBusinessType('motoparts');
+        result.current.setBusinessType('MOTOPARTS');
       });
 
       // Motoparts should have vehicle compatibility
@@ -88,16 +89,16 @@ describe('useBusinessProfileStore', () => {
   });
 
   describe('resetProfile', () => {
-    it.skip('should reset to default state', () => {
+    it('should reset to default state', () => {
       const { result } = renderHook(() => useBusinessProfileStore());
 
       // Change state
       act(() => {
-        result.current.setBusinessType('petshop');
+        result.current.setBusinessType('MOTOPARTS');
         result.current.markAsConfigured();
       });
 
-      expect(result.current.businessType).toBe('petshop');
+      expect(result.current.businessType).toBe('MOTOPARTS');
       expect(result.current.isConfigured).toBe(true);
 
       // Reset
@@ -105,17 +106,17 @@ describe('useBusinessProfileStore', () => {
         result.current.resetProfile();
       });
 
-      expect(result.current.businessType).toBe('motoparts');
+      expect(result.current.businessType).toBe('GROCERY'); // DEFAULT_BUSINESS_TYPE
       expect(result.current.isConfigured).toBe(false);
     });
   });
 
-  describe.skip('isFeatureEnabled', () => {
+  describe('isFeatureEnabled', () => {
     it('should return true for enabled features', () => {
       const { result } = renderHook(() => useBusinessProfileStore());
 
       act(() => {
-        result.current.setBusinessType('motoparts');
+        result.current.setBusinessType('MOTOPARTS');
       });
 
       expect(result.current.isFeatureEnabled('vehicleCompatibility')).toBe(true);
@@ -126,7 +127,7 @@ describe('useBusinessProfileStore', () => {
       const { result } = renderHook(() => useBusinessProfileStore());
 
       act(() => {
-        result.current.setBusinessType('retail');
+        result.current.setBusinessType('GROCERY'); // GROCERY não tem vehicleCompatibility
       });
 
       expect(result.current.isFeatureEnabled('vehicleCompatibility')).toBe(false);
@@ -166,15 +167,15 @@ describe('useBusinessProfile hook', () => {
     expect(result.current.getLabel).toBeInstanceOf(Function);
   });
 
-  it.skip('should update when store changes', () => {
+  it('should update when store changes', () => {
     const { result } = renderHook(() => useBusinessProfile());
 
-    expect(result.current.businessType).toBe('motoparts');
+    expect(result.current.businessType).toBe('GROCERY');
 
     act(() => {
-      result.current.setBusinessType('petshop');
+      result.current.setBusinessType('MOTOPARTS');
     });
 
-    expect(result.current.businessType).toBe('petshop');
+    expect(result.current.businessType).toBe('MOTOPARTS');
   });
 });

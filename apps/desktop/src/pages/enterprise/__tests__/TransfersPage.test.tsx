@@ -9,6 +9,15 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Mock PermissionGuard to always render children
+vi.mock('@/components/enterprise', async () => {
+  const actual = await vi.importActual('@/components/enterprise');
+  return {
+    ...actual,
+    PermissionGuard: ({ children }: any) => <>{children}</>,
+  };
+});
+
 // Mock hooks
 vi.mock('@/hooks/enterprise', () => ({
   useStockTransfers: vi.fn(),
@@ -34,41 +43,50 @@ vi.mock('react-router-dom', async () => {
 const mockTransfers = [
   {
     id: 'trf-1',
-    code: 'TRF-2026-0001',
+    transferNumber: 'TRF-2026-0001',
     sourceLocationId: 'loc-1',
+    sourceLocationName: 'Almoxarifado Central',
+    sourceLocationCode: 'ALM-01',
     destinationLocationId: 'loc-2',
+    destinationLocationName: 'Frente de Obra A',
+    destinationLocationCode: 'FR-01',
     status: 'IN_TRANSIT',
     priority: 'NORMAL',
     createdAt: '2026-01-20T10:00:00Z',
     shippedAt: '2026-01-21T08:00:00Z',
-    sourceLocation: { id: 'loc-1', code: 'ALM-01', name: 'Almoxarifado Central' },
-    destinationLocation: { id: 'loc-2', code: 'FR-01', name: 'Frente de Obra A' },
-    requester: { id: 'emp-1', name: 'Carlos Oliveira', role: 'WAREHOUSE' },
+    requesterName: 'Carlos Oliveira',
+    itemCount: 5,
   },
   {
     id: 'trf-2',
-    code: 'TRF-2026-0002',
+    transferNumber: 'TRF-2026-0002',
     sourceLocationId: 'loc-1',
+    sourceLocationName: 'Almoxarifado Central',
+    sourceLocationCode: 'ALM-01',
     destinationLocationId: 'loc-3',
+    destinationLocationName: 'Frente de Obra B',
+    destinationLocationCode: 'FR-02',
     status: 'PENDING',
     priority: 'ALTA',
     createdAt: '2026-01-21T14:00:00Z',
-    sourceLocation: { id: 'loc-1', code: 'ALM-01', name: 'Almoxarifado Central' },
-    destinationLocation: { id: 'loc-3', code: 'FR-02', name: 'Frente de Obra B' },
-    requester: { id: 'emp-2', name: 'Ana Paula', role: 'SUPERVISOR' },
+    requesterName: 'Ana Paula',
+    itemCount: 3,
   },
   {
     id: 'trf-3',
-    code: 'TRF-2026-0003',
+    transferNumber: 'TRF-2026-0003',
     sourceLocationId: 'loc-2',
+    sourceLocationName: 'Frente de Obra A',
+    sourceLocationCode: 'FR-01',
     destinationLocationId: 'loc-1',
+    destinationLocationName: 'Almoxarifado Central',
+    destinationLocationCode: 'ALM-01',
     status: 'RECEIVED',
     priority: 'BAIXA',
     createdAt: '2026-01-18T10:00:00Z',
     receivedAt: '2026-01-19T16:00:00Z',
-    sourceLocation: { id: 'loc-2', code: 'FR-01', name: 'Frente de Obra A' },
-    destinationLocation: { id: 'loc-1', code: 'ALM-01', name: 'Almoxarifado Central' },
-    requester: { id: 'emp-3', name: 'Roberto Lima', role: 'REQUESTER' },
+    requesterName: 'Roberto Lima',
+    itemCount: 10,
   },
 ];
 
@@ -85,7 +103,7 @@ describe('TransfersPage', () => {
     } as any);
 
     render(<TransfersPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
@@ -97,7 +115,7 @@ describe('TransfersPage', () => {
     } as any);
 
     render(<TransfersPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('TRF-2026-0001')).toBeInTheDocument();
       expect(screen.getByText('TRF-2026-0002')).toBeInTheDocument();
@@ -113,7 +131,7 @@ describe('TransfersPage', () => {
     } as any);
 
     render(<TransfersPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByRole('heading', { name: /transferências/i })).toBeInTheDocument();
   });
 
@@ -125,7 +143,7 @@ describe('TransfersPage', () => {
     } as any);
 
     render(<TransfersPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByRole('button', { name: /nova transferência/i })).toBeInTheDocument();
   });
 
@@ -138,10 +156,10 @@ describe('TransfersPage', () => {
     } as any);
 
     render(<TransfersPage />, { wrapper: createQueryWrapper() });
-    
+
     const newButton = screen.getByRole('button', { name: /nova transferência/i });
     await user.click(newButton);
-    
+
     expect(mockNavigate).toHaveBeenCalledWith('/enterprise/transfers/new');
   });
 
@@ -153,11 +171,11 @@ describe('TransfersPage', () => {
     } as any);
 
     render(<TransfersPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
-      expect(screen.getByText(/em trânsito/i)).toBeInTheDocument();
-      expect(screen.getByText(/pendente/i)).toBeInTheDocument();
-      expect(screen.getByText(/recebida/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/em trânsito/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/pendente/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/recebida/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -169,7 +187,7 @@ describe('TransfersPage', () => {
     } as any);
 
     render(<TransfersPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getAllByText(/almoxarifado central/i).length).toBeGreaterThan(0);
       expect(screen.getAllByText(/frente de obra/i).length).toBeGreaterThan(0);
@@ -184,7 +202,7 @@ describe('TransfersPage', () => {
     } as any);
 
     render(<TransfersPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByText(/nenhuma transferência/i)).toBeInTheDocument();
   });
 
@@ -197,11 +215,11 @@ describe('TransfersPage', () => {
     } as any);
 
     render(<TransfersPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('TRF-2026-0001')).toBeInTheDocument();
     });
-    
+
     const firstRow = screen.getByText('TRF-2026-0001').closest('tr');
     if (firstRow) {
       await user.click(firstRow);

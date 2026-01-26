@@ -262,6 +262,7 @@ export const CategoriesPage: FC = () => {
             onClick={() => navigate(-1)}
             className="rounded-full"
             aria-label="Voltar para página anterior"
+            data-testid="back-button"
           >
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </Button>
@@ -294,7 +295,11 @@ export const CategoriesPage: FC = () => {
           </div>
 
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-            <SelectTrigger className="w-36" aria-label="Filtrar por status">
+            <SelectTrigger
+              className="w-36"
+              aria-label="Filtrar por status"
+              data-testid="status-filter"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

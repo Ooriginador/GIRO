@@ -101,35 +101,55 @@ if (typeof window !== 'undefined') {
 }
 
 // Global mock for lucide-react icons (stable for tests)
-// Replaced Proxy with explicit object construction using importOriginal to ensure all named exports exist.
-vi.mock('lucide-react', async (importOriginal) => {
-  console.log('[setup.ts] Initializing lucide-react mock');
-  const actual = await importOriginal<typeof import('lucide-react')>();
-  const mocked: Record<string, any> = {};
+// Using a Proxy that dynamically creates mock icon components on-demand
+console.log('[setup.ts] Initializing lucide-react mock');
+vi.mock('lucide-react', () => {
+  const createIcon = (name: string) => {
+    const Component = (props: React.SVGProps<SVGSVGElement>) =>
+      React.createElement('svg', {
+        'data-testid': `icon-${name}`,
+        'aria-hidden': 'true',
+        ...props,
+      });
+    Component.displayName = name;
+    return Component;
+  };
 
-  // Copy all properties
-  for (const key of Object.keys(actual)) {
-    const value = (actual as any)[key];
-    // Check if it looks like an icon component (function starting with Uppercase)
-    // Note: Some exports might not be icons (e.g. createLucideIcon), so we keep them as is unless we want to mock everything.
-    // For safety, let's mock anything that is a function and starts with uppercase, or just allow all originals if not an icon.
-    // But the goal is to stop rendering real SVGs.
+  // Create a Proxy that returns mock icons for any property access
+  const handler: ProxyHandler<Record<string, unknown>> = {
+    get(_target, prop) {
+      if (typeof prop === 'string') {
+        // Return a mock icon component for any PascalCase property (icon names)
+        if (/^[A-Z]/.test(prop)) {
+          return createIcon(prop);
+        }
+        // Handle special exports like createLucideIcon
+        if (prop === 'createLucideIcon') {
+          return (name: string) => createIcon(name);
+        }
+      }
+      return undefined;
+    },
+    has(_target, prop) {
+      // Indicate that PascalCase properties exist (icon exports)
+      if (typeof prop === 'string' && /^[A-Z]/.test(prop)) {
+        return true;
+      }
+      return prop === 'createLucideIcon';
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      if (typeof prop === 'string' && /^[A-Z]/.test(prop)) {
+        return {
+          configurable: true,
+          enumerable: true,
+          value: createIcon(prop as string),
+        };
+      }
+      return undefined;
+    },
+  };
 
-    if (/^[A-Z]/.test(key)) {
-      const Component = (props: React.SVGProps<SVGSVGElement>) =>
-        React.createElement('svg', {
-          'data-testid': `icon-${key}`,
-          ...props,
-        });
-      Component.displayName = key;
-      mocked[key] = Component;
-    } else {
-      mocked[key] = value;
-    }
-  }
-
-  // Ensure default export is also handled if necessary (usually lucide-react has named exports)
-  return mocked;
+  return new Proxy({}, handler);
 });
 
 // Ensure guards exports exist in tests to avoid partial-mock issues

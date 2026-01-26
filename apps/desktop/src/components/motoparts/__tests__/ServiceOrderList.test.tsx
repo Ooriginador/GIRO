@@ -4,7 +4,7 @@ import {
   ServiceOrderStatusBadge,
 } from '@/components/motoparts/ServiceOrderList';
 import { useServiceOrders } from '@/hooks/useServiceOrders';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,7 +18,7 @@ vi.mock('@/hooks/useServiceOrders', () => ({
   },
 }));
 
-const { Wrapper: queryWrapper } = createQueryWrapper();
+const { Wrapper: queryWrapper } = createQueryWrapperWithClient();
 
 describe('ServiceOrderList', () => {
   const mockOrders = [

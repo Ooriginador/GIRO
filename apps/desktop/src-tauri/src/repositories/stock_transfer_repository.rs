@@ -2,7 +2,7 @@
 
 use crate::error::{AppError, AppResult};
 use crate::models::enterprise::{
-    AddTransferItem, CreateStockTransfer, StockTransfer, StockTransferItem,
+    AddTransferItem, CreateStockTransfer, StockTransfer, StockTransferItem, UpdateStockTransfer,
 };
 use crate::repositories::{new_id, PaginatedResult, Pagination};
 use sqlx::SqlitePool;
@@ -164,6 +164,52 @@ impl<'a> StockTransferRepository<'a> {
             .ok_or_else(|| AppError::NotFound {
                 entity: "StockTransfer".into(),
                 id,
+            })
+    }
+
+    /// Atualiza transferência (somente status PENDING)
+    pub async fn update(&self, id: &str, data: UpdateStockTransfer) -> AppResult<StockTransfer> {
+        let now = chrono::Utc::now().to_rfc3339();
+
+        let result = sqlx::query(
+            r#"
+            UPDATE StockTransfer 
+            SET sourceLocationId = COALESCE(?, sourceLocationId),
+                destinationLocationId = COALESCE(?, destinationLocationId),
+                notes = COALESCE(?, notes),
+                updatedAt = ?
+            WHERE id = ? AND status = 'PENDING' AND deletedAt IS NULL
+            "#,
+        )
+        .bind(data.source_location_id)
+        .bind(data.destination_location_id)
+        .bind(data.notes)
+        .bind(now)
+        .bind(id)
+        .execute(self.pool)
+        .await?;
+
+        if result.rows_affected() == 0 {
+            let current = self.find_by_id(id).await?;
+            if let Some(tr) = current {
+                if tr.status != "PENDING" {
+                    return Err(AppError::BusinessRule(
+                        "Apenas transferências Pendentes podem ser editadas.".into(),
+                    ));
+                }
+            } else {
+                return Err(AppError::NotFound {
+                    entity: "StockTransfer".into(),
+                    id: id.to_string(),
+                });
+            }
+        }
+
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| AppError::NotFound {
+                entity: "StockTransfer".into(),
+                id: id.to_string(),
             })
     }
 

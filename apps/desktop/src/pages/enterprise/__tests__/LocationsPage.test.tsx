@@ -2,7 +2,11 @@
  * @file LocationsPage.test.tsx - Testes para página de Locais de Estoque
  */
 
-import { useStockLocations, useCreateStockLocation, useDeleteStockLocation } from '@/hooks/enterprise';
+import {
+  useStockLocations,
+  useCreateStockLocation,
+  useDeleteStockLocation,
+} from '@/hooks/enterprise';
 import { LocationsPage } from '@/pages/enterprise/LocationsPage';
 import { createQueryWrapper } from '@/test/queryWrapper';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -14,11 +18,16 @@ vi.mock('@/hooks/enterprise', () => ({
   useStockLocations: vi.fn(),
   useCreateStockLocation: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
   useDeleteStockLocation: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+  useContracts: vi.fn(() => ({ data: [] })),
 }));
 
 vi.mock('@/hooks/useEnterprisePermission', () => ({
   useCanDo: () => () => true,
   useEnterprisePermission: () => ({ hasPermission: () => true }),
+}));
+
+vi.mock('@/components/enterprise', () => ({
+  PermissionGuard: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 // Mock useNavigate
@@ -36,7 +45,7 @@ const mockLocations = [
     id: 'loc-1',
     code: 'ALM-CENTRAL',
     name: 'Almoxarifado Central',
-    type: 'CENTRAL',
+    locationType: 'CENTRAL',
     isActive: true,
     address: 'Rua Principal, 100',
     createdAt: '2026-01-01T00:00:00Z',
@@ -45,7 +54,7 @@ const mockLocations = [
     id: 'loc-2',
     code: 'FR-OBR-001',
     name: 'Frente de Obra - Industrial',
-    type: 'FIELD',
+    locationType: 'FIELD',
     isActive: true,
     contractId: 'contract-1',
     contract: { id: 'contract-1', name: 'Obra Industrial' },
@@ -55,7 +64,7 @@ const mockLocations = [
     id: 'loc-3',
     code: 'DEP-SEC',
     name: 'Depósito Secundário',
-    type: 'WAREHOUSE',
+    locationType: 'TRANSIT',
     isActive: false,
     address: 'Av. Secundária, 500',
     createdAt: '2025-06-01T00:00:00Z',
@@ -75,7 +84,7 @@ describe('LocationsPage', () => {
     } as any);
 
     render(<LocationsPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
@@ -87,7 +96,7 @@ describe('LocationsPage', () => {
     } as any);
 
     render(<LocationsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Almoxarifado Central')).toBeInTheDocument();
       expect(screen.getByText('Frente de Obra - Industrial')).toBeInTheDocument();
@@ -103,8 +112,8 @@ describe('LocationsPage', () => {
     } as any);
 
     render(<LocationsPage />, { wrapper: createQueryWrapper() });
-    
-    expect(screen.getByRole('heading', { name: /locais/i })).toBeInTheDocument();
+
+    expect(screen.getByRole('heading', { name: /locais de estoque/i })).toBeInTheDocument();
   });
 
   it('should show new location button', () => {
@@ -115,7 +124,7 @@ describe('LocationsPage', () => {
     } as any);
 
     render(<LocationsPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByRole('button', { name: /novo local/i })).toBeInTheDocument();
   });
 
@@ -127,9 +136,10 @@ describe('LocationsPage', () => {
     } as any);
 
     render(<LocationsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
-      expect(screen.getByText(/central/i)).toBeInTheDocument();
+      const centralElements = screen.getAllByText(/central/i);
+      expect(centralElements.length).toBeGreaterThan(0);
     });
   });
 
@@ -141,7 +151,7 @@ describe('LocationsPage', () => {
     } as any);
 
     render(<LocationsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('ALM-CENTRAL')).toBeInTheDocument();
       expect(screen.getByText('FR-OBR-001')).toBeInTheDocument();
@@ -156,7 +166,7 @@ describe('LocationsPage', () => {
     } as any);
 
     render(<LocationsPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByText(/nenhum local/i)).toBeInTheDocument();
   });
 
@@ -169,16 +179,20 @@ describe('LocationsPage', () => {
     } as any);
 
     render(<LocationsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Almoxarifado Central')).toBeInTheDocument();
     });
-    
-    const viewStockButton = screen.getAllByRole('button', { name: /ver estoque/i })[0];
-    if (viewStockButton) {
-      await user.click(viewStockButton);
-      expect(mockNavigate).toHaveBeenCalledWith('/enterprise/locations/loc-1/stock');
-    }
+
+    // Open dropdown menu
+    const triggers = screen.getAllByRole('button', { name: /mais ações/i });
+    await user.click(triggers[0]);
+
+    // Click on view stock
+    const viewStockButton = await screen.findByText(/ver estoque/i);
+    await user.click(viewStockButton);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/enterprise/locations/loc-1/stock');
   });
 
   it('should differentiate active and inactive locations', async () => {
@@ -189,12 +203,12 @@ describe('LocationsPage', () => {
     } as any);
 
     render(<LocationsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       // Check that inactive locations are visually different
-      const inactiveLocation = screen.getByText('Depósito Secundário').closest('[data-testid="location-card"]') 
-        || screen.getByText('Depósito Secundário').parentElement;
-      expect(inactiveLocation).toBeInTheDocument();
+      const inactiveLocationText = screen.getByText('Depósito Secundário');
+      const card = inactiveLocationText.closest('[role="article"]');
+      expect(card).toBeInTheDocument();
     });
   });
 });

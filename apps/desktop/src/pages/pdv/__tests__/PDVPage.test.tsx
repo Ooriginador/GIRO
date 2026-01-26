@@ -21,7 +21,24 @@ vi.mock('react-router-dom', async () => {
 
 // Mock stores
 vi.mock('@/stores/pdv-store', () => ({
-  usePDVStore: vi.fn(),
+  usePDVStore: vi.fn(() => ({
+    items: [],
+    discount: 0,
+    addItem: vi.fn(),
+    removeItem: vi.fn(),
+    updateQuantity: vi.fn(),
+    setDiscount: vi.fn(),
+    clearCart: vi.fn(),
+    getSubtotal: vi.fn(() => 0),
+    getTotal: vi.fn(() => 0),
+    customerId: null,
+    setCustomer: vi.fn(),
+    heldSales: [],
+    loadHeldSales: vi.fn(),
+    holdSale: vi.fn(),
+    resumeSale: vi.fn(),
+    removeHeldSale: vi.fn(),
+  })),
 }));
 
 vi.mock('@/stores/auth-store', () => ({
@@ -36,20 +53,7 @@ vi.mock('@/hooks/useCustomers', () => ({
   })),
 }));
 
-// Mock icons to reduce JSDOM load
-vi.mock('lucide-react', () => ({
-  Search: () => <div />,
-  ShoppingCart: () => <div />,
-  Trash2: () => <div />,
-  Percent: () => <div />,
-  Banknote: () => <div />,
-  QrCode: () => <div />,
-  CreditCard: () => <div />,
-  X: () => <div />,
-  AlertCircle: () => <div />,
-}));
-
-// Mock sub-components
+// Mock sub-components (necessários para testes de integração)
 vi.mock('@/components/pdv/CartItemRow', () => ({
   CartItemRow: ({ item, index }: any) => (
     <div data-testid={`cart-row-${item.id}`}>Item {index}</div>
@@ -83,6 +87,11 @@ describe('PDVPage Stable', () => {
     getTotal: vi.fn(() => 0),
     customerId: null,
     setCustomer: vi.fn(),
+    heldSales: [],
+    loadHeldSales: vi.fn(),
+    holdSale: vi.fn(),
+    resumeSale: vi.fn(),
+    removeHeldSale: vi.fn(),
   };
 
   const mockAuthStore = {
@@ -159,6 +168,7 @@ describe('PDVPage Stable', () => {
       </MemoryRouter>
     );
     fireEvent.click(screen.getByText(/Limpar/i));
+    fireEvent.click(screen.getByText(/Sim, cancelar/i));
     expect(mockPDVStore.clearCart).toHaveBeenCalled();
   });
 

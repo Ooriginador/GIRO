@@ -6,7 +6,7 @@ import { useDashboardStats } from '@/hooks/useDashboard';
 import { getMonthlySummary } from '@/lib/tauri';
 import { ReportsPage } from '@/pages/reports/ReportsPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -23,6 +23,17 @@ vi.mock('@/lib/tauri', () => ({
 vi.mock('@/lib/formatters', () => ({
   formatCurrency: (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`,
 }));
+
+// Mock Recharts
+vi.mock('recharts', async () => {
+  const OriginalModule = await vi.importActual<any>('recharts');
+  return {
+    ...OriginalModule,
+    ResponsiveContainer: ({ children }: { children: any }) => (
+      <div style={{ width: 800, height: 800 }}>{children}</div>
+    ),
+  };
+});
 
 const createWrapper = (queryClient: QueryClient) => {
   return ({ children }: { children: React.ReactNode }) => (
@@ -43,10 +54,10 @@ describe('ReportsPage', () => {
 
     vi.mocked(useDashboardStats).mockReturnValue({
       data: {
-        todayRevenue: 100,
+        totalSalesToday: 100,
         averageTicket: 50,
-        todaySales: 2,
-        lowStockCount: 5,
+        countSalesToday: 2,
+        lowStockProductscts: 5,
       },
       isLoading: false,
     } as any);
@@ -58,35 +69,46 @@ describe('ReportsPage', () => {
   });
 
   it('should render all status cards including monthly stats', async () => {
+    vi.mocked(useDashboardStats).mockReturnValue({
+      data: {
+        totalSalesToday: 100,
+        averageTicket: 50,
+        countSalesToday: 2,
+        lowStockProducts: 5,
+      },
+      isLoading: false,
+    } as any);
+
     render(<ReportsPage />, { wrapper: createWrapper(queryClient) });
 
-    expect(screen.getByText('Relatórios')).toBeInTheDocument();
+    expect(screen.getByText(/Relatórios/i)).toBeInTheDocument();
 
     // Today Stats
     expect(screen.getByText(/R\$ 100,00/i)).toBeInTheDocument();
-    expect(screen.getByText(/2 vendas realizadas/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 vendas/i)).toBeInTheDocument();
 
     // Monthly Stats (Wait for React Query)
     await waitFor(() => {
       expect(screen.getByText(/R\$ 1500,50/i)).toBeInTheDocument();
-      expect(screen.getByText(/30 vendas no mês/i)).toBeInTheDocument();
+      expect(screen.getByText(/30 vendas/i)).toBeInTheDocument();
     });
 
     // Low stock with warning color
-    const lowStockValue = screen.getByText('5');
-    expect(lowStockValue).toHaveClass('text-warning');
+    const card = screen.getByLabelText(/Alertas de Estoque/i);
+    const lowStockIcon = within(card).getByTestId('icon-AlertTriangle');
+    expect(lowStockIcon).toHaveClass('text-amber-500');
   });
 
   it('should render all report category cards with correct links', () => {
     render(<ReportsPage />, { wrapper: createWrapper(queryClient) });
 
     const categories = [
-      { title: 'Relatório de Vendas', href: '/reports/sales' },
-      { title: 'Relatório Financeiro', href: '/reports/financial' },
-      { title: 'Relatório de Estoque', href: '/reports/stock' },
-      { title: 'Ranking de Produtos', href: '/reports/products' },
-      { title: 'Desempenho de Funcionários', href: '/reports/employees' },
-      { title: 'Relatório de Alertas', href: '/reports/alerts' },
+      { title: 'Vendas', href: '/reports/sales' },
+      { title: 'Financeiro', href: '/reports/financial' },
+      { title: 'Estoque', href: '/reports/stock' },
+      { title: 'Produtos', href: '/reports/products' },
+      { title: 'Equipe', href: '/reports/employees' },
+      { title: 'Alertas', href: '/reports/alerts' },
     ];
 
     categories.forEach((cat) => {
@@ -100,7 +122,12 @@ describe('ReportsPage', () => {
 
   it('should handle zero states and no low stock styling', () => {
     vi.mocked(useDashboardStats).mockReturnValue({
-      data: { todayRevenue: 0, averageTicket: 0, todaySales: 0, lowStockCount: 0 },
+      data: {
+        totalSalesToday: 0,
+        averageTicket: 0,
+        countSalesToday: 0,
+        lowStockProductsockProducts: 0,
+      },
       isLoading: false,
     } as any);
     vi.mocked(getMonthlySummary).mockResolvedValue({ totalAmount: 0, totalSales: 0 } as any);

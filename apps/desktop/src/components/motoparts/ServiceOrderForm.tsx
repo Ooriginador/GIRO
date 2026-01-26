@@ -307,7 +307,7 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
             </Button>
             <Button type="submit" disabled={createOrder.isPending}>
               {createOrder.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Abrir OS
+              {form.watch('is_quote') ? 'Gerar Orçamento' : 'Abrir OS'}
             </Button>
           </CardFooter>
         </form>

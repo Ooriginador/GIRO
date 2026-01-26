@@ -48,16 +48,35 @@ vi.mock('@/hooks/use-toast', () => ({
   }),
 }));
 
-// Mock do store
-vi.mock('@/stores', () => ({
-  usePDVStore: vi.fn((selector) => {
-    const state = {
-      clearCart: vi.fn(),
-      setCashSession: vi.fn(),
-    };
-    return selector ? selector(state) : state;
-  }),
+// Mock functions estáveis usando vi.hoisted para garantir que existam antes do mock
+const { mockClearCart, mockSetCashSession } = vi.hoisted(() => ({
+  mockClearCart: vi.fn(),
+  mockSetCashSession: vi.fn(),
 }));
+
+// Mock do store - usando as funções hoisted
+vi.mock('@/stores', () => {
+  // Funções mock locais para o factory (evita referência externa)
+  const clearCartFn = vi.fn();
+  const setCashSessionFn = vi.fn();
+
+  return {
+    usePDVStore: (selector?: (state: Record<string, unknown>) => unknown) => {
+      const state = {
+        clearCart: clearCartFn,
+        setCashSession: setCashSessionFn,
+        session: null,
+        cart: [],
+        dailyNumber: 1,
+      };
+      return selector ? selector(state) : state;
+    },
+    useAuthStore: vi.fn(),
+    useLicenseStore: vi.fn(),
+    useSettingsStore: vi.fn(),
+    useAlertStore: vi.fn(),
+  };
+});
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -305,9 +324,10 @@ describe('Cash Session Hooks', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
+      expect(result.current.isLoading).toBe(false);
     });
 
+    expect(result.current.isSuccess).toBe(true);
     expect(result.current.data).toEqual(mockSession);
   });
 

@@ -4,6 +4,7 @@
 
 pub mod auth;
 pub mod categories;
+pub mod enterprise;
 pub mod expiration;
 pub mod inventory;
 pub mod products;
@@ -12,6 +13,9 @@ pub mod system;
 
 pub use auth::AuthHandler;
 pub use categories::CategoriesHandler;
+pub use enterprise::{
+    EnterpriseContextHandler, EnterpriseRequestHandler, EnterpriseTransferHandler,
+};
 pub use expiration::ExpirationHandler;
 pub use inventory::InventoryHandler;
 pub use products::ProductsHandler;

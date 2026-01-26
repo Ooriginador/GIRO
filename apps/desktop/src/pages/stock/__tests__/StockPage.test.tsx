@@ -14,6 +14,14 @@ vi.mock('@/hooks/useStock', () => ({
   useLowStockProducts: vi.fn(),
 }));
 
+// Mock useAuth (hook) diretamente pois é o que a página usa
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    hasPermission: () => true,
+    employee: { id: '1', name: 'Test', role: 'ADMIN' },
+  }),
+}));
+
 import { useLowStockProducts, useStockReport } from '@/hooks/useStock';
 
 const mockReport = {
@@ -77,8 +85,10 @@ describe('StockPage', () => {
     render(<StockPage />, { wrapper: createWrapper() });
 
     expect(screen.getByText('150')).toBeInTheDocument();
-    // Currency formatting check (BRL)
-    expect(screen.getByText(/R\$.*25\.000,00/)).toBeInTheDocument();
+    // Currency formatting check (BRL) - forced update
+    expect(
+      screen.getByText((content) => content.includes('R$') && content.includes('25.000,00'))
+    ).toBeInTheDocument();
     expect(screen.getByText('5')).toHaveClass('text-warning');
     expect(screen.getByText('2')).toHaveClass('text-destructive');
   });

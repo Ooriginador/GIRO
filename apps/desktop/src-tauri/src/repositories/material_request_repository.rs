@@ -3,7 +3,7 @@
 use crate::error::{AppError, AppResult};
 use crate::models::enterprise::{
     AddRequestItem, CreateMaterialRequest, MaterialRequest, MaterialRequestItem,
-    MaterialRequestItemWithProduct, RequestFilters,
+    MaterialRequestItemWithProduct, RequestFilters, UpdateMaterialRequest,
 };
 use crate::repositories::{new_id, PaginatedResult, Pagination};
 use sqlx::SqlitePool;
@@ -222,6 +222,63 @@ impl<'a> MaterialRequestRepository<'a> {
             .ok_or_else(|| AppError::NotFound {
                 entity: "MaterialRequest".into(),
                 id,
+            })
+    }
+
+    /// Atualiza requisição existente (somente status DRAFT)
+    pub async fn update(
+        &self,
+        id: &str,
+        data: UpdateMaterialRequest,
+    ) -> AppResult<MaterialRequest> {
+        let now = chrono::Utc::now().to_rfc3339();
+
+        let result = sqlx::query(
+            r#"
+            UPDATE MaterialRequest 
+            SET workFrontId = COALESCE(?, workFrontId),
+                activityId = COALESCE(?, activityId),
+                priority = COALESCE(?, priority),
+                neededDate = COALESCE(?, neededDate),
+                destinationLocationId = COALESCE(?, destinationLocationId),
+                notes = COALESCE(?, notes),
+                updatedAt = ?
+            WHERE id = ? AND status = 'DRAFT' AND deletedAt IS NULL
+            "#,
+        )
+        .bind(data.work_front_id)
+        .bind(data.activity_id)
+        .bind(data.priority)
+        .bind(data.needed_date)
+        .bind(data.destination_location_id)
+        .bind(data.notes)
+        .bind(now)
+        .bind(id)
+        .execute(self.pool)
+        .await?;
+
+        if result.rows_affected() == 0 {
+            // Check if it exists but status is wrong, or if it doesn't exist
+            let current = self.find_by_id(id).await?;
+            if let Some(req) = current {
+                if req.status != "DRAFT" {
+                    return Err(AppError::BusinessRule(
+                        "Apenas requisições em Rascunho podem ser editadas.".into(),
+                    ));
+                }
+            } else {
+                return Err(AppError::NotFound {
+                    entity: "MaterialRequest".into(),
+                    id: id.to_string(),
+                });
+            }
+        }
+
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| AppError::NotFound {
+                entity: "MaterialRequest".into(),
+                id: id.to_string(),
             })
     }
 

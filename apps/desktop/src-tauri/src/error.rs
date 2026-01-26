@@ -43,6 +43,9 @@ pub enum AppError {
     #[error("Estoque insuficiente: disponível {available}, solicitado {requested}")]
     InsufficientStock { available: f64, requested: f64 },
 
+    #[error("Erro de regra de negócio: {0}")]
+    BusinessRule(String),
+
     #[error("Caixa não aberto")]
     CashSessionNotOpen,
 
@@ -160,6 +163,7 @@ impl Serialize for AppError {
             Self::Sql(_) => "SQL_ERROR",
             Self::StockNegative { .. } => "STOCK_NEGATIVE",
             Self::PriceInversion => "PRICE_INVERSION",
+            Self::BusinessRule(_) => "BUSINESS_RULE",
             Self::Warning(_) => "WARNING",
         };
 

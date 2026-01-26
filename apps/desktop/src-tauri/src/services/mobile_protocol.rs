@@ -332,6 +332,38 @@ pub enum MobileAction {
     SyncDelta,
     SyncPush,
     SaleRemoteCreate,
+    // Enterprise - Material Requests
+    EnterpriseRequestList,
+    EnterpriseRequestGet,
+    EnterpriseRequestCreate,
+    EnterpriseRequestUpdate,
+    EnterpriseRequestAddItem,
+    EnterpriseRequestRemoveItem,
+    EnterpriseRequestSubmit,
+    EnterpriseRequestApprove,
+    EnterpriseRequestReject,
+    EnterpriseRequestCancel,
+    // Enterprise - Stock Transfers
+    EnterpriseTransferList,
+    EnterpriseTransferGet,
+    EnterpriseTransferCreate,
+    EnterpriseTransferUpdate,
+    EnterpriseTransferAddItem,
+    EnterpriseTransferRemoveItem,
+    EnterpriseTransferShip,
+    EnterpriseTransferReceive,
+    EnterpriseTransferCancel,
+    // Enterprise - Context
+    EnterpriseContextGet,
+    EnterpriseContextContracts,
+    EnterpriseContextLocations,
+    // Enterprise - Inventory
+    EnterpriseInventoryLocations,
+    EnterpriseInventoryStart,
+    EnterpriseInventoryCount,
+    EnterpriseInventorySync,
+    EnterpriseInventoryFinish,
+    EnterpriseInventoryCancel,
 }
 
 impl MobileAction {
@@ -364,6 +396,38 @@ impl MobileAction {
             "sync.delta" => Some(Self::SyncDelta),
             "sync.push" => Some(Self::SyncPush),
             "sale.remote_create" => Some(Self::SaleRemoteCreate),
+            // Enterprise - Material Requests
+            "enterprise.request.list" => Some(Self::EnterpriseRequestList),
+            "enterprise.request.get" => Some(Self::EnterpriseRequestGet),
+            "enterprise.request.create" => Some(Self::EnterpriseRequestCreate),
+            "enterprise.request.update" => Some(Self::EnterpriseRequestUpdate),
+            "enterprise.request.add_item" => Some(Self::EnterpriseRequestAddItem),
+            "enterprise.request.remove_item" => Some(Self::EnterpriseRequestRemoveItem),
+            "enterprise.request.submit" => Some(Self::EnterpriseRequestSubmit),
+            "enterprise.request.approve" => Some(Self::EnterpriseRequestApprove),
+            "enterprise.request.reject" => Some(Self::EnterpriseRequestReject),
+            "enterprise.request.cancel" => Some(Self::EnterpriseRequestCancel),
+            // Enterprise - Stock Transfers
+            "enterprise.transfer.list" => Some(Self::EnterpriseTransferList),
+            "enterprise.transfer.get" => Some(Self::EnterpriseTransferGet),
+            "enterprise.transfer.create" => Some(Self::EnterpriseTransferCreate),
+            "enterprise.transfer.update" => Some(Self::EnterpriseTransferUpdate),
+            "enterprise.transfer.add_item" => Some(Self::EnterpriseTransferAddItem),
+            "enterprise.transfer.remove_item" => Some(Self::EnterpriseTransferRemoveItem),
+            "enterprise.transfer.ship" => Some(Self::EnterpriseTransferShip),
+            "enterprise.transfer.receive" => Some(Self::EnterpriseTransferReceive),
+            "enterprise.transfer.cancel" => Some(Self::EnterpriseTransferCancel),
+            // Enterprise - Context
+            "enterprise.context.get" => Some(Self::EnterpriseContextGet),
+            "enterprise.context.contracts" => Some(Self::EnterpriseContextContracts),
+            "enterprise.context.locations" => Some(Self::EnterpriseContextLocations),
+            // Enterprise - Inventory
+            "enterprise.inventory.locations" => Some(Self::EnterpriseInventoryLocations),
+            "enterprise.inventory.start" => Some(Self::EnterpriseInventoryStart),
+            "enterprise.inventory.count" => Some(Self::EnterpriseInventoryCount),
+            "enterprise.inventory.sync" => Some(Self::EnterpriseInventorySync),
+            "enterprise.inventory.finish" => Some(Self::EnterpriseInventoryFinish),
+            "enterprise.inventory.cancel" => Some(Self::EnterpriseInventoryCancel),
             _ => None,
         }
     }

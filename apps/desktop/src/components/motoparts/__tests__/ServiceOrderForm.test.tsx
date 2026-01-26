@@ -1,4 +1,4 @@
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,6 +12,10 @@ vi.mock('@/hooks/useServiceOrders', () => ({
   }),
   useServices: () => ({
     data: [],
+    isLoading: false,
+  }),
+  useVehicleHistory: () => ({
+    history: [],
     isLoading: false,
   }),
 }));
@@ -78,6 +82,11 @@ vi.mock('../CustomerSearch', () => ({
   ),
 }));
 
+// Mock VehicleHistoryPopover para evitar chamada ao hook
+vi.mock('../VehicleHistoryPopover', () => ({
+  VehicleHistoryPopover: () => <div data-testid="vehicle-history-popover">History</div>,
+}));
+
 // Mock simplificado para Popover e Command para evitar problemas com JSDOM
 vi.mock('@/components/ui/popover', () => ({
   Popover: ({ children }: any) => <div>{children}</div>,
@@ -133,7 +142,7 @@ describe('ServiceOrderForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    const { Wrapper } = createQueryWrapper();
+    const { Wrapper } = createQueryWrapperWithClient();
     queryWrapper = Wrapper;
     vi.mocked(useAuthStore).mockImplementation((selector: any) =>
       selector({ employee: mockEmployee })
@@ -211,7 +220,8 @@ describe('ServiceOrderForm', () => {
       expect(onSuccess).toHaveBeenCalledWith('os-1');
       expect(mockToast).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'OS Criada',
+          title: 'Ordem de Serviço Criada',
+          description: expect.stringContaining('iniciada com sucesso'),
         })
       );
     });

@@ -473,7 +473,7 @@ export interface CreateTransferItemDTO {
 // ────────────────────────────────────────────────────────────────────────────
 
 /** Employee simplificado (já existe em types/index.ts) */
-interface Employee {
+export interface Employee {
   id: string;
   name: string;
   email?: string | null;
@@ -481,7 +481,7 @@ interface Employee {
 }
 
 /** Product simplificado (já existe em types/index.ts) */
-interface Product {
+export interface Product {
   id: string;
   name: string;
   internalCode?: string;

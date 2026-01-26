@@ -268,7 +268,7 @@ pub async fn import_supplier_catalog(
     options: ImportOptions,
     state: State<'_, AppState>,
 ) -> AppResult<ImportResult> {
-    let user = state.session.require_authenticated()?;
+    let _user = state.session.require_authenticated()?;
     let pool = state.db_pool.as_ref();
 
     let path = Path::new(&options.file_path);

@@ -3,7 +3,7 @@ import {
   CustomerCreateDialog,
   CustomerSearch,
 } from '@/components/motoparts/CustomerSearch';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -36,7 +36,7 @@ vi.mock('@/hooks/useCustomers', () => ({
   }),
 }));
 
-const { Wrapper: queryWrapper } = createQueryWrapper();
+const { Wrapper: queryWrapper } = createQueryWrapperWithClient();
 
 describe('CustomerSearch', () => {
   beforeEach(() => {

@@ -20,8 +20,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockSuppliers = [
   {
     id: '1',
-    name: 'Fornecedor Teste',
-    tradeName: 'Teste LTDA',
+    name: 'Fornecedor Ativo',
+    tradeName: 'Ativo LTDA',
     cnpj: '12.345.678/0001-90',
     phone: '11999999999',
     email: 'teste@teste.com',
@@ -48,24 +48,6 @@ vi.mock('@/hooks/useSuppliers', () => ({
   useUpdateSupplier: vi.fn(),
   useDeactivateSupplier: vi.fn(),
   useReactivateSupplier: vi.fn(),
-}));
-
-// Mock Dropdown and Dialog
-vi.mock('@/components/ui/dropdown-menu', () => ({
-  DropdownMenu: ({ children }: any) => <div>{children}</div>,
-  DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
-  DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
-  DropdownMenuItem: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
-}));
-
-vi.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ children }: any) => <div>{children}</div>,
-  DialogTrigger: ({ children }: any) => <div>{children}</div>,
-  DialogContent: ({ children, open }: any) => <div>{children}</div>,
-  DialogHeader: ({ children }: any) => <div>{children}</div>,
-  DialogTitle: ({ children }: any) => <h2>{children}</h2>,
-  DialogDescription: ({ children }: any) => <p>{children}</p>,
-  DialogFooter: ({ children }: any) => <div>{children}</div>,
 }));
 
 const createWrapper = () => {
@@ -112,7 +94,7 @@ describe('SuppliersPage', () => {
 
   it('should render active suppliers by default', () => {
     render(<SuppliersPage />, { wrapper: createWrapper() });
-    expect(screen.getByText('Fornecedor Teste')).toBeInTheDocument();
+    expect(screen.getByText('Fornecedor Ativo')).toBeInTheDocument();
     expect(screen.queryByText('Inativo Teste')).not.toBeInTheDocument();
   });
 
@@ -168,7 +150,16 @@ describe('SuppliersPage', () => {
     const user = userEvent.setup();
     render(<SuppliersPage />, { wrapper: createWrapper() });
 
-    await user.click(screen.getByText(/editar/i));
+    // Aguardar o card do fornecedor carregar
+    await screen.findByText('Fornecedor Ativo');
+
+    // Abrir o dropdown menu clicando no botão com o ícone MoreHorizontal
+    const dropdownTrigger = screen.getByTestId('icon-MoreHorizontal').closest('button');
+    expect(dropdownTrigger).toBeTruthy();
+    await user.click(dropdownTrigger!);
+
+    // Agora clicar em Editar no dropdown
+    await user.click(await screen.findByText(/editar/i));
 
     const input = screen.getByLabelText(/razão social \*/i);
     await user.clear(input);
@@ -200,21 +191,21 @@ describe('SuppliersPage', () => {
 
     // By name
     await user.type(searchInput, 'Fornecedor');
-    expect(screen.getByText('Fornecedor Teste')).toBeInTheDocument();
+    expect(screen.getByText('Fornecedor Ativo')).toBeInTheDocument();
 
     // By tradeName
     await user.clear(searchInput);
-    await user.type(searchInput, 'Teste LTDA');
-    expect(screen.getByText('Fornecedor Teste')).toBeInTheDocument();
+    await user.type(searchInput, 'Ativo LTDA');
+    expect(screen.getByText('Fornecedor Ativo')).toBeInTheDocument();
 
     // By CNPJ
     await user.clear(searchInput);
     await user.type(searchInput, '12.345.678/0001-90');
-    expect(screen.getByText('Fornecedor Teste')).toBeInTheDocument();
+    expect(screen.getByText('Fornecedor Ativo')).toBeInTheDocument();
 
     await user.clear(searchInput);
     await user.type(searchInput, 'Inexistente');
-    expect(screen.queryByText('Fornecedor Teste')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fornecedor Ativo')).not.toBeInTheDocument();
     expect(screen.getByText(/nenhum fornecedor encontrado/i)).toBeInTheDocument();
   });
 
@@ -224,10 +215,10 @@ describe('SuppliersPage', () => {
 
     await user.click(screen.getByText(/inativos/i));
     expect(screen.getByText('Inativo Teste')).toBeInTheDocument();
-    expect(screen.queryByText('Fornecedor Teste')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fornecedor Ativo')).not.toBeInTheDocument();
 
     await user.click(screen.getByText(/todos/i));
-    expect(screen.getByText('Fornecedor Teste')).toBeInTheDocument();
+    expect(screen.getByText('Fornecedor Ativo')).toBeInTheDocument();
     expect(screen.getByText('Inativo Teste')).toBeInTheDocument();
   });
 });

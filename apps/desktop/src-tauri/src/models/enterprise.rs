@@ -519,6 +519,18 @@ pub struct CreateMaterialRequest {
     pub notes: Option<String>,
 }
 
+/// DTO para atualização de requisição
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateMaterialRequest {
+    pub work_front_id: Option<String>,
+    pub activity_id: Option<String>,
+    pub priority: Option<String>,
+    pub needed_date: Option<String>,
+    pub destination_location_id: Option<String>,
+    pub notes: Option<String>,
+}
+
 /// Item da Requisição de Material
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
@@ -589,6 +601,15 @@ pub struct StockTransfer {
 pub struct CreateStockTransfer {
     pub source_location_id: String,
     pub destination_location_id: String,
+    pub notes: Option<String>,
+}
+
+/// DTO para atualização de transferência
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateStockTransfer {
+    pub source_location_id: Option<String>,
+    pub destination_location_id: Option<String>,
     pub notes: Option<String>,
 }
 

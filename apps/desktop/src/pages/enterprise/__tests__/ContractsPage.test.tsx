@@ -79,12 +79,10 @@ describe('ContractsPage', () => {
       error: null,
     } as any);
 
-    render(<ContractsPage />, { wrapper: createQueryWrapper() });
+    const { container } = render(<ContractsPage />, { wrapper: createQueryWrapper() });
 
     // Should show skeleton loaders
-    expect(
-      screen.getAllByTestId?.('skeleton') || document.querySelectorAll('.animate-pulse')
-    ).toBeTruthy();
+    expect(container.getElementsByClassName('animate-pulse').length).toBeGreaterThan(0);
   });
 
   it('should render contracts list', async () => {

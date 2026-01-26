@@ -1,5 +1,5 @@
 import { EmployeesPage } from '@/pages/employees/EmployeesPage';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,7 +37,7 @@ vi.mock('@/hooks/useEmployees', () => ({
 const mockConfirm = vi.fn().mockReturnValue(true);
 vi.stubGlobal('confirm', mockConfirm);
 
-const { Wrapper: queryWrapper } = createQueryWrapper();
+const { Wrapper: queryWrapper } = createQueryWrapperWithClient();
 
 describe('EmployeesPage', () => {
   beforeEach(() => {

@@ -66,5 +66,10 @@ describe('FiscalSettings', () => {
     await waitFor(() => {
       expect(invoke).toHaveBeenCalledWith('update_fiscal_settings', expect.any(Object));
     });
+
+    // Wait for saving state to finish to avoid Act warning
+    await waitFor(() => {
+      expect(screen.getByText('Salvar Alterações')).toBeInTheDocument();
+    });
   });
 });

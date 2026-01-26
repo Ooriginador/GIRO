@@ -1,44 +1,31 @@
-import * as tauri from '@/lib/tauri';
-import fixtures from '@/test/fixtures';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ContingencyManager } from '../ContingencyManager';
 
-// Define hoisted variables
-const { mockToast, mockFiscal, mockCompany } = vi.hoisted(() => ({
-  mockToast: vi.fn(),
-  mockFiscal: {
-    certPath: 'path/to/cert.pfx',
-    certPassword: fixtures.TEST_TOKEN_USER,
-    environment: 2,
-    uf: 'SP',
-    serie: 1,
-    nextNumber: 1,
-  },
-  mockCompany: {
-    name: 'Test Company',
-    state: 'SP',
-  },
-}));
-
-// Mock Lucide icons (extend original exports when available)
-vi.mock('lucide-react', async (importOriginal) => {
-  const original = await importOriginal();
-  return {
-    ...original,
-    AlertTriangle: () => <div data-testid="icon-alert" />,
-    CheckCircle2: () => <div data-testid="icon-check" />,
-    Loader2: () => <div data-testid="icon-loader" />,
-    RefreshCw: () => <div data-testid="icon-refresh" />,
-    Send: () => <div data-testid="icon-send" />,
-  };
-});
+// Define hoisted mocks first - use inline values instead of imports
+const { mockListOfflineNotes, mockTransmitOfflineNote, mockToast, mockFiscal, mockCompany } =
+  vi.hoisted(() => ({
+    mockListOfflineNotes: vi.fn(),
+    mockTransmitOfflineNote: vi.fn(),
+    mockToast: vi.fn(),
+    mockFiscal: {
+      certPath: 'path/to/cert.pfx',
+      certPassword: 'TEST_TOKEN_USER_0000',
+      environment: 2,
+      uf: 'SP',
+      serie: 1,
+      nextNumber: 1,
+    },
+    mockCompany: {
+      name: 'Test Company',
+      state: 'SP',
+    },
+  }));
 
 // Mock Tauri functions
 vi.mock('@/lib/tauri', () => ({
-  listOfflineNotes: vi.fn(),
-  transmitOfflineNote: vi.fn(),
+  listOfflineNotes: mockListOfflineNotes,
+  transmitOfflineNote: mockTransmitOfflineNote,
 }));
 
 // Mock toast hook
@@ -55,14 +42,18 @@ vi.mock('@/stores/settings-store', () => ({
 }));
 
 describe('ContingencyManager', () => {
-  const queryWrapper = createQueryWrapper();
+  const queryWrapper = createQueryWrapperWithClient();
+  // Lazy import to ensure mocks are set up first
+  let ContingencyManager: typeof import('../ContingencyManager').ContingencyManager;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    const module = await import('../ContingencyManager');
+    ContingencyManager = module.ContingencyManager;
   });
 
   it('should render empty state when no notes exist', async () => {
-    vi.mocked(tauri.listOfflineNotes).mockResolvedValue([]);
+    mockListOfflineNotes.mockResolvedValue([]);
 
     render(<ContingencyManager />, { wrapper: queryWrapper.Wrapper });
 
@@ -79,7 +70,7 @@ describe('ContingencyManager', () => {
         status: 'PENDING' as const,
       },
     ];
-    vi.mocked(tauri.listOfflineNotes).mockResolvedValue(mockNotes);
+    mockListOfflineNotes.mockResolvedValue(mockNotes);
 
     render(<ContingencyManager />, { wrapper: queryWrapper.Wrapper });
 
@@ -95,8 +86,8 @@ describe('ContingencyManager', () => {
       xml: '<xml/>',
       status: 'PENDING' as const,
     };
-    vi.mocked(tauri.listOfflineNotes).mockResolvedValue([mockNote]);
-    vi.mocked(tauri.transmitOfflineNote).mockResolvedValue({
+    mockListOfflineNotes.mockResolvedValue([mockNote]);
+    mockTransmitOfflineNote.mockResolvedValue({
       success: true,
       protocol: '123456',
       message: 'Success',
@@ -108,7 +99,7 @@ describe('ContingencyManager', () => {
     fireEvent.click(transmitButton);
 
     await waitFor(() => {
-      expect(tauri.transmitOfflineNote).toHaveBeenCalledWith(
+      expect(mockTransmitOfflineNote).toHaveBeenCalledWith(
         '1234567890',
         mockFiscal.certPath,
         mockFiscal.certPassword,
@@ -134,8 +125,8 @@ describe('ContingencyManager', () => {
       xml: '<xml/>',
       status: 'PENDING' as const,
     };
-    vi.mocked(tauri.listOfflineNotes).mockResolvedValue([mockNote]);
-    vi.mocked(tauri.transmitOfflineNote).mockResolvedValue({
+    mockListOfflineNotes.mockResolvedValue([mockNote]);
+    mockTransmitOfflineNote.mockResolvedValue({
       success: false,
       message: 'Rejeição: Duplicidade',
     });
@@ -169,7 +160,7 @@ describe('ContingencyManager', () => {
       xml: '<xml/>',
       status: 'PENDING' as const,
     };
-    vi.mocked(tauri.listOfflineNotes).mockResolvedValue([mockNote]);
+    mockListOfflineNotes.mockResolvedValue([mockNote]);
 
     render(<ContingencyManager />, { wrapper: queryWrapper.Wrapper });
 

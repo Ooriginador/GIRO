@@ -1,18 +1,9 @@
 import * as tauri from '@/lib/tauri';
 import { useLicenseStore } from '@/stores/license-store';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LicenseActivationPage } from '../LicenseActivationPage';
-
-// Mock Lucide icons
-vi.mock('lucide-react', () => ({
-  Key: () => <div data-testid="icon-key" />,
-  Monitor: () => <div data-testid="icon-monitor" />,
-  ShieldCheck: () => <div data-testid="icon-shield" />,
-  AlertCircle: () => <div data-testid="icon-alert" />,
-  Loader2: () => <div data-testid="icon-loader" className="animate-spin" />,
-}));
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -40,7 +31,7 @@ vi.mock('@/lib/tauri', () => ({
   restoreLicense: vi.fn(),
 }));
 
-const queryWrapper = createQueryWrapper();
+const queryWrapper = createQueryWrapperWithClient();
 
 describe('LicenseActivationPage', () => {
   beforeEach(() => {

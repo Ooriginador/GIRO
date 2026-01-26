@@ -1,6 +1,6 @@
 import { useServiceOrderItems, useServiceOrders } from '@/hooks/useServiceOrders';
 import { invoke } from '@/lib/tauri';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,7 +9,7 @@ vi.mock('@/lib/tauri', () => ({
   invoke: vi.fn(),
 }));
 
-const { Wrapper: queryWrapper } = createQueryWrapper();
+const { Wrapper: queryWrapper } = createQueryWrapperWithClient();
 
 describe('useServiceOrders', () => {
   beforeEach(() => {

@@ -93,8 +93,8 @@ describe('EnterpriseIcons', () => {
       expect(EnterpriseIcons.Material).toBeDefined();
     });
 
-    it('should have 17 icons total', () => {
-      expect(Object.keys(EnterpriseIcons)).toHaveLength(17);
+    it('should have 26 icons total', () => {
+      expect(Object.keys(EnterpriseIcons)).toHaveLength(26);
     });
   });
 

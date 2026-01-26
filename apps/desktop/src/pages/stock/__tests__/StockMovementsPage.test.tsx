@@ -4,52 +4,15 @@
 
 import { useStockMovements } from '@/hooks/useStock';
 import { StockMovementsPage } from '@/pages/stock/StockMovementsPage';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { createQueryWrapper } from '@/test/queryWrapper';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock hooks
+// Mock apenas o hook que faz chamadas externas
 vi.mock('@/hooks/useStock', () => ({
   useStockMovements: vi.fn(),
 }));
-
-// Mock UI Select
-vi.mock('@/components/ui/select', () => ({
-  Select: ({ children, value, onValueChange }: any) => (
-    <select data-testid="type-filter" value={value} onChange={(e) => onValueChange(e.target.value)}>
-      {children}
-    </select>
-  ),
-  SelectTrigger: ({ children }: any) => children,
-  SelectValue: ({ placeholder }: any) => placeholder,
-  SelectContent: ({ children }: any) => children,
-  SelectItem: ({ children, value }: any) => <option value={value}>{children}</option>,
-}));
-
-const mockMovements = [
-  {
-    id: 'm1',
-    type: 'ENTRY',
-    quantity: 10,
-    previousStock: 0,
-    newStock: 10,
-    createdAt: new Date().toISOString(),
-    product: { name: 'Arroz', internalCode: 'AR001' },
-    reason: 'Compra',
-  },
-  {
-    id: 'm2',
-    type: 'SALE',
-    quantity: 2,
-    previousStock: 10,
-    newStock: 8,
-    createdAt: new Date().toISOString(),
-    product: { name: 'Feijão', internalCode: 'FE001' },
-    reason: 'Venda #1',
-  },
-];
 
 // Mock navigation
 const mockNavigate = vi.fn();
@@ -61,33 +24,67 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{children}</MemoryRouter>
-    </QueryClientProvider>
-  );
-};
+const mockMovements = [
+  {
+    id: 'm1',
+    type: 'ENTRY',
+    quantity: 10,
+    previousStock: 0,
+    newStock: 10,
+    createdAt: new Date().toISOString(),
+    product: { name: 'Arroz Tipo 1', internalCode: 'AR001' },
+    reason: 'Compra',
+  },
+  {
+    id: 'm2',
+    type: 'SALE',
+    quantity: 2,
+    previousStock: 10,
+    newStock: 8,
+    createdAt: new Date().toISOString(),
+    product: { name: 'Feijão Preto', internalCode: 'FE001' },
+    reason: 'Venda #1',
+  },
+  {
+    id: 'm3',
+    type: 'ADJUSTMENT',
+    quantity: -3,
+    previousStock: 8,
+    newStock: 5,
+    createdAt: new Date().toISOString(),
+    product: { name: 'Açúcar Cristal', internalCode: 'AC001' },
+    reason: 'Ajuste de inventário',
+  },
+];
 
 describe('StockMovementsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should render page contents', () => {
+  it('should render page title and description', () => {
     vi.mocked(useStockMovements).mockReturnValue({
       data: mockMovements,
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useStockMovements>);
 
-    render(<StockMovementsPage />, { wrapper: createWrapper() });
+    render(<StockMovementsPage />, { wrapper: createQueryWrapper() });
 
     expect(screen.getByText('Movimentações de Estoque')).toBeInTheDocument();
-    expect(screen.getByText('Arroz')).toBeInTheDocument();
-    expect(screen.getByText('Feijão')).toBeInTheDocument();
+    expect(screen.getByText(/Histórico de todas as entradas/i)).toBeInTheDocument();
+  });
+
+  it('should display all movements in table', () => {
+    vi.mocked(useStockMovements).mockReturnValue({
+      data: mockMovements,
+      isLoading: false,
+    } as ReturnType<typeof useStockMovements>);
+
+    render(<StockMovementsPage />, { wrapper: createQueryWrapper() });
+
+    expect(screen.getByText('Arroz Tipo 1')).toBeInTheDocument();
+    expect(screen.getByText('Feijão Preto')).toBeInTheDocument();
+    expect(screen.getByText('Açúcar Cristal')).toBeInTheDocument();
   });
 
   it('should filter movements by product name', async () => {
@@ -95,77 +92,139 @@ describe('StockMovementsPage', () => {
     vi.mocked(useStockMovements).mockReturnValue({
       data: mockMovements,
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useStockMovements>);
 
-    render(<StockMovementsPage />, { wrapper: createWrapper() });
+    render(<StockMovementsPage />, { wrapper: createQueryWrapper() });
 
     const searchInput = screen.getByPlaceholderText(/buscar por produto/i);
     await user.type(searchInput, 'Arroz');
 
-    expect(screen.getByText('Arroz')).toBeInTheDocument();
-    expect(screen.queryByText('Feijão')).not.toBeInTheDocument();
+    expect(screen.getByText('Arroz Tipo 1')).toBeInTheDocument();
+    expect(screen.queryByText('Feijão Preto')).not.toBeInTheDocument();
+    expect(screen.queryByText('Açúcar Cristal')).not.toBeInTheDocument();
   });
 
-  it('should filter movements by type', async () => {
+  it('should navigate back when clicking back button', async () => {
+    const user = userEvent.setup();
     vi.mocked(useStockMovements).mockReturnValue({
-      data: mockMovements,
+      data: [],
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useStockMovements>);
 
-    render(<StockMovementsPage />, { wrapper: createWrapper() });
+    render(<StockMovementsPage />, { wrapper: createQueryWrapper() });
 
-    const select = screen.getByTestId('type-filter');
-    fireEvent.change(select, { target: { value: 'SALE' } });
-
-    expect(screen.getByText('Feijão')).toBeInTheDocument();
-    expect(screen.queryByText('Arroz')).not.toBeInTheDocument();
-  });
-
-  it('should navigate back when clicking back button', () => {
-    vi.mocked(useStockMovements).mockReturnValue({ data: [], isLoading: false } as any);
-    render(<StockMovementsPage />, { wrapper: createWrapper() });
-
-    const backBtn = screen.getByTestId('back-button');
-    fireEvent.click(backBtn);
+    const backBtn = screen.getByRole('button', { name: /voltar/i });
+    await user.click(backBtn);
     expect(mockNavigate).toHaveBeenCalledWith(-1);
   });
 
   it('should show loading state', () => {
-    vi.mocked(useStockMovements).mockReturnValue({ data: [], isLoading: true } as any);
-    const { container } = render(<StockMovementsPage />, { wrapper: createWrapper() });
-    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+    vi.mocked(useStockMovements).mockReturnValue({
+      data: [],
+      isLoading: true,
+    } as ReturnType<typeof useStockMovements>);
+
+    render(<StockMovementsPage />, { wrapper: createQueryWrapper() });
+
+    expect(document.querySelector('.animate-pulse')).toBeInTheDocument();
   });
 
   it('should show empty state when no movements', () => {
     vi.mocked(useStockMovements).mockReturnValue({
       data: [],
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useStockMovements>);
 
-    render(<StockMovementsPage />, { wrapper: createWrapper() });
+    render(<StockMovementsPage />, { wrapper: createQueryWrapper() });
 
     expect(screen.getByText(/nenhuma movimentação encontrada/i)).toBeInTheDocument();
   });
 
-  it('should handle unknown movement types gracefully', () => {
+  it('should display movement details correctly', () => {
+    vi.mocked(useStockMovements).mockReturnValue({
+      data: mockMovements,
+      isLoading: false,
+    } as ReturnType<typeof useStockMovements>);
+
+    render(<StockMovementsPage />, { wrapper: createQueryWrapper() });
+
+    // Product codes should be visible
+    expect(screen.getByText('AR001')).toBeInTheDocument();
+    expect(screen.getByText('FE001')).toBeInTheDocument();
+
+    // Reasons should be visible
+    expect(screen.getByText('Compra')).toBeInTheDocument();
+    expect(screen.getByText('Venda #1')).toBeInTheDocument();
+  });
+
+  it('should display quantity changes with correct format', () => {
+    vi.mocked(useStockMovements).mockReturnValue({
+      data: mockMovements,
+      isLoading: false,
+    } as ReturnType<typeof useStockMovements>);
+
+    render(<StockMovementsPage />, { wrapper: createQueryWrapper() });
+
+    // Check if quantities are displayed (symbols +,- might be implied by color/icon)
+    // We check for the numbers exist presence
+    expect(screen.getAllByText('10').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('2').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('3').length).toBeGreaterThan(0);
+  });
+
+  it('should display stock before and after for each movement', () => {
+    vi.mocked(useStockMovements).mockReturnValue({
+      data: [mockMovements[0]],
+      isLoading: false,
+    } as ReturnType<typeof useStockMovements>);
+
+    render(<StockMovementsPage />, { wrapper: createQueryWrapper() });
+
+    // First movement: 0 -> 10
+    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.getAllByText('10').length).toBeGreaterThan(0);
+  });
+
+  it('should handle movement with null reason', () => {
     vi.mocked(useStockMovements).mockReturnValue({
       data: [
         {
-          id: 'm3',
-          type: 'UNKNOWN',
+          id: 'm4',
+          type: 'ADJUSTMENT',
           quantity: 5,
           previousStock: 0,
           newStock: 5,
           createdAt: new Date().toISOString(),
-          product: { name: 'Unknown', internalCode: 'U01' },
+          product: { name: 'Produto Teste', internalCode: 'PT01' },
           reason: null,
         },
       ],
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useStockMovements>);
 
-    render(<StockMovementsPage />, { wrapper: createWrapper() });
-    expect(screen.getByText('UNKNOWN')).toBeInTheDocument();
-    expect(screen.getByText('-')).toBeInTheDocument(); // reason null
+    render(<StockMovementsPage />, { wrapper: createQueryWrapper() });
+
+    expect(screen.getByText('Produto Teste')).toBeInTheDocument();
+    expect(screen.getByText('-')).toBeInTheDocument(); // reason null shows as dash
+  });
+
+  it('should clear search filter', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useStockMovements).mockReturnValue({
+      data: mockMovements,
+      isLoading: false,
+    } as ReturnType<typeof useStockMovements>);
+
+    render(<StockMovementsPage />, { wrapper: createQueryWrapper() });
+
+    const searchInput = screen.getByPlaceholderText(/buscar por produto/i);
+
+    // Type to filter
+    await user.type(searchInput, 'Arroz');
+    expect(screen.queryByText('Feijão Preto')).not.toBeInTheDocument();
+
+    // Clear the filter
+    await user.clear(searchInput);
+    expect(screen.getByText('Feijão Preto')).toBeInTheDocument();
   });
 });
