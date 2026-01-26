@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useContracts } from '@/hooks/enterprise';
+import { useEmployees } from '@/hooks/useEmployees';
 import { cn } from '@/lib/utils';
 import type { ContractWithManager } from '@/lib/tauri';
 import type { ContractStatus } from '@/types/enterprise';
@@ -183,6 +184,13 @@ export const ContractsPage: FC = () => {
   const managerFilter = filters.managerId === 'ALL' ? undefined : filters.managerId;
   const { data: contracts = [], isLoading } = useContracts(statusFilter, managerFilter);
 
+  // Load employees for manager filter dropdown
+  const { data: employees = [] } = useEmployees();
+  const managers = useMemo(
+    () => employees.filter((e) => e.role === 'ADMIN' || e.role === 'MANAGER'),
+    [employees]
+  );
+
   // Client-side search filter
   const filteredContracts = useMemo(() => {
     if (!filters.search) return contracts;
@@ -223,7 +231,10 @@ export const ContractsPage: FC = () => {
           <h1 className="text-2xl font-bold tracking-tight">Contratos</h1>
           <p className="text-muted-foreground">Gerencie obras e contratos do almoxarifado</p>
         </div>
-        <Button onClick={() => navigate('/enterprise/contracts/new')}>
+        <Button
+          onClick={() => navigate('/enterprise/contracts/new')}
+          data-testid="new-contract-btn"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Novo Contrato
         </Button>
@@ -318,7 +329,11 @@ export const ContractsPage: FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">Todos os gerentes</SelectItem>
-                    {/* TODO: Carregar gerentes dinamicamente */}
+                    {managers.map((manager) => (
+                      <SelectItem key={manager.id} value={manager.id}>
+                        {manager.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
