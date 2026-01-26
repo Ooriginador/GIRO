@@ -101,5 +101,6 @@ pub async fn adjust_location_balance(
 ) -> AppResult<StockBalance> {
     let _info = state.session.require_authenticated()?;
     let repo = StockLocationRepository::new(state.pool());
-    repo.adjust_balance(&location_id, &product_id, quantity_delta).await
+    repo.adjust_balance(&location_id, &product_id, quantity_delta)
+        .await
 }
