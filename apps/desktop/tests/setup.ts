@@ -105,11 +105,11 @@ if (typeof window !== 'undefined') {
 vi.mock('lucide-react', async (importOriginal) => {
   console.log('[setup.ts] Initializing lucide-react mock');
   const actual = await importOriginal<typeof import('lucide-react')>();
-  const mocked: Record<string, any> = {};
+  const mocked: Record<string, unknown> = {};
 
   // Copy all properties
   for (const key of Object.keys(actual)) {
-    const value = (actual as any)[key];
+    const value = (actual as Record<string, unknown>)[key];
     // Check if it looks like an icon component (function starting with Uppercase)
     // Note: Some exports might not be icons (e.g. createLucideIcon), so we keep them as is unless we want to mock everything.
     // For safety, let's mock anything that is a function and starts with uppercase, or just allow all originals if not an icon.
