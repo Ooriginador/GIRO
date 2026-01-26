@@ -2,31 +2,23 @@
  * @file EnterpriseDashboardPage.test.tsx - Testes para Dashboard Enterprise
  */
 
-import { useContracts, useMaterialRequests, useStockTransfers } from '@/hooks/enterprise';
+import { useContractDashboard, usePendingRequests, useContracts } from '@/hooks/enterprise';
 import { EnterpriseDashboardPage } from '@/pages/enterprise/EnterpriseDashboardPage';
 import { createQueryWrapper } from '@/test/queryWrapper';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock hooks
 vi.mock('@/hooks/enterprise', () => ({
+  useContractDashboard: vi.fn(),
+  usePendingRequests: vi.fn(),
   useContracts: vi.fn(),
-  useMaterialRequests: vi.fn(),
-  useStockTransfers: vi.fn(),
-  usePendingRequests: vi.fn(() => ({ data: [], isLoading: false })),
-  useStockLocations: vi.fn(() => ({ data: [], isLoading: false })),
 }));
 
 vi.mock('@/hooks/useEnterprisePermission', () => ({
   useCanDo: () => () => true,
   useEnterprisePermission: () => ({ hasPermission: () => true }),
-}));
-
-vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: () => ({
-    employee: { id: 'emp-1', name: 'Test User', role: 'MANAGER' },
-    isAuthenticated: true,
-  }),
 }));
 
 // Mock useNavigate
@@ -36,201 +28,134 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    Link: ({ children, to }: any) => <a href={to}>{children}</a>,
   };
 });
 
+const mockDashboardData = {
+  activeContracts: 8,
+  pendingRequests: 2,
+  inTransitTransfers: 5,
+  lowStockAlerts: 1,
+};
+
+const mockRecentRequests = [
+  {
+    id: 'r1',
+    requestNumber: 'REQ-001',
+    status: 'PENDING',
+    requesterName: 'João',
+    contractName: 'Obra A',
+    createdAt: '2024-01-01',
+  },
+  {
+    id: 'r2',
+    requestNumber: 'REQ-002',
+    status: 'APPROVED',
+    requesterName: 'Maria',
+    contractName: 'Obra B',
+    createdAt: '2024-01-02',
+  },
+];
+
 const mockContracts = [
-  { id: 'c1', code: 'CNT-001', name: 'Obra A', status: 'ACTIVE' },
-  { id: 'c2', code: 'CNT-002', name: 'Obra B', status: 'ACTIVE' },
-  { id: 'c3', code: 'CNT-003', name: 'Obra C', status: 'PLANNING' },
-];
-
-const mockRequests = [
-  { id: 'r1', requestNumber: 'REQ-001', status: 'PENDING' },
-  { id: 'r2', requestNumber: 'REQ-002', status: 'PENDING' },
-  { id: 'r3', requestNumber: 'REQ-003', status: 'APPROVED' },
-];
-
-const mockTransfers = [
-  { id: 't1', code: 'TRF-001', status: 'IN_TRANSIT' },
-  { id: 't2', code: 'TRF-002', status: 'PENDING' },
+  { id: 'c1', code: 'CNT-001', name: 'Obra A', budget: 100000, status: 'ACTIVE' },
+  { id: 'c2', code: 'CNT-002', name: 'Obra B', budget: 200000, status: 'ACTIVE' },
 ];
 
 describe('EnterpriseDashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    vi.mocked(useContractDashboard).mockReturnValue({
+      data: mockDashboardData,
+      isLoading: false,
+      refetch: vi.fn(),
+    } as any);
+
+    vi.mocked(usePendingRequests).mockReturnValue({
+      data: mockRecentRequests,
+      isLoading: false,
+      refetch: vi.fn(),
+    } as any);
+
+    vi.mocked(useContracts).mockReturnValue({
+      data: mockContracts,
+      isLoading: false,
+    } as any);
   });
 
   it('should render loading state', () => {
-    vi.mocked(useContracts).mockReturnValue({
+    vi.mocked(useContractDashboard).mockReturnValue({
       data: undefined,
       isLoading: true,
-      error: null,
-    } as any);
-    vi.mocked(useMaterialRequests).mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      error: null,
-    } as any);
-    vi.mocked(useStockTransfers).mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      error: null,
+      refetch: vi.fn(),
     } as any);
 
     render(<EnterpriseDashboardPage />, { wrapper: createQueryWrapper() });
-    
-    expect(screen.getByRole('status')).toBeInTheDocument();
-  });
 
-  it('should render dashboard with KPIs', async () => {
-    vi.mocked(useContracts).mockReturnValue({
-      data: mockContracts,
-      isLoading: false,
-      error: null,
-    } as any);
-    vi.mocked(useMaterialRequests).mockReturnValue({
-      data: mockRequests,
-      isLoading: false,
-      error: null,
-    } as any);
-    vi.mocked(useStockTransfers).mockReturnValue({
-      data: mockTransfers,
-      isLoading: false,
-      error: null,
-    } as any);
-
-    render(<EnterpriseDashboardPage />, { wrapper: createQueryWrapper() });
-    
-    await waitFor(() => {
-      // Check for KPI cards
-      expect(screen.getByText(/contratos/i)).toBeInTheDocument();
-      expect(screen.getByText(/requisições/i)).toBeInTheDocument();
-      expect(screen.getByText(/transferências/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should show contracts count', async () => {
-    vi.mocked(useContracts).mockReturnValue({
-      data: mockContracts,
-      isLoading: false,
-      error: null,
-    } as any);
-    vi.mocked(useMaterialRequests).mockReturnValue({
-      data: mockRequests,
-      isLoading: false,
-      error: null,
-    } as any);
-    vi.mocked(useStockTransfers).mockReturnValue({
-      data: mockTransfers,
-      isLoading: false,
-      error: null,
-    } as any);
-
-    render(<EnterpriseDashboardPage />, { wrapper: createQueryWrapper() });
-    
-    await waitFor(() => {
-      // Should show count of active contracts (2 ACTIVE)
-      expect(screen.getByText('2') || screen.getByText('3')).toBeInTheDocument();
-    });
-  });
-
-  it('should show pending requests count', async () => {
-    vi.mocked(useContracts).mockReturnValue({
-      data: mockContracts,
-      isLoading: false,
-      error: null,
-    } as any);
-    vi.mocked(useMaterialRequests).mockReturnValue({
-      data: mockRequests,
-      isLoading: false,
-      error: null,
-    } as any);
-    vi.mocked(useStockTransfers).mockReturnValue({
-      data: mockTransfers,
-      isLoading: false,
-      error: null,
-    } as any);
-
-    render(<EnterpriseDashboardPage />, { wrapper: createQueryWrapper() });
-    
-    await waitFor(() => {
-      // Should show pending requests count (2 PENDING)
-      const pendingBadges = screen.getAllByText('2');
-      expect(pendingBadges.length).toBeGreaterThan(0);
-    });
-  });
-
-  it('should render quick action buttons', async () => {
-    vi.mocked(useContracts).mockReturnValue({
-      data: mockContracts,
-      isLoading: false,
-      error: null,
-    } as any);
-    vi.mocked(useMaterialRequests).mockReturnValue({
-      data: mockRequests,
-      isLoading: false,
-      error: null,
-    } as any);
-    vi.mocked(useStockTransfers).mockReturnValue({
-      data: mockTransfers,
-      isLoading: false,
-      error: null,
-    } as any);
-
-    render(<EnterpriseDashboardPage />, { wrapper: createQueryWrapper() });
-    
-    await waitFor(() => {
-      // Check for quick action links/buttons
-      expect(screen.getByRole('link', { name: /nova requisição/i }) || 
-             screen.getByText(/nova requisição/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should show recent activity section', async () => {
-    vi.mocked(useContracts).mockReturnValue({
-      data: mockContracts,
-      isLoading: false,
-      error: null,
-    } as any);
-    vi.mocked(useMaterialRequests).mockReturnValue({
-      data: mockRequests,
-      isLoading: false,
-      error: null,
-    } as any);
-    vi.mocked(useStockTransfers).mockReturnValue({
-      data: mockTransfers,
-      isLoading: false,
-      error: null,
-    } as any);
-
-    render(<EnterpriseDashboardPage />, { wrapper: createQueryWrapper() });
-    
-    await waitFor(() => {
-      expect(screen.getByText(/atividade|recentes/i)).toBeInTheDocument();
-    });
+    expect(
+      document.querySelector('.animate-pulse') || document.querySelector('.skeleton')
+    ).toBeInTheDocument();
   });
 
   it('should render page title', () => {
-    vi.mocked(useContracts).mockReturnValue({
-      data: mockContracts,
+    render(<EnterpriseDashboardPage />, { wrapper: createQueryWrapper() });
+    expect(screen.getByText('Dashboard Enterprise')).toBeInTheDocument();
+  });
+
+  it('should render KPI cards with correct values', async () => {
+    render(<EnterpriseDashboardPage />, { wrapper: createQueryWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('8')).toBeInTheDocument(); // activeContracts
+      expect(screen.getByText('2')).toBeInTheDocument(); // pendingRequests
+      expect(screen.getByText('5')).toBeInTheDocument(); // inTransitTransfers
+      expect(screen.getByText('1')).toBeInTheDocument(); // lowStockAlerts
+    });
+  });
+
+  it('should render recent requests list', async () => {
+    render(<EnterpriseDashboardPage />, { wrapper: createQueryWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('REQ-001')).toBeInTheDocument();
+      expect(screen.getByText('REQ-002')).toBeInTheDocument();
+      expect(screen.getByText(/João/)).toBeInTheDocument();
+    });
+  });
+
+  it('should render quick actions buttons', async () => {
+    render(<EnterpriseDashboardPage />, { wrapper: createQueryWrapper() });
+
+    expect(screen.getByRole('button', { name: /nova requisição/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /nova transferência/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /novo contrato/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /inventário rotativo/i })).toBeInTheDocument();
+  });
+
+  it('should call refetch on refresh button click', async () => {
+    const user = userEvent.setup();
+    const refetchDashboardSpy = vi.fn();
+    const refetchRequestsSpy = vi.fn();
+
+    vi.mocked(useContractDashboard).mockReturnValue({
+      data: mockDashboardData,
       isLoading: false,
-      error: null,
+      refetch: refetchDashboardSpy,
     } as any);
-    vi.mocked(useMaterialRequests).mockReturnValue({
-      data: mockRequests,
+
+    vi.mocked(usePendingRequests).mockReturnValue({
+      data: mockRecentRequests,
       isLoading: false,
-      error: null,
-    } as any);
-    vi.mocked(useStockTransfers).mockReturnValue({
-      data: mockTransfers,
-      isLoading: false,
-      error: null,
+      refetch: refetchRequestsSpy,
     } as any);
 
     render(<EnterpriseDashboardPage />, { wrapper: createQueryWrapper() });
-    
-    expect(screen.getByRole('heading', { name: /dashboard|painel|enterprise/i })).toBeInTheDocument();
+
+    const refreshBtn = screen.getByRole('button', { name: /atualizar/i });
+    await user.click(refreshBtn);
+
+    expect(refetchDashboardSpy).toHaveBeenCalled();
+    expect(refetchRequestsSpy).toHaveBeenCalled();
   });
 });

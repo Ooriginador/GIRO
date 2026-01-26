@@ -13,7 +13,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['node_modules/', 'dist/', 'src-tauri/', 'tests/e2e/**'],
+    exclude: ['node_modules/', 'dist/', 'src-tauri/', 'tests/e2e/**', 'tests/debug/**'],
     coverage: {
       provider: 'istanbul', // Alterado de v8 para istanbul (mais estável com imports dinâmicos)
       reporter: ['text', 'json', 'html'],

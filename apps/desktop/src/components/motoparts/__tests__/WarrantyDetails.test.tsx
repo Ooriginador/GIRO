@@ -1,7 +1,7 @@
 import { WarrantyDetails } from '@/components/motoparts/WarrantyDetails';
 import { useWarranties, useWarrantyDetails } from '@/hooks/useWarranties';
 import { useAuthStore } from '@/stores/auth-store';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -29,7 +29,7 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: vi.fn(() => ({ toast: vi.fn() })),
 }));
 
-const { Wrapper: queryWrapper } = createQueryWrapper();
+const { Wrapper: queryWrapper } = createQueryWrapperWithClient();
 
 describe('WarrantyDetails', () => {
   const mockWarrantyDetails = {
@@ -206,7 +206,7 @@ describe('WarrantyDetails', () => {
     } as any);
 
     renderComponent();
-    expect(document.querySelector('.lucide-shield-question')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-ShieldQuestion')).toBeInTheDocument();
   });
 
   it('should handle resolve error gracefully', async () => {

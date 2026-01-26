@@ -1,5 +1,5 @@
 import * as tauri from '@/lib/tauri';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -22,7 +22,7 @@ vi.mock('@/lib/tauri', () => ({
   invoke: vi.fn(),
 }));
 
-const queryWrapper = createQueryWrapper();
+const queryWrapper = createQueryWrapperWithClient();
 
 describe('useEmployees hook', () => {
   beforeEach(() => {

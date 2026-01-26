@@ -3,7 +3,7 @@ import {
   ProductCompatibilityEditor,
 } from '@/components/motoparts/ProductCompatibilityEditor';
 import { useProductCompatibility } from '@/hooks/useVehicles';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -45,7 +45,7 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
-const { Wrapper: queryWrapper } = createQueryWrapper();
+const { Wrapper: queryWrapper } = createQueryWrapperWithClient();
 
 describe('ProductCompatibilityEditor', () => {
   const user = userEvent.setup();

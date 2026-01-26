@@ -5,7 +5,7 @@ import { check as mockCheck } from '@tauri-apps/plugin-updater';
 import { relaunch as mockRelaunch } from '@tauri-apps/plugin-process';
 import { UpdateChecker } from '../UpdateChecker';
 
-// Mocks
+// Mocks para plugins do Tauri
 vi.mock('@tauri-apps/plugin-updater', () => ({
   check: vi.fn(),
 }));
@@ -16,22 +16,6 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
     toast: vi.fn(),
   }),
-}));
-
-// Stub UI components to avoid JSDOM complexities
-vi.mock('@/components/ui/alert-dialog', () => ({
-  AlertDialog: ({ children, open }: any) => (open ? <div>{children}</div> : <div />),
-  AlertDialogContent: ({ children }: any) => <div>{children}</div>,
-  AlertDialogHeader: ({ children }: any) => <div>{children}</div>,
-  AlertDialogTitle: ({ children }: any) => <p>{children}</p>,
-  AlertDialogDescription: ({ children }: any) => <div>{children}</div>,
-  AlertDialogFooter: ({ children }: any) => <div>{children}</div>,
-  AlertDialogCancel: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
-  AlertDialogAction: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
-}));
-
-vi.mock('@/components/ui/progress', () => ({
-  Progress: ({ value }: any) => <div data-testid="progress">{value}</div>,
 }));
 
 describe('UpdateChecker', () => {

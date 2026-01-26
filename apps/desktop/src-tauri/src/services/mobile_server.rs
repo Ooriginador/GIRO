@@ -4,8 +4,9 @@
 
 use crate::services::mobile_events::MobileEventService;
 use crate::services::mobile_handlers::{
-    AuthHandler, CategoriesHandler, ExpirationHandler, InventoryHandler, ProductsHandler,
-    StockHandler, SyncHandler, SystemHandler,
+    AuthHandler, CategoriesHandler, EnterpriseContextHandler, EnterpriseRequestHandler,
+    EnterpriseTransferHandler, ExpirationHandler, InventoryHandler, ProductsHandler, StockHandler,
+    SyncHandler, SystemHandler,
 };
 use crate::services::mobile_protocol::{
     LegacyScannerMessage, LegacyScannerResponse, MobileAction, MobileErrorCode, MobileEvent,
@@ -211,6 +212,11 @@ impl MobileServer {
             let expiration_handler = ExpirationHandler::new(pool.clone());
             let categories_handler = CategoriesHandler::new(pool.clone());
 
+            // Enterprise handlers
+            let enterprise_request_handler = EnterpriseRequestHandler::new(pool.clone());
+            let enterprise_transfer_handler = EnterpriseTransferHandler::new(pool.clone());
+            let enterprise_context_handler = EnterpriseContextHandler::new(pool.clone());
+
             loop {
                 tokio::select! {
                     // Mensagem do cliente
@@ -268,6 +274,9 @@ impl MobileServer {
                                     &categories_handler,
                                     &system_handler,
                                     &sync_handler,
+                                    &enterprise_request_handler,
+                                    &enterprise_transfer_handler,
+                                    &enterprise_context_handler,
                                 ).await;
 
                                 // Enviar resposta
@@ -367,6 +376,9 @@ async fn process_request(
     categories_handler: &CategoriesHandler,
     system_handler: &SystemHandler,
     sync_handler: &SyncHandler,
+    enterprise_request_handler: &EnterpriseRequestHandler,
+    enterprise_transfer_handler: &EnterpriseTransferHandler,
+    enterprise_context_handler: &EnterpriseContextHandler,
 ) -> MobileResponse {
     let id = request.id;
     let action_str = &request.action;
@@ -759,6 +771,360 @@ async fn process_request(
                     }
                 };
             sync_handler.remote_sale(id, payload).await
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ENTERPRISE - MATERIAL REQUESTS
+        // ══════════════════════════════════════════════════════════════════════
+        MobileAction::EnterpriseRequestList => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_request_handler
+                .list(id, payload, &employee_id, &employee_role)
+                .await
+        }
+        MobileAction::EnterpriseRequestGet => {
+            let request_id = match request.payload.get("requestId").and_then(|v| v.as_str()) {
+                Some(id) => id.to_string(),
+                None => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        "requestId é obrigatório",
+                    );
+                }
+            };
+            enterprise_request_handler.get(id, &request_id).await
+        }
+        MobileAction::EnterpriseRequestCreate => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_request_handler
+                .create(id, payload, &employee_id)
+                .await
+        }
+        MobileAction::EnterpriseRequestUpdate => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_request_handler
+                .update(id, payload, &employee_id)
+                .await
+        }
+        MobileAction::EnterpriseRequestAddItem => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_request_handler
+                .add_item(id, payload, &employee_id)
+                .await
+        }
+        MobileAction::EnterpriseRequestRemoveItem => {
+            let request_id = match request.payload.get("requestId").and_then(|v| v.as_str()) {
+                Some(id) => id.to_string(),
+                None => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        "requestId é obrigatório",
+                    );
+                }
+            };
+            let item_id = match request.payload.get("itemId").and_then(|v| v.as_str()) {
+                Some(id) => id.to_string(),
+                None => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        "itemId é obrigatório",
+                    );
+                }
+            };
+            enterprise_request_handler
+                .remove_item(id, &request_id, &item_id, &employee_id)
+                .await
+        }
+        MobileAction::EnterpriseRequestSubmit => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_request_handler
+                .submit(id, payload, &employee_id)
+                .await
+        }
+        MobileAction::EnterpriseRequestApprove => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_request_handler
+                .approve(id, payload, &employee_id, &employee_role)
+                .await
+        }
+        MobileAction::EnterpriseRequestReject => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_request_handler
+                .reject(id, payload, &employee_id, &employee_role)
+                .await
+        }
+        MobileAction::EnterpriseRequestCancel => {
+            let request_id = match request.payload.get("requestId").and_then(|v| v.as_str()) {
+                Some(id) => id.to_string(),
+                None => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        "requestId é obrigatório",
+                    );
+                }
+            };
+            let reason = request
+                .payload
+                .get("reason")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            enterprise_request_handler
+                .cancel(id, &request_id, reason, &employee_id)
+                .await
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ENTERPRISE - STOCK TRANSFERS
+        // ══════════════════════════════════════════════════════════════════════
+        MobileAction::EnterpriseTransferList => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_transfer_handler
+                .list(id, payload, &employee_id, &employee_role)
+                .await
+        }
+        MobileAction::EnterpriseTransferGet => {
+            let transfer_id = match request.payload.get("transferId").and_then(|v| v.as_str()) {
+                Some(id) => id.to_string(),
+                None => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        "transferId é obrigatório",
+                    );
+                }
+            };
+            enterprise_transfer_handler.get(id, &transfer_id).await
+        }
+        MobileAction::EnterpriseTransferCreate => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_transfer_handler
+                .create(id, payload, &employee_id)
+                .await
+        }
+        MobileAction::EnterpriseTransferUpdate => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_transfer_handler
+                .update(id, payload, &employee_id)
+                .await
+        }
+        MobileAction::EnterpriseTransferAddItem => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_transfer_handler
+                .add_item(id, payload, &employee_id)
+                .await
+        }
+        MobileAction::EnterpriseTransferRemoveItem => {
+            let transfer_id = match request.payload.get("transferId").and_then(|v| v.as_str()) {
+                Some(id) => id.to_string(),
+                None => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        "transferId é obrigatório",
+                    );
+                }
+            };
+            let item_id = match request.payload.get("itemId").and_then(|v| v.as_str()) {
+                Some(id) => id.to_string(),
+                None => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        "itemId é obrigatório",
+                    );
+                }
+            };
+            enterprise_transfer_handler
+                .remove_item(id, &transfer_id, &item_id, &employee_id)
+                .await
+        }
+        MobileAction::EnterpriseTransferShip => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_transfer_handler
+                .ship(id, payload, &employee_id)
+                .await
+        }
+        MobileAction::EnterpriseTransferReceive => {
+            let payload = match serde_json::from_value(request.payload.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        format!("Payload inválido: {}", e),
+                    );
+                }
+            };
+            enterprise_transfer_handler
+                .receive(id, payload, &employee_id)
+                .await
+        }
+        MobileAction::EnterpriseTransferCancel => {
+            let transfer_id = match request.payload.get("transferId").and_then(|v| v.as_str()) {
+                Some(id) => id.to_string(),
+                None => {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::ValidationError,
+                        "transferId é obrigatório",
+                    );
+                }
+            };
+            let reason = request
+                .payload
+                .get("reason")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            enterprise_transfer_handler
+                .cancel(id, &transfer_id, reason, &employee_id)
+                .await
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ENTERPRISE - CONTEXT
+        // ══════════════════════════════════════════════════════════════════════
+        MobileAction::EnterpriseContextGet => enterprise_context_handler.get_context(id).await,
+        MobileAction::EnterpriseContextContracts => {
+            enterprise_context_handler.get_contracts(id).await
+        }
+        MobileAction::EnterpriseContextLocations => {
+            let contract_id = request
+                .payload
+                .get("contractId")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            enterprise_context_handler
+                .get_locations(id, contract_id)
+                .await
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ENTERPRISE - INVENTORY (Inventário por Localização)
+        // ══════════════════════════════════════════════════════════════════════
+        MobileAction::EnterpriseInventoryLocations
+        | MobileAction::EnterpriseInventoryStart
+        | MobileAction::EnterpriseInventoryCount
+        | MobileAction::EnterpriseInventorySync
+        | MobileAction::EnterpriseInventoryFinish
+        | MobileAction::EnterpriseInventoryCancel => {
+            // TODO: Implementar enterprise inventory handler
+            MobileResponse::error(
+                id,
+                MobileErrorCode::InvalidAction,
+                "Enterprise inventory não implementado ainda",
+            )
         }
 
         // Ações não implementadas

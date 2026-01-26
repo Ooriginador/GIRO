@@ -1,0 +1,41 @@
+
+> @giro/desktop@1.5.1 test
+> vitest --run
+
+
+ RUN  v2.1.9 /home/jhonslife/CICLOGIRO/GIRO/apps/desktop
+
+ ✓ src/__tests__/integration/tauri-commands.test.tsx (29 tests) 21ms
+ ✓ src/stores/enterprise/__tests__/stores.test.tsx (23 tests) 14ms
+ ✓ tests/unit/utils/formatters.test.ts (51 tests) 43ms
+ ✓ src/stores/__tests__/pdv-store.test.ts (24 tests) 20ms
+ ✓ src/stores/__tests__/settings-store.test.ts (28 tests) 55ms
+ ✓ tests/unit/enterprise/store.test.ts (21 tests) 90ms
+ ✓ src/hooks/__tests__/useCustomers.test.tsx (22 tests | 6 skipped) 220ms
+ ✓ tests/unit/enterprise/permissions.test.ts (30 tests) 25ms
+ ✓ src/hooks/__tests__/useSales.test.tsx (15 tests) 699ms
+ ✓ src/components/tutorial/__tests__/tutorial-store.test.ts (17 tests) 34ms
+ ✓ src/hooks/enterprise/__tests__/useEnterpriseHooks.test.tsx (16 tests) 14ms
+ ✓ src/lib/__tests__/tauri.test.ts (12 tests) 39ms
+stdout | src/lib/__tests__/tauri.test.ts > tauri.ts > webMockInvoke (Web path) > should authenticate employee correctly
+WEB_DB_RAW: {"employees":[{"id":"admin-1","name":"Admin","role":"ADMIN","pin":"TEST_PIN_0000","isActive":true}],"currentCashSession":null,"cashSessionHistory":[]}
+PARSED: {
+  employees: [
+    {
+      id: 'admin-1',
+      name: 'Admin',
+      role: 'ADMIN',
+      pin: 'TEST_PIN_0000',
+      isActive: true
+    }
+  ],
+  currentCashSession: null,
+  cashSessionHistory: []
+}
+
+ ✓ src/hooks/__tests__/useDashboard.test.tsx (7 tests) 444ms
+ ✓ src/stores/__tests__/alert-store.test.ts (14 tests) 14ms
+ ✓ src/hooks/__tests__/useStock.test.tsx (9 tests) 456ms
+ ✓ src/hooks/__tests__/usePDV.test.tsx (10 tests) 471ms
+ ✓ src/hooks/__tests__/useCategories.test.tsx (12 tests) 568ms
+ ✓ src/hooks/__tests__/useSuppliers.test.tsx (10 tests) 255ms

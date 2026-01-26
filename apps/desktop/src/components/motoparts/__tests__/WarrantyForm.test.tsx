@@ -1,6 +1,6 @@
 import { WarrantyForm } from '@/components/motoparts/WarrantyForm';
 import { useWarranties } from '@/hooks/useWarranties';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { invoke } from '@tauri-apps/api/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -60,7 +60,7 @@ describe('WarrantyForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    const { Wrapper } = createQueryWrapper();
+    const { Wrapper } = createQueryWrapperWithClient();
     queryWrapper = Wrapper;
     vi.mocked(useWarranties).mockReturnValue({
       createWarranty: { mutateAsync: mockCreateWarranty, isPending: false },

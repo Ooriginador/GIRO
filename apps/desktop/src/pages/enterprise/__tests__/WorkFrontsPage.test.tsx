@@ -2,15 +2,24 @@
  * @file WorkFrontsPage.test.tsx - Testes para página de Frentes de Trabalho
  */
 
-import { useWorkFronts, useContracts } from '@/hooks/enterprise';
+import { useWorkFronts, useContracts } from '@/hooks/useEnterpriseCommands';
 import { WorkFrontsPage } from '@/pages/enterprise/WorkFrontsPage';
 import { createQueryWrapper } from '@/test/queryWrapper';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Mock PermissionGuard to always render children
+vi.mock('@/components/enterprise', async () => {
+  const actual = await vi.importActual('@/components/enterprise');
+  return {
+    ...actual,
+    PermissionGuard: ({ children }: any) => <>{children}</>,
+  };
+});
+
 // Mock hooks
-vi.mock('@/hooks/enterprise', () => ({
+vi.mock('@/hooks/useEnterpriseCommands', () => ({
   useWorkFronts: vi.fn(),
   useContracts: vi.fn(() => ({ data: [], isLoading: false })),
   useWorkFrontsByContract: vi.fn(() => ({ data: [], isLoading: false })),
@@ -38,33 +47,42 @@ const mockWorkFronts = [
     code: 'FR-001',
     name: 'Frente de Fundação',
     contractId: 'contract-1',
+    contractCode: 'CNT-001',
+    contractName: 'Obra Industrial Norte',
     status: 'ACTIVE',
-    supervisor: { id: 'emp-1', name: 'Carlos Ferreira', role: 'SUPERVISOR' },
-    contract: { id: 'contract-1', name: 'Obra Industrial Norte', code: 'CNT-001' },
+    supervisorId: 'emp-1',
+    supervisorName: 'Carlos Ferreira',
     activitiesCount: 5,
     completedActivities: 2,
+    progress: 40,
   },
   {
     id: 'wf-2',
     code: 'FR-002',
     name: 'Frente de Estrutura',
     contractId: 'contract-1',
+    contractCode: 'CNT-001',
+    contractName: 'Obra Industrial Norte',
     status: 'ACTIVE',
-    supervisor: { id: 'emp-2', name: 'Ana Maria', role: 'SUPERVISOR' },
-    contract: { id: 'contract-1', name: 'Obra Industrial Norte', code: 'CNT-001' },
+    supervisorId: 'emp-2',
+    supervisorName: 'Ana Maria',
     activitiesCount: 8,
     completedActivities: 3,
+    progress: 37.5,
   },
   {
     id: 'wf-3',
     code: 'FR-003',
     name: 'Frente de Acabamento',
     contractId: 'contract-2',
+    contractCode: 'CNT-002',
+    contractName: 'Retrofit Centro',
     status: 'PLANNING',
-    supervisor: { id: 'emp-3', name: 'Roberto Silva', role: 'MANAGER' },
-    contract: { id: 'contract-2', name: 'Retrofit Centro', code: 'CNT-002' },
+    supervisorId: 'emp-3',
+    supervisorName: 'Roberto Silva',
     activitiesCount: 12,
     completedActivities: 0,
+    progress: 0,
   },
 ];
 
@@ -81,7 +99,7 @@ describe('WorkFrontsPage', () => {
     } as any);
 
     render(<WorkFrontsPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
@@ -93,7 +111,7 @@ describe('WorkFrontsPage', () => {
     } as any);
 
     render(<WorkFrontsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Frente de Fundação')).toBeInTheDocument();
       expect(screen.getByText('Frente de Estrutura')).toBeInTheDocument();
@@ -109,7 +127,7 @@ describe('WorkFrontsPage', () => {
     } as any);
 
     render(<WorkFrontsPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByRole('heading', { name: /frentes/i })).toBeInTheDocument();
   });
 
@@ -121,7 +139,7 @@ describe('WorkFrontsPage', () => {
     } as any);
 
     render(<WorkFrontsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getAllByText(/ativ/i).length).toBeGreaterThan(0);
     });
@@ -135,7 +153,7 @@ describe('WorkFrontsPage', () => {
     } as any);
 
     render(<WorkFrontsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText(/carlos ferreira/i)).toBeInTheDocument();
       expect(screen.getByText(/ana maria/i)).toBeInTheDocument();
@@ -150,7 +168,7 @@ describe('WorkFrontsPage', () => {
     } as any);
 
     render(<WorkFrontsPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByText(/nenhuma frente/i)).toBeInTheDocument();
   });
 
@@ -163,13 +181,14 @@ describe('WorkFrontsPage', () => {
     } as any);
 
     render(<WorkFrontsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Frente de Fundação')).toBeInTheDocument();
     });
-    
-    const firstCard = screen.getByText('Frente de Fundação').closest('[data-testid="workfront-card"]') 
-      || screen.getByText('Frente de Fundação').closest('.cursor-pointer');
+
+    const firstCard =
+      screen.getByText('Frente de Fundação').closest('[data-testid="workfront-card"]') ||
+      screen.getByText('Frente de Fundação').closest('.cursor-pointer');
     if (firstCard) {
       await user.click(firstCard);
       expect(mockNavigate).toHaveBeenCalled();
@@ -184,9 +203,9 @@ describe('WorkFrontsPage', () => {
     } as any);
 
     render(<WorkFrontsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
-      expect(screen.getAllByText(/obra industrial/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/CNT-001/i).length).toBeGreaterThan(0);
     });
   });
 });

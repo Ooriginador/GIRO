@@ -5,12 +5,21 @@
 import { useProductSearch } from '@/hooks';
 import { useAddStockEntry } from '@/hooks/useStock';
 import { StockEntryPage } from '@/pages/stock/StockEntryPage';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock hooks
+vi.mock('@/components/ui/date-picker', () => ({
+  DatePicker: ({ onChange }: any) => (
+    <input
+      placeholder="DD/MM/AAAA"
+      onChange={(e) => onChange(new Date('2026-12-31T00:00:00.000Z'))}
+    />
+  ),
+}));
+
 vi.mock('@/hooks', () => ({
   useProductSearch: vi.fn(),
 }));
@@ -29,15 +38,6 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-// Mock Calendar to simplify date selection
-vi.mock('@/components/ui/calendar', () => ({
-  Calendar: ({ onSelect }: any) => (
-    <button data-testid="calendar-day" onClick={() => onSelect(new Date('2026-12-31T12:00:00Z'))}>
-      31
-    </button>
-  ),
-}));
-
 const mockProducts = [
   { id: '1', name: 'Product A', internalCode: 'A1', salePrice: 10, currentStock: 5, costPrice: 5 },
 ];
@@ -55,7 +55,7 @@ describe('StockEntryPage', () => {
   });
 
   const setup = () => {
-    const { Wrapper } = createQueryWrapper();
+    const { Wrapper } = createQueryWrapperWithClient();
     return render(<StockEntryPage />, { wrapper: Wrapper });
   };
 
@@ -90,9 +90,9 @@ describe('StockEntryPage', () => {
 
     await user.type(screen.getByLabelText(/número do lote/i), 'LOT-123');
 
-    // Select date (choose the second "Selecionar data" button - expiration date)
-    await user.click(screen.getAllByText(/selecionar data/i)[1]);
-    await user.click(screen.getByTestId('calendar-day'));
+    // Type expiration date directly in the date input (format DD/MM/YYYY)
+    const dateInputs = screen.getAllByPlaceholderText('DD/MM/AAAA');
+    await user.type(dateInputs[1], '31/12/2026');
 
     // Submit
     await user.click(screen.getByText(/registrar entrada/i));
@@ -103,7 +103,8 @@ describe('StockEntryPage', () => {
           productId: '1',
           quantity: 10,
           lotNumber: 'LOT-123',
-          expirationDate: expect.any(String),
+          costPrice: 5,
+          expirationDate: '2026-12-31T00:00:00.000Z',
         })
       );
       expect(mockNavigate).toHaveBeenCalledWith('/stock');

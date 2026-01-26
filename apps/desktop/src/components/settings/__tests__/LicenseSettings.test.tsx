@@ -7,6 +7,7 @@ vi.mock('@/hooks/use-toast', () => ({
 
 vi.mock('@/lib/tauri', () => ({
   getSetting: vi.fn(),
+  getStoredLicense: vi.fn(),
   validateLicense: vi.fn(),
   activateLicense: vi.fn(),
   setSetting: vi.fn(),

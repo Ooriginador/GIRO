@@ -9,11 +9,21 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Mock PermissionGuard to always allow
+vi.mock('@/components/enterprise', async () => {
+  const actual = await vi.importActual('@/components/enterprise');
+  return {
+    ...actual,
+    PermissionGuard: ({ children }: any) => <>{children}</>,
+  };
+});
+
 // Mock hooks
 vi.mock('@/hooks/enterprise', () => ({
   useMaterialRequests: vi.fn(),
   useMaterialRequestsByContract: vi.fn(),
   useContracts: vi.fn(() => ({ data: [], isLoading: false })),
+  usePendingRequests: vi.fn(),
 }));
 
 vi.mock('@/hooks/useEnterprisePermission', () => ({
@@ -80,7 +90,7 @@ describe('RequestsPage', () => {
     } as any);
 
     render(<RequestsPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
@@ -92,7 +102,7 @@ describe('RequestsPage', () => {
     } as any);
 
     render(<RequestsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('REQ-2026-0001')).toBeInTheDocument();
       expect(screen.getByText('REQ-2026-0002')).toBeInTheDocument();
@@ -108,7 +118,7 @@ describe('RequestsPage', () => {
     } as any);
 
     render(<RequestsPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByRole('heading', { name: /requisições/i })).toBeInTheDocument();
   });
 
@@ -120,7 +130,7 @@ describe('RequestsPage', () => {
     } as any);
 
     render(<RequestsPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByRole('button', { name: /nova requisição/i })).toBeInTheDocument();
   });
 
@@ -133,10 +143,10 @@ describe('RequestsPage', () => {
     } as any);
 
     render(<RequestsPage />, { wrapper: createQueryWrapper() });
-    
+
     const newButton = screen.getByRole('button', { name: /nova requisição/i });
     await user.click(newButton);
-    
+
     expect(mockNavigate).toHaveBeenCalledWith('/enterprise/requests/new');
   });
 
@@ -148,7 +158,7 @@ describe('RequestsPage', () => {
     } as any);
 
     render(<RequestsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText(/pendente/i)).toBeInTheDocument();
       expect(screen.getByText(/aprovada/i)).toBeInTheDocument();
@@ -164,7 +174,7 @@ describe('RequestsPage', () => {
     } as any);
 
     render(<RequestsPage />, { wrapper: createQueryWrapper() });
-    
+
     expect(screen.getByText(/nenhuma requisição/i)).toBeInTheDocument();
   });
 
@@ -177,11 +187,11 @@ describe('RequestsPage', () => {
     } as any);
 
     render(<RequestsPage />, { wrapper: createQueryWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('REQ-2026-0001')).toBeInTheDocument();
     });
-    
+
     const firstRow = screen.getByText('REQ-2026-0001').closest('tr');
     if (firstRow) {
       await user.click(firstRow);

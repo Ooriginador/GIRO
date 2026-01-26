@@ -1,4 +1,4 @@
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,38 +14,6 @@ vi.mock('@/stores/auth-store', () => {
   return { useAuthStore: mockStore };
 });
 
-// Mock Lucide icons
-vi.mock('lucide-react', () => ({
-  Plus: () => <div data-testid="icon-plus" />,
-  Minus: () => <div data-testid="icon-minus" />,
-  History: () => <div data-testid="icon-history" />,
-  Wallet: () => <div data-testid="icon-wallet" />,
-  TrendingUp: () => <div data-testid="icon-trending-up" />,
-  TrendingDown: () => <div data-testid="icon-trending-down" />,
-  ArrowUpCircle: () => <div data-testid="icon-arrow-up" />,
-  ArrowDownCircle: () => <div data-testid="icon-arrow-down" />,
-  ArrowUpRight: () => <div data-testid="icon-arrow-ur" />,
-  ArrowDownRight: () => <div data-testid="icon-arrow-dr" />,
-  Lock: () => <div data-testid="icon-lock" />,
-  LayoutDashboard: () => <div data-testid="icon-dash" />,
-  AlertCircle: () => <div data-testid="icon-alert" />,
-  Loader2: () => <div data-testid="icon-loader" />,
-  Search: () => <div data-testid="icon-search" />,
-  DollarSign: () => <div data-testid="icon-dollar" />,
-  Calculator: () => <div data-testid="icon-calc" />,
-  CheckCircle: () => <div data-testid="icon-check" />,
-  Clock: () => <div data-testid="icon-clock" />,
-  Printer: () => <div data-testid="icon-printer" />,
-  X: () => <div data-testid="icon-close" />,
-  ArrowLeft: () => <div data-testid="icon-arrow-left" />,
-  BarChart3: () => <div data-testid="icon-bar-chart" />,
-  Package: () => <div data-testid="icon-package" />,
-  Save: () => <div data-testid="icon-save" />,
-  ChevronDown: () => <div data-testid="icon-chevron-down" />,
-  ChevronUp: () => <div data-testid="icon-chevron-up" />,
-  Check: () => <div data-testid="icon-check-lucide" />,
-}));
-
 // Imports that depend on mocks
 import { CashControlPage } from '@/pages/cash/CashControlPage';
 import { ProductFormPage } from '@/pages/products/ProductFormPage';
@@ -55,7 +23,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 // TODO: Re-enable after CI stabilization - these tests hang on Windows CI
 describe.skip('Audit: Critical Flows Integration', () => {
-  const queryWrapper = createQueryWrapper();
+  const queryWrapper = createQueryWrapperWithClient();
   const mockUser = { id: 'admin-1', name: 'Admin', role: 'ADMIN' };
 
   let dbMovements: any[] = [];

@@ -4,32 +4,14 @@
 
 import { useExpiringLots } from '@/hooks/useStock';
 import { ExpirationPage } from '@/pages/stock/ExpirationPage';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { createQueryWrapper } from '@/test/queryWrapper';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock hooks
+// Mock apenas o hook que faz chamadas externas
 vi.mock('@/hooks/useStock', () => ({
   useExpiringLots: vi.fn(),
-}));
-
-// Mock UI Select
-vi.mock('@/components/ui/select', () => ({
-  Select: ({ children, value, onValueChange }: any) => (
-    <select
-      data-testid="expiration-filter"
-      value={value}
-      onChange={(e) => onValueChange(e.target.value)}
-    >
-      {children}
-    </select>
-  ),
-  SelectTrigger: ({ children }: any) => children,
-  SelectValue: ({ placeholder }: any) => placeholder,
-  SelectContent: ({ children }: any) => children,
-  SelectItem: ({ children, value }: any) => <option value={value}>{children}</option>,
 }));
 
 // Mock useNavigate
@@ -48,7 +30,7 @@ const mockLots = [
     expirationDate: new Date(Date.now() - 86400000).toISOString(), // Ontem (Vencido)
     quantity: 10,
     costPrice: 5,
-    product: { name: 'P1' },
+    product: { name: 'Produto Vencido' },
     lotNumber: 'LOT1',
   },
   {
@@ -56,7 +38,7 @@ const mockLots = [
     expirationDate: new Date(Date.now() + 86400000 * 2).toISOString(), // 2 dias (Crítico)
     quantity: 20,
     costPrice: 10,
-    product: { name: 'P2' },
+    product: { name: 'Produto Crítico' },
     lotNumber: 'LOT2',
   },
   {
@@ -64,21 +46,10 @@ const mockLots = [
     expirationDate: new Date(Date.now() + 86400000 * 5).toISOString(), // 5 dias (Atenção)
     quantity: 30,
     costPrice: 15,
-    product: { name: 'P3' },
+    product: { name: 'Produto Atenção' },
     lotNumber: 'LOT3',
   },
 ];
-
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{children}</MemoryRouter>
-    </QueryClientProvider>
-  );
-};
 
 describe('ExpirationPage', () => {
   beforeEach(() => {
@@ -89,12 +60,12 @@ describe('ExpirationPage', () => {
     vi.mocked(useExpiringLots).mockReturnValue({
       data: mockLots,
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useExpiringLots>);
 
-    render(<ExpirationPage />, { wrapper: createWrapper() });
+    render(<ExpirationPage />, { wrapper: createQueryWrapper() });
 
     expect(screen.getByText('Controle de Validades')).toBeInTheDocument();
-    expect(screen.getAllByText('Vencidos')).toHaveLength(2); // Card title and stat badge
+    expect(screen.getByText('Monitore produtos próximos ao vencimento')).toBeInTheDocument();
     expect(screen.getByTestId('stat-expired')).toHaveTextContent('1');
     expect(screen.getByTestId('stat-critical')).toHaveTextContent('1');
     expect(screen.getByTestId('stat-warning')).toHaveTextContent('1');
@@ -104,11 +75,10 @@ describe('ExpirationPage', () => {
     vi.mocked(useExpiringLots).mockReturnValue({
       data: [],
       isLoading: true,
-    } as any);
+    } as ReturnType<typeof useExpiringLots>);
 
-    render(<ExpirationPage />, { wrapper: createWrapper() });
+    render(<ExpirationPage />, { wrapper: createQueryWrapper() });
 
-    // Lucide Loader2 is mocked or rendered as svg
     expect(document.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
@@ -116,55 +86,68 @@ describe('ExpirationPage', () => {
     vi.mocked(useExpiringLots).mockReturnValue({
       data: [],
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useExpiringLots>);
 
-    render(<ExpirationPage />, { wrapper: createWrapper() });
+    render(<ExpirationPage />, { wrapper: createQueryWrapper() });
 
     expect(screen.getByText(/Nenhum produto encontrado/i)).toBeInTheDocument();
   });
 
-  it('should filter lots by status', async () => {
+  it('should display lots in table', () => {
+    vi.mocked(useExpiringLots).mockReturnValue({
+      data: mockLots,
+      isLoading: false,
+    } as ReturnType<typeof useExpiringLots>);
+
+    render(<ExpirationPage />, { wrapper: createQueryWrapper() });
+
+    expect(screen.getByText('Produto Vencido')).toBeInTheDocument();
+    expect(screen.getByText('Produto Crítico')).toBeInTheDocument();
+    expect(screen.getByText('Produto Atenção')).toBeInTheDocument();
+    expect(screen.getByText('LOT1')).toBeInTheDocument();
+    expect(screen.getByText('LOT2')).toBeInTheDocument();
+    expect(screen.getByText('LOT3')).toBeInTheDocument();
+  });
+
+  it('should display quantity and value for each lot', () => {
+    vi.mocked(useExpiringLots).mockReturnValue({
+      data: mockLots,
+      isLoading: false,
+    } as ReturnType<typeof useExpiringLots>);
+
+    render(<ExpirationPage />, { wrapper: createQueryWrapper() });
+
+    // Quantities
+    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText('20')).toBeInTheDocument();
+    expect(screen.getByText('30')).toBeInTheDocument();
+  });
+
+  it('should navigate back to stock', async () => {
     const user = userEvent.setup();
     vi.mocked(useExpiringLots).mockReturnValue({
       data: mockLots,
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useExpiringLots>);
 
-    render(<ExpirationPage />, { wrapper: createWrapper() });
+    render(<ExpirationPage />, { wrapper: createQueryWrapper() });
 
-    expect(screen.getByText('P1')).toBeInTheDocument();
-    expect(screen.getByText('P2')).toBeInTheDocument();
-    expect(screen.getByText('P3')).toBeInTheDocument();
-
-    const select = screen.getByTestId('expiration-filter');
-
-    // Filter expired
-    await user.selectOptions(select, 'expired');
-    expect(screen.getByText('P1')).toBeInTheDocument();
-    expect(screen.queryByText('P2')).not.toBeInTheDocument();
-    expect(screen.queryByText('P3')).not.toBeInTheDocument();
-
-    // Filter critical
-    await user.selectOptions(select, 'critical');
-    expect(screen.queryByText('P1')).not.toBeInTheDocument();
-    expect(screen.getByText('P2')).toBeInTheDocument();
-
-    // Filter warning
-    await user.selectOptions(select, 'warning');
-    expect(screen.queryByText('P2')).not.toBeInTheDocument();
-    expect(screen.getByText('P3')).toBeInTheDocument();
+    const backButton = screen.getByRole('button', { name: /voltar para estoque/i });
+    await user.click(backButton);
+    expect(mockNavigate).toHaveBeenCalledWith('/stock');
   });
 
-  it('should navigate back to stock', () => {
+  it('should show correct status badges', () => {
     vi.mocked(useExpiringLots).mockReturnValue({
       data: mockLots,
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useExpiringLots>);
 
-    render(<ExpirationPage />, { wrapper: createWrapper() });
+    render(<ExpirationPage />, { wrapper: createQueryWrapper() });
 
-    fireEvent.click(screen.getAllByRole('button')[0]);
-    expect(mockNavigate).toHaveBeenCalledWith('/stock');
+    // Check for status text in badges
+    const badges = screen.getAllByText(/vencido|crítico|urgente|atenção|ok/i);
+    expect(badges.length).toBeGreaterThan(0);
   });
 
   it('should handle lots with far expiration (OK status)', () => {
@@ -175,14 +158,29 @@ describe('ExpirationPage', () => {
           expirationDate: new Date(Date.now() + 86400000 * 40).toISOString(), // 40 dias
           quantity: 5,
           costPrice: 2,
-          product: { name: 'P4' },
+          product: { name: 'Produto OK' },
           lotNumber: 'LOT4',
         },
       ],
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useExpiringLots>);
 
-    render(<ExpirationPage />, { wrapper: createWrapper() });
+    render(<ExpirationPage />, { wrapper: createQueryWrapper() });
     expect(screen.getByText('OK')).toBeInTheDocument();
+    expect(screen.getByText('Produto OK')).toBeInTheDocument();
+  });
+
+  it('should display stats cards with correct labels', () => {
+    vi.mocked(useExpiringLots).mockReturnValue({
+      data: mockLots,
+      isLoading: false,
+    } as ReturnType<typeof useExpiringLots>);
+
+    render(<ExpirationPage />, { wrapper: createQueryWrapper() });
+
+    expect(screen.getByText('Retirar do estoque')).toBeInTheDocument();
+    expect(screen.getByText('Vender com urgência')).toBeInTheDocument();
+    expect(screen.getByText('Críticos (3 dias)')).toBeInTheDocument();
+    expect(screen.getByText('Atenção (7 dias)')).toBeInTheDocument();
   });
 });

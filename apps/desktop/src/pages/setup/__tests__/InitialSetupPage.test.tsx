@@ -1,5 +1,5 @@
 import { InitialSetupPage } from '@/pages/setup/InitialSetupPage';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -59,7 +59,7 @@ vi.mock('@/stores/useBusinessProfile', () => ({
   useBusinessProfile: vi.fn(),
 }));
 
-const { Wrapper: queryWrapper } = createQueryWrapper();
+const { Wrapper: queryWrapper } = createQueryWrapperWithClient();
 
 describe('InitialSetupPage', () => {
   const mockMutateAsync = vi.fn();

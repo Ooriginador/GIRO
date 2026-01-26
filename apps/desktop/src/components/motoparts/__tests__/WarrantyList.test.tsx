@@ -1,6 +1,6 @@
 import { WarrantyList } from '@/components/motoparts/WarrantyList';
 import { useWarranties } from '@/hooks/useWarranties';
-import { createQueryWrapper } from '@/test/queryWrapper';
+import { createQueryWrapperWithClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -14,7 +14,7 @@ vi.mock('@/hooks/useWarranties', () => ({
   },
 }));
 
-const { Wrapper: queryWrapper } = createQueryWrapper();
+const { Wrapper: queryWrapper } = createQueryWrapperWithClient();
 
 describe('WarrantyList', () => {
   it('should render the list of warranties', () => {
