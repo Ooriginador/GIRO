@@ -5,15 +5,27 @@
 //! - Balanças (Toledo, Filizola)
 //! - Scanner de código de barras (USB HID + Mobile WebSocket)
 //! - Gaveta de dinheiro
+//!
+//! ## Arquitetura
+//!
+//! O módulo é organizado em:
+//! - `manager.rs` - Gerenciador centralizado com autoconfig e health checks
+//! - `printer.rs` - Interface ESC/POS para impressoras térmicas
+//! - `scale.rs` - Protocolos Toledo, Filizola, Elgin, Urano
+//! - `scanner.rs` - WebSocket para scanner mobile
+//! - `drawer.rs` - Controle de gaveta via impressora
+//! - `device.rs` - Trait comum para dispositivos
 
 pub mod device;
 pub mod drawer;
+pub mod manager;
 pub mod printer;
 pub mod scale;
 pub mod scanner;
 
 pub use device::*;
 pub use drawer::*;
+pub use manager::*;
 pub use printer::*;
 pub use scale::*;
 pub use scanner::*;

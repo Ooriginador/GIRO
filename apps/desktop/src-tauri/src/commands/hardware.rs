@@ -998,6 +998,219 @@ pub struct ScannerServerInfo {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// COMANDOS DE AUTO-DETECÇÃO E GERENCIAMENTO
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Detecta automaticamente todos os dispositivos de hardware
+#[tauri::command]
+#[specta::specta]
+pub async fn auto_detect_hardware(
+    app_state: State<'_, AppState>,
+) -> AppResult<hardware::AutoDetectResult> {
+    app_state.session.require_authenticated()?;
+
+    let manager = hardware::HardwareManager::new();
+    let result = manager.auto_detect_all().await;
+
+    Ok(result)
+}
+
+/// Retorna visão geral do status de todos os dispositivos
+#[tauri::command]
+#[specta::specta]
+pub async fn get_hardware_overview(
+    hw_state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<HardwareOverviewResponse> {
+    app_state.session.require_authenticated()?;
+
+    // Build overview from current HardwareState
+    let printer_cfg = hw_state.printer_config.read().await;
+    let scale_cfg = hw_state.scale_config.read().await;
+    let drawer_cfg = hw_state.drawer_config.read().await;
+    let scanner_server = hw_state.scanner_server.read().await;
+
+    let printer_status = if printer_cfg.mock_mode {
+        "mock"
+    } else if printer_cfg.enabled {
+        "configured"
+    } else {
+        "not_configured"
+    };
+
+    let scale_status = if scale_cfg.mock_mode {
+        "mock"
+    } else if scale_cfg.enabled {
+        "configured"
+    } else {
+        "not_configured"
+    };
+
+    let drawer_status = if drawer_cfg.mock_mode {
+        "mock"
+    } else if drawer_cfg.enabled {
+        "configured"
+    } else {
+        "not_configured"
+    };
+
+    let scanner_status = if scanner_server.is_some() {
+        "running"
+    } else {
+        "stopped"
+    };
+
+    Ok(HardwareOverviewResponse {
+        printer: DeviceOverview {
+            status: printer_status.to_string(),
+            port: if printer_cfg.port.is_empty() {
+                None
+            } else {
+                Some(printer_cfg.port.clone())
+            },
+            model: Some(format!("{:?}", printer_cfg.model)),
+            enabled: printer_cfg.enabled,
+            mock_mode: printer_cfg.mock_mode,
+        },
+        scale: DeviceOverview {
+            status: scale_status.to_string(),
+            port: if scale_cfg.port.is_empty() {
+                None
+            } else {
+                Some(scale_cfg.port.clone())
+            },
+            model: Some(format!("{:?}", scale_cfg.protocol)),
+            enabled: scale_cfg.enabled,
+            mock_mode: scale_cfg.mock_mode,
+        },
+        drawer: DeviceOverview {
+            status: drawer_status.to_string(),
+            port: if drawer_cfg.printer_port.is_empty() {
+                None
+            } else {
+                Some(drawer_cfg.printer_port.clone())
+            },
+            model: None,
+            enabled: drawer_cfg.enabled,
+            mock_mode: drawer_cfg.mock_mode,
+        },
+        scanner: DeviceOverview {
+            status: scanner_status.to_string(),
+            port: None,
+            model: None,
+            enabled: true,
+            mock_mode: false,
+        },
+        available_ports: hardware::list_serial_ports(),
+    })
+}
+
+/// Resposta do overview de hardware
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct HardwareOverviewResponse {
+    pub printer: DeviceOverview,
+    pub scale: DeviceOverview,
+    pub drawer: DeviceOverview,
+    pub scanner: DeviceOverview,
+    pub available_ports: Vec<String>,
+}
+
+/// Overview de um dispositivo
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceOverview {
+    pub status: String,
+    pub port: Option<String>,
+    pub model: Option<String>,
+    pub enabled: bool,
+    pub mock_mode: bool,
+}
+
+/// Aplica configuração detectada automaticamente
+#[tauri::command]
+#[specta::specta]
+pub async fn apply_detected_device(
+    device: hardware::DetectedDevice,
+    hw_state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
+
+    match device.device_type {
+        hardware::DeviceType::Printer => {
+            let connection =
+                if device.port.starts_with("/dev/usb/lp") || device.port.starts_with("/dev/lp") {
+                    hardware::PrinterConnection::Usb
+                } else if device.port.contains(':') {
+                    hardware::PrinterConnection::Network
+                } else {
+                    hardware::PrinterConnection::Serial
+                };
+
+            let config = hardware::PrinterConfig {
+                enabled: true,
+                model: hardware::PrinterModel::Generic,
+                connection,
+                port: device.port,
+                paper_width: 48,
+                auto_cut: true,
+                open_drawer_on_sale: true,
+                baud_rate: 9600,
+                data_bits: 8,
+                parity: "none".to_string(),
+                timeout_ms: 3000,
+                mock_mode: false,
+            };
+
+            configure_printer(config, app_state.clone(), hw_state.clone()).await?;
+        }
+        hardware::DeviceType::Scale => {
+            let protocol = device
+                .protocol
+                .as_ref()
+                .map(|p| match p.to_lowercase().as_str() {
+                    "toledo" => hardware::ScaleProtocol::Toledo,
+                    "filizola" => hardware::ScaleProtocol::Filizola,
+                    "elgin" => hardware::ScaleProtocol::Elgin,
+                    "urano" => hardware::ScaleProtocol::Urano,
+                    _ => hardware::ScaleProtocol::Generic,
+                })
+                .unwrap_or(hardware::ScaleProtocol::Generic);
+
+            let config = hardware::ScaleConfig {
+                enabled: true,
+                protocol,
+                port: device.port,
+                baud_rate: 9600,
+                data_bits: 8,
+                parity: "none".to_string(),
+                stop_bits: 1,
+                mock_mode: false,
+            };
+
+            configure_scale(config, app_state.clone(), hw_state.clone()).await?;
+        }
+        hardware::DeviceType::Drawer => {
+            let config = hardware::DrawerConfig {
+                enabled: true,
+                printer_port: device.port,
+                pin: hardware::DrawerPin::Pin2,
+                pulse_duration: 200,
+                mock_mode: false,
+            };
+
+            configure_drawer(config, app_state.clone(), hw_state.clone()).await?;
+        }
+        hardware::DeviceType::Scanner => {
+            // Scanner doesn't need port configuration, it's WebSocket based
+        }
+    }
+
+    Ok(())
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // MACRO PARA REGISTRAR COMANDOS
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -1036,6 +1249,11 @@ macro_rules! hardware_commands {
             $crate::commands::hardware::generate_pairing_qr,
             $crate::commands::hardware::generate_qr_svg,
             $crate::commands::hardware::start_serial_scanner,
+            // Auto-detecção e gerenciamento
+            $crate::commands::hardware::auto_detect_hardware,
+            $crate::commands::hardware::get_hardware_overview,
+            $crate::commands::hardware::apply_detected_device,
+            $crate::commands::hardware::load_hardware_configs,
             // Mobile Server comandos estão em mobile.rs
         ]
     };

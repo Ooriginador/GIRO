@@ -399,13 +399,13 @@ impl Scale {
 use tokio::time::{timeout, Duration as TokioDuration};
 
 /// Resultado da detecção automática de balança
-pub struct AutoDetectResult {
+pub struct ScaleAutoDetectResult {
     pub config: Option<ScaleConfig>,
     pub failures: Vec<String>,
 }
 
 /// Versão assíncrona e tolerante a timeouts da detecção de balança
-pub async fn auto_detect_scale_async() -> AutoDetectResult {
+pub async fn auto_detect_scale_async() -> ScaleAutoDetectResult {
     let ports = super::list_serial_ports();
     let mut failures: Vec<String> = Vec::new();
 
@@ -452,7 +452,7 @@ pub async fn auto_detect_scale_async() -> AutoDetectResult {
         match timeout_res {
             Ok(join_result) => match join_result {
                 Ok(Ok(Some(config))) => {
-                    return AutoDetectResult {
+                    return ScaleAutoDetectResult {
                         config: Some(config),
                         failures,
                     }
@@ -467,7 +467,7 @@ pub async fn auto_detect_scale_async() -> AutoDetectResult {
         }
     }
 
-    AutoDetectResult {
+    ScaleAutoDetectResult {
         config: None,
         failures,
     }
