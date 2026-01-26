@@ -1119,9 +1119,8 @@ async fn process_request(
         MobileAction::EnterpriseInventoryLocations => {
             use crate::services::mobile_handlers::enterprise::InventoryLocationsPayload;
             let payload: InventoryLocationsPayload =
-                serde_json::from_value(request.payload.clone()).unwrap_or(InventoryLocationsPayload {
-                    contract_id: None,
-                });
+                serde_json::from_value(request.payload.clone())
+                    .unwrap_or(InventoryLocationsPayload { contract_id: None });
             enterprise_inventory_handler
                 .get_locations(id, payload, &employee_id, &employee_role)
                 .await
