@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   ArrowUpDown,
   Clock,
+  Edit,
   Filter,
   Package,
   PackageMinus,
@@ -38,6 +39,8 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { type FC, useMemo, useState } from 'react';
+import { StockAdjustModal } from '@/components/stock';
+import type { Product } from '@/types';
 import { Link } from 'react-router-dom';
 import { ExportButtons } from '@/components/shared';
 import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
@@ -48,6 +51,7 @@ import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/l
 
 export const StockPage: FC = () => {
   const [categoryId, setCategoryId] = useState<string>('all');
+  const [productToAdjustStock, setProductToAdjustStock] = useState<Product | null>(null);
   const { hasPermission } = useAuth();
   const { data: categories = [] } = useCategories();
 
@@ -362,17 +366,27 @@ export const StockPage: FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          aria-label={`Registrar entrada para ${product.name}`}
-                        >
-                          <Link to={`/stock/entry?product=${product.id}`}>
-                            <PackagePlus className="mr-1 h-4 w-4" aria-hidden="true" />
-                            Entrada
-                          </Link>
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            aria-label={`Registrar entrada para ${product.name}`}
+                          >
+                            <Link to={`/stock/entry?product=${product.id}`}>
+                              <PackagePlus className="mr-1 h-4 w-4" aria-hidden="true" />
+                              Entrada
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setProductToAdjustStock(product as unknown as Product)}
+                            aria-label={`Ajustar estoque de ${product.name}`}
+                          >
+                            <Edit className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -407,6 +421,13 @@ export const StockPage: FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Modal de Ajuste de Estoque */}
+      <StockAdjustModal
+        open={!!productToAdjustStock}
+        onOpenChange={(open) => !open && setProductToAdjustStock(null)}
+        product={productToAdjustStock}
+      />
     </div>
   );
 };
