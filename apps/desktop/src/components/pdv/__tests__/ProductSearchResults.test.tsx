@@ -51,6 +51,10 @@ vi.mock('@/hooks/use-products', () => ({
     data: mockReturnProducts,
     isLoading: mockIsLoading,
   }),
+  useProductByBarcode: () => ({
+    data: undefined,
+    isLoading: false,
+  }),
 }));
 
 describe('ProductSearchResults', () => {
