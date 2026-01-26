@@ -92,9 +92,11 @@ pub async fn get_stock_report(
         .await?
         .len() as i64;
 
-    // "Expirando" em 30 dias (padrão simples)
-    // TODO: Filter lots by product category if needed
-    let expiring_count = stock_repo.find_expiring_lots(30).await?.len() as i64;
+    // Lotes expirando em 30 dias, filtrado por categoria se especificado
+    let expiring_count = stock_repo
+        .find_expiring_lots_by_category(30, category_id.clone())
+        .await?
+        .len() as i64;
 
     // Valuation por categoria
     let mut category_query = String::from(

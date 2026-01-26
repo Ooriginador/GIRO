@@ -137,13 +137,16 @@ pub async fn seed_database(employee_id: String, state: State<'_, AppState>) -> A
         id
     } else {
         tracing::warn!("Creating seed admin user with temporary PIN...");
+        // Use environment variables for seed credentials or secure defaults
+        let seed_pin = std::env::var("GIRO_SEED_ADMIN_PIN").unwrap_or_else(|_| "8899".to_string());
+        let seed_password = std::env::var("GIRO_SEED_ADMIN_PASSWORD").ok();
         let admin = emp_repo.create(CreateEmployee {
             name: "Administrador Semente".to_string(),
             cpf: None,
             phone: None,
             email: Some("admin@giro.local".to_string()),
-            pin: "8899".to_string(), // Alterado de 1234 para segurança
-            password: Some("admin123".to_string()),
+            pin: seed_pin,
+            password: seed_password,
             role: Some(EmployeeRole::Admin),
             commission_rate: None,
         }).await?;

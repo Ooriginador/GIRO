@@ -205,6 +205,47 @@ impl<'a> StockRepository<'a> {
         Ok(result)
     }
 
+    /// Busca lotes expirando com filtro opcional por categoria do produto
+    pub async fn find_expiring_lots_by_category(
+        &self,
+        days: i32,
+        category_id: Option<String>,
+    ) -> AppResult<Vec<ProductLot>> {
+        let mut query = format!(
+            "SELECT {} FROM product_lots pl 
+             INNER JOIN products p ON pl.product_id = p.id
+             WHERE pl.status = 'AVAILABLE' 
+             AND pl.expiration_date IS NOT NULL 
+             AND date(pl.expiration_date) <= date('now', '+' || ? || ' days')",
+            Self::LOT_COLS
+                .replace("id,", "pl.id,")
+                .replace("product_id,", "pl.product_id,")
+                .replace("supplier_id,", "pl.supplier_id,")
+                .replace("lot_number,", "pl.lot_number,")
+                .replace("expiration_date,", "pl.expiration_date,")
+                .replace("manufacturing_date,", "pl.manufacturing_date,")
+                .replace("purchase_date,", "pl.purchase_date,")
+                .replace("initial_quantity,", "pl.initial_quantity,")
+                .replace("current_quantity,", "pl.current_quantity,")
+                .replace("cost_price,", "pl.cost_price,")
+                .replace("status,", "pl.status,")
+                .replace("created_at,", "pl.created_at,")
+                .replace("updated_at", "pl.updated_at")
+        );
+
+        if let Some(ref cat_id) = category_id {
+            query.push_str(&format!(" AND p.category_id = '{}'", cat_id));
+        }
+
+        query.push_str(" ORDER BY pl.expiration_date ASC");
+
+        let result = sqlx::query_as::<_, ProductLot>(&query)
+            .bind(days)
+            .fetch_all(self.pool)
+            .await?;
+        Ok(result)
+    }
+
     pub async fn find_expired_lots(&self) -> AppResult<Vec<ProductLot>> {
         let query = format!("SELECT {} FROM product_lots WHERE status = 'AVAILABLE' AND expiration_date IS NOT NULL AND date(expiration_date) < date('now')", Self::LOT_COLS);
         let result = sqlx::query_as::<_, ProductLot>(&query)
