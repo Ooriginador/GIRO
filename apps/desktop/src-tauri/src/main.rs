@@ -1016,6 +1016,12 @@ async fn main() {
             commands::get_mobile_location,
             commands::sync_mobile_counts,
             commands::check_mobile_sync_status,
+            // Multi-PC Sync
+            commands::get_sync_status,
+            commands::sync_push,
+            commands::sync_pull,
+            commands::sync_reset,
+            commands::sync_full,
         ])
         .run(tauri::generate_context!())
         .expect("Erro ao executar aplicação Tauri");

@@ -11,6 +11,7 @@ use aes_gcm::{
     Aes256Gcm, Nonce,
 };
 use chrono::{DateTime, NaiveDateTime, Utc};
+use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
@@ -148,18 +149,10 @@ pub fn decrypt_data(encrypted: &[u8], password: &str) -> Result<Vec<u8>, String>
         .map_err(|e| format!("Erro ao descriptografar: {}", e))
 }
 
-/// Gera bytes aleatórios (usando timestamp + counter como fallback simples)
+/// Gera bytes aleatórios usando CSPRNG (Cryptographically Secure PRNG)
 fn rand_bytes<const N: usize>() -> [u8; N] {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-
     let mut result = [0u8; N];
-    for (i, byte) in result.iter_mut().enumerate() {
-        *byte = ((now >> (i * 8)) & 0xFF) as u8 ^ (i as u8).wrapping_mul(17);
-    }
+    rand::rng().fill_bytes(&mut result);
     result
 }
 

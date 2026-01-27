@@ -227,6 +227,11 @@ impl LicenseClient {
         Self { config, client }
     }
 
+    /// Get the client configuration (for sync client)
+    pub fn config(&self) -> &LicenseClientConfig {
+        &self.config
+    }
+
     /// Activate license with hardware binding
     ///
     /// If `admin_data` is provided and the admin has no name set on the server,
