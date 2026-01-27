@@ -176,7 +176,9 @@ pub async fn delete_product(
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::DeleteProducts);
     let repo = ProductRepository::with_events(state.pool(), &state.event_service);
-    repo.soft_delete(&id).await?;
+
+    // Hard delete - exclusão permanente
+    let product_name = repo.hard_delete(&id).await?;
 
     // Audit Log
     let audit_service = AuditService::new(state.pool().clone());
@@ -186,17 +188,18 @@ pub async fn delete_product(
         &employee.id,
         &employee.name,
         "Product",
-        &id
+        &id,
+        format!("Produto '{}' excluído permanentemente", product_name)
     );
 
-    // Push Update
-    let updated = repo.find_by_id(&id).await?;
-    if let Some(p) = updated {
-        if let Some(client) = network_state.read().await.client.as_ref() {
-            let _ = client
-                .push_update("product", serde_json::to_value(&p).unwrap_or_default())
-                .await;
-        }
+    // Push Update - notificar que produto foi deletado
+    if let Some(client) = network_state.read().await.client.as_ref() {
+        let _ = client
+            .push_update(
+                "product_deleted",
+                serde_json::json!({ "id": id, "name": product_name }),
+            )
+            .await;
     }
 
     Ok(())

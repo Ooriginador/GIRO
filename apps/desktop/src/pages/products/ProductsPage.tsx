@@ -644,9 +644,15 @@ export const ProductsPage: FC = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Excluir produto permanentemente?</DialogTitle>
-            <DialogDescription>
-              O produto <strong>{productToDelete?.name}</strong> será excluído permanentemente. Esta
-              ação não pode ser desfeita.
+            <DialogDescription className="space-y-2">
+              <p>
+                O produto <strong>{productToDelete?.name}</strong> será excluído permanentemente do
+                sistema, incluindo todo o histórico de movimentações e lotes.
+              </p>
+              <p className="text-destructive font-medium">
+                ⚠️ Esta ação não pode ser desfeita. Produtos com vendas associadas não podem ser
+                excluídos - use "Desativar" nesse caso.
+              </p>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
