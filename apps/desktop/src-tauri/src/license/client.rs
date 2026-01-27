@@ -175,7 +175,7 @@ pub struct PaginationMeta {
 #[derive(Debug, Deserialize, specta::Type)]
 struct PaginatedResponse<T> {
     pub data: Vec<T>,
-    pub _pagination: PaginationMeta,
+    pub pagination: PaginationMeta,
 }
 
 /// Metrics inner payload
