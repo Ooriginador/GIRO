@@ -922,10 +922,23 @@ mod tests {
         let pool = setup_test_db().await;
         let repo = SaleRepository::new(&pool);
 
-        for _ in 0..3 {
+        // Create 3 sales with different employee IDs to avoid duplicate detection
+        for i in 1..=3 {
+            let employee_id = format!("emp-00{}", i);
+            // Ensure employee exists
+            sqlx::query(
+                "INSERT OR IGNORE INTO employees (id, name, pin, role, is_active) VALUES (?, ?, ?, 'Cashier', 1)",
+            )
+            .bind(&employee_id)
+            .bind(format!("Test Employee {}", i))
+            .bind(format!("900{}", i))
+            .execute(&pool)
+            .await
+            .unwrap();
+
             let input = CreateSale {
                 customer_id: None,
-                employee_id: "emp-001".to_string(),
+                employee_id,
                 cash_session_id: "cs-001".to_string(),
                 items: vec![CreateSaleItem {
                     product_id: "prod-001".to_string(),
