@@ -226,10 +226,10 @@ export function useSync() {
   }, [pullMutation, allEntityTypes]);
 
   /**
-   * Reset da sincronização
+   * Reset da sincronização (reseta todas as entidades)
    */
-  const reset = useCallback(async () => {
-    return resetMutation.mutateAsync();
+  const reset = useCallback(async (entityType?: SyncEntityType) => {
+    return resetMutation.mutateAsync(entityType);
   }, [resetMutation]);
 
   const isLoading =
