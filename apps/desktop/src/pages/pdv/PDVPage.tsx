@@ -34,6 +34,7 @@ import {
   Percent,
   QrCode,
   Search,
+  Send,
   ShoppingCart,
   Trash2,
   X,
@@ -82,9 +83,13 @@ export const PDVPage: FC = () => {
     removeHeldSale,
     loadHeldSales,
   } = usePDVStore();
-  const { currentSession } = useAuthStore();
+  const { currentSession, employee, hasPermission } = useAuthStore();
   const { getCustomerById } = useCustomers();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
+  // Verificar se é atendente (não pode finalizar pagamento)
+  const isAttendant = employee?.role === 'ATTENDANT';
+  const canFinalizePayment = hasPermission('pdv.finalize_payment');
 
   // Carregar cliente se houver customerId no store
   useEffect(() => {
@@ -126,6 +131,49 @@ export const PDVPage: FC = () => {
   const handleCustomerSelect = (customer: Customer | null) => {
     setSelectedCustomer(customer);
     setCustomer(customer?.id || null);
+  };
+
+  // Enviar pedido para o caixa (atendente) e imprimir
+  const handleSendToCashier = async () => {
+    if (items.length === 0) return;
+
+    try {
+      // 1. Salvar o pedido
+      await holdSale();
+
+      // 2. Preparar dados para impressão
+      const orderReceipt = {
+        companyName: 'GIRO Motopeças',
+        companyAddress: '',
+        companyPhone: null,
+        orderNumber: new Date().getTime().toString().slice(-8),
+        dateTime: new Date().toLocaleString('pt-BR'),
+        attendantName: employee?.name || 'Atendente',
+        customerName: selectedCustomer?.name || null,
+        customerPhone: selectedCustomer?.phone || null,
+        items: items.map((item) => ({
+          code: item.productId.slice(0, 8),
+          name: item.productName,
+          quantity: item.quantity,
+          unit: item.unit,
+          unitPrice: item.unitPrice,
+          total: item.quantity * item.unitPrice - item.discount,
+        })),
+        subtotal,
+        discount,
+        total,
+        notes: null,
+      };
+
+      // 3. Imprimir (se impressora configurada)
+      const printResult = await commands.printAttendantOrder(orderReceipt);
+      if (printResult.status === 'error') {
+        console.warn('Impressora não disponível:', printResult.error);
+        // Não bloqueia o fluxo se impressora falhar
+      }
+    } catch (error) {
+      console.error('Erro ao enviar pedido:', error);
+    }
   };
 
   const subtotal = getSubtotal();
@@ -451,46 +499,75 @@ export const PDVPage: FC = () => {
           {/* Ações de Pagamento */}
           <Card className="flex-1 p-4 border-none bg-card/50 backdrop-blur-sm shadow-md">
             <div className="flex h-full flex-col gap-3">
-              <h3 className="mb-2 text-lg font-semibold">Finalizar Venda</h3>
+              {/* Atendente: Enviar para Caixa */}
+              {isAttendant ? (
+                <>
+                  <h3 className="mb-2 text-lg font-semibold text-cyan-600">📋 Criar Pedido</h3>
 
-              <Button
-                size="lg"
-                className="h-14 text-lg"
-                disabled={items.length === 0}
-                onClick={() => setShowPaymentModal(true)}
-                data-tutorial="finalize-button"
-                aria-label="Finalizar venda em dinheiro (F10)"
-              >
-                <Banknote className="mr-2 h-5 w-5" aria-hidden="true" />
-                Dinheiro
-                <span className="kbd ml-auto" aria-hidden="true">
-                  F10
-                </span>
-              </Button>
+                  <Button
+                    size="lg"
+                    className="h-16 text-lg bg-cyan-600 hover:bg-cyan-700"
+                    disabled={items.length === 0}
+                    onClick={handleSendToCashier}
+                    data-tutorial="send-to-cashier"
+                    aria-label="Enviar pedido para o caixa (F10)"
+                  >
+                    <Send className="mr-2 h-6 w-6" aria-hidden="true" />
+                    Enviar para Caixa
+                    <span className="kbd ml-auto" aria-hidden="true">
+                      F10
+                    </span>
+                  </Button>
 
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-14 text-lg"
-                disabled={items.length === 0}
-                onClick={() => setShowPaymentModal(true)}
-                aria-label="Finalizar venda via PIX"
-              >
-                <QrCode className="mr-2 h-5 w-5" aria-hidden="true" />
-                PIX
-              </Button>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    O pedido será enviado para o caixa finalizar o pagamento
+                  </p>
+                </>
+              ) : (
+                <>
+                  {/* Caixa/Admin: Finalizar Venda */}
+                  <h3 className="mb-2 text-lg font-semibold">Finalizar Venda</h3>
 
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-14 text-lg"
-                disabled={items.length === 0}
-                onClick={() => setShowPaymentModal(true)}
-                aria-label="Finalizar venda no cartão"
-              >
-                <CreditCard className="mr-2 h-5 w-5" aria-hidden="true" />
-                Cartão
-              </Button>
+                  <Button
+                    size="lg"
+                    className="h-14 text-lg"
+                    disabled={items.length === 0}
+                    onClick={() => setShowPaymentModal(true)}
+                    data-tutorial="finalize-button"
+                    aria-label="Finalizar venda em dinheiro (F10)"
+                  >
+                    <Banknote className="mr-2 h-5 w-5" aria-hidden="true" />
+                    Dinheiro
+                    <span className="kbd ml-auto" aria-hidden="true">
+                      F10
+                    </span>
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-14 text-lg"
+                    disabled={items.length === 0}
+                    onClick={() => setShowPaymentModal(true)}
+                    aria-label="Finalizar venda via PIX"
+                  >
+                    <QrCode className="mr-2 h-5 w-5" aria-hidden="true" />
+                    PIX
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-14 text-lg"
+                    disabled={items.length === 0}
+                    onClick={() => setShowPaymentModal(true)}
+                    aria-label="Finalizar venda no cartão"
+                  >
+                    <CreditCard className="mr-2 h-5 w-5" aria-hidden="true" />
+                    Cartão
+                  </Button>
+                </>
+              )}
 
               <div className="mt-auto">
                 <Button

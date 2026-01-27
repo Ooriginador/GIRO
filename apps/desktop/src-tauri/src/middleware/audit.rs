@@ -21,6 +21,7 @@ pub enum AuditAction {
     SaleCreated,
     SaleCanceled,
     HeldSaleCreated,
+    HeldSaleUpdated,
     HeldSaleResumed,
     HeldSaleDeleted,
     DiscountApplied,

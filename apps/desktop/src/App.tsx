@@ -1,6 +1,6 @@
 import { LicenseGuard, SessionGuard } from '@/components/guards';
 import { AppShell } from '@/components/layout';
-import { BusinessProfileWizard } from '@/components/shared';
+import { BusinessProfileWizard, FeatureRoute } from '@/components/shared';
 import { UpdateChecker } from '@/components/UpdateChecker';
 import { useHasAdmin } from '@/hooks/useSetup';
 import { useThemeEffect } from '@/hooks/useThemeEffect';
@@ -31,7 +31,7 @@ import { DashboardPage } from '@/pages/dashboard';
 import { EmployeesPage } from '@/pages/employees';
 import { LicenseActivationPage } from '@/pages/license';
 import { MotopartsDashboardPage, ServiceOrdersPage, WarrantiesPage } from '@/pages/motoparts';
-import { PDVPage } from '@/pages/pdv';
+import { PDVPage, PendingOrdersPage } from '@/pages/pdv';
 import { CategoriesPage, ProductFormPage, ProductsPage } from '@/pages/products';
 import {
   ReportsPage,
@@ -249,34 +249,205 @@ const App: FC = () => {
             <Route index element={<RootRedirect />} />
             <Route path="dashboard" element={<DashboardPage />} />
 
-            {/* Motopeças */}
-            <Route path="motoparts/dashboard" element={<MotopartsDashboardPage />} />
-            <Route path="service-orders" element={<ServiceOrdersPage />} />
-            <Route path="warranties" element={<WarrantiesPage />} />
+            {/* Motopeças - Protegido por feature */}
+            <Route
+              path="motoparts/dashboard"
+              element={
+                <FeatureRoute feature="serviceOrders" redirectTo="/dashboard">
+                  <MotopartsDashboardPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="service-orders"
+              element={
+                <FeatureRoute feature="serviceOrders" redirectTo="/dashboard">
+                  <ServiceOrdersPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="warranties"
+              element={
+                <FeatureRoute feature="warranties" redirectTo="/dashboard">
+                  <WarrantiesPage />
+                </FeatureRoute>
+              }
+            />
 
-            {/* Enterprise - Almoxarifado Industrial */}
-            <Route path="enterprise" element={<EnterpriseDashboardPage />} />
-            <Route path="enterprise/contracts" element={<ContractsPage />} />
-            <Route path="enterprise/contracts/new" element={<ContractNewPage />} />
-            <Route path="enterprise/contracts/:id" element={<ContractDetailPage />} />
-            <Route path="enterprise/work-fronts" element={<WorkFrontsPage />} />
-            <Route path="enterprise/work-fronts/new" element={<WorkFrontsPage />} />
-            <Route path="enterprise/work-fronts/:id" element={<WorkFrontDetailPage />} />
-            <Route path="enterprise/locations" element={<LocationsPage />} />
-            <Route path="enterprise/locations/new" element={<LocationsPage />} />
-            <Route path="enterprise/locations/:id" element={<LocationsPage />} />
-            <Route path="enterprise/locations/:id/stock" element={<LocationStockPage />} />
-            <Route path="enterprise/activities" element={<ActivitiesPage />} />
-            <Route path="enterprise/requests" element={<RequestsPage />} />
-            <Route path="enterprise/requests/new" element={<RequestNewPage />} />
-            <Route path="enterprise/requests/:id" element={<RequestDetailPage />} />
-            <Route path="enterprise/transfers" element={<TransfersPage />} />
-            <Route path="enterprise/transfers/new" element={<TransferNewPage />} />
-            <Route path="enterprise/transfers/:id" element={<TransferDetailPage />} />
-            <Route path="enterprise/inventory" element={<InventoryPage />} />
+            {/* Enterprise - Almoxarifado Industrial - Protegido por feature */}
+            <Route
+              path="enterprise"
+              element={
+                <FeatureRoute feature="enterprise" redirectTo="/dashboard">
+                  <EnterpriseDashboardPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/contracts"
+              element={
+                <FeatureRoute feature="contracts" redirectTo="/dashboard">
+                  <ContractsPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/contracts/new"
+              element={
+                <FeatureRoute feature="contracts" redirectTo="/dashboard">
+                  <ContractNewPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/contracts/:id"
+              element={
+                <FeatureRoute feature="contracts" redirectTo="/dashboard">
+                  <ContractDetailPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/work-fronts"
+              element={
+                <FeatureRoute feature="workFronts" redirectTo="/dashboard">
+                  <WorkFrontsPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/work-fronts/new"
+              element={
+                <FeatureRoute feature="workFronts" redirectTo="/dashboard">
+                  <WorkFrontsPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/work-fronts/:id"
+              element={
+                <FeatureRoute feature="workFronts" redirectTo="/dashboard">
+                  <WorkFrontDetailPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/locations"
+              element={
+                <FeatureRoute feature="multiLocation" redirectTo="/dashboard">
+                  <LocationsPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/locations/new"
+              element={
+                <FeatureRoute feature="multiLocation" redirectTo="/dashboard">
+                  <LocationsPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/locations/:id"
+              element={
+                <FeatureRoute feature="multiLocation" redirectTo="/dashboard">
+                  <LocationsPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/locations/:id/stock"
+              element={
+                <FeatureRoute feature="multiLocation" redirectTo="/dashboard">
+                  <LocationStockPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/activities"
+              element={
+                <FeatureRoute feature="enterprise" redirectTo="/dashboard">
+                  <ActivitiesPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/requests"
+              element={
+                <FeatureRoute feature="materialRequests" redirectTo="/dashboard">
+                  <RequestsPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/requests/new"
+              element={
+                <FeatureRoute feature="materialRequests" redirectTo="/dashboard">
+                  <RequestNewPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/requests/:id"
+              element={
+                <FeatureRoute feature="materialRequests" redirectTo="/dashboard">
+                  <RequestDetailPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/transfers"
+              element={
+                <FeatureRoute feature="stockTransfers" redirectTo="/dashboard">
+                  <TransfersPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/transfers/new"
+              element={
+                <FeatureRoute feature="stockTransfers" redirectTo="/dashboard">
+                  <TransferNewPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/transfers/:id"
+              element={
+                <FeatureRoute feature="stockTransfers" redirectTo="/dashboard">
+                  <TransferDetailPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/inventory"
+              element={
+                <FeatureRoute feature="enterprise" redirectTo="/dashboard">
+                  <InventoryPage />
+                </FeatureRoute>
+              }
+            />
 
-            {/* PDV */}
-            <Route path="pdv" element={<PDVPage />} />
+            {/* PDV - Protegido por feature */}
+            <Route
+              path="pdv"
+              element={
+                <FeatureRoute feature="pdv" redirectTo="/dashboard">
+                  <PDVPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="pdv/pending-orders"
+              element={
+                <FeatureRoute feature="pdv" redirectTo="/dashboard">
+                  <ProtectedRoute requiredRole={['ADMIN', 'MANAGER', 'CASHIER']}>
+                    <PendingOrdersPage />
+                  </ProtectedRoute>
+                </FeatureRoute>
+              }
+            />
 
             {/* Clientes */}
             <Route path="customers" element={<CustomersPage />} />
@@ -313,8 +484,15 @@ const App: FC = () => {
               }
             />
 
-            {/* Caixa */}
-            <Route path="cash" element={<CashControlPage />} />
+            {/* Caixa - Protegido por feature */}
+            <Route
+              path="cash"
+              element={
+                <FeatureRoute feature="cashControl" redirectTo="/dashboard">
+                  <CashControlPage />
+                </FeatureRoute>
+              }
+            />
 
             {/* Relatórios */}
             <Route

@@ -197,6 +197,24 @@ impl Permission {
                     Permission::ViewVehicles,
                 ]
             }
+            EmployeeRole::Attendant => {
+                // Atendente/Balconista: cria pedidos mas NÃO finaliza pagamento
+                // O pedido fica pendente para o caixa finalizar
+                vec![
+                    Permission::ViewProducts,
+                    Permission::ViewSales,
+                    Permission::ViewStock,
+                    Permission::ViewCustomers,
+                    Permission::ManageCustomers,
+                    Permission::ViewServiceOrders,
+                    Permission::CreateServiceOrder,
+                    Permission::UpdateServiceOrder,
+                    // NÃO tem: CreateSales, FinishServiceOrder, OpenCash, CloseCash
+                    // Isso impede que finalize pagamentos
+                    Permission::ViewServices,
+                    Permission::ViewVehicles,
+                ]
+            }
             EmployeeRole::Viewer => {
                 // Visualizador: apenas leitura
                 vec![
@@ -308,6 +326,7 @@ pub async fn check_permission(
         "ADMIN" => EmployeeRole::Admin,
         "MANAGER" => EmployeeRole::Manager,
         "CASHIER" => EmployeeRole::Cashier,
+        "ATTENDANT" => EmployeeRole::Attendant,
         "VIEWER" => EmployeeRole::Viewer,
         "STOCKER" => EmployeeRole::Stocker,
         _ => return Err(AppError::Unauthorized("Role inválido".to_string())),

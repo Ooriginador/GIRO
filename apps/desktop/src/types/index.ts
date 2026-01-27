@@ -238,6 +238,11 @@ export interface HeldSale {
   customerId?: string | null;
   subtotal: number;
   total: number;
+  employeeId: string;
+  employeeName?: string;
+  employeeRole?: string;
+  status: 'WAITING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
+  notes?: string;
   createdAt: string;
 }
 

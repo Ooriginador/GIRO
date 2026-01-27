@@ -694,6 +694,29 @@ pub struct ServiceOrderReceipt {
     pub notes: Option<String>,
 }
 
+/// Dados para impressão de Pedido do Atendente
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AttendantOrderReceipt {
+    pub company_name: String,
+    pub company_address: String,
+    pub company_phone: Option<String>,
+
+    pub order_number: String,
+    pub date_time: String,
+    pub attendant_name: String,
+
+    pub customer_name: Option<String>,
+    pub customer_phone: Option<String>,
+
+    pub items: Vec<ReceiptItem>,
+    pub subtotal: f64,
+    pub discount: f64,
+    pub total: f64,
+
+    pub notes: Option<String>,
+}
+
 impl ThermalPrinter {
     /// Imprime cupom de venda completo
     pub fn print_receipt(&mut self, receipt: &Receipt) -> &mut Self {
@@ -1006,6 +1029,154 @@ impl ThermalPrinter {
 
         let qr_data = format!("OS:{:06}:{}", os.order_number, os.date_time);
         self.qrcode(&qr_data);
+
+        // Corte
+        if self.config.auto_cut {
+            self.cut(true);
+        } else {
+            self.feed(4);
+        }
+
+        self
+    }
+
+    /// Imprime Pedido do Atendente (para cliente levar ao caixa)
+    pub fn print_attendant_order(&mut self, order: &AttendantOrderReceipt) -> &mut Self {
+        self.init();
+        let width = self.config.paper_width as usize;
+
+        // Cabeçalho
+        self.align(TextAlign::Center);
+        self.style(TextStyle {
+            bold: true,
+            double_height: true,
+            double_width: true,
+            ..Default::default()
+        });
+        self.line(&order.company_name);
+
+        self.style(TextStyle::default());
+        self.line(&order.company_address);
+        if let Some(ref phone) = order.company_phone {
+            self.line(&format!("TEL: {}", phone));
+        }
+
+        self.feed(1);
+        self.separator('=');
+        self.style(TextStyle {
+            bold: true,
+            double_height: true,
+            ..Default::default()
+        });
+        self.line("*** PEDIDO ***");
+        self.style(TextStyle::default());
+        self.separator('=');
+
+        // Info do Pedido
+        self.align(TextAlign::Left);
+        self.style(TextStyle {
+            bold: true,
+            ..Default::default()
+        });
+        self.line(&format!("PEDIDO: #{}", order.order_number));
+        self.style(TextStyle::default());
+        self.line(&order.date_time);
+        self.line(&format!("ATENDENTE: {}", order.attendant_name));
+
+        if let Some(ref customer) = order.customer_name {
+            self.line(&format!("CLIENTE: {}", customer));
+        }
+        if let Some(ref phone) = order.customer_phone {
+            self.line(&format!("TELEFONE: {}", phone));
+        }
+
+        self.separator('-');
+
+        // Itens
+        self.style(TextStyle {
+            bold: true,
+            ..Default::default()
+        });
+        self.line("ITENS DO PEDIDO");
+        self.style(TextStyle::default());
+        self.separator('-');
+
+        for (i, item) in order.items.iter().enumerate() {
+            let name = if item.name.len() > 28 {
+                &item.name[..28]
+            } else {
+                &item.name
+            };
+
+            self.line(&format!("{:02}. {}", i + 1, name));
+
+            let detail = format!(
+                "    {:.2}{} x R$ {:.2}",
+                item.quantity, item.unit, item.unit_price
+            );
+            let total_str = format!("R$ {:.2}", item.total);
+            let spaces = width.saturating_sub(detail.len() + total_str.len());
+
+            self.line(&format!(
+                "{}{:>width$}",
+                detail,
+                total_str,
+                width = spaces + total_str.len()
+            ));
+        }
+
+        self.separator('-');
+
+        // Totais
+        self.align(TextAlign::Right);
+        self.line(&format!("SUBTOTAL: R$ {:.2}", order.subtotal));
+
+        if order.discount > 0.0 {
+            self.style(TextStyle {
+                bold: true,
+                ..Default::default()
+            });
+            self.line(&format!("DESCONTO: -R$ {:.2}", order.discount));
+            self.style(TextStyle::default());
+        }
+
+        self.feed(1);
+        self.style(TextStyle {
+            bold: true,
+            double_height: true,
+            double_width: true,
+            ..Default::default()
+        });
+        self.line(&format!("TOTAL: R$ {:.2}", order.total));
+        self.style(TextStyle::default());
+        self.separator('=');
+
+        // Aviso para ir ao caixa
+        self.align(TextAlign::Center);
+        self.feed(1);
+        self.style(TextStyle {
+            bold: true,
+            ..Default::default()
+        });
+        self.line(">>> APRESENTAR NO CAIXA <<<");
+        self.style(TextStyle::default());
+        self.feed(1);
+
+        // Observações
+        if let Some(ref notes) = order.notes {
+            self.align(TextAlign::Left);
+            self.line("OBS:");
+            self.line(notes);
+            self.feed(1);
+        }
+
+        // QR Code com ID do pedido
+        self.align(TextAlign::Center);
+        let qr_data = format!("PEDIDO:{}", order.order_number);
+        self.qrcode(&qr_data);
+
+        self.feed(1);
+        self.line("Obrigado pela preferência!");
 
         // Corte
         if self.config.auto_cut {

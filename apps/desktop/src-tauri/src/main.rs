@@ -77,7 +77,9 @@ async fn main() {
             commands::get_monthly_summary,
             // Held Sales (PDV Persistence)
             commands::get_held_sales,
+            commands::get_waiting_orders,
             commands::save_held_sale,
+            commands::update_held_sale_status,
             commands::delete_held_sale,
             // Cash
             commands::get_current_session,
@@ -209,6 +211,7 @@ async fn main() {
             commands::print_receipt,
             commands::print_sale_by_id,
             commands::print_service_order,
+            commands::print_attendant_order,
             commands::test_printer,
             commands::test_printer_connection,
             commands::print_test_documents,
@@ -797,6 +800,7 @@ async fn main() {
             commands::print_receipt,
             commands::print_sale_by_id,
             commands::print_service_order,
+            commands::print_attendant_order,
             commands::test_printer,
             commands::test_printer_connection,
             commands::print_test_documents,

@@ -531,6 +531,18 @@ export const EmployeesPage: FC = () => {
                           permissions: ['PDV', 'Vendas', 'Caixa', 'Clientes'],
                         },
                         {
+                          value: 'ATTENDANT',
+                          label: 'Atendente/Balconista',
+                          icon: '🛒',
+                          color: 'border-cyan-500 bg-cyan-500/10',
+                          permissions: [
+                            'Pedidos',
+                            'Clientes',
+                            'Produtos',
+                            'Não finaliza pagamento',
+                          ],
+                        },
+                        {
                           value: 'STOCKER',
                           label: 'Estoquista',
                           icon: '📦',

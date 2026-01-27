@@ -48,6 +48,8 @@ vi.mock('@/pages/tutorials', () => ({
 }));
 vi.mock('@/components/shared', () => ({
   BusinessProfileWizard: () => <div data-testid="wizard-page">Wizard</div>,
+  // FeatureRoute just renders children in tests (assumes feature is enabled)
+  FeatureRoute: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 vi.mock('@/components/UpdateChecker', () => ({
   UpdateChecker: () => <div data-testid="update-checker">Update</div>,

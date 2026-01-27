@@ -963,6 +963,20 @@ export async function deleteHeldSale(id: string): Promise<void> {
   return tauriInvoke<void>('delete_held_sale', { id });
 }
 
+/**
+ * Busca pedidos aguardando finalização no caixa (criados por atendentes)
+ */
+export async function getWaitingOrders(): Promise<HeldSale[]> {
+  return tauriInvoke<HeldSale[]>('get_waiting_orders');
+}
+
+/**
+ * Atualiza o status de um pedido (WAITING -> PROCESSING -> COMPLETED)
+ */
+export async function updateHeldSaleStatus(id: string, status: string): Promise<void> {
+  return tauriInvoke<void>('update_held_sale_status', { id, status });
+}
+
 // MonthlySalesSummary moved to types/index.ts and re-exported
 
 export async function getMonthlySummary(yearMonth: string): Promise<MonthlySalesSummary> {

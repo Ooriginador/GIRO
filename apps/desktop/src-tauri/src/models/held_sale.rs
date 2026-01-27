@@ -12,6 +12,10 @@ pub struct HeldSale {
     pub subtotal: f64,
     pub total: f64,
     pub employee_id: String,
+    pub employee_name: Option<String>,
+    pub employee_role: Option<String>,
+    pub status: String, // WAITING, PROCESSING, COMPLETED, CANCELLED
+    pub notes: Option<String>,
     pub created_at: String,
     #[sqlx(skip)]
     pub items: Vec<HeldSaleItem>,

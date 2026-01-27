@@ -1,6 +1,7 @@
 import { useBusinessProfile } from '@/stores/useBusinessProfile';
-import { FeatureKey } from '@/types/business-profile';
+import { FeatureKey, BusinessType } from '@/types/business-profile';
 import { ReactNode } from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FEATURE GATE - Renderização Condicional por Feature
@@ -212,5 +213,170 @@ export function useFeatureCheck() {
      * Tipo de negócio atual
      */
     businessType,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEATURE ROUTE - Proteção de Rotas por Feature
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface FeatureRouteProps {
+  /**
+   * Feature requerida para acessar a rota
+   */
+  feature?: FeatureKey;
+
+  /**
+   * Múltiplas features (usa mode para verificação)
+   */
+  features?: FeatureKey[];
+
+  /**
+   * Tipos de negócio permitidos
+   */
+  allowedTypes?: BusinessType[];
+
+  /**
+   * Modo de verificação para múltiplas features
+   * @default 'all'
+   */
+  mode?: 'all' | 'any';
+
+  /**
+   * Rota para redirecionar se não tiver acesso
+   * @default '/dashboard'
+   */
+  redirectTo?: string;
+
+  /**
+   * Conteúdo a ser renderizado
+   */
+  children?: ReactNode;
+}
+
+/**
+ * Componente de rota que verifica se o usuário tem acesso baseado no perfil
+ *
+ * @example
+ * // Protege rota enterprise
+ * <Route
+ *   path="enterprise/*"
+ *   element={
+ *     <FeatureRoute feature="enterprise" redirectTo="/pdv">
+ *       <Outlet />
+ *     </FeatureRoute>
+ *   }
+ * />
+ *
+ * @example
+ * // Protege por tipo de negócio
+ * <Route
+ *   path="motoparts/*"
+ *   element={
+ *     <FeatureRoute allowedTypes={['MOTOPARTS']} redirectTo="/dashboard">
+ *       <MotopartsPage />
+ *     </FeatureRoute>
+ *   }
+ * />
+ */
+export function FeatureRoute({
+  feature,
+  features,
+  allowedTypes,
+  mode = 'all',
+  redirectTo = '/dashboard',
+  children,
+}: FeatureRouteProps) {
+  const { isFeatureEnabled, businessType } = useBusinessProfile();
+
+  // Verifica tipo de negócio
+  if (allowedTypes && !allowedTypes.includes(businessType)) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  // Verifica feature única
+  if (feature && !isFeatureEnabled(feature)) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  // Verifica múltiplas features
+  if (features && features.length > 0) {
+    const hasAccess =
+      mode === 'all'
+        ? features.every((f) => isFeatureEnabled(f))
+        : features.some((f) => isFeatureEnabled(f));
+
+    if (!hasAccess) {
+      return <Navigate to={redirectTo} replace />;
+    }
+  }
+
+  // Renderiza children ou Outlet (para nested routes)
+  return <>{children ?? <Outlet />}</>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HOOK PARA NAVEGAÇÃO PERMITIDA
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Configuração de uma rota com restrição de acesso
+ */
+export interface RoutePermission {
+  path: string;
+  feature?: FeatureKey;
+  features?: FeatureKey[];
+  allowedTypes?: BusinessType[];
+  mode?: 'all' | 'any';
+}
+
+/**
+ * Hook para verificar se o usuário pode acessar uma rota
+ */
+export function useRoutePermission() {
+  const { isFeatureEnabled, businessType } = useBusinessProfile();
+
+  /**
+   * Verifica se uma rota está acessível
+   */
+  const canAccessRoute = (permission: RoutePermission): boolean => {
+    // Verifica tipo de negócio
+    if (permission.allowedTypes && !permission.allowedTypes.includes(businessType)) {
+      return false;
+    }
+
+    // Verifica feature única
+    if (permission.feature && !isFeatureEnabled(permission.feature)) {
+      return false;
+    }
+
+    // Verifica múltiplas features
+    if (permission.features && permission.features.length > 0) {
+      const mode = permission.mode ?? 'all';
+      const hasAccess =
+        mode === 'all'
+          ? permission.features.every((f) => isFeatureEnabled(f))
+          : permission.features.some((f) => isFeatureEnabled(f));
+
+      if (!hasAccess) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  /**
+   * Filtra lista de itens baseado em permissões
+   */
+  const filterByPermission = <T extends { permission?: RoutePermission }>(items: T[]): T[] => {
+    return items.filter((item) => !item.permission || canAccessRoute(item.permission));
+  };
+
+  return {
+    canAccessRoute,
+    filterByPermission,
+    businessType,
+    isFeatureEnabled,
   };
 }

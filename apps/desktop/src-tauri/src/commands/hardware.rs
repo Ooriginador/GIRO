@@ -288,6 +288,50 @@ pub async fn print_service_order(
     Ok(())
 }
 
+/// Imprime pedido do atendente (para cliente apresentar no caixa)
+#[tauri::command]
+#[specta::specta]
+pub async fn print_attendant_order(
+    order: crate::hardware::printer::AttendantOrderReceipt,
+    state: State<'_, HardwareState>,
+    app_state: State<'_, AppState>,
+) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
+    let config = {
+        let guard = state.printer_config.read().await;
+        (*guard).clone()
+    };
+
+    if !config.enabled {
+        return Err(HardwareError::NotConfigured("Impressora não habilitada".into()).into());
+    }
+
+    let mut printer = ThermalPrinter::new(config.clone());
+    printer.print_attendant_order(&order);
+    let printer_config = config.clone();
+
+    if printer_config.connection == crate::hardware::printer::PrinterConnection::Network {
+        printer.print_network().await?;
+    } else {
+        tokio::task::spawn_blocking(move || -> AppResult<()> {
+            match printer_config.connection {
+                crate::hardware::printer::PrinterConnection::Usb => {
+                    printer.print_usb()?;
+                }
+                crate::hardware::printer::PrinterConnection::Serial => {
+                    printer.print_serial()?;
+                }
+                _ => {}
+            }
+            Ok(())
+        })
+        .await
+        .map_err(|e| HardwareError::CommunicationError(format!("Task error: {}", e)))??;
+    }
+
+    Ok(())
+}
+
 /// Testa impressão
 #[tauri::command]
 #[specta::specta]

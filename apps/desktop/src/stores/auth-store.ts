@@ -25,20 +25,23 @@ export const PERMISSIONS = {
   'pdv.discount.unlimited': ['ADMIN'],
   'pdv.cancel.current': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER'],
   'pdv.cancel.completed': ['ADMIN', 'MANAGER'],
+  // Atendente pode criar pedidos mas não finalizar
+  'pdv.create_order': ['ADMIN', 'MANAGER', 'CASHIER', 'ATTENDANT'],
+  'pdv.finalize_payment': ['ADMIN', 'MANAGER', 'CASHIER'], // Atendente NÃO pode
 
   // Caixa
   'cash.open': ['ADMIN', 'MANAGER', 'CASHIER'],
   'cash.close': ['ADMIN', 'MANAGER', 'CASHIER'],
 
   // Clientes
-  'customers.manage': ['ADMIN', 'MANAGER', 'CASHIER'],
+  'customers.manage': ['ADMIN', 'MANAGER', 'CASHIER', 'ATTENDANT'],
 
   // Ordens de Serviço
-  'os.view': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER'],
-  'os.create': ['ADMIN', 'MANAGER', 'CASHIER'],
-  'os.update': ['ADMIN', 'MANAGER', 'CASHIER'],
+  'os.view': ['ADMIN', 'MANAGER', 'CASHIER', 'ATTENDANT', 'STOCKER'],
+  'os.create': ['ADMIN', 'MANAGER', 'CASHIER', 'ATTENDANT'],
+  'os.update': ['ADMIN', 'MANAGER', 'CASHIER', 'ATTENDANT'],
   'os.cancel': ['ADMIN', 'MANAGER'],
-  'os.finish': ['ADMIN', 'MANAGER', 'CASHIER'],
+  'os.finish': ['ADMIN', 'MANAGER', 'CASHIER'], // Atendente NÃO pode finalizar
 
   // Serviços
   'services.view': ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER'],
@@ -139,6 +142,7 @@ const roleHierarchy: Record<EmployeeRole, number> = {
   VIEWER: 0,
   REQUESTER: 1, // Enterprise
   STOCKER: 1,
+  ATTENDANT: 1, // Atendente/Balconista - motopeças
   CASHIER: 1,
   WAREHOUSE: 2, // Enterprise
   SUPERVISOR: 2, // Enterprise
@@ -151,6 +155,7 @@ const discountLimits: Record<EmployeeRole, number> = {
   VIEWER: 0,
   REQUESTER: 0, // Enterprise - sem desconto
   STOCKER: 5,
+  ATTENDANT: 5, // Atendente pode dar desconto básico (aprovado pelo caixa depois)
   CASHIER: 5,
   WAREHOUSE: 0, // Enterprise - sem desconto
   SUPERVISOR: 10, // Enterprise
