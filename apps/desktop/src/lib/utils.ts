@@ -181,20 +181,35 @@ export function getErrorMessage(error: unknown): string {
 
   // Objeto com propriedade message (Tauri errors, etc)
   if (error && typeof error === 'object') {
-    const err = error as TauriAppError;
+    const err = error as Record<string, unknown>;
 
     // Tauri error format: { message: string } or { error: string }
-    if (err.message && typeof err.message === 'string') {
+    if (typeof err.message === 'string' && err.message) {
       return err.message;
     }
-    if (err.error && typeof err.error === 'string') {
+    if (typeof err.error === 'string' && err.error) {
       return err.error;
+    }
+    // Rust AppError format: may come as { Validation: "message" } or similar
+    if (typeof err.Validation === 'string') {
+      return err.Validation;
+    }
+    if (typeof err.NotFound === 'string') {
+      return err.NotFound;
     }
     // Try to get a meaningful string representation
     try {
       const str = JSON.stringify(error);
       // Don't return [object Object] or empty objects
-      if (str && str !== '{}' && str !== '[]') {
+      if (str && str !== '{}' && str !== '[]' && !str.includes('[object Object]')) {
+        // If it's a simple error object, extract the value
+        const parsed = JSON.parse(str);
+        if (typeof parsed === 'object' && parsed !== null) {
+          const values = Object.values(parsed);
+          if (values.length === 1 && typeof values[0] === 'string') {
+            return values[0];
+          }
+        }
         return str;
       }
     } catch {
