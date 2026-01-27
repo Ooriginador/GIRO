@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { invoke } from '@tauri-apps/api/core';
+import { getErrorMessage } from '@/lib/utils';
 import { Loader2, QrCode, RefreshCw, Smartphone, Wifi, WifiOff } from 'lucide-react';
 import { useCallback, useEffect, useState, type FC } from 'react';
 
@@ -57,10 +58,7 @@ export const MobileServerSettings: FC = () => {
         setConnectedDevices([]);
       }
     } catch (error) {
-      console.error(
-        'Erro ao obter status do servidor:',
-        (error as Error)?.message ?? String(error)
-      );
+      console.error('Erro ao obter status do servidor:', getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +96,7 @@ export const MobileServerSettings: FC = () => {
       }
       await fetchStatus();
     } catch (error) {
-      console.error('Erro ao alternar servidor:', (error as Error)?.message ?? String(error));
+      console.error('Erro ao alternar servidor:', getErrorMessage(error));
       toast({
         title: 'Erro',
         description: `Falha ao ${status?.isRunning ? 'desligar' : 'ligar'} o servidor.`,
@@ -119,7 +117,7 @@ export const MobileServerSettings: FC = () => {
       });
       await fetchStatus();
     } catch (error) {
-      console.error('Erro ao desconectar dispositivo:', (error as Error)?.message ?? String(error));
+      console.error('Erro ao desconectar dispositivo:', getErrorMessage(error));
       toast({
         title: 'Erro',
         description: 'Falha ao desconectar o dispositivo.',

@@ -38,7 +38,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useStockLocations, useStockBalances } from '@/hooks/enterprise/useStockLocations';
 import { adjustStockBalance, type StockBalance } from '@/lib/tauri';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 import {
   AlertTriangle,
   ArrowDown,
@@ -74,7 +74,7 @@ interface AdjustmentModalData {
 // ────────────────────────────────────────────────────────────────────────────
 
 const LoadingSkeleton: FC = () => (
-  <div className="space-y-6 p-6">
+  <div className="space-y-6">
     <Skeleton className="h-8 w-64" />
     <div className="grid gap-4 md:grid-cols-4">
       {Array.from({ length: 4 }).map((_, i) => (
@@ -279,7 +279,7 @@ export const InventoryPage: FC = () => {
     } catch (error) {
       toast({
         title: 'Erro ao ajustar estoque',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -322,7 +322,7 @@ export const InventoryPage: FC = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

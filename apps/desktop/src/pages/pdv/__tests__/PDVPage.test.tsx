@@ -97,6 +97,8 @@ describe('PDVPage Stable', () => {
   const mockAuthStore = {
     currentSession: null,
     currentUser: { id: 'u1', name: 'Admin' },
+    employee: { id: 'u1', name: 'Admin', role: 'ADMIN' },
+    hasPermission: vi.fn(() => true),
   };
 
   beforeEach(() => {
@@ -118,6 +120,7 @@ describe('PDVPage Stable', () => {
     vi.mocked(useAuthStore).mockReturnValue({
       ...mockAuthStore,
       currentSession: { id: 's1' },
+      hasPermission: vi.fn(() => true),
     } as any);
     render(
       <MemoryRouter>
@@ -141,6 +144,7 @@ describe('PDVPage Stable', () => {
     vi.mocked(useAuthStore).mockReturnValue({
       ...mockAuthStore,
       currentSession: { id: 's1' },
+      hasPermission: vi.fn(() => true),
     } as any);
     vi.mocked(usePDVStore).mockReturnValue({
       ...mockPDVStore,
@@ -160,6 +164,7 @@ describe('PDVPage Stable', () => {
     vi.mocked(useAuthStore).mockReturnValue({
       ...mockAuthStore,
       currentSession: { id: 's1' },
+      hasPermission: vi.fn(() => true),
     } as any);
     vi.mocked(usePDVStore).mockReturnValue({
       ...mockPDVStore,
@@ -180,6 +185,7 @@ describe('PDVPage Stable', () => {
     vi.mocked(useAuthStore).mockReturnValue({
       ...mockAuthStore,
       currentSession: { id: 's1' },
+      hasPermission: vi.fn(() => true),
     } as any);
     vi.mocked(usePDVStore).mockReturnValue({
       ...mockPDVStore,

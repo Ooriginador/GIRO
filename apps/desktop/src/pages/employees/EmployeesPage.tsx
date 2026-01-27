@@ -47,6 +47,7 @@ import {
   useReactivateEmployee,
   useUpdateEmployee,
 } from '@/hooks/useEmployees';
+import { formatUserError } from '@/lib/utils';
 import { type Employee, type EmployeeRole } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -72,10 +73,25 @@ const employeeFormSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres').max(100, 'Nome muito longo'),
   email: z.string().email('E-mail inválido').optional().or(z.literal('')),
   phone: z.string().optional(),
-  role: z.enum(['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER', 'VIEWER'] as const),
+  cpf: z.string().optional().or(z.literal('')),
+  role: z.enum([
+    'ADMIN',
+    'MANAGER',
+    'CASHIER',
+    'ATTENDANT',
+    'STOCKER',
+    'VIEWER',
+    // Enterprise roles
+    'CONTRACT_MANAGER',
+    'SUPERVISOR',
+    'WAREHOUSE',
+    'REQUESTER',
+  ] as const),
+  commissionRate: z.coerce.number().min(0, 'Mínimo 0%').max(100, 'Máximo 100%').optional(),
   pin: z
     .string()
-    .length(4, 'PIN deve ter 4 dígitos')
+    .min(4, 'PIN deve ter 4-6 dígitos')
+    .max(6, 'PIN deve ter 4-6 dígitos')
     .regex(/^\d+$/, 'Apenas números')
     .optional()
     .or(z.literal('')),
@@ -87,6 +103,7 @@ const roleLabels: Record<EmployeeRole, string> = {
   ADMIN: 'Administrador',
   MANAGER: 'Gerente',
   CASHIER: 'Operador de Caixa',
+  ATTENDANT: 'Atendente/Balconista',
   STOCKER: 'Estoquista',
   VIEWER: 'Visualizador',
   // Enterprise roles
@@ -100,6 +117,7 @@ const roleColors: Record<EmployeeRole, string> = {
   ADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
   MANAGER: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   CASHIER: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  ATTENDANT: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
   STOCKER: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
   VIEWER: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
   // Enterprise roles
@@ -146,7 +164,9 @@ export const EmployeesPage: FC = () => {
       name: '',
       email: '',
       phone: '',
+      cpf: '',
       role: 'CASHIER',
+      commissionRate: 0,
       pin: '',
     },
   });
@@ -199,14 +219,16 @@ export const EmployeesPage: FC = () => {
             name: data.name,
             email: data.email || undefined,
             phone: data.phone || undefined,
+            cpf: data.cpf || undefined,
             role: data.role,
+            commissionRate: data.commissionRate,
           },
         });
         toast({ title: 'Funcionário atualizado com sucesso' });
       } else {
-        // Usa PIN fornecido ou gera aleatório
+        // Usa PIN fornecido ou gera aleatório (4-6 dígitos)
         const finalPin =
-          data.pin && data.pin.length === 4
+          data.pin && data.pin.length >= 4
             ? data.pin
             : Math.floor(1000 + Math.random() * 9000).toString();
 
@@ -214,7 +236,9 @@ export const EmployeesPage: FC = () => {
           name: data.name,
           email: data.email || undefined,
           phone: data.phone || undefined,
+          cpf: data.cpf || undefined,
           role: data.role,
+          commissionRate: data.commissionRate,
           isActive: true,
           pin: finalPin,
         });
@@ -228,12 +252,16 @@ export const EmployeesPage: FC = () => {
       resetForm();
     } catch (error) {
       console.error(error);
-      toast({ title: 'Erro ao salvar funcionário', variant: 'destructive' });
+      toast({
+        title: 'Erro ao salvar funcionário',
+        description: formatUserError(error, 'funcionário'),
+        variant: 'destructive',
+      });
     }
   };
 
   const handleResetPin = async () => {
-    if (!employeeToResetPin || newPin.length !== 4) return;
+    if (!employeeToResetPin || newPin.length < 4) return;
     try {
       await updateEmployee.mutateAsync({
         id: employeeToResetPin.id,
@@ -243,8 +271,12 @@ export const EmployeesPage: FC = () => {
       setIsPinDialogOpen(false);
       setNewPin('');
       setEmployeeToResetPin(null);
-    } catch {
-      toast({ title: 'Erro ao alterar PIN', variant: 'destructive' });
+    } catch (error) {
+      toast({
+        title: 'Erro ao alterar PIN',
+        description: formatUserError(error, 'PIN'),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -254,22 +286,23 @@ export const EmployeesPage: FC = () => {
       name: '',
       email: '',
       phone: '',
+      cpf: '',
       role: 'CASHIER',
+      commissionRate: 0,
       pin: '',
     });
   };
 
   const handleEdit = (employee: Employee) => {
     setEditingEmployee(employee);
-    // Cast role to form-compatible type, enterprise roles will be treated as VIEWER
-    const formRole = ['ADMIN', 'MANAGER', 'CASHIER', 'STOCKER', 'VIEWER'].includes(employee.role)
-      ? (employee.role as 'ADMIN' | 'MANAGER' | 'CASHIER' | 'STOCKER' | 'VIEWER')
-      : 'VIEWER';
+    // Todos os roles agora são suportados no schema
     form.reset({
       name: employee.name,
       email: employee.email || '',
       phone: employee.phone || '',
-      role: formRole,
+      cpf: employee.cpf || '',
+      role: employee.role,
+      commissionRate: employee.commissionRate ?? 0,
       pin: '', // PIN não é editado aqui
     });
     setIsDialogOpen(true);
@@ -294,9 +327,10 @@ export const EmployeesPage: FC = () => {
             ? 'O funcionário foi marcado como inativo. O histórico foi preservado.'
             : 'O funcionário foi reativado e pode acessar o sistema novamente.',
         });
-      } catch {
+      } catch (error) {
         toast({
           title: 'Erro ao atualizar funcionário',
+          description: formatUserError(error, 'funcionário'),
           variant: 'destructive',
         });
       }
@@ -498,6 +532,64 @@ export const EmployeesPage: FC = () => {
                 )}
               />
 
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cpf"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CPF (Opcional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="000.000.000-00"
+                          {...field}
+                          autoComplete="off"
+                          onChange={(e) => {
+                            // Máscara de CPF
+                            const value = e.target.value.replace(/\D/g, '');
+                            let formatted = value;
+                            if (value.length > 3)
+                              formatted = value.slice(0, 3) + '.' + value.slice(3);
+                            if (value.length > 6)
+                              formatted = formatted.slice(0, 7) + '.' + value.slice(6);
+                            if (value.length > 9)
+                              formatted = formatted.slice(0, 11) + '-' + value.slice(9, 11);
+                            field.onChange(formatted);
+                          }}
+                          maxLength={14}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="commissionRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Comissão (%)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          {...field}
+                          value={field.value ?? 0}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Taxa de comissão sobre vendas
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
                 name="role"
@@ -604,11 +696,13 @@ export const EmployeesPage: FC = () => {
                       <FormControl>
                         <Input
                           placeholder="Ex: 1234 (Deixe vazio para gerar aleatório)"
-                          maxLength={4}
+                          maxLength={6}
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription>Se vazio, um PIN aleatório será gerado.</FormDescription>
+                      <FormDescription>
+                        PIN de 4-6 dígitos. Se vazio, será gerado automaticamente.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -630,7 +724,7 @@ export const EmployeesPage: FC = () => {
           <DialogHeader>
             <DialogTitle>Alterar PIN</DialogTitle>
             <DialogDescription>
-              Defina um novo PIN de 4 dígitos para {employeeToResetPin?.name}.
+              Defina um novo PIN de 4-6 dígitos para {employeeToResetPin?.name}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -642,7 +736,7 @@ export const EmployeesPage: FC = () => {
                 id="new-pin"
                 value={newPin}
                 onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                   setNewPin(val);
                 }}
                 className="col-span-3"
@@ -654,7 +748,7 @@ export const EmployeesPage: FC = () => {
             <Button variant="outline" onClick={() => setIsPinDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleResetPin} disabled={newPin.length !== 4}>
+            <Button onClick={handleResetPin} disabled={newPin.length < 4}>
               Salvar PIN
             </Button>
           </DialogFooter>

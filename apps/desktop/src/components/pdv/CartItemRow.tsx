@@ -3,12 +3,23 @@
  * @description Exibe um item com controles de quantidade
  */
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn, formatCurrency, formatQuantity } from '@/lib/utils';
 import { usePDVStore, type CartItem } from '@/stores/pdv-store';
 import { Minus, Plus, Trash2 } from 'lucide-react';
-import { type FC } from 'react';
+import { type FC, useState } from 'react';
 
 interface CartItemRowProps {
   item: CartItem;
@@ -17,6 +28,7 @@ interface CartItemRowProps {
 
 export const CartItemRow: FC<CartItemRowProps> = ({ item, index }) => {
   const { updateQuantity, removeItem } = usePDVStore();
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
   const itemTotal = item.quantity * item.unitPrice - item.discount;
 
@@ -32,6 +44,7 @@ export const CartItemRow: FC<CartItemRowProps> = ({ item, index }) => {
 
   const handleRemove = () => {
     removeItem(item.id);
+    setShowRemoveConfirm(false);
   };
 
   return (
@@ -118,16 +131,37 @@ export const CartItemRow: FC<CartItemRowProps> = ({ item, index }) => {
         >
           {formatCurrency(itemTotal)}
         </span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={handleRemove}
-          data-tutorial="cart-item-remove"
-          aria-label={`Remover ${item.productName} do carrinho`}
-        >
-          <Trash2 className="h-4 w-4" aria-hidden="true" />
-        </Button>
+        <AlertDialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              data-tutorial="cart-item-remove"
+              aria-label={`Remover ${item.productName} do carrinho`}
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover item?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Deseja remover <strong>{item.productName}</strong> (
+                {formatQuantity(item.quantity, item.unit)}) do carrinho?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleRemove}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Remover
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

@@ -32,7 +32,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock MotopartsDashboard to avoid testing it here
-vi.mock('@/components/motoparts', () => ({
+vi.mock('@/components/motoparts/MotopartsDashboard', () => ({
   MotopartsDashboard: () => <div data-testid="motoparts-dashboard">Motoparts Dashboard</div>,
 }));
 
@@ -97,8 +97,7 @@ describe('DashboardPage', () => {
     vi.mocked(useDashboardStats).mockReturnValue({ data: null, isLoading: true } as any);
   });
 
-  it.skip('should redirect to MotopartsDashboard when businessType is MOTOPARTS', () => {
-    // This feature is not currently implemented
+  it('should redirect to MotopartsDashboard when businessType is MOTOPARTS', () => {
     vi.mocked(useBusinessProfile).mockReturnValue({ businessType: 'MOTOPARTS' } as any);
     render(<DashboardPage />, { wrapper: createWrapper() });
     expect(screen.getByTestId('motoparts-dashboard')).toBeInTheDocument();

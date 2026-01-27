@@ -76,6 +76,7 @@ async fn test_create_stock_movement_entry() {
         lot_number: None,
         expiration_date: None,
         manufacturing_date: None,
+        supplier_id: None,
     };
 
     let result = repo.create_movement(input, false).await;
@@ -105,6 +106,7 @@ async fn test_create_stock_movement_exit() {
         lot_number: None,
         expiration_date: None,
         manufacturing_date: None,
+        supplier_id: None,
     };
 
     let result = repo.create_movement(input, false).await;
@@ -132,6 +134,7 @@ async fn test_find_movement_by_id() {
         lot_number: None,
         expiration_date: None,
         manufacturing_date: None,
+        supplier_id: None,
     };
 
     let created = repo.create_movement(input, false).await.unwrap();
@@ -169,6 +172,7 @@ async fn test_find_movements_by_product() {
             lot_number: None,
             expiration_date: None,
             manufacturing_date: None,
+            supplier_id: None,
         };
         repo.create_movement(input, false).await.unwrap();
     }
@@ -186,6 +190,7 @@ async fn test_find_movements_by_product() {
         lot_number: None,
         expiration_date: None,
         manufacturing_date: None,
+        supplier_id: None,
     };
     repo.create_movement(input, false).await.unwrap();
 
@@ -221,6 +226,7 @@ async fn test_find_recent_movements() {
             lot_number: None,
             expiration_date: None,
             manufacturing_date: None,
+            supplier_id: None,
         };
         repo.create_movement(input, false).await.unwrap();
     }
@@ -259,6 +265,7 @@ async fn test_stock_update_after_movement() {
         lot_number: None,
         expiration_date: None,
         manufacturing_date: None,
+        supplier_id: None,
     };
     repo.create_movement(input, false).await.unwrap();
 

@@ -60,7 +60,9 @@ import {
   TransferNewPage,
   WorkFrontsPage,
   WorkFrontDetailPage,
+  WorkFrontNewPage,
   LocationsPage,
+  LocationNewPage,
   LocationStockPage,
   ActivitiesPage,
   InventoryPage,
@@ -320,7 +322,7 @@ const App: FC = () => {
               path="enterprise/work-fronts/new"
               element={
                 <FeatureRoute feature="workFronts" redirectTo="/dashboard">
-                  <WorkFrontsPage />
+                  <WorkFrontNewPage />
                 </FeatureRoute>
               }
             />
@@ -344,7 +346,7 @@ const App: FC = () => {
               path="enterprise/locations/new"
               element={
                 <FeatureRoute feature="multiLocation" redirectTo="/dashboard">
-                  <LocationsPage />
+                  <LocationNewPage />
                 </FeatureRoute>
               }
             />

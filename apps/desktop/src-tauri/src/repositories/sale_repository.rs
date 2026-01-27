@@ -109,50 +109,66 @@ impl<'a> SaleRepository<'a> {
         &self,
         filters: crate::models::SaleFilters,
     ) -> AppResult<crate::models::PaginatedResult<Sale>> {
-        let mut query = format!("SELECT {} FROM sales WHERE 1=1", Self::SALE_COLS);
-        let mut count_query = "SELECT COUNT(*) FROM sales WHERE 1=1".to_string();
-
-        let mut conditions = Vec::new();
+        // Build query with proper parameterized bindings to prevent SQL injection
+        let mut where_clauses = Vec::new();
+        let mut bind_values: Vec<String> = Vec::new();
 
         if let Some(date_from) = &filters.date_from {
-            conditions.push(format!("date(created_at) >= date('{}')", date_from));
+            where_clauses.push("date(created_at) >= date(?)");
+            bind_values.push(date_from.clone());
         }
         if let Some(date_to) = &filters.date_to {
-            conditions.push(format!("date(created_at) <= date('{}')", date_to));
+            where_clauses.push("date(created_at) <= date(?)");
+            bind_values.push(date_to.clone());
         }
         if let Some(employee_id) = &filters.employee_id {
-            conditions.push(format!("employee_id = '{}'", employee_id));
+            where_clauses.push("employee_id = ?");
+            bind_values.push(employee_id.clone());
         }
         if let Some(session_id) = &filters.cash_session_id {
-            conditions.push(format!("cash_session_id = '{}'", session_id));
+            where_clauses.push("cash_session_id = ?");
+            bind_values.push(session_id.clone());
         }
         if let Some(payment_method) = &filters.payment_method {
-            conditions.push(format!("payment_method = '{}'", payment_method));
+            where_clauses.push("payment_method = ?");
+            bind_values.push(payment_method.clone());
         }
         if let Some(status) = &filters.status {
-            conditions.push(format!("status = '{}'", status));
+            where_clauses.push("status = ?");
+            bind_values.push(status.clone());
         }
 
-        for cond in conditions {
-            query.push_str(&format!(" AND {}", cond));
-            count_query.push_str(&format!(" AND {}", cond));
-        }
+        let where_sql = if where_clauses.is_empty() {
+            "1=1".to_string()
+        } else {
+            where_clauses.join(" AND ")
+        };
 
-        // Count total
-        let total: (i64,) = sqlx::query_as(&count_query).fetch_one(self.pool).await?;
-        let total_count = total.0;
+        let count_query = format!("SELECT COUNT(*) FROM sales WHERE {}", where_sql);
+        let mut count_stmt = sqlx::query_as::<_, (i64,)>(&count_query);
+        for val in &bind_values {
+            count_stmt = count_stmt.bind(val);
+        }
+        let (total_count,) = count_stmt.fetch_one(self.pool).await?;
 
         // Pagination
         let page = filters.page.unwrap_or(1);
         let limit = filters.limit.unwrap_or(20);
         let offset = (page - 1) * limit;
 
-        query.push_str(" ORDER BY created_at DESC");
-        query.push_str(&format!(" LIMIT {} OFFSET {}", limit, offset));
+        let data_query = format!(
+            "SELECT {} FROM sales WHERE {} ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            Self::SALE_COLS,
+            where_sql
+        );
 
-        let data = sqlx::query_as::<_, Sale>(&query)
-            .fetch_all(self.pool)
-            .await?;
+        let mut data_stmt = sqlx::query_as::<_, Sale>(&data_query);
+        for val in &bind_values {
+            data_stmt = data_stmt.bind(val);
+        }
+        data_stmt = data_stmt.bind(limit).bind(offset);
+
+        let data = data_stmt.fetch_all(self.pool).await?;
 
         let total_pages = (total_count as f64 / limit as f64).ceil() as i32;
 
@@ -180,6 +196,26 @@ impl<'a> SaleRepository<'a> {
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
         let daily_number = self.get_next_daily_number_tx(&mut tx).await?;
+
+        // Rate limiting: prevent duplicate sales within 2 seconds by same employee
+        // This catches accidental double-clicks or double-submissions
+        {
+            let recent_sale: Option<(String,)> = sqlx::query_as(
+                "SELECT id FROM sales 
+                 WHERE employee_id = ? 
+                 AND created_at > datetime('now', '-2 seconds')
+                 LIMIT 1",
+            )
+            .bind(&data.employee_id)
+            .fetch_optional(&mut *tx)
+            .await?;
+
+            if recent_sale.is_some() {
+                return Err(crate::error::AppError::Validation(
+                    "Venda duplicada detectada. Aguarde antes de registrar nova venda.".into(),
+                ));
+            }
+        }
 
         // Read PDV setting: allow selling when stock is insufficient
         let settings_repo = SettingsRepository::new(self.pool);
@@ -215,6 +251,30 @@ impl<'a> SaleRepository<'a> {
         // Calculate totals
         let subtotal: f64 = data.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let discount = data.discount_value.unwrap_or(0.0);
+
+        // Validate discount limits
+        if discount > 0.0 {
+            // Get max discount percentage allowed from settings (default 100% = no limit)
+            let max_discount_percent = settings_repo
+                .get_number("pdv.max_discount_percent")
+                .await?
+                .unwrap_or(100.0);
+
+            let discount_percent = (discount / subtotal) * 100.0;
+            if discount_percent > max_discount_percent {
+                return Err(crate::error::AppError::DiscountExceedsLimit {
+                    max: max_discount_percent,
+                });
+            }
+
+            // Validate discount doesn't exceed subtotal
+            if discount > subtotal {
+                return Err(crate::error::AppError::Validation(
+                    "Desconto não pode ser maior que o subtotal".into(),
+                ));
+            }
+        }
+
         let total = subtotal - discount;
         let change = data.amount_paid - total;
 

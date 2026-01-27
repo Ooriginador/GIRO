@@ -46,7 +46,7 @@ import {
 } from '@/hooks/enterprise/useMaterialRequests';
 import { useProducts } from '@/hooks/useProducts';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 import { ArrowLeft, Loader2, Minus, Package, Plus, Save, Search, Send, Trash2 } from 'lucide-react';
 import { useMemo, useState, type FC } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -294,7 +294,7 @@ export const RequestNewPage: FC = () => {
     } catch (error) {
       toast({
         title: 'Erro ao criar requisição',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -309,7 +309,7 @@ export const RequestNewPage: FC = () => {
   const totalItems = fields.length;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={handleBack}>

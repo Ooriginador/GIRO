@@ -8,12 +8,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useProductSearch } from '@/hooks';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useProductSearch, useSuppliers } from '@/hooks';
 import { useAddStockEntry } from '@/hooks/useStock';
-import { formatCurrency } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { formatCurrency, formatUserError } from '@/lib/utils';
 import type { Product } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, PackagePlus, Save, Search } from 'lucide-react';
+import { ArrowLeft, PackagePlus, Save, Search, Truck } from 'lucide-react';
 import { useState, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +37,7 @@ const entrySchema = z.object({
   lotNumber: z.string().optional(),
   expirationDate: z.date().optional(),
   manufacturingDate: z.date().optional(),
+  supplierId: z.string().optional(),
 });
 
 type EntryFormData = z.infer<typeof entrySchema>;
@@ -45,7 +54,9 @@ export const StockEntryPage: FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const { data: searchResults = [] } = useProductSearch(searchQuery);
+  const { data: suppliers = [] } = useSuppliers();
   const addEntry = useAddStockEntry();
+  const { toast } = useToast();
 
   const {
     register,
@@ -68,18 +79,40 @@ export const StockEntryPage: FC = () => {
   };
 
   const onSubmit = async (data: EntryFormData) => {
-    if (!selectedProduct) return;
+    if (!selectedProduct) {
+      toast({
+        title: 'Selecione um produto',
+        description: 'Busque e selecione um produto antes de registrar a entrada.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    await addEntry.mutateAsync({
-      productId: selectedProduct.id,
-      quantity: data.quantity,
-      costPrice: data.costPrice,
-      lotNumber: data.lotNumber,
-      expirationDate: data.expirationDate?.toISOString(),
-      manufacturingDate: data.manufacturingDate?.toISOString(),
-    });
+    try {
+      await addEntry.mutateAsync({
+        productId: selectedProduct.id,
+        quantity: data.quantity,
+        costPrice: data.costPrice,
+        lotNumber: data.lotNumber,
+        expirationDate: data.expirationDate?.toISOString(),
+        manufacturingDate: data.manufacturingDate?.toISOString(),
+        supplierId: data.supplierId,
+      });
 
-    navigate('/stock');
+      toast({
+        title: 'Entrada registrada',
+        description: `${data.quantity} unidades de ${selectedProduct.name} adicionadas ao estoque.`,
+      });
+
+      navigate('/stock');
+    } catch (error) {
+      console.error('Stock entry error:', error);
+      toast({
+        title: 'Erro ao registrar entrada',
+        description: formatUserError(error, 'stock'),
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -240,6 +273,42 @@ export const StockEntryPage: FC = () => {
               <div className="space-y-2">
                 <Label htmlFor="lotNumber">Número do Lote</Label>
                 <Input id="lotNumber" placeholder="Ex: LOT-2026-001" {...register('lotNumber')} />
+              </div>
+
+              {/* Fornecedor */}
+              <div className="space-y-2">
+                <Label htmlFor="supplierId" className="flex items-center gap-2">
+                  <Truck className="h-4 w-4" aria-hidden="true" />
+                  Fornecedor
+                </Label>
+                <Select
+                  value={watch('supplierId') || ''}
+                  onValueChange={(value) => setValue('supplierId', value || undefined)}
+                >
+                  <SelectTrigger id="supplierId" aria-label="Selecionar fornecedor">
+                    <SelectValue placeholder="Selecione um fornecedor (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                        {supplier.cnpj && (
+                          <span className="ml-2 text-muted-foreground text-xs">
+                            ({supplier.cnpj})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                    {suppliers.length === 0 && (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        Nenhum fornecedor cadastrado
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Vincular um fornecedor ajuda a rastrear a origem dos produtos
+                </p>
               </div>
 
               {/* Datas */}

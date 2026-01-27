@@ -40,7 +40,7 @@ import {
   type ServiceOrderItem,
 } from '@/hooks/useServiceOrders';
 import { invoke } from '@/lib/tauri';
-import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils';
+import { formatCurrency, formatDate, formatDateTime, getErrorMessage } from '@/lib/utils';
 import { useCompany } from '@/stores/settings-store';
 import { useAuthStore } from '@/stores/auth-store';
 import {
@@ -134,7 +134,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     } catch (error) {
       toast({
         title: 'Erro ao iniciar ordem',
-        description: String(error),
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -151,7 +151,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     } catch (error) {
       toast({
         title: 'Erro ao concluir ordem',
-        description: String(error),
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -192,7 +192,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     } catch (error) {
       toast({
         title: 'Erro ao entregar ordem',
-        description: String(error),
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -210,7 +210,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     } catch (error) {
       toast({
         title: 'Erro ao cancelar ordem',
-        description: String(error),
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -227,7 +227,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     } catch (error) {
       toast({
         title: 'Erro ao aprovar',
-        description: String(error),
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -244,7 +244,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     } catch (error) {
       toast({
         title: 'Erro ao remover item',
-        description: String(error),
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -293,7 +293,7 @@ export function ServiceOrderDetails({ orderId, onEdit, onClose }: ServiceOrderDe
     } catch (error) {
       toast({
         title: 'Erro na impressão',
-        description: String(error),
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }

@@ -88,6 +88,7 @@ type WebMockDb = {
   materialRequests: EnterpriseMaterialRequest[];
   stockTransfers: StockTransfer[];
   stockLocations: StockLocation[];
+  heldSales: HeldSale[];
 };
 
 const WEB_MOCK_DB_KEY = '__giro_web_mock_db__';
@@ -114,6 +115,7 @@ const loadWebMockDb = (): WebMockDb => {
       materialRequests: [],
       stockTransfers: [],
       stockLocations: [],
+      heldSales: [],
     };
   }
 
@@ -129,6 +131,7 @@ const loadWebMockDb = (): WebMockDb => {
       materialRequests: [],
       stockTransfers: [],
       stockLocations: [],
+      heldSales: [],
     };
     return emptyDb;
   }
@@ -145,6 +148,7 @@ const loadWebMockDb = (): WebMockDb => {
       materialRequests: parsed.materialRequests || [],
       stockTransfers: parsed.stockTransfers || [],
       stockLocations: parsed.stockLocations || [],
+      heldSales: parsed.heldSales || [],
     };
   } catch {
     const reset: WebMockDb = {
@@ -156,6 +160,7 @@ const loadWebMockDb = (): WebMockDb => {
       materialRequests: [],
       stockTransfers: [],
       stockLocations: [],
+      heldSales: [],
     };
     window.localStorage.setItem(WEB_MOCK_DB_KEY, JSON.stringify(reset));
     return reset;
@@ -575,6 +580,541 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
     }
     case 'get_pending_requests': {
       return db.materialRequests.filter((r) => r.status === 'PENDING') as unknown as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // STOCK MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'get_stock_report': {
+      // Return mock stock report for web development
+      const mockReport: StockReport = {
+        totalProducts: 24,
+        totalValue: 15420.5,
+        lowStockCount: 3,
+        outOfStockCount: 1,
+        expiringCount: 2,
+        excessStockCount: 0,
+        valuationByCategory: {
+          Materiais: 8500.0,
+          Ferramentas: 4200.0,
+          Peças: 2720.5,
+        },
+      };
+      return mockReport as unknown as T;
+    }
+    case 'get_low_stock_products': {
+      // Return mock low stock products for web development
+      const mockLowStock = [
+        {
+          id: 'prod-low-001',
+          name: 'Cimento CP-II',
+          internalCode: 'MRC-00001',
+          barcode: '7891234567890',
+          currentStock: 5,
+          minStock: 20,
+          maxStock: 100,
+          salePrice: 28.0,
+          costPrice: 22.0,
+          unit: 'UN',
+          isActive: true,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        },
+        {
+          id: 'prod-low-002',
+          name: 'Areia Fina',
+          internalCode: 'MRC-00002',
+          currentStock: 3,
+          minStock: 10,
+          maxStock: 50,
+          salePrice: 120.0,
+          costPrice: 90.0,
+          unit: 'M3',
+          isActive: true,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        },
+        {
+          id: 'prod-low-003',
+          name: 'Tijolo 6 furos',
+          internalCode: 'MRC-00003',
+          currentStock: 0,
+          minStock: 500,
+          maxStock: 2000,
+          salePrice: 1.5,
+          costPrice: 0.8,
+          unit: 'UN',
+          isActive: true,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        },
+      ];
+      return mockLowStock as unknown as T;
+    }
+    case 'get_recent_stock_movements':
+    case 'get_product_stock_movements': {
+      // Return mock stock movements
+      const mockMovements = [
+        {
+          id: 'mov-001',
+          productId: 'prod-001',
+          type: 'ENTRY',
+          quantity: 50,
+          previousStock: 100,
+          newStock: 150,
+          reason: 'Compra fornecedor',
+          employeeId: 'admin-1',
+          createdAt: nowIso(),
+          product: { id: 'prod-001', name: 'Cimento CP-II', internalCode: 'MRC-00001' },
+        },
+        {
+          id: 'mov-002',
+          productId: 'prod-002',
+          type: 'SALE',
+          quantity: 10,
+          previousStock: 60,
+          newStock: 50,
+          reason: 'Venda PDV',
+          employeeId: 'admin-1',
+          createdAt: nowIso(),
+          product: { id: 'prod-002', name: 'Areia Fina', internalCode: 'MRC-00002' },
+        },
+      ];
+      return mockMovements as unknown as T;
+    }
+    case 'get_expiring_lots': {
+      // Return mock expiring lots
+      const mockExpiringLots = [
+        {
+          id: 'lot-001',
+          productId: 'prod-001',
+          lotNumber: 'LOT-2026-001',
+          expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          currentQuantity: 20,
+          initialQuantity: 50,
+          status: 'AVAILABLE',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        },
+      ];
+      return mockExpiringLots as unknown as T;
+    }
+    case 'create_stock_movement': {
+      // Mock stock movement creation
+      const input = (args?.input as Record<string, unknown>) || {};
+      const movement = {
+        id: randomId('mov'),
+        productId: input.productId || 'unknown',
+        type: input.movementType || 'ENTRY',
+        quantity: input.quantity || 0,
+        previousStock: 100,
+        newStock: 100 + (Number(input.quantity) || 0),
+        reason: input.reason || 'Movimentação',
+        employeeId: input.employeeId || 'admin-1',
+        createdAt: nowIso(),
+      };
+      return movement as unknown as T;
+    }
+    case 'get_expired_lots': {
+      return [] as unknown as T;
+    }
+    case 'get_product_lots': {
+      return [] as unknown as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // DASHBOARD & SALES MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'get_today_sales':
+    case 'get_sales_by_period': {
+      return [] as unknown as T;
+    }
+    case 'get_daily_sales_total': {
+      return 0 as unknown as T;
+    }
+    case 'get_top_products': {
+      const limit = (args?.limit as number) || 5;
+      const mockTopProducts = [
+        {
+          product: {
+            id: 'prod-001',
+            name: 'Cimento CP-II',
+            internalCode: 'MRC-00001',
+            salePrice: 28.0,
+          },
+          quantity: 150,
+          revenue: 4200.0,
+        },
+        {
+          product: {
+            id: 'prod-002',
+            name: 'Areia Fina',
+            internalCode: 'MRC-00002',
+            salePrice: 120.0,
+          },
+          quantity: 45,
+          revenue: 5400.0,
+        },
+        {
+          product: {
+            id: 'prod-003',
+            name: 'Tijolo 6 furos',
+            internalCode: 'MRC-00003',
+            salePrice: 1.5,
+          },
+          quantity: 2000,
+          revenue: 3000.0,
+        },
+      ];
+      return mockTopProducts.slice(0, limit) as unknown as T;
+    }
+    case 'get_motoparts_dashboard_stats': {
+      return {
+        totalSalesToday: 1250.0,
+        totalSalesYesterday: 980.0,
+        activeAlerts: 5,
+        openServiceOrders: 3,
+        activeWarranties: 2,
+        revenueWeekly: [
+          { date: '2026-01-20', value: 850 },
+          { date: '2026-01-21', value: 1200 },
+          { date: '2026-01-22', value: 780 },
+          { date: '2026-01-23', value: 1100 },
+          { date: '2026-01-24', value: 950 },
+          { date: '2026-01-25', value: 1350 },
+          { date: '2026-01-26', value: 1250 },
+        ],
+      } as unknown as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // ALERTS MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'get_alerts': {
+      const mockAlerts = [
+        {
+          id: 'alert-001',
+          type: 'LOW_STOCK',
+          severity: 'WARNING',
+          title: 'Estoque Baixo: Cimento CP-II',
+          message: 'O produto Cimento CP-II está com estoque abaixo do mínimo (5 unidades)',
+          isRead: false,
+          isDismissed: false,
+          createdAt: nowIso(),
+        },
+        {
+          id: 'alert-002',
+          type: 'EXPIRATION_WARNING',
+          severity: 'CRITICAL',
+          title: 'Produto próximo ao vencimento',
+          message: 'O lote LOT-2026-001 vence em 7 dias',
+          isRead: false,
+          isDismissed: false,
+          createdAt: nowIso(),
+        },
+      ];
+      return mockAlerts as unknown as T;
+    }
+    case 'get_unread_alerts_count': {
+      return 2 as unknown as T;
+    }
+    case 'mark_alert_read': {
+      return undefined as unknown as T;
+    }
+    case 'delete_alert':
+    case 'dismiss_alert': {
+      return undefined as unknown as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // SUPPLIERS MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'get_suppliers': {
+      return [] as unknown as T;
+    }
+    case 'get_supplier_by_id': {
+      return null as unknown as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // CUSTOMERS MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'get_customers': {
+      return [] as unknown as T;
+    }
+    case 'get_customers_paginated': {
+      return { data: [], total: 0, page: 1, perPage: 20, totalPages: 0 } as unknown as T;
+    }
+    case 'search_customers': {
+      return [] as unknown as T;
+    }
+    case 'get_customer_by_id': {
+      return null as unknown as T;
+    }
+    case 'create_customer':
+    case 'update_customer':
+    case 'deactivate_customer':
+    case 'reactivate_customer': {
+      const input = (args?.input as Record<string, unknown>) || {};
+      return {
+        id: randomId('cust'),
+        name: input.name || 'Cliente Mock',
+        isActive: true,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        ...input,
+      } as unknown as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // SALES MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'get_sale_by_id': {
+      return null as unknown as T;
+    }
+    case 'get_sales': {
+      return { data: [], total: 0, page: 1, perPage: 20, totalPages: 0 } as unknown as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // REPORTS MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'get_sales_report': {
+      return {
+        totalSales: 0,
+        totalRevenue: 0,
+        averageTicket: 0,
+        salesByPaymentMethod: {},
+        salesByHour: {},
+      } as unknown as T;
+    }
+    case 'get_financial_report': {
+      return {
+        revenue: 0,
+        cogs: 0,
+        grossProfit: 0,
+        expenses: 0,
+        netProfit: 0,
+        margin: 0,
+      } as unknown as T;
+    }
+    case 'get_employee_performance': {
+      return [] as unknown as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // PDV / HELD SALES MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'get_held_sales': {
+      return (db.heldSales ?? []) as T;
+    }
+    case 'save_held_sale': {
+      const input = args?.input as CreateHeldSaleInput | undefined;
+      if (!input) throw new Error('Input obrigatório para save_held_sale');
+
+      const heldSale: HeldSale = {
+        id: input.id,
+        items: input.items,
+        discountValue: input.discountValue,
+        discountReason: input.discountReason,
+        customerId: input.customerId,
+        subtotal: input.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0),
+        total:
+          input.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0) - input.discountValue,
+        employeeId: 'emp-1',
+        employeeName: 'Operador Demo',
+        employeeRole: 'Caixa',
+        status: 'WAITING',
+        createdAt: nowIso(),
+      };
+
+      db.heldSales = [...(db.heldSales ?? []), heldSale];
+      saveWebMockDb(db);
+      return heldSale as T;
+    }
+    case 'delete_held_sale': {
+      const id = args?.id as string | undefined;
+      if (!id) throw new Error('ID obrigatório para delete_held_sale');
+
+      db.heldSales = (db.heldSales ?? []).filter((s) => s.id !== id);
+      saveWebMockDb(db);
+      return undefined as T;
+    }
+    case 'create_sale': {
+      // Mock de venda - só retorna sucesso
+      const saleId = randomId('sale');
+      return { id: saleId, status: 'COMPLETED' } as unknown as T;
+    }
+    case 'get_waiting_orders': {
+      // Retorna vendas com status WAITING (cozinha/balcão)
+      return (db.heldSales ?? []).filter((s) => s.status === 'WAITING') as T;
+    }
+    case 'update_held_sale_status': {
+      const id = args?.id as string | undefined;
+      const status = args?.status as HeldSale['status'] | undefined;
+      if (!id || !status) throw new Error('ID e status obrigatórios');
+
+      db.heldSales = (db.heldSales ?? []).map((s) => (s.id === id ? { ...s, status } : s));
+      saveWebMockDb(db);
+      return undefined as T;
+    }
+    case 'get_monthly_summary': {
+      return {
+        totalSales: 0,
+        totalRevenue: 0,
+        averageTicket: 0,
+        topProducts: [],
+        salesByPaymentMethod: {},
+      } as unknown as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // SERVICE ORDERS MOCKS (Motopeças)
+    // ────────────────────────────────────────────────────────────────────────
+    case 'get_open_service_orders': {
+      return [] as unknown as T;
+    }
+    case 'get_service_orders_paginated': {
+      return { data: [], total: 0, page: 1, perPage: 20, totalPages: 0 } as unknown as T;
+    }
+    case 'get_service_order_by_id':
+    case 'get_service_order_by_number':
+    case 'get_service_order_details': {
+      return null as unknown as T;
+    }
+    case 'create_service_order': {
+      return {
+        id: randomId('so'),
+        order_number: Date.now(),
+        status: 'OPEN',
+        labor_cost: 0,
+        parts_cost: 0,
+        discount: 0,
+        total: 0,
+        warranty_days: 90,
+        is_paid: false,
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      } as unknown as T;
+    }
+    case 'update_service_order':
+    case 'start_service_order':
+    case 'complete_service_order':
+    case 'cancel_service_order': {
+      return { id: args?.id, status: 'OPEN' } as unknown as T;
+    }
+    case 'finish_service_order': {
+      return randomId('sale') as unknown as T;
+    }
+    case 'get_service_order_items': {
+      return [] as unknown as T;
+    }
+    case 'add_service_order_item': {
+      return {
+        id: randomId('soi'),
+        item_type: 'SERVICE',
+        description: 'Mock Item',
+        quantity: 1,
+        unit_price: 0,
+        discount: 0,
+        total: 0,
+        created_at: nowIso(),
+      } as unknown as T;
+    }
+    case 'remove_service_order_item':
+    case 'update_service_order_item': {
+      return undefined as T;
+    }
+    case 'get_services': {
+      return [] as unknown as T;
+    }
+    case 'get_service_by_id':
+    case 'get_service_by_code': {
+      return null as unknown as T;
+    }
+    case 'create_service':
+    case 'update_service': {
+      return {
+        id: randomId('svc'),
+        code: 'SVC001',
+        description: 'Mock Service',
+        price: 0,
+      } as unknown as T;
+    }
+    case 'get_vehicle_services_history': {
+      return [] as unknown as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // WARRANTIES MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'get_warranties':
+    case 'get_active_warranties':
+    case 'get_expiring_warranties': {
+      return [] as unknown as T;
+    }
+    case 'get_warranty_by_id': {
+      return null as unknown as T;
+    }
+    case 'create_warranty_claim':
+    case 'update_warranty_claim': {
+      return { id: randomId('wc'), status: 'PENDING' } as unknown as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // SETTINGS / HARDWARE MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'list_hardware_ports': {
+      return ['COM1', 'COM2', '/dev/ttyUSB0'] as unknown as T;
+    }
+    case 'configure_printer':
+    case 'configure_scale':
+    case 'test_printer':
+    case 'print_test_documents':
+    case 'start_serial_scanner':
+    case 'stop_serial_scanner': {
+      return undefined as T;
+    }
+    case 'read_weight': {
+      return { weight: 0, stable: true } as unknown as T;
+    }
+    case 'generate_qr_svg': {
+      return '<svg></svg>' as unknown as T;
+    }
+    case 'get_setting': {
+      return null as unknown as T;
+    }
+    case 'set_setting': {
+      return undefined as T;
+    }
+    case 'validate_license': {
+      return { valid: true, message: 'Mock license valid' } as unknown as T;
+    }
+    case 'create_backup': {
+      return { success: true, data: '/tmp/backup.db' } as unknown as T;
+    }
+    case 'restore_backup': {
+      return { success: true } as unknown as T;
+    }
+    case 'update_license_admin': {
+      return undefined as T;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+    // NFCE / FISCAL MOCKS
+    // ────────────────────────────────────────────────────────────────────────
+    case 'emit_nfce': {
+      return {
+        success: true,
+        chave: '12345678901234567890123456789012345678901234',
+        protocolo: 'MOCK123456',
+        xml: '<nfeProc></nfeProc>',
+        danfe_url: null,
+      } as unknown as T;
+    }
+    case 'print_receipt': {
+      return { success: true, data: null } as unknown as T;
+    }
+    case 'test_printer_connection': {
+      return { success: true, data: true } as unknown as T;
+    }
+    case 'check_sefaz_status': {
+      return { online: true, message: 'SEFAZ Online (Mock)' } as unknown as T;
+    }
+    case 'get_offline_notes':
+    case 'get_pending_nfce': {
+      return [] as unknown as T;
+    }
+    case 'sync_offline_notes': {
+      return { synced: 0, errors: [] } as unknown as T;
     }
     default:
       throw new Error(`WebMock invoke: comando não suportado: ${command}`);
@@ -1097,7 +1637,8 @@ export async function addStockEntry(
   costPrice: number,
   lotNumber?: string,
   expirationDate?: string,
-  manufacturingDate?: string
+  manufacturingDate?: string,
+  supplierId?: string
 ): Promise<void> {
   return tauriInvoke<void>('create_stock_movement', {
     input: {
@@ -1109,6 +1650,7 @@ export async function addStockEntry(
       lotNumber,
       expirationDate,
       manufacturingDate,
+      supplierId,
     },
   });
 }

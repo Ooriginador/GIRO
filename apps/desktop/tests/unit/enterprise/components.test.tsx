@@ -3,7 +3,7 @@
  * @description Testes unitários para componentes do módulo Enterprise
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -154,15 +154,78 @@ describe('Enterprise Status Badges', () => {
   });
 });
 
-describe('Enterprise Permission Guard', () => {
-  // Note: These tests require the actual PermissionGuard component
-  // which depends on the auth context
+// Mock stores for PermissionGuard tests
+vi.mock('@/stores', () => ({
+  useAuthStore: vi.fn(),
+}));
 
-  it.skip('should render children when permission is granted', () => {
-    // Would need auth context mock
+vi.mock('@/stores/useBusinessProfile', () => ({
+  useBusinessProfile: vi.fn(),
+}));
+
+import { PermissionGuard } from '@/components/enterprise/PermissionGuard';
+import { useAuthStore } from '@/stores';
+import { useBusinessProfile } from '@/stores/useBusinessProfile';
+
+describe('Enterprise Permission Guard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it.skip('should render fallback when permission is denied', () => {
-    // Would need auth context mock
+  it('should render children when permission is granted', () => {
+    // Mock enterprise user with CONTRACT_MANAGER role (has contracts.view permission)
+    vi.mocked(useAuthStore).mockReturnValue({
+      employee: { id: '1', name: 'Test', role: 'CONTRACT_MANAGER' },
+    } as any);
+    vi.mocked(useBusinessProfile).mockReturnValue({
+      businessType: 'ENTERPRISE',
+    } as any);
+
+    render(
+      <PermissionGuard permission="contracts.view">
+        <div data-testid="protected-content">Protected Content</div>
+      </PermissionGuard>
+    );
+
+    expect(screen.getByTestId('protected-content')).toBeInTheDocument();
+  });
+
+  it('should render fallback when permission is denied', () => {
+    // Mock user without permission
+    vi.mocked(useAuthStore).mockReturnValue({
+      employee: { id: '1', name: 'Test', role: 'REQUESTER' },
+    } as any);
+    vi.mocked(useBusinessProfile).mockReturnValue({
+      businessType: 'ENTERPRISE',
+    } as any);
+
+    render(
+      <PermissionGuard
+        permission="contracts.delete"
+        fallback={<div data-testid="fallback">No Access</div>}
+      >
+        <div data-testid="protected-content">Protected Content</div>
+      </PermissionGuard>
+    );
+
+    expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
+    expect(screen.getByTestId('fallback')).toBeInTheDocument();
+  });
+
+  it('should hide content for non-enterprise users', () => {
+    vi.mocked(useAuthStore).mockReturnValue({
+      employee: { id: '1', name: 'Test', role: 'ADMIN' },
+    } as any);
+    vi.mocked(useBusinessProfile).mockReturnValue({
+      businessType: 'DEFAULT',
+    } as any);
+
+    render(
+      <PermissionGuard permission="contracts.view">
+        <div data-testid="protected-content">Protected Content</div>
+      </PermissionGuard>
+    );
+
+    expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
   });
 });

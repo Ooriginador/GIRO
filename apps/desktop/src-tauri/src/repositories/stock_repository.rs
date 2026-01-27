@@ -94,10 +94,11 @@ impl<'a> StockRepository<'a> {
             let cost = data.cost_price.unwrap_or(0.0);
 
             sqlx::query(
-                "INSERT INTO product_lots (id, product_id, lot_number, expiration_date, manufacturing_date, initial_quantity, current_quantity, cost_price, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'AVAILABLE', ?, ?)"
+                "INSERT INTO product_lots (id, product_id, supplier_id, lot_number, expiration_date, manufacturing_date, initial_quantity, current_quantity, cost_price, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'AVAILABLE', ?, ?)"
             )
             .bind(&nid)
             .bind(&data.product_id)
+            .bind(&data.supplier_id)
             .bind(&data.lot_number)
             .bind(&data.expiration_date)
             .bind(&data.manufacturing_date)
@@ -211,39 +212,54 @@ impl<'a> StockRepository<'a> {
         days: i32,
         category_id: Option<String>,
     ) -> AppResult<Vec<ProductLot>> {
-        let mut query = format!(
-            "SELECT {} FROM product_lots pl 
-             INNER JOIN products p ON pl.product_id = p.id
-             WHERE pl.status = 'AVAILABLE' 
-             AND pl.expiration_date IS NOT NULL 
-             AND date(pl.expiration_date) <= date('now', '+' || ? || ' days')",
-            Self::LOT_COLS
-                .replace("id,", "pl.id,")
-                .replace("product_id,", "pl.product_id,")
-                .replace("supplier_id,", "pl.supplier_id,")
-                .replace("lot_number,", "pl.lot_number,")
-                .replace("expiration_date,", "pl.expiration_date,")
-                .replace("manufacturing_date,", "pl.manufacturing_date,")
-                .replace("purchase_date,", "pl.purchase_date,")
-                .replace("initial_quantity,", "pl.initial_quantity,")
-                .replace("current_quantity,", "pl.current_quantity,")
-                .replace("cost_price,", "pl.cost_price,")
-                .replace("status,", "pl.status,")
-                .replace("created_at,", "pl.created_at,")
-                .replace("updated_at", "pl.updated_at")
-        );
+        let base_cols = Self::LOT_COLS
+            .replace("id,", "pl.id,")
+            .replace("product_id,", "pl.product_id,")
+            .replace("supplier_id,", "pl.supplier_id,")
+            .replace("lot_number,", "pl.lot_number,")
+            .replace("expiration_date,", "pl.expiration_date,")
+            .replace("manufacturing_date,", "pl.manufacturing_date,")
+            .replace("purchase_date,", "pl.purchase_date,")
+            .replace("initial_quantity,", "pl.initial_quantity,")
+            .replace("current_quantity,", "pl.current_quantity,")
+            .replace("cost_price,", "pl.cost_price,")
+            .replace("status,", "pl.status,")
+            .replace("created_at,", "pl.created_at,")
+            .replace("updated_at", "pl.updated_at");
 
-        if let Some(ref cat_id) = category_id {
-            query.push_str(&format!(" AND p.category_id = '{}'", cat_id));
+        if let Some(cat_id) = category_id {
+            let query = format!(
+                "SELECT {} FROM product_lots pl 
+                 INNER JOIN products p ON pl.product_id = p.id
+                 WHERE pl.status = 'AVAILABLE' 
+                 AND pl.expiration_date IS NOT NULL 
+                 AND date(pl.expiration_date) <= date('now', '+' || ? || ' days')
+                 AND p.category_id = ?
+                 ORDER BY pl.expiration_date ASC",
+                base_cols
+            );
+            let result = sqlx::query_as::<_, ProductLot>(&query)
+                .bind(days)
+                .bind(&cat_id)
+                .fetch_all(self.pool)
+                .await?;
+            Ok(result)
+        } else {
+            let query = format!(
+                "SELECT {} FROM product_lots pl 
+                 INNER JOIN products p ON pl.product_id = p.id
+                 WHERE pl.status = 'AVAILABLE' 
+                 AND pl.expiration_date IS NOT NULL 
+                 AND date(pl.expiration_date) <= date('now', '+' || ? || ' days')
+                 ORDER BY pl.expiration_date ASC",
+                base_cols
+            );
+            let result = sqlx::query_as::<_, ProductLot>(&query)
+                .bind(days)
+                .fetch_all(self.pool)
+                .await?;
+            Ok(result)
         }
-
-        query.push_str(" ORDER BY pl.expiration_date ASC");
-
-        let result = sqlx::query_as::<_, ProductLot>(&query)
-            .bind(days)
-            .fetch_all(self.pool)
-            .await?;
-        Ok(result)
     }
 
     pub async fn find_expired_lots(&self) -> AppResult<Vec<ProductLot>> {
@@ -449,6 +465,7 @@ mod tests {
             lot_number: None,
             expiration_date: None,
             manufacturing_date: None,
+            supplier_id: None,
         };
 
         let result = repo.create_movement(input, false).await;
@@ -478,6 +495,7 @@ mod tests {
             lot_number: None,
             expiration_date: None,
             manufacturing_date: None,
+            supplier_id: None,
         };
 
         let result = repo.create_movement(input, false).await;
@@ -506,6 +524,7 @@ mod tests {
             lot_number: None,
             expiration_date: None,
             manufacturing_date: None,
+            supplier_id: None,
         };
 
         let created = repo.create_movement(input, false).await.unwrap();
@@ -534,6 +553,7 @@ mod tests {
                 lot_number: None,
                 expiration_date: None,
                 manufacturing_date: None,
+                supplier_id: None,
             };
             repo.create_movement(input, false).await.unwrap();
         }
@@ -564,6 +584,7 @@ mod tests {
                 lot_number: None,
                 expiration_date: None,
                 manufacturing_date: None,
+                supplier_id: None,
             };
             repo.create_movement(input, false).await.unwrap();
         }

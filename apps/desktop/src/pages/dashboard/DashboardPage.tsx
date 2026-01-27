@@ -4,17 +4,25 @@
  */
 
 import { StatCard } from '@/components/dashboard/StatCard';
+import { MotopartsDashboard } from '@/components/motoparts/MotopartsDashboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardStats } from '@/hooks/useDashboard';
 import { formatCurrency } from '@/lib/formatters';
+import { useBusinessProfile } from '@/stores/useBusinessProfile';
 import { AlertTriangle, DollarSign, Package, ShoppingCart, TrendingUp } from 'lucide-react';
 import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const DashboardPage: FC = () => {
   const navigate = useNavigate();
+  const { businessType } = useBusinessProfile();
   const { data: stats, isLoading } = useDashboardStats();
+
+  // Renderizar dashboard específico para Motopeças
+  if (businessType === 'MOTOPARTS') {
+    return <MotopartsDashboard />;
+  }
 
   if (isLoading) {
     return (

@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { invoke } from '@/lib/tauri';
+import { getErrorMessage } from '@/lib/utils';
 import { Network, RefreshCw, Wifi } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -30,7 +31,7 @@ export function NetworkSettings() {
       setStatus(s);
       setEnabled(s.isRunning);
     } catch (error) {
-      console.error('Failed to get network status:', (error as Error)?.message ?? String(error));
+      console.error('Failed to get network status:', getErrorMessage(error));
     }
   };
 

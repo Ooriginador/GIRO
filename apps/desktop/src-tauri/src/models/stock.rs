@@ -86,6 +86,7 @@ pub struct CreateStockMovement {
     pub lot_number: Option<String>,
     pub expiration_date: Option<String>,
     pub manufacturing_date: Option<String>,
+    pub supplier_id: Option<String>,
 }
 
 /// Lote de produto

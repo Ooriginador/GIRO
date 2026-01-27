@@ -1327,9 +1327,16 @@ export const SettingsPage: FC = () => {
 
                     try {
                       const msg = await seedDatabase(); // Auto-imported or imported manual
-                      alert(msg);
+                      toast({
+                        title: 'Banco populado',
+                        description: msg || 'Dados de teste gerados com sucesso!',
+                      });
                     } catch (e) {
-                      alert('Erro ao popular: ' + e);
+                      toast({
+                        title: 'Erro ao popular banco',
+                        description: String(e),
+                        variant: 'destructive',
+                      });
                     }
                   }}
                 >

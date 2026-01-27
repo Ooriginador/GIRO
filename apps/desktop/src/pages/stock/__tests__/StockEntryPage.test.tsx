@@ -20,9 +20,14 @@ vi.mock('@/components/ui/date-picker', () => ({
   ),
 }));
 
-vi.mock('@/hooks', () => ({
-  useProductSearch: vi.fn(),
-}));
+vi.mock('@/hooks', async () => {
+  const actual = await vi.importActual('@/hooks');
+  return {
+    ...actual,
+    useProductSearch: vi.fn(),
+    useSuppliers: vi.fn(() => ({ data: [], isLoading: false })),
+  };
+});
 
 vi.mock('@/hooks/useStock', () => ({
   useAddStockEntry: vi.fn(),

@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/lib/utils';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { check, Update } from '@tauri-apps/plugin-updater';
 import { useCallback, useEffect, useState } from 'react';
@@ -36,7 +37,7 @@ export function UpdateChecker() {
         });
       }
     } catch (error) {
-      console.error('Erro ao verificar atualizações:', (error as Error)?.message ?? String(error));
+      console.error('Erro ao verificar atualizações:', getErrorMessage(error));
     }
   }, [toast]);
 
@@ -83,10 +84,7 @@ export function UpdateChecker() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       await relaunch();
     } catch (error) {
-      console.error(
-        'Erro ao baixar/instalar atualização:',
-        (error as Error)?.message ?? String(error)
-      );
+      console.error('Erro ao baixar/instalar atualização:', getErrorMessage(error));
       toast({
         title: '❌ Erro na atualização',
         description: 'Não foi possível instalar a atualização. Tente novamente mais tarde.',
@@ -109,23 +107,25 @@ export function UpdateChecker() {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>🎉 Nova versão disponível!</AlertDialogTitle>
-          <AlertDialogDescription>
-            {updateInfo && (
-              <>
-                <p className="mb-2">
-                  Uma nova versão do GIRO está disponível: <strong>v{updateInfo.version}</strong>
-                </p>
-                {updateInfo.body && (
-                  <div className="mt-4 p-4 bg-muted rounded-lg max-h-60 overflow-y-auto">
-                    <p className="font-semibold mb-2">O que há de novo:</p>
-                    <div
-                      className="text-sm whitespace-pre-wrap"
-                      dangerouslySetInnerHTML={{ __html: updateInfo.body }}
-                    />
-                  </div>
-                )}
-              </>
-            )}
+          <AlertDialogDescription asChild>
+            <div>
+              {updateInfo && (
+                <>
+                  <p className="mb-2">
+                    Uma nova versão do GIRO está disponível: <strong>v{updateInfo.version}</strong>
+                  </p>
+                  {updateInfo.body && (
+                    <div className="mt-4 p-4 bg-muted rounded-lg max-h-60 overflow-y-auto">
+                      <p className="font-semibold mb-2">O que há de novo:</p>
+                      <div
+                        className="text-sm whitespace-pre-wrap"
+                        dangerouslySetInnerHTML={{ __html: updateInfo.body }}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
 

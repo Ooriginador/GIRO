@@ -98,25 +98,39 @@ pub async fn get_stock_report(
         .await?
         .len() as i64;
 
-    // Valuation por categoria
-    let mut category_query = String::from(
-        r#"
-        SELECT 
-            COALESCE(c.name, 'Sem Categoria') as category_name,
-            SUM(p.current_stock * p.cost_price) as total_value
-        FROM products p
-        LEFT JOIN categories c ON p.category_id = c.id
-        WHERE p.is_active = 1
-    "#,
-    );
-
-    if let Some(ref cat_id) = category_id {
-        category_query.push_str(&format!(" AND p.category_id = '{}'", cat_id));
-    }
-
-    category_query.push_str(" GROUP BY category_name ORDER BY total_value DESC");
-
-    let category_rows = sqlx::query(&category_query).fetch_all(state.pool()).await?;
+    // Valuation por categoria - usando prepared statements para evitar SQL injection
+    let category_rows = if let Some(ref cat_id) = category_id {
+        sqlx::query(
+            r#"
+            SELECT 
+                COALESCE(c.name, 'Sem Categoria') as category_name,
+                SUM(p.current_stock * p.cost_price) as total_value
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.is_active = 1 AND p.category_id = ?
+            GROUP BY category_name 
+            ORDER BY total_value DESC
+            "#,
+        )
+        .bind(cat_id)
+        .fetch_all(state.pool())
+        .await?
+    } else {
+        sqlx::query(
+            r#"
+            SELECT 
+                COALESCE(c.name, 'Sem Categoria') as category_name,
+                SUM(p.current_stock * p.cost_price) as total_value
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.is_active = 1
+            GROUP BY category_name 
+            ORDER BY total_value DESC
+            "#,
+        )
+        .fetch_all(state.pool())
+        .await?
+    };
 
     let mut valuation_by_category = HashMap::new();
     for row in category_rows {

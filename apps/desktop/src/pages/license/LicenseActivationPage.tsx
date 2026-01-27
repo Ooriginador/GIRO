@@ -20,6 +20,7 @@ import {
   validateLicense,
 } from '@/lib/tauri';
 import { useLicenseStore } from '@/stores/license-store';
+import { getErrorMessage } from '@/lib/utils';
 import { AlertCircle, Key, Loader2, Monitor, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -127,7 +128,7 @@ export function LicenseActivationPage() {
           setIsValidating(false);
         }
       } catch (error) {
-        console.error('License validation failed:', (error as Error)?.message ?? String(error));
+        console.error('License validation failed:', getErrorMessage(error));
         setState('error');
         setIsValidating(false);
       }
@@ -163,9 +164,7 @@ export function LicenseActivationPage() {
 
         const store = useLicenseStore.getState();
         const currentKey = store.licenseKey;
-        log.debug(
-          ` Post-hydration: key=${currentKey}, state=${store.state}`
-        );
+        log.debug(` Post-hydration: key=${currentKey}, state=${store.state}`);
 
         if (currentKey) {
           setLicenseKey(currentKey);
@@ -204,10 +203,7 @@ export function LicenseActivationPage() {
               setIsValidating(false);
             }
           } catch (restoreErr) {
-            console.warn(
-              '[LicenseActivationPage] Restore failed:',
-              (restoreErr as Error)?.message ?? String(restoreErr)
-            );
+            console.warn('[LicenseActivationPage] Restore failed:', getErrorMessage(restoreErr));
             setState('unlicensed');
             setIsValidating(false);
           }
@@ -215,7 +211,7 @@ export function LicenseActivationPage() {
       } catch (error) {
         console.error(
           '[LicenseActivationPage] Failed to initialize license check:',
-          (error as Error)?.message ?? String(error)
+          getErrorMessage(error)
         );
         setState('error');
         setIsValidating(false);

@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { usePDVStore } from '@/stores/pdv-store';
@@ -48,6 +49,7 @@ import { usePDVKeyboard } from '@/hooks/use-keyboard';
 
 export const PDVPage: FC = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -89,7 +91,6 @@ export const PDVPage: FC = () => {
 
   // Verificar se é atendente (não pode finalizar pagamento)
   const isAttendant = employee?.role === 'ATTENDANT';
-  const canFinalizePayment = hasPermission('pdv.finalize_payment');
 
   // Carregar cliente se houver customerId no store
   useEffect(() => {
@@ -200,6 +201,14 @@ export const PDVPage: FC = () => {
     },
     onDiscount: () => {
       if (items.length > 0) {
+        // Check permission before allowing discount
+        if (!hasPermission('pdv.discount.basic')) {
+          toast.warning(
+            'Permissão negada',
+            'Você não tem permissão para aplicar descontos. Solicite a um supervisor.'
+          );
+          return;
+        }
         setDiscountInput(discount.toFixed(2));
         setShowDiscountModal(true);
         setTimeout(() => discountInputRef.current?.select(), 100);
@@ -788,21 +797,35 @@ export const PDVPage: FC = () => {
                       className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
                       onClick={() => {
                         if (items.length > 0) {
-                          alert('O carrinho deve estar vazio para recuperar uma venda.');
+                          toast.warning(
+                            'Carrinho não vazio',
+                            'Finalize ou cancele a venda atual antes de recuperar uma venda pausada.'
+                          );
                           return;
                         }
                         resumeSale(sale.id);
                         setShowRecoverModal(false);
+                        toast.success(
+                          'Venda recuperada',
+                          'A venda pausada foi carregada no carrinho.'
+                        );
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           if (items.length > 0) {
-                            alert('O carrinho deve estar vazio para recuperar uma venda.');
+                            toast.warning(
+                              'Carrinho não vazio',
+                              'Finalize ou cancele a venda atual antes de recuperar uma venda pausada.'
+                            );
                             return;
                           }
                           resumeSale(sale.id);
                           setShowRecoverModal(false);
+                          toast.success(
+                            'Venda recuperada',
+                            'A venda pausada foi carregada no carrinho.'
+                          );
                         }
                       }}
                       tabIndex={0}

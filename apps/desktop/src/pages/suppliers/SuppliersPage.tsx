@@ -1,8 +1,18 @@
 /**
  * @file SuppliersPage - Gestão de fornecedores
- * @description Lista e gerenciamento de fornecedores
+ * @description Lista e gerenciamento de fornecedores com validação completa
  */
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +29,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -31,6 +42,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   useCreateSupplier,
   useDeactivateSupplier,
@@ -39,11 +52,14 @@ import {
   useSuppliers,
   useUpdateSupplier,
 } from '@/hooks/useSuppliers';
+import { formatCNPJ, formatPhone } from '@/lib/formatters';
+import { validateCNPJ } from '@/lib/validators';
 import type { Supplier } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Building2,
   Edit,
+  FileText,
   Loader2,
   Mail,
   MapPin,
@@ -54,30 +70,80 @@ import {
   Search,
   Truck,
 } from 'lucide-react';
-import { useState, useMemo, type FC } from 'react';
+import { useState, useMemo, useEffect, useCallback, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { ExportButtons } from '@/components/shared';
 import { type ExportColumn, type ExportSummaryItem, exportFormatters } from '@/lib/export';
 
-// Schema de validação com Zod
+// Schema de validação com Zod - com validação real de CNPJ
 const supplierFormSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100, 'Nome muito longo'),
-  tradeName: z.string().optional(),
+  tradeName: z.string().max(100, 'Nome fantasia muito longo').optional(),
   cnpj: z
     .string()
-    .regex(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$|^$/, 'CNPJ inválido')
     .optional()
-    .or(z.literal('')),
-  phone: z.string().optional(),
+    .refine(
+      (val) => {
+        if (!val || val.replace(/\D/g, '').length === 0) return true; // Vazio é ok
+        const cleaned = val.replace(/\D/g, '');
+        if (cleaned.length !== 14) return false;
+        return validateCNPJ(cleaned);
+      },
+      { message: 'CNPJ inválido - verifique os dígitos' }
+    ),
+  phone: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val || val.replace(/\D/g, '').length === 0) return true;
+        const cleaned = val.replace(/\D/g, '');
+        return cleaned.length >= 10 && cleaned.length <= 11;
+      },
+      { message: 'Telefone deve ter 10 ou 11 dígitos' }
+    ),
   email: z.string().email('E-mail inválido').optional().or(z.literal('')),
-  address: z.string().optional(),
+  address: z.string().max(200, 'Endereço muito longo').optional(),
+  city: z.string().max(100, 'Cidade muito longa').optional(),
+  state: z
+    .string()
+    .max(2, 'Use a sigla do estado (ex: SP)')
+    .regex(/^[A-Z]{0,2}$/, 'Use sigla maiúscula (ex: SP)')
+    .optional(),
+  notes: z.string().max(500, 'Observações muito longas').optional(),
 });
 
 type SupplierFormData = z.infer<typeof supplierFormSchema>;
 
 type StatusFilter = 'active' | 'inactive' | 'all';
+
+// Funções de formatação de input
+function handleCnpjInput(value: string): string {
+  const cleaned = value.replace(/\D/g, '').slice(0, 14);
+  if (cleaned.length <= 2) return cleaned;
+  if (cleaned.length <= 5) return `${cleaned.slice(0, 2)}.${cleaned.slice(2)}`;
+  if (cleaned.length <= 8)
+    return `${cleaned.slice(0, 2)}.${cleaned.slice(2, 5)}.${cleaned.slice(5)}`;
+  if (cleaned.length <= 12)
+    return `${cleaned.slice(0, 2)}.${cleaned.slice(2, 5)}.${cleaned.slice(5, 8)}/${cleaned.slice(
+      8
+    )}`;
+  return `${cleaned.slice(0, 2)}.${cleaned.slice(2, 5)}.${cleaned.slice(5, 8)}/${cleaned.slice(
+    8,
+    12
+  )}-${cleaned.slice(12)}`;
+}
+
+function handlePhoneInput(value: string): string {
+  const cleaned = value.replace(/\D/g, '').slice(0, 11);
+  if (cleaned.length <= 2) return cleaned;
+  if (cleaned.length <= 6) return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`;
+  if (cleaned.length <= 10)
+    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+  return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // SUPPLIER CARD COMPONENT
@@ -86,15 +152,18 @@ type StatusFilter = 'active' | 'inactive' | 'all';
 interface SupplierCardProps {
   supplier: Supplier;
   onEdit: (supplier: Supplier) => void;
-  onDeactivate: (id: string) => void;
-  onReactivate: (id: string) => void;
+  onDeactivate: (supplier: Supplier) => void;
+  onReactivate: (supplier: Supplier) => void;
 }
 
 const SupplierCard: FC<SupplierCardProps> = ({ supplier, onEdit, onDeactivate, onReactivate }) => {
+  // Monta a localização (cidade - estado)
+  const location = [supplier.city, supplier.state].filter(Boolean).join(' - ');
+
   return (
     <Card
       className={cn(
-        'border-none bg-card/50 backdrop-blur-sm shadow-md',
+        'border-none bg-card/50 backdrop-blur-sm shadow-md hover:shadow-lg transition-shadow',
         !supplier.isActive && 'opacity-60'
       )}
     >
@@ -111,6 +180,18 @@ const SupplierCard: FC<SupplierCardProps> = ({ supplier, onEdit, onDeactivate, o
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {supplier.notes && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <FileText className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="left" className="max-w-[300px]">
+                  <p className="text-sm">{supplier.notes}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <Badge variant={supplier.isActive ? 'default' : 'secondary'}>
             {supplier.isActive ? 'Ativo' : 'Inativo'}
           </Badge>
@@ -125,16 +206,20 @@ const SupplierCard: FC<SupplierCardProps> = ({ supplier, onEdit, onDeactivate, o
                 <Edit className="mr-2 h-4 w-4" />
                 Editar
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
               {supplier.isActive ? (
                 <DropdownMenuItem
-                  onClick={() => onDeactivate(supplier.id)}
-                  className="text-destructive"
+                  onClick={() => onDeactivate(supplier)}
+                  className="text-destructive focus:text-destructive"
                 >
                   <Power className="mr-2 h-4 w-4" />
                   Desativar
                 </DropdownMenuItem>
               ) : (
-                <DropdownMenuItem onClick={() => onReactivate(supplier.id)}>
+                <DropdownMenuItem
+                  onClick={() => onReactivate(supplier)}
+                  className="text-green-600 focus:text-green-600"
+                >
                   <Power className="mr-2 h-4 w-4" />
                   Reativar
                 </DropdownMenuItem>
@@ -147,26 +232,28 @@ const SupplierCard: FC<SupplierCardProps> = ({ supplier, onEdit, onDeactivate, o
         <div className="grid gap-2 text-sm">
           {supplier.cnpj && (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Building2 className="h-4 w-4" />
-              <span>{supplier.cnpj}</span>
+              <Building2 className="h-4 w-4 shrink-0" />
+              <span>{formatCNPJ(supplier.cnpj)}</span>
             </div>
           )}
           {supplier.phone && (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Phone className="h-4 w-4" />
-              <span>{supplier.phone}</span>
+              <Phone className="h-4 w-4 shrink-0" />
+              <span>{formatPhone(supplier.phone)}</span>
             </div>
           )}
           {supplier.email && (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Mail className="h-4 w-4" />
-              <span>{supplier.email}</span>
+              <Mail className="h-4 w-4 shrink-0" />
+              <span className="truncate">{supplier.email}</span>
             </div>
           )}
-          {supplier.address && (
+          {(supplier.address || location) && (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="h-4 w-4" />
-              <span className="truncate">{supplier.address}</span>
+              <MapPin className="h-4 w-4 shrink-0" />
+              <span className="truncate">
+                {[supplier.address, location].filter(Boolean).join(' • ')}
+              </span>
             </div>
           )}
         </div>
@@ -182,14 +269,20 @@ const SupplierCard: FC<SupplierCardProps> = ({ supplier, onEdit, onDeactivate, o
 export const SuppliersPage: FC = () => {
   const { data: activeSuppliers = [], isLoading: loadingActive } = useSuppliers();
   const { data: inactiveSuppliers = [], isLoading: loadingInactive } = useInactiveSuppliers();
-  const createSupplier = useCreateSupplier();
-  const updateSupplier = useUpdateSupplier();
-  const deactivateSupplier = useDeactivateSupplier();
-  const reactivateSupplier = useReactivateSupplier();
+  const createSupplierMutation = useCreateSupplier();
+  const updateSupplierMutation = useUpdateSupplier();
+  const deactivateSupplierMutation = useDeactivateSupplier();
+  const reactivateSupplierMutation = useReactivateSupplier();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+
+  // Estado para confirmação de ações
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'deactivate' | 'reactivate';
+    supplier: Supplier;
+  } | null>(null);
 
   // Combine suppliers based on filter
   const allSuppliers = [...activeSuppliers, ...inactiveSuppliers];
@@ -201,7 +294,7 @@ export const SuppliersPage: FC = () => {
       : allSuppliers;
   const isLoading = loadingActive || loadingInactive;
 
-  // Colunas para exportação
+  // Colunas para exportação (incluindo novos campos)
   const exportColumns: ExportColumn<Supplier>[] = [
     { key: 'name', header: 'Razão Social', width: 200 },
     { key: 'tradeName', header: 'Nome Fantasia', width: 150 },
@@ -209,24 +302,31 @@ export const SuppliersPage: FC = () => {
     { key: 'phone', header: 'Telefone', width: 120 },
     { key: 'email', header: 'E-mail', width: 180 },
     { key: 'address', header: 'Endereço', width: 200 },
+    { key: 'city', header: 'Cidade', width: 120 },
+    { key: 'state', header: 'UF', width: 40 },
+    { key: 'notes', header: 'Observações', width: 200 },
     { key: 'isActive', header: 'Status', width: 70, formatter: exportFormatters.activeInactive },
   ];
 
-  // Filtrar suppliers primeiro
-  const filteredSuppliers = suppliers.filter(
-    (sup) =>
-      sup.name.toLowerCase().includes(search.toLowerCase()) ||
-      sup.tradeName?.toLowerCase().includes(search.toLowerCase()) ||
-      sup.cnpj?.includes(search)
-  );
+  // Filtrar suppliers primeiro (incluindo cidade)
+  const filteredSuppliers = suppliers.filter((sup) => {
+    if (!search.trim()) return true; // Se busca vazia, mostrar todos
+    const searchLower = search.toLowerCase();
+    const searchDigits = search.replace(/\D/g, '');
+
+    return (
+      sup.name.toLowerCase().includes(searchLower) ||
+      sup.tradeName?.toLowerCase().includes(searchLower) ||
+      (searchDigits.length > 0 && sup.cnpj?.replace(/\D/g, '').includes(searchDigits)) ||
+      sup.city?.toLowerCase().includes(searchLower)
+    );
+  });
 
   // Summary para exportação profissional
   const exportSummary: ExportSummaryItem[] = useMemo(() => {
     const activeCount = filteredSuppliers.filter((s) => s.isActive).length;
     const withCnpj = filteredSuppliers.filter((s) => s.cnpj).length;
-    const uniqueCities = new Set(
-      filteredSuppliers.map((s) => s.address?.split(',').pop()?.trim()).filter(Boolean)
-    ).size;
+    const uniqueCities = new Set(filteredSuppliers.map((s) => s.city).filter(Boolean)).size;
     return [
       {
         label: 'Total Fornecedores',
@@ -250,31 +350,35 @@ export const SuppliersPage: FC = () => {
       phone: '',
       email: '',
       address: '',
+      city: '',
+      state: '',
+      notes: '',
     },
   });
 
   const onSubmit = async (data: SupplierFormData) => {
     try {
+      // Limpa formatação do CNPJ e telefone antes de salvar
+      const cleanedData = {
+        name: data.name,
+        tradeName: data.tradeName || undefined,
+        cnpj: data.cnpj?.replace(/\D/g, '') || undefined,
+        phone: data.phone?.replace(/\D/g, '') || undefined,
+        email: data.email || undefined,
+        address: data.address || undefined,
+        city: data.city || undefined,
+        state: data.state?.toUpperCase() || undefined,
+        notes: data.notes || undefined,
+      };
+
       if (editingSupplier) {
-        await updateSupplier.mutateAsync({
+        await updateSupplierMutation.mutateAsync({
           id: editingSupplier.id,
-          data: {
-            name: data.name,
-            tradeName: data.tradeName || undefined,
-            cnpj: data.cnpj || undefined,
-            phone: data.phone || undefined,
-            email: data.email || undefined,
-            address: data.address || undefined,
-          },
+          data: cleanedData,
         });
       } else {
-        await createSupplier.mutateAsync({
-          name: data.name,
-          tradeName: data.tradeName || undefined,
-          cnpj: data.cnpj || undefined,
-          phone: data.phone || undefined,
-          email: data.email || undefined,
-          address: data.address || undefined,
+        await createSupplierMutation.mutateAsync({
+          ...cleanedData,
           isActive: true,
         });
       }
@@ -285,30 +389,39 @@ export const SuppliersPage: FC = () => {
     }
   };
 
-  const handleOpenDialog = (supplier?: Supplier) => {
-    if (supplier) {
-      setEditingSupplier(supplier);
-      form.reset({
-        name: supplier.name,
-        tradeName: supplier.tradeName ?? '',
-        cnpj: supplier.cnpj ?? '',
-        phone: supplier.phone ?? '',
-        email: supplier.email ?? '',
-        address: supplier.address ?? '',
-      });
-    } else {
-      setEditingSupplier(null);
-      form.reset({
-        name: '',
-        tradeName: '',
-        cnpj: '',
-        phone: '',
-        email: '',
-        address: '',
-      });
-    }
-    setIsDialogOpen(true);
-  };
+  const handleOpenDialog = useCallback(
+    (supplier?: Supplier) => {
+      if (supplier) {
+        setEditingSupplier(supplier);
+        form.reset({
+          name: supplier.name,
+          tradeName: supplier.tradeName ?? '',
+          cnpj: supplier.cnpj ? formatCNPJ(supplier.cnpj) : '',
+          phone: supplier.phone ? formatPhone(supplier.phone) : '',
+          email: supplier.email ?? '',
+          address: supplier.address ?? '',
+          city: supplier.city ?? '',
+          state: supplier.state ?? '',
+          notes: supplier.notes ?? '',
+        });
+      } else {
+        setEditingSupplier(null);
+        form.reset({
+          name: '',
+          tradeName: '',
+          cnpj: '',
+          phone: '',
+          email: '',
+          address: '',
+          city: '',
+          state: '',
+          notes: '',
+        });
+      }
+      setIsDialogOpen(true);
+    },
+    [form]
+  );
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
@@ -316,13 +429,35 @@ export const SuppliersPage: FC = () => {
     form.reset();
   };
 
-  const handleDeactivate = (id: string) => {
-    deactivateSupplier.mutate(id);
+  const handleDeactivate = (supplier: Supplier) => {
+    setConfirmAction({ type: 'deactivate', supplier });
   };
 
-  const handleReactivate = (id: string) => {
-    reactivateSupplier.mutate(id);
+  const handleReactivate = (supplier: Supplier) => {
+    setConfirmAction({ type: 'reactivate', supplier });
   };
+
+  const confirmActionHandler = () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === 'deactivate') {
+      deactivateSupplierMutation.mutate(confirmAction.supplier.id);
+    } else {
+      reactivateSupplierMutation.mutate(confirmAction.supplier.id);
+    }
+    setConfirmAction(null);
+  };
+
+  // Atalho de teclado: Ctrl+N para novo fornecedor
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !isDialogOpen) {
+        e.preventDefault();
+        handleOpenDialog();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDialogOpen, handleOpenDialog]);
 
   return (
     <div className="space-y-6">
@@ -396,7 +531,11 @@ export const SuppliersPage: FC = () => {
                       <FormItem>
                         <FormLabel>CNPJ</FormLabel>
                         <FormControl>
-                          <Input placeholder="00.000.000/0000-00" {...field} />
+                          <Input
+                            placeholder="00.000.000/0000-00"
+                            {...field}
+                            onChange={(e) => field.onChange(handleCnpjInput(e.target.value))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -410,7 +549,11 @@ export const SuppliersPage: FC = () => {
                         <FormItem>
                           <FormLabel>Telefone</FormLabel>
                           <FormControl>
-                            <Input placeholder="(00) 00000-0000" {...field} />
+                            <Input
+                              placeholder="(00) 00000-0000"
+                              {...field}
+                              onChange={(e) => field.onChange(handlePhoneInput(e.target.value))}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -437,7 +580,58 @@ export const SuppliersPage: FC = () => {
                       <FormItem>
                         <FormLabel>Endereço</FormLabel>
                         <FormControl>
-                          <Input placeholder="Rua, número, bairro, cidade" {...field} />
+                          <Input placeholder="Rua, número, bairro" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel>Cidade</FormLabel>
+                          <FormControl>
+                            <Input placeholder="São Paulo" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>UF</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="SP"
+                              maxLength={2}
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Observações</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Informações adicionais sobre o fornecedor..."
+                            className="resize-none"
+                            rows={3}
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -449,9 +643,11 @@ export const SuppliersPage: FC = () => {
                     </Button>
                     <Button
                       type="submit"
-                      disabled={createSupplier.isPending || updateSupplier.isPending}
+                      disabled={
+                        createSupplierMutation.isPending || updateSupplierMutation.isPending
+                      }
                     >
-                      {(createSupplier.isPending || updateSupplier.isPending) && (
+                      {(createSupplierMutation.isPending || updateSupplierMutation.isPending) && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
                       {editingSupplier ? 'Salvar' : 'Cadastrar'}
@@ -469,7 +665,7 @@ export const SuppliersPage: FC = () => {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome, nome fantasia ou CNPJ..."
+            placeholder="Buscar por nome, fantasia, CNPJ ou cidade..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
@@ -540,6 +736,45 @@ export const SuppliersPage: FC = () => {
           ))}
         </div>
       )}
+
+      {/* Dialog de Confirmação para Desativar/Reativar */}
+      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction?.type === 'deactivate'
+                ? 'Desativar fornecedor?'
+                : 'Reativar fornecedor?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === 'deactivate' ? (
+                <>
+                  O fornecedor <strong>{confirmAction?.supplier.name}</strong> será desativado e não
+                  aparecerá mais nas listagens padrão. Você poderá reativá-lo posteriormente.
+                </>
+              ) : (
+                <>
+                  O fornecedor <strong>{confirmAction?.supplier.name}</strong> será reativado e
+                  voltará a aparecer nas listagens.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmActionHandler}
+              className={
+                confirmAction?.type === 'deactivate'
+                  ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }
+            >
+              {confirmAction?.type === 'deactivate' ? 'Desativar' : 'Reativar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

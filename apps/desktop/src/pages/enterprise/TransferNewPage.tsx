@@ -37,6 +37,7 @@ import {
 import { useStockLocations, useStockBalances } from '@/hooks/enterprise/useStockLocations';
 import { useCreateStockTransfer, useAddTransferItem } from '@/hooks/enterprise/useStockTransfers';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/lib/utils';
 import type { StockBalance } from '@/lib/tauri';
 import {
   ArrowLeft,
@@ -278,7 +279,7 @@ export const TransferNewPage: FC = () => {
     } catch (error) {
       toast({
         title: 'Erro ao criar transferência',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -290,7 +291,7 @@ export const TransferNewPage: FC = () => {
   const totalItems = fields.length;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={handleBack}>

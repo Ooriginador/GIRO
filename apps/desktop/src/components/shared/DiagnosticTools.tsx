@@ -1,4 +1,5 @@
 import { createLogger } from '@/lib/logger';
+import { getErrorMessage } from '@/lib/utils';
 const log = createLogger('Diagnostic');
 import { Component, ReactNode, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -25,7 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error(
       '[ErrorBoundary] Error caught:',
-      (error as Error)?.message ?? String(error),
+      getErrorMessage(error),
       errorInfo?.componentStack ?? ''
     );
   }

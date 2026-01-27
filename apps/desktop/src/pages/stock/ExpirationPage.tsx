@@ -25,7 +25,7 @@ import { useExpiringLots } from '@/hooks/useStock';
 import { daysUntil, formatCurrency, formatDate, formatExpirationRelative } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { ProductLot } from '@/types';
-import { AlertTriangle, ArrowLeft, Calendar, Clock, Loader2, Package } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Calendar, Clock, Loader2, Package, Truck } from 'lucide-react';
 import { type FC, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExportButtons } from '@/components/shared';
@@ -88,6 +88,7 @@ export const ExpirationPage: FC = () => {
         produto: lot.product?.name || '',
         codigo: lot.product?.internalCode || '',
         lote: lot.lotNumber || '',
+        fornecedor: lot.supplier?.name || '',
         validade: lot.expirationDate,
         quantidade: lot.quantity,
         status: getExpirationStatus(lot.expirationDate).label,
@@ -101,6 +102,7 @@ export const ExpirationPage: FC = () => {
     { key: 'produto', header: 'Produto', width: 180 },
     { key: 'codigo', header: 'Código', width: 80 },
     { key: 'lote', header: 'Lote', width: 100 },
+    { key: 'fornecedor', header: 'Fornecedor', width: 120 },
     { key: 'validade', header: 'Validade', formatter: exportFormatters.date, width: 100 },
     { key: 'quantidade', header: 'Qtd', align: 'right', type: 'number', totalizable: true },
     { key: 'status', header: 'Status', width: 80 },
@@ -271,6 +273,7 @@ export const ExpirationPage: FC = () => {
                 <TableRow>
                   <TableHead>Produto</TableHead>
                   <TableHead>Lote</TableHead>
+                  <TableHead>Fornecedor</TableHead>
                   <TableHead className="text-center">Quantidade</TableHead>
                   <TableHead className="text-right">Custo Unit.</TableHead>
                   <TableHead>Fabricação</TableHead>
@@ -288,6 +291,19 @@ export const ExpirationPage: FC = () => {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {lot.lotNumber ?? '-'}
+                      </TableCell>
+                      <TableCell>
+                        {lot.supplier ? (
+                          <div className="flex items-center gap-1.5">
+                            <Truck
+                              className="h-3.5 w-3.5 text-muted-foreground"
+                              aria-hidden="true"
+                            />
+                            <span className="text-sm">{lot.supplier.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">{lot.quantity}</TableCell>
                       <TableCell className="text-right">{formatCurrency(lot.costPrice)}</TableCell>

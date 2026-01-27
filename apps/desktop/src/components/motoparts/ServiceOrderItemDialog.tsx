@@ -27,7 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { useProducts } from '@/hooks/use-products';
 import { useServiceOrderItems, useServices, ServiceOrderItem } from '@/hooks/useServiceOrders';
 import { useEmployees } from '@/hooks/useEmployees';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, getErrorMessage } from '@/lib/utils';
 import { Product } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Loader2, Package, Plus, Search } from 'lucide-react';
@@ -192,8 +192,8 @@ export function ServiceOrderItemDialog({
       setQuickServiceName('');
       setQuickServicePrice('');
       toast.success('Serviço cadastrado!');
-    } catch {
-      toast.error('Erro ao cadastrar serviço');
+    } catch (error) {
+      toast.error(getErrorMessage(error));
     }
   };
 
@@ -213,27 +213,33 @@ export function ServiceOrderItemDialog({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(async (data) => {
-              if (itemToEdit) {
-                await updateItem.mutateAsync({
-                  itemId: itemToEdit.id,
-                  quantity: data.quantity,
-                  unitPrice: data.unitPrice,
-                  discount: data.discount,
-                  employeeId: data.employeeId,
-                });
-              } else {
-                await addItem.mutateAsync({
-                  order_id: orderId,
-                  item_type: data.itemType,
-                  product_id: data.productId,
-                  description: data.description,
-                  quantity: data.quantity,
-                  unit_price: data.unitPrice,
-                  discount: data.discount,
-                  employee_id: data.employeeId,
-                });
+              try {
+                if (itemToEdit) {
+                  await updateItem.mutateAsync({
+                    itemId: itemToEdit.id,
+                    quantity: data.quantity,
+                    unitPrice: data.unitPrice,
+                    discount: data.discount,
+                    employeeId: data.employeeId,
+                  });
+                  toast.success('Item atualizado!');
+                } else {
+                  await addItem.mutateAsync({
+                    order_id: orderId,
+                    item_type: data.itemType,
+                    product_id: data.productId,
+                    description: data.description,
+                    quantity: data.quantity,
+                    unit_price: data.unitPrice,
+                    discount: data.discount,
+                    employee_id: data.employeeId,
+                  });
+                  toast.success('Item adicionado!');
+                }
+                onOpenChange(false);
+              } catch (error) {
+                toast.error(getErrorMessage(error));
               }
-              onOpenChange(false);
             })}
             className="space-y-4"
           >
@@ -445,7 +451,7 @@ export function ServiceOrderItemDialog({
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Descrição do Seviço</FormLabel>
+                          <FormLabel>Descrição do Serviço</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder="Ex: Troca de óleo" />
                           </FormControl>

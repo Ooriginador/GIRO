@@ -56,7 +56,7 @@ export const StockPage: FC = () => {
   const { data: categories = [] } = useCategories();
 
   const filterId = categoryId === 'all' ? undefined : categoryId;
-  const { data: report, isLoading } = useStockReport(filterId);
+  const { data: report, isLoading, isError, error, refetch } = useStockReport(filterId);
   const { data: lowStockProducts = [] } = useLowStockProducts(filterId);
 
   const canViewValue = hasPermission('stock.view_value');
@@ -89,10 +89,30 @@ export const StockPage: FC = () => {
     ];
   }, [lowStockProducts, report]);
 
+  // Estado de erro
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4" role="alert">
+        <AlertTriangle className="h-12 w-12 text-destructive" />
+        <h2 className="text-xl font-semibold">Erro ao carregar estoque</h2>
+        <p className="text-muted-foreground text-center max-w-md">
+          {error instanceof Error
+            ? error.message
+            : 'Ocorreu um erro inesperado ao carregar os dados de estoque.'}
+        </p>
+        <Button onClick={() => refetch()} variant="outline">
+          Tentar novamente
+        </Button>
+      </div>
+    );
+  }
+
+  // Estado de loading
   if (isLoading || !report) {
     return (
-      <div className="flex items-center justify-center py-20" aria-live="polite">
-        Carregando dashboard de estoque...
+      <div className="flex flex-col items-center justify-center py-20 space-y-4" aria-live="polite">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <p className="text-muted-foreground">Carregando dashboard de estoque...</p>
       </div>
     );
   }

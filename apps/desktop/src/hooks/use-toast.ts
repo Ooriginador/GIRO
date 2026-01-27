@@ -183,6 +183,13 @@ function useToast() {
         variant: 'default',
       });
     },
+    warning: (message: string, description?: string) => {
+      toast({
+        title: message,
+        description,
+        variant: 'warning',
+      });
+    },
     error: (message: string, description?: string) => {
       toast({
         title: message,

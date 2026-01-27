@@ -8,9 +8,12 @@ import {
   adjustStock,
   getExpiringLots,
   getLowStockProducts,
+  getProducts,
   getStockMovements,
   getStockReport,
+  getSuppliers,
 } from '@/lib/tauri';
+import type { ProductLot } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { productKeys } from './use-products';
 
@@ -54,26 +57,46 @@ export function useLowStockProducts(categoryId?: string) {
 }
 
 /**
- * Lotes próximos ao vencimento
+ * Lotes próximos ao vencimento com dados enriquecidos de produto e fornecedor
  * @param days - Número de dias para considerar como "próximo ao vencimento" (padrão: 30)
  */
 export function useExpiringLots(days: number = 30) {
   return useQuery({
     queryKey: stockKeys.expiringLots(days),
-    queryFn: () => getExpiringLots(days),
+    queryFn: async (): Promise<ProductLot[]> => {
+      // Buscar lotes, produtos e fornecedores em paralelo
+      const [lots, products, suppliers] = await Promise.all([
+        getExpiringLots(Math.max(0, days)),
+        getProducts({ isActive: true }),
+        getSuppliers({ activeOnly: true }),
+      ]);
+
+      // Criar mapas para lookup rápido
+      const productMap = new Map(products.map((p) => [p.id, p]));
+      const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
+
+      // Enriquecer lotes com informações de produto e fornecedor
+      return lots.map((lot) => ({
+        ...lot,
+        product: lot.productId ? productMap.get(lot.productId) : undefined,
+        supplier: lot.supplierId ? supplierMap.get(lot.supplierId) : undefined,
+      }));
+    },
     staleTime: 5 * 60 * 1000,
     refetchInterval: 10 * 60 * 1000,
   });
 }
 
 /**
- * Relatório de estoque
+ * Relatório de estoque com tratamento de erro robusto
  */
 export function useStockReport(categoryId?: string) {
   return useQuery({
     queryKey: stockKeys.report(categoryId),
     queryFn: () => getStockReport(categoryId),
     staleTime: 5 * 60 * 1000,
+    retry: 2, // Retry em caso de falha de rede
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
   });
 }
 
@@ -88,6 +111,7 @@ interface StockEntryInput {
   lotNumber?: string;
   expirationDate?: string;
   manufacturingDate?: string;
+  supplierId?: string;
 }
 
 /**
@@ -105,7 +129,8 @@ export function useAddStockEntry() {
         input.costPrice,
         input.lotNumber,
         input.expirationDate,
-        input.manufacturingDate
+        input.manufacturingDate,
+        input.supplierId
       ),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: stockKeys.movements(variables.productId) });

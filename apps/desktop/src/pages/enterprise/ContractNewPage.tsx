@@ -30,6 +30,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { useCreateContract } from '@/hooks/enterprise/useContracts';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/lib/utils';
 import { ArrowLeft, Building2, Loader2, Save } from 'lucide-react';
 import { type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -150,7 +151,7 @@ export const ContractNewPage: FC = () => {
     } catch (error) {
       toast({
         title: 'Erro ao criar contrato',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -159,7 +160,7 @@ export const ContractNewPage: FC = () => {
   const handleBack = () => navigate('/enterprise/contracts');
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={handleBack}>

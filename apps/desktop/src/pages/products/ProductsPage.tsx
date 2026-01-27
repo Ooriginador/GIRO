@@ -45,7 +45,7 @@ import {
   useReactivateProduct,
 } from '@/hooks/use-products';
 import { useToast } from '@/hooks/use-toast';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, formatUserError } from '@/lib/utils';
 import type { Product } from '@/types';
 import {
   Copy,
@@ -230,10 +230,10 @@ export const ProductsPage: FC = () => {
         title: 'Produto desativado',
         description: `${productToDeactivate.name} foi desativado com sucesso.`,
       });
-    } catch {
+    } catch (error) {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível desativar o produto.',
+        title: 'Erro ao desativar',
+        description: formatUserError(error, 'product'),
         variant: 'destructive',
       });
     } finally {
@@ -248,10 +248,10 @@ export const ProductsPage: FC = () => {
         title: 'Produto reativado',
         description: `${product.name} foi reativado com sucesso.`,
       });
-    } catch {
+    } catch (error) {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível reativar o produto.',
+        title: 'Erro ao reativar',
+        description: formatUserError(error, 'product'),
         variant: 'destructive',
       });
     }
@@ -273,10 +273,10 @@ export const ProductsPage: FC = () => {
         title: 'Produto duplicado',
         description: `Cópia de ${product.name} criada com sucesso.`,
       });
-    } catch {
+    } catch (error) {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível duplicar o produto.',
+        title: 'Erro ao duplicar',
+        description: formatUserError(error, 'product'),
         variant: 'destructive',
       });
     }
@@ -291,10 +291,10 @@ export const ProductsPage: FC = () => {
         title: 'Produto excluído',
         description: `${productToDelete.name} foi excluído permanentemente.`,
       });
-    } catch {
+    } catch (error) {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível excluir o produto.',
+        title: 'Erro ao excluir',
+        description: formatUserError(error, 'product'),
         variant: 'destructive',
       });
     } finally {

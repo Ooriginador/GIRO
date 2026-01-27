@@ -15,9 +15,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 import { useCreateSale } from '@/hooks/useSales';
 import { emitNfce, printReceipt, type EmitNfceRequest, type NfceItem } from '@/lib/tauri';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, getErrorMessage } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { usePDVStore, type PaymentMethod } from '@/stores/pdv-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -75,6 +76,7 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
   const { employee, currentSession } = useAuthStore();
   const { fiscal, company } = useSettingsStore();
   const createSale = useCreateSale();
+  const toast = useToast();
 
   const amountPaidNum = parseFloat(amountPaid.replace(',', '.')) || 0;
   const change = amountPaidNum - total;
@@ -206,11 +208,19 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
         }
       }
 
-      // Auto-print receipt
+      // Auto-print receipt with user feedback
       if (saleResult?.id) {
-        printReceipt(saleResult.id).catch((err) => {
-          console.error('Falha na impressão automática:', err);
-        });
+        printReceipt(saleResult.id)
+          .then(() => {
+            toast.success('Cupom impresso', 'Cupom fiscal enviado para a impressora');
+          })
+          .catch((err) => {
+            console.error('Falha na impressão automática:', err);
+            toast.warning(
+              'Impressão não disponível',
+              'Não foi possível imprimir o cupom. Verifique a impressora e tente reimprimir.'
+            );
+          });
       }
 
       // NFC-e Integration
@@ -262,13 +272,39 @@ export const PaymentModal: FC<PaymentModalProps> = ({ open, onClose, total, onFi
             useSettingsStore.getState().setFiscalConfig({ nextNumber: fiscal.nextNumber + 1 });
           }
         } catch (e) {
-          console.error('Falha NFC-e', (e as Error)?.message ?? String(e));
+          console.error('Falha NFC-e', getErrorMessage(e));
         }
       }
 
       onClose();
     } catch (error) {
-      console.error('Erro ao finalizar:', (error as Error)?.message ?? String(error));
+      const errorMessage = getErrorMessage(error);
+      console.error('Erro ao finalizar:', errorMessage);
+
+      // Parse error message for user-friendly display
+      let userMessage = 'Erro ao processar pagamento';
+      if (
+        errorMessage.includes('INSUFFICIENT_STOCK') ||
+        errorMessage.includes('Estoque insuficiente')
+      ) {
+        userMessage = 'Estoque insuficiente para um ou mais produtos';
+      } else if (
+        errorMessage.includes('DISCOUNT_EXCEEDS_LIMIT') ||
+        errorMessage.includes('Desconto excede')
+      ) {
+        userMessage = 'O desconto aplicado excede o limite permitido';
+      } else if (
+        errorMessage.includes('CASH_SESSION_NOT_OPEN') ||
+        errorMessage.includes('Caixa não aberto')
+      ) {
+        userMessage = 'Caixa não está aberto. Abra o caixa antes de finalizar vendas';
+      } else if (errorMessage.includes('PERMISSION_DENIED')) {
+        userMessage = 'Você não tem permissão para realizar esta operação';
+      } else if (errorMessage) {
+        userMessage = errorMessage;
+      }
+
+      toast.error('Falha ao finalizar venda', userMessage);
     } finally {
       setIsProcessing(false);
     }

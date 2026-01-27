@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, DollarSign, Package, TrendingUp, Wrench } from 'lucide-react';
+import { getErrorMessage } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import {
   getMotopartsDashboardStats,
@@ -38,7 +39,7 @@ export function MotopartsDashboard() {
       setSoStats(sStats);
       setTopProducts(tProds);
     } catch (error) {
-      console.error('Failed to load dashboard stats:', (error as Error)?.message ?? String(error));
+      console.error('Failed to load dashboard stats:', getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -74,7 +75,10 @@ export function MotopartsDashboard() {
   };
 
   return (
-    <div className="flex flex-col space-y-6 p-6 animate-in fade-in duration-500">
+    <div
+      data-testid="motoparts-dashboard"
+      className="flex flex-col space-y-6 p-6 animate-in fade-in duration-500"
+    >
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>

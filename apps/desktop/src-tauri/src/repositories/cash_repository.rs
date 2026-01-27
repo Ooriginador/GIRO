@@ -255,6 +255,32 @@ impl<'a> CashRepository<'a> {
     }
 
     pub async fn add_movement(&self, data: CreateCashMovement) -> AppResult<CashMovement> {
+        // Validate BLEED (withdrawal) doesn't exceed available cash in drawer
+        if data.movement_type == "BLEED" {
+            let summary = self.get_session_summary(&data.session_id).await?;
+            let available_cash = summary.cash_in_drawer;
+
+            if data.amount > available_cash {
+                return Err(crate::error::AppError::Validation(format!(
+                    "Sangria de R$ {:.2} excede o saldo disponível em caixa de R$ {:.2}",
+                    data.amount, available_cash
+                )));
+            }
+
+            if data.amount <= 0.0 {
+                return Err(crate::error::AppError::Validation(
+                    "O valor da sangria deve ser maior que zero".into(),
+                ));
+            }
+        }
+
+        // Validate SUPPLY amount is positive
+        if data.movement_type == "SUPPLY" && data.amount <= 0.0 {
+            return Err(crate::error::AppError::Validation(
+                "O valor do suprimento deve ser maior que zero".into(),
+            ));
+        }
+
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
 

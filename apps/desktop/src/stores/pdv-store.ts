@@ -3,6 +3,30 @@ import { getHeldSales, saveHeldSale, deleteHeldSale } from '@/lib/tauri';
 import type { HeldSale, PaymentMethod, CashSession, HeldSaleItem } from '@/types';
 export type { PaymentMethod };
 
+/**
+ * Helper to parse error messages from backend
+ */
+function parseErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'object' && error !== null) {
+    const err = error as { message?: string; code?: string };
+    if (err.message) return err.message;
+    if (err.code) return `Erro: ${err.code}`;
+  }
+  return String(error);
+}
+
+/**
+ * Store error state for UI consumption
+ */
+export interface PDVError {
+  code: string;
+  message: string;
+  timestamp: number;
+}
+
 // Local definition matching UI needs (Flat structure)
 export interface CartItem {
   id: string;
@@ -97,7 +121,9 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
       const sales = await getHeldSales();
       set({ heldSales: sales });
     } catch (e) {
-      console.error('Failed to load held sales:', e);
+      const message = parseErrorMessage(e);
+      console.error('[PDV Store] Failed to load held sales:', message);
+      // Don't throw - allow UI to continue working
     }
   },
 
@@ -212,7 +238,10 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
 
       clearCart();
     } catch (e) {
-      console.error('Failed to hold sale:', e);
+      const message = parseErrorMessage(e);
+      console.error('[PDV Store] Failed to hold sale:', message);
+      // Re-throw for UI to handle
+      throw new Error(`Não foi possível pausar a venda: ${message}`);
     }
   },
 
@@ -246,7 +275,9 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
         heldSales: heldSales.filter((s) => s.id !== id),
       });
     } catch (e) {
-      console.error('Failed to resume sale:', e);
+      const message = parseErrorMessage(e);
+      console.error('[PDV Store] Failed to resume sale:', message);
+      throw new Error(`Não foi possível recuperar a venda: ${message}`);
     }
   },
 
@@ -258,7 +289,9 @@ export const usePDVStore = create<PDVState>()((set, get) => ({
         heldSales: state.heldSales.filter((s) => s.id !== id),
       }));
     } catch (e) {
-      console.error('Failed to remove held sale:', e);
+      const message = parseErrorMessage(e);
+      console.error('[PDV Store] Failed to remove held sale:', message);
+      throw new Error(`Não foi possível remover a venda pausada: ${message}`);
     }
   },
 

@@ -107,18 +107,26 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_all_active(&self, category_id: Option<String>) -> AppResult<Vec<Product>> {
-        let mut query = format!(
-            "SELECT {} FROM products WHERE is_active = 1",
-            self.product_columns_string()
-        );
         if let Some(cat_id) = category_id {
-            query.push_str(&format!(" AND category_id = '{}'", cat_id));
+            let query = format!(
+                "SELECT {} FROM products WHERE is_active = 1 AND category_id = ? ORDER BY name",
+                self.product_columns_string()
+            );
+            let result = sqlx::query_as::<_, Product>(&query)
+                .bind(&cat_id)
+                .fetch_all(self.pool)
+                .await?;
+            Ok(result)
+        } else {
+            let query = format!(
+                "SELECT {} FROM products WHERE is_active = 1 ORDER BY name",
+                self.product_columns_string()
+            );
+            let result = sqlx::query_as::<_, Product>(&query)
+                .fetch_all(self.pool)
+                .await?;
+            Ok(result)
         }
-        query.push_str(" ORDER BY name");
-        let result = sqlx::query_as::<_, Product>(&query)
-            .fetch_all(self.pool)
-            .await?;
-        Ok(result)
     }
 
     pub async fn find_by_category(&self, category_id: &str) -> AppResult<Vec<Product>> {
@@ -284,45 +292,72 @@ impl<'a> ProductRepository<'a> {
     }
 
     pub async fn find_low_stock(&self, category_id: Option<String>) -> AppResult<Vec<Product>> {
-        let mut query = format!("SELECT {} FROM products WHERE is_active = 1 AND current_stock <= min_stock AND current_stock > 0", self.product_columns_string());
         if let Some(cat_id) = category_id {
-            query.push_str(&format!(" AND category_id = '{}'", cat_id));
+            let query = format!(
+                "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= min_stock AND current_stock > 0 AND category_id = ? ORDER BY current_stock ASC",
+                self.product_columns_string()
+            );
+            let result = sqlx::query_as::<_, Product>(&query)
+                .bind(&cat_id)
+                .fetch_all(self.pool)
+                .await?;
+            Ok(result)
+        } else {
+            let query = format!(
+                "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= min_stock AND current_stock > 0 ORDER BY current_stock ASC",
+                self.product_columns_string()
+            );
+            let result = sqlx::query_as::<_, Product>(&query)
+                .fetch_all(self.pool)
+                .await?;
+            Ok(result)
         }
-        query.push_str(" ORDER BY current_stock ASC");
-        let result = sqlx::query_as::<_, Product>(&query)
-            .fetch_all(self.pool)
-            .await?;
-        Ok(result)
     }
 
     pub async fn find_out_of_stock(&self, category_id: Option<String>) -> AppResult<Vec<Product>> {
-        let mut query = format!(
-            "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= 0",
-            self.product_columns_string()
-        );
         if let Some(cat_id) = category_id {
-            query.push_str(&format!(" AND category_id = '{}'", cat_id));
+            let query = format!(
+                "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= 0 AND category_id = ? ORDER BY name",
+                self.product_columns_string()
+            );
+            let result = sqlx::query_as::<_, Product>(&query)
+                .bind(&cat_id)
+                .fetch_all(self.pool)
+                .await?;
+            Ok(result)
+        } else {
+            let query = format!(
+                "SELECT {} FROM products WHERE is_active = 1 AND current_stock <= 0 ORDER BY name",
+                self.product_columns_string()
+            );
+            let result = sqlx::query_as::<_, Product>(&query)
+                .fetch_all(self.pool)
+                .await?;
+            Ok(result)
         }
-        query.push_str(" ORDER BY name");
-        let result = sqlx::query_as::<_, Product>(&query)
-            .fetch_all(self.pool)
-            .await?;
-        Ok(result)
     }
 
     pub async fn find_excess_stock(&self, category_id: Option<String>) -> AppResult<Vec<Product>> {
-        let mut query = format!(
-            "SELECT {} FROM products WHERE is_active = 1 AND max_stock IS NOT NULL AND current_stock > max_stock",
-            self.product_columns_string()
-        );
         if let Some(cat_id) = category_id {
-            query.push_str(&format!(" AND category_id = '{}'", cat_id));
+            let query = format!(
+                "SELECT {} FROM products WHERE is_active = 1 AND max_stock IS NOT NULL AND current_stock > max_stock AND category_id = ? ORDER BY current_stock DESC",
+                self.product_columns_string()
+            );
+            let result = sqlx::query_as::<_, Product>(&query)
+                .bind(&cat_id)
+                .fetch_all(self.pool)
+                .await?;
+            Ok(result)
+        } else {
+            let query = format!(
+                "SELECT {} FROM products WHERE is_active = 1 AND max_stock IS NOT NULL AND current_stock > max_stock ORDER BY current_stock DESC",
+                self.product_columns_string()
+            );
+            let result = sqlx::query_as::<_, Product>(&query)
+                .fetch_all(self.pool)
+                .await?;
+            Ok(result)
         }
-        query.push_str(" ORDER BY current_stock DESC");
-        let result = sqlx::query_as::<_, Product>(&query)
-            .fetch_all(self.pool)
-            .await?;
-        Ok(result)
     }
 
     pub async fn get_next_internal_code(&self) -> AppResult<String> {
@@ -379,6 +414,37 @@ impl<'a> ProductRepository<'a> {
 
         // Treat empty barcode as NULL to allow uniqueness constraint
         let barcode = data.barcode.filter(|s| !s.trim().is_empty());
+
+        // Validate barcode uniqueness before insert
+        if let Some(ref bc) = barcode {
+            let existing = sqlx::query_scalar::<_, String>(
+                "SELECT id FROM products WHERE barcode = ? AND is_active = 1",
+            )
+            .bind(bc)
+            .fetch_optional(&mut *tx)
+            .await?;
+
+            if existing.is_some() {
+                return Err(crate::error::AppError::Duplicate(format!(
+                    "Código de barras '{}' já está cadastrado em outro produto",
+                    bc
+                )));
+            }
+        }
+
+        // Validate name is not empty
+        if data.name.trim().is_empty() {
+            return Err(crate::error::AppError::Validation(
+                "Nome do produto é obrigatório".into(),
+            ));
+        }
+
+        // Validate sale price is positive
+        if data.sale_price <= 0.0 {
+            return Err(crate::error::AppError::Validation(
+                "Preço de venda deve ser maior que zero".into(),
+            ));
+        }
 
         sqlx::query(
             "INSERT INTO products (id, barcode, internal_code, name, description, unit, is_weighted, sale_price, cost_price, current_stock, min_stock, max_stock, is_active, category_id, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, (datetime('now')), (datetime('now')))"
@@ -472,8 +538,28 @@ impl<'a> ProductRepository<'a> {
         let barcode = match data.barcode {
             Some(s) if s.trim().is_empty() => None,
             Some(s) => Some(s),
-            None => existing.barcode,
+            None => existing.barcode.clone(),
         };
+
+        // Validate barcode uniqueness on update (if changed)
+        if let Some(ref bc) = barcode {
+            if existing.barcode.as_ref() != Some(bc) {
+                let conflict = sqlx::query_scalar::<_, String>(
+                    "SELECT id FROM products WHERE barcode = ? AND id != ? AND is_active = 1",
+                )
+                .bind(bc)
+                .bind(id)
+                .fetch_optional(&mut *tx)
+                .await?;
+
+                if conflict.is_some() {
+                    return Err(crate::error::AppError::Duplicate(format!(
+                        "Código de barras '{}' já está cadastrado em outro produto",
+                        bc
+                    )));
+                }
+            }
+        }
 
         let description = data.description.or(existing.description);
         let unit = data

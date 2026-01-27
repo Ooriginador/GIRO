@@ -356,7 +356,7 @@ describe('ProductsPage', () => {
       await waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
           expect.objectContaining({
-            description: expect.stringMatching(/Não foi possível desativar o produto/i),
+            variant: 'destructive',
           })
         );
       });
@@ -382,7 +382,7 @@ describe('ProductsPage', () => {
       await waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
           expect.objectContaining({
-            description: expect.stringMatching(/Não foi possível reativar o produto/i),
+            variant: 'destructive',
           })
         );
       });
@@ -400,7 +400,7 @@ describe('ProductsPage', () => {
       await waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
           expect.objectContaining({
-            description: expect.stringMatching(/Não foi possível duplicar o produto/i),
+            variant: 'destructive',
           })
         );
       });
@@ -419,7 +419,7 @@ describe('ProductsPage', () => {
       await waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
           expect.objectContaining({
-            description: expect.stringMatching(/Não foi possível excluir o produto/i),
+            variant: 'destructive',
           })
         );
       });

@@ -21,7 +21,7 @@ import {
   useOpenCashSession,
 } from '@/hooks/usePDV';
 import { useCashMovement } from '@/hooks/useSales';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, getErrorMessage } from '@/lib/utils';
 
 import { useAuthStore } from '@/stores/auth-store';
 import type { CashMovement } from '@/types';
@@ -168,7 +168,7 @@ export const CashControlPage: FC = () => {
       setIsWithdrawOpen(false);
       setIsSupplyOpen(false);
     } catch (error) {
-      console.error((error as Error)?.message ?? String(error));
+      console.error(getErrorMessage(error));
       // Toast de erro já tratado no hook useCashMovement
     }
   };
@@ -194,8 +194,12 @@ export const CashControlPage: FC = () => {
       setIsOpenDialogOpen(false);
       setOpeningBalance('');
     } catch (error) {
-      console.error((error as Error)?.message ?? String(error));
-      toast({ title: 'Erro ao abrir caixa', variant: 'destructive' });
+      console.error(getErrorMessage(error));
+      toast({
+        title: 'Erro ao abrir caixa',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -219,8 +223,12 @@ export const CashControlPage: FC = () => {
       setIsCloseDialogOpen(false);
       setClosingBalance('');
     } catch (error) {
-      console.error((error as Error)?.message ?? String(error)); // Log error to use it
-      toast({ title: 'Erro ao fechar caixa', variant: 'destructive' });
+      console.error(getErrorMessage(error));
+      toast({
+        title: 'Erro ao fechar caixa',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
     }
   };
 

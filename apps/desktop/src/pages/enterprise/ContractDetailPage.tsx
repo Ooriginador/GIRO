@@ -201,7 +201,7 @@ const StatCard: FC<StatCardProps> = ({ title, value, icon: Icon, variant = 'defa
 // ────────────────────────────────────────────────────────────────────────────
 
 const ContractDetailSkeleton: FC = () => (
-  <div className="space-y-6 p-6">
+  <div className="space-y-6">
     <div className="flex items-center gap-4">
       <Skeleton className="h-10 w-10 rounded-lg" />
       <div className="space-y-2">
@@ -308,7 +308,7 @@ export const ContractDetailPage: FC = () => {
   const isActive = contract.status === 'ACTIVE';
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">

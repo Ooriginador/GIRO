@@ -108,6 +108,63 @@ impl<'a> EmployeeRepository<'a> {
     }
 
     pub async fn create(&self, data: CreateEmployee) -> AppResult<Employee> {
+        // ═══════════════════════════════════════════════════════════════════
+        // VALIDAÇÕES
+        // ═══════════════════════════════════════════════════════════════════
+
+        // Nome obrigatório e não vazio
+        let name = data.name.trim();
+        if name.is_empty() {
+            return Err(crate::error::AppError::Validation(
+                "Nome do funcionário é obrigatório".into(),
+            ));
+        }
+        if name.len() < 3 {
+            return Err(crate::error::AppError::Validation(
+                "Nome do funcionário deve ter pelo menos 3 caracteres".into(),
+            ));
+        }
+
+        // PIN: 4-6 dígitos numéricos
+        if data.pin.len() < 4 || data.pin.len() > 6 {
+            return Err(crate::error::AppError::Validation(
+                "PIN deve ter entre 4 e 6 dígitos".into(),
+            ));
+        }
+        if !data.pin.chars().all(|c| c.is_ascii_digit()) {
+            return Err(crate::error::AppError::Validation(
+                "PIN deve conter apenas números".into(),
+            ));
+        }
+
+        // Email: formato válido se presente
+        if let Some(ref email) = data.email {
+            if !email.is_empty() && !is_valid_email(email) {
+                return Err(crate::error::AppError::Validation("E-mail inválido".into()));
+            }
+        }
+
+        // CPF: validar formato e dígitos se presente
+        if let Some(ref cpf) = data.cpf {
+            if !cpf.is_empty() {
+                if !is_valid_cpf(cpf) {
+                    return Err(crate::error::AppError::Validation("CPF inválido".into()));
+                }
+                // Verificar duplicidade de CPF
+                if let Some(existing) = self.find_by_cpf(cpf).await? {
+                    if existing.is_active {
+                        return Err(crate::error::AppError::Duplicate(format!(
+                            "CPF '{}' já está cadastrado para outro funcionário",
+                            mask_cpf(cpf)
+                        )));
+                    }
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CRIAÇÃO
+        // ═══════════════════════════════════════════════════════════════════
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
         let role = data
@@ -162,7 +219,73 @@ impl<'a> EmployeeRepository<'a> {
                 })?;
         let now = chrono::Utc::now().to_rfc3339();
 
-        let name = data.name.unwrap_or(existing.name);
+        // ═══════════════════════════════════════════════════════════════════
+        // VALIDAÇÕES
+        // ═══════════════════════════════════════════════════════════════════
+        
+        // Nome: se fornecido, validar
+        let name = if let Some(ref new_name) = data.name {
+            let trimmed = new_name.trim();
+            if trimmed.is_empty() {
+                return Err(crate::error::AppError::Validation(
+                    "Nome do funcionário não pode ser vazio".into(),
+                ));
+            }
+            if trimmed.len() < 3 {
+                return Err(crate::error::AppError::Validation(
+                    "Nome do funcionário deve ter pelo menos 3 caracteres".into(),
+                ));
+            }
+            trimmed.to_string()
+        } else {
+            existing.name.clone()
+        };
+
+        // PIN: se fornecido, validar
+        if let Some(ref new_pin) = data.pin {
+            if new_pin.len() < 4 || new_pin.len() > 6 {
+                return Err(crate::error::AppError::Validation(
+                    "PIN deve ter entre 4 e 6 dígitos".into(),
+                ));
+            }
+            if !new_pin.chars().all(|c| c.is_ascii_digit()) {
+                return Err(crate::error::AppError::Validation(
+                    "PIN deve conter apenas números".into(),
+                ));
+            }
+        }
+
+        // Email: se fornecido, validar formato
+        if let Some(ref new_email) = data.email {
+            if !new_email.is_empty() && !is_valid_email(new_email) {
+                return Err(crate::error::AppError::Validation(
+                    "E-mail inválido".into(),
+                ));
+            }
+        }
+
+        // CPF: se fornecido, validar e verificar duplicidade
+        if let Some(ref new_cpf) = data.cpf {
+            if !new_cpf.is_empty() {
+                if !is_valid_cpf(new_cpf) {
+                    return Err(crate::error::AppError::Validation(
+                        "CPF inválido".into(),
+                    ));
+                }
+                // Verificar duplicidade (excluindo o próprio funcionário)
+                if let Some(existing_with_cpf) = self.find_by_cpf(new_cpf).await? {
+                    if existing_with_cpf.id != id && existing_with_cpf.is_active {
+                        return Err(crate::error::AppError::Duplicate(
+                            format!("CPF '{}' já está cadastrado para outro funcionário", mask_cpf(new_cpf)),
+                        ));
+                    }
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // ATUALIZAÇÃO
+        // ═══════════════════════════════════════════════════════════════════
         let cpf = pii::encrypt_optional(data.cpf.or(existing.cpf))?;
         let phone = data.phone.or(existing.phone);
         let email = data.email.or(existing.email);
@@ -527,6 +650,77 @@ fn hash_password(password: &str) -> String {
         .expect("Argon2 hashing failed")
         .to_string();
     password_hash
+}
+
+/// Valida formato de e-mail (regex simples)
+fn is_valid_email(email: &str) -> bool {
+    // Regex simplificado para e-mail
+    let email = email.trim();
+    if email.is_empty() {
+        return true; // Vazio é válido (opcional)
+    }
+    // Deve ter @ e domínio com ponto
+    let parts: Vec<&str> = email.split('@').collect();
+    if parts.len() != 2 {
+        return false;
+    }
+    let local = parts[0];
+    let domain = parts[1];
+
+    !local.is_empty() && domain.contains('.') && domain.len() >= 3
+}
+
+/// Valida CPF brasileiro (algoritmo de dígitos verificadores)
+fn is_valid_cpf(cpf: &str) -> bool {
+    // Remove caracteres não numéricos
+    let digits: Vec<u32> = cpf.chars().filter_map(|c| c.to_digit(10)).collect();
+
+    // Deve ter 11 dígitos
+    if digits.len() != 11 {
+        return false;
+    }
+
+    // Verifica se todos os dígitos são iguais (ex: 111.111.111-11)
+    if digits.iter().all(|&d| d == digits[0]) {
+        return false;
+    }
+
+    // Validação do primeiro dígito verificador
+    let mut sum: u32 = 0;
+    for i in 0..9 {
+        sum += digits[i] * (10 - i as u32);
+    }
+    let mut remainder = (sum * 10) % 11;
+    if remainder == 10 || remainder == 11 {
+        remainder = 0;
+    }
+    if remainder != digits[9] {
+        return false;
+    }
+
+    // Validação do segundo dígito verificador
+    sum = 0;
+    for i in 0..10 {
+        sum += digits[i] * (11 - i as u32);
+    }
+    remainder = (sum * 10) % 11;
+    if remainder == 10 || remainder == 11 {
+        remainder = 0;
+    }
+    if remainder != digits[10] {
+        return false;
+    }
+
+    true
+}
+
+/// Mascara CPF para exibição (ex: 123.456.789-00 -> ***.***.789-00)
+fn mask_cpf(cpf: &str) -> String {
+    let digits: String = cpf.chars().filter(|c| c.is_ascii_digit()).collect();
+    if digits.len() != 11 {
+        return cpf.to_string();
+    }
+    format!("***.***{}-{}", &digits[6..9], &digits[9..11])
 }
 
 #[cfg(test)]

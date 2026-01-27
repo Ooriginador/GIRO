@@ -22,7 +22,7 @@ import { ProductUnit } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, BarChart3, DollarSign, Package, Save } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
-import { calculateMargin, formatCurrency } from '@/lib/utils';
+import { calculateMargin, formatCurrency, formatUserError } from '@/lib/utils';
 import { useBusinessProfile } from '@/stores/useBusinessProfile';
 import { type FC, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -127,10 +127,12 @@ export const ProductFormPage: FC = () => {
       navigate('/products');
     } catch (error) {
       console.error('Product save error:', error);
+
+      const errorMessage = formatUserError(error, 'product');
+
       toast({
-        title: 'Erro',
-        description:
-          error instanceof Error ? error.message : 'Ocorreu um erro ao salvar o produto.',
+        title: isEditing ? 'Erro ao atualizar' : 'Erro ao criar',
+        description: errorMessage,
         variant: 'destructive',
       });
     }

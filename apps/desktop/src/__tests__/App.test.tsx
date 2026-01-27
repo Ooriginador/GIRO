@@ -39,6 +39,7 @@ vi.mock('@/pages/setup', () => ({
 }));
 vi.mock('@/pages/pdv', () => ({
   PDVPage: () => <div data-testid="pdv-page">PDV</div>,
+  PendingOrdersPage: () => <div data-testid="pending-orders-page">Pending Orders</div>,
 }));
 vi.mock('@/pages/dashboard', () => ({
   DashboardPage: () => <div data-testid="dashboard-page">Dashboard</div>,

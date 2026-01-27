@@ -87,12 +87,8 @@ impl<'a> HeldSaleRepository<'a> {
         let subtotal: f64 = data.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let total = subtotal - data.discount_value;
 
-        // Status inicial: WAITING se for de atendente, senão sem status específico
-        let status = if employee_role == Some("ATTENDANT") {
-            "WAITING"
-        } else {
-            "WAITING"
-        };
+        // Status inicial sempre é WAITING (a ser processado pelo caixa/cozinha)
+        let status = "WAITING";
 
         sqlx::query(
             r#"INSERT INTO held_sales (id, customer_id, discount_value, discount_reason, 

@@ -31,6 +31,7 @@ export type EmployeeRole =
   | 'ADMIN'
   | 'MANAGER'
   | 'CASHIER'
+  | 'ATTENDANT' // Atendente/Balconista - motopeças (não finaliza pagamento)
   | 'VIEWER'
   | 'STOCKER'
   // Enterprise específicos
@@ -141,6 +142,9 @@ export interface Supplier {
   phone?: string;
   email?: string;
   address?: string;
+  city?: string;
+  state?: string;
+  notes?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -152,9 +156,10 @@ export interface Employee {
   cpf?: string;
   phone?: string;
   email?: string;
-  pin: string;
+  pin?: string; // Presente apenas internamente, SafeEmployee não expõe
   password?: string;
   role: EmployeeRole;
+  commissionRate?: number; // Taxa de comissão (0-100%)
   isActive: boolean;
   permissions?: string[];
   createdAt: string;

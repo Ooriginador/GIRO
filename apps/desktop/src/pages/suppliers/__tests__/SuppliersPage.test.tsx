@@ -12,7 +12,7 @@ import {
 } from '@/hooks/useSuppliers';
 import { SuppliersPage } from '@/pages/suppliers/SuppliersPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,10 +22,13 @@ const mockSuppliers = [
     id: '1',
     name: 'Fornecedor Ativo',
     tradeName: 'Ativo LTDA',
-    cnpj: '12.345.678/0001-90',
+    cnpj: '12345678000190',
     phone: '11999999999',
     email: 'teste@teste.com',
     address: 'Rua Teste, 123',
+    city: 'São Paulo',
+    state: 'SP',
+    notes: 'Fornecedor preferencial',
     isActive: true,
   },
 ];
@@ -35,7 +38,9 @@ const mockInactiveSuppliers = [
     id: '2',
     name: 'Inativo Teste',
     tradeName: 'Inativo LTDA',
-    cnpj: '99.888.777/0001-66',
+    cnpj: '99888777000166',
+    city: 'Rio de Janeiro',
+    state: 'RJ',
     isActive: false,
   },
 ];
@@ -115,7 +120,8 @@ describe('SuppliersPage', () => {
 
     await user.type(screen.getByLabelText(/razão social \*/i), 'Novo Forn');
     await user.type(screen.getByLabelText(/nome fantasia/i), 'Forn Shop');
-    await user.type(screen.getByLabelText(/cnpj/i), '12.345.678/0001-90');
+    // Digita CNPJ que será formatado automaticamente
+    await user.type(screen.getByLabelText(/cnpj/i), '11222333000181');
 
     await user.click(screen.getByRole('button', { name: /cadastrar/i }));
 
@@ -123,7 +129,8 @@ describe('SuppliersPage', () => {
       expect.objectContaining({
         name: 'Novo Forn',
         tradeName: 'Forn Shop',
-        cnpj: '12.345.678/0001-90',
+        // CNPJ é salvo sem formatação
+        cnpj: '11222333000181',
       })
     );
   });
@@ -137,7 +144,8 @@ describe('SuppliersPage', () => {
     // Trigger validation with invalid inputs
     await user.type(screen.getByLabelText(/razão social \*/i), 'A');
     await user.type(screen.getByLabelText(/e-mail/i), 'invalid-email');
-    await user.type(screen.getByLabelText(/cnpj/i), 'invalid-cnpj');
+    // CNPJ inválido (dígitos verificadores errados) - apenas dígitos, mas inválido
+    await user.type(screen.getByLabelText(/cnpj/i), '11111111111111');
 
     await user.click(screen.getByRole('button', { name: /cadastrar/i }));
 
@@ -183,7 +191,7 @@ describe('SuppliersPage', () => {
     );
   });
 
-  it('should filter by search text (name, tradeName, cnpj)', async () => {
+  it('should filter by search text (name, tradeName, cnpj, city)', async () => {
     const user = userEvent.setup();
     render(<SuppliersPage />, { wrapper: createWrapper() });
 
@@ -198,15 +206,22 @@ describe('SuppliersPage', () => {
     await user.type(searchInput, 'Ativo LTDA');
     expect(screen.getByText('Fornecedor Ativo')).toBeInTheDocument();
 
-    // By CNPJ
+    // By CNPJ (números apenas)
     await user.clear(searchInput);
-    await user.type(searchInput, '12.345.678/0001-90');
+    await user.type(searchInput, '12345678');
+    expect(screen.getByText('Fornecedor Ativo')).toBeInTheDocument();
+
+    // By City
+    await user.clear(searchInput);
+    await user.type(searchInput, 'São Paulo');
     expect(screen.getByText('Fornecedor Ativo')).toBeInTheDocument();
 
     await user.clear(searchInput);
-    await user.type(searchInput, 'Inexistente');
-    expect(screen.queryByText('Fornecedor Ativo')).not.toBeInTheDocument();
-    expect(screen.getByText(/nenhum fornecedor encontrado/i)).toBeInTheDocument();
+    await user.type(searchInput, 'XYZ999NOMEQUENAOEXISTE');
+    await waitFor(() => {
+      expect(screen.queryByText('Fornecedor Ativo')).not.toBeInTheDocument();
+      expect(screen.getByText(/nenhum fornecedor encontrado/i)).toBeInTheDocument();
+    });
   });
 
   it('should filter by status', async () => {
@@ -220,5 +235,46 @@ describe('SuppliersPage', () => {
     await user.click(screen.getByText(/todos/i));
     expect(screen.getByText('Fornecedor Ativo')).toBeInTheDocument();
     expect(screen.getByText('Inativo Teste')).toBeInTheDocument();
+  });
+
+  it('should show confirmation dialog when deactivating supplier', async () => {
+    const user = userEvent.setup();
+    render(<SuppliersPage />, { wrapper: createWrapper() });
+
+    // Aguardar o card do fornecedor carregar
+    await screen.findByText('Fornecedor Ativo');
+
+    // Abrir o dropdown menu
+    const dropdownTrigger = screen.getByTestId('icon-MoreHorizontal').closest('button');
+    expect(dropdownTrigger).toBeTruthy();
+    await user.click(dropdownTrigger!);
+
+    // Clicar em Desativar no dropdown
+    await user.click(await screen.findByText(/desativar/i));
+
+    // Verificar se o dialog de confirmação aparece
+    expect(await screen.findByText(/desativar fornecedor\?/i)).toBeInTheDocument();
+    expect(screen.getByText(/será desativado/i)).toBeInTheDocument();
+
+    // Confirmar desativação
+    await user.click(screen.getByRole('button', { name: /^desativar$/i }));
+
+    expect(mockMutateDeactivate).toHaveBeenCalledWith('1');
+  });
+
+  it('should display city and state in supplier card', () => {
+    render(<SuppliersPage />, { wrapper: createWrapper() });
+
+    // Verifica que a cidade e estado são exibidos
+    expect(screen.getByText(/são paulo - sp/i)).toBeInTheDocument();
+  });
+
+  it('should format CNPJ and phone in the card display', () => {
+    render(<SuppliersPage />, { wrapper: createWrapper() });
+
+    // CNPJ formatado: 12.345.678/0001-90
+    expect(screen.getByText('12.345.678/0001-90')).toBeInTheDocument();
+    // Telefone formatado: (11) 99999-9999
+    expect(screen.getByText('(11) 99999-9999')).toBeInTheDocument();
   });
 });
