@@ -9,6 +9,7 @@
 
 use super::{HardwareError, HardwareResult};
 use serde::{Deserialize, Serialize};
+#[cfg(target_os = "linux")]
 use std::fs::OpenOptions;
 use std::io::Write;
 #[cfg(target_os = "linux")]

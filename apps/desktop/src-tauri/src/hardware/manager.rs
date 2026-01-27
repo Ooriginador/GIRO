@@ -555,7 +555,7 @@ impl HardwareManager {
 
             if let Ok(Ok(Ok(model))) = result {
                 // Check if already detected
-                if !detected.iter().any(|d| d.port == *port) {
+                if !detected.iter().any(|d: &DetectedDevice| d.port == *port) {
                     detected.push(DetectedDevice {
                         device_type: DeviceType::Printer,
                         port: port.clone(),
