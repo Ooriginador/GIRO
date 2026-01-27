@@ -36,6 +36,7 @@ vi.mock('@/components/settings', () => ({
   NetworkSettings: () => <div data-testid="network-settings">Network Settings</div>,
   CloudLoginDialog: () => <div data-testid="cloud-login-dialog">Cloud Login Dialog</div>,
   BackupSettings: () => <div data-testid="backup-settings">Backup Settings</div>,
+  SyncSettings: () => <div data-testid="sync-settings">Sync Settings</div>,
 }));
 
 vi.mock('@/components/ui/select', () => ({
