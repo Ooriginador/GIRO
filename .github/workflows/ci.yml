@@ -172,11 +172,8 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install cargo-audit (prebuilt)
-        uses: taiki-e/install-action@v1
-        with:
-          tool: cargo-audit
-          version: latest
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
 
       - name: Run cargo audit
         working-directory: apps/desktop/src-tauri

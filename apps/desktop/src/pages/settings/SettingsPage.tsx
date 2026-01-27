@@ -907,7 +907,8 @@ export const SettingsPage: FC = () => {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Windows: selecione COM (serial), USB001-USB010 (virtual) ou \\localhost\Nome (compartilhada).
+                    Windows: selecione COM (serial), USB001-USB010 (virtual) ou \\localhost\Nome
+                    (compartilhada).
                   </p>
                 </div>
                 <div>
