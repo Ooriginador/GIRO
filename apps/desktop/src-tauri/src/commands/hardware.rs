@@ -91,9 +91,10 @@ pub fn list_hardware_ports() -> Vec<String> {
 
     #[cfg(target_os = "windows")]
     {
-        // Lista impressoras Windows via PowerShell
+        // Método 1: PowerShell Get-Printer (Windows 8+)
         if let Ok(output) = std::process::Command::new("powershell")
             .args([
+                "-NoProfile",
                 "-Command",
                 "Get-Printer | Select-Object -ExpandProperty Name",
             ])
@@ -108,6 +109,32 @@ pub fn list_hardware_ports() -> Vec<String> {
                     }
                 }
             }
+        }
+
+        // Método 2: WMIC (compatibilidade com Windows mais antigos)
+        if let Ok(output) = std::process::Command::new("wmic")
+            .args(["printer", "get", "name"])
+            .output()
+        {
+            if let Ok(stdout) = String::from_utf8(output.stdout) {
+                for line in stdout.lines().skip(1) {
+                    // Skip header
+                    let name = line.trim();
+                    if !name.is_empty() && name != "Name" {
+                        let unc_path = format!("\\\\localhost\\{}", name);
+                        if !ports.contains(&unc_path) {
+                            ports.push(unc_path);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Método 3: Verificar portas USB virtuais comuns criadas por drivers de impressora
+        // Muitas impressoras térmicas USB criam portas virtuais USB001, USB002, etc.
+        for i in 1..=10 {
+            let usb_port = format!("USB{:03}", i);
+            ports.push(usb_port);
         }
 
         // Adiciona opções comuns de LPT

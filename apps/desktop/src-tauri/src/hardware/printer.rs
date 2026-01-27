@@ -507,23 +507,42 @@ impl ThermalPrinter {
             let port = self.config.port.trim();
             if port.is_empty() {
                 return Err(HardwareError::NotConfigured(
-                    "Windows: Selecione uma impressora na lista de portas. As impressoras instaladas aparecem como \\\\localhost\\NomeImpressora. Você também pode usar COMx para conexão serial.".into()
+                    "Windows: Selecione uma impressora na lista de portas. As impressoras instaladas aparecem como \\\\localhost\\NomeImpressora. Você também pode usar COMx para conexão serial ou USB001-USB010 para portas USB virtuais.".into()
                 ));
             }
 
-            // Tenta abrir como arquivo (funciona para LPT, COM mapeada, e UNC path)
-            let mut dev = OpenOptions::new().write(true).open(port).map_err(|e| {
-                HardwareError::ConnectionFailed(format!(
-                    "Falha ao abrir impressora '{}': {}. Verifique se a impressora está instalada e compartilhada corretamente.",
-                    port, e
-                ))
-            })?;
+            // Tenta abrir como arquivo (funciona para LPT, COM mapeada, UNC path e USB virtual)
+            // Para portas USB virtuais (USB001, etc), precisamos tentar o caminho completo
+            let paths_to_try: Vec<String> = if port.starts_with("USB") && !port.contains("\\") {
+                // Porta USB virtual - tentar múltiplos formatos
+                vec![
+                    port.to_string(),
+                    format!("\\\\.\\{}", port), // \\.\USB001
+                ]
+            } else {
+                vec![port.to_string()]
+            };
 
-            dev.write_all(&self.buffer)
-                .map_err(HardwareError::IoError)?;
-            dev.flush().map_err(HardwareError::IoError)?;
+            let mut last_error = String::new();
+            for path in &paths_to_try {
+                match OpenOptions::new().write(true).open(path) {
+                    Ok(mut dev) => {
+                        dev.write_all(&self.buffer)
+                            .map_err(HardwareError::IoError)?;
+                        dev.flush().map_err(HardwareError::IoError)?;
+                        return Ok(());
+                    }
+                    Err(e) => {
+                        last_error = format!("{}: {}", path, e);
+                        tracing::debug!("Falha ao abrir '{}': {}", path, e);
+                    }
+                }
+            }
 
-            Ok(())
+            Err(HardwareError::ConnectionFailed(format!(
+                "Falha ao abrir impressora '{}': {}. Verifique se a impressora está instalada, ligada e configurada corretamente. Para impressoras USB, verifique no Gerenciador de Dispositivos qual porta foi atribuída (Painel de Controle > Dispositivos e Impressoras > Propriedades > Portas).",
+                port, last_error
+            )))
         }
 
         #[cfg(not(any(target_os = "linux", target_os = "windows")))]
