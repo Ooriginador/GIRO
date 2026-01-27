@@ -71,3 +71,6 @@ export {
   useIsEnterprise,
   useCurrentRole,
 } from './useEnterprisePermission';
+
+// Sync
+export * from './useSync';
