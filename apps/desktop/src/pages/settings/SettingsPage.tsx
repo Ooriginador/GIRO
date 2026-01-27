@@ -188,14 +188,15 @@ export const SettingsPage: FC = () => {
       connection,
       // Para USB, deixar vazio para o backend tentar /dev/usb/lp0 (Linux)
       port: printerPort === 'USB' ? '' : printerPort,
-      paper_width: 48,
-      auto_cut: printer.autoCut ?? true,
-      open_drawer_on_sale: printer.openDrawer ?? true,
+      paperWidth: 48,
+      autoCut: printer.autoCut ?? true,
+      openDrawerOnSale: printer.openDrawer ?? true,
       // Serial params (aplicáveis quando connection === 'serial')
-      baud_rate: printerBaudRate,
-      data_bits: printerDataBits,
+      baudRate: printerBaudRate,
+      dataBits: printerDataBits,
       parity: printerParity,
-      timeout_ms: printerTimeoutMs,
+      timeoutMs: printerTimeoutMs,
+      mockMode: false,
     };
   };
 
@@ -204,10 +205,11 @@ export const SettingsPage: FC = () => {
       enabled: scaleEnabled,
       protocol: mapScaleModelToProtocol(scaleModel),
       port: scalePort,
-      baud_rate: scale.baudRate ?? 9600,
-      data_bits: 8,
+      baudRate: scale.baudRate ?? 9600,
+      dataBits: 8,
       parity: 'none',
-      stop_bits: 1,
+      stopBits: 1,
+      mockMode: false,
     };
   };
 
