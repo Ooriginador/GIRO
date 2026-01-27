@@ -26,6 +26,8 @@ mod tests {
     }
 
     const TEST_PASSWORD: &str = "test-password";
+    // CPF válido para testes (dígitos verificadores corretos)
+    const VALID_TEST_CPF: &str = "52998224725";
 
     #[tokio::test]
     async fn test_create_employee() {
@@ -34,7 +36,7 @@ mod tests {
 
         let input = CreateEmployee {
             name: "João Silva".to_string(),
-            cpf: Some("12345678900".to_string()),
+            cpf: Some(VALID_TEST_CPF.to_string()),
             phone: Some("11999999999".to_string()),
             email: Some("joao@example.com".to_string()),
             // Avoid collision with any migration/seeded default employee PINs.
@@ -49,7 +51,7 @@ mod tests {
         assert!(result.is_ok(), "{:?}", result.err());
         let employee = result.unwrap();
         assert_eq!(employee.name, "João Silva");
-        assert_eq!(employee.cpf, Some("12345678900".to_string()));
+        assert_eq!(employee.cpf, Some(VALID_TEST_CPF.to_string()));
         assert!(employee.is_active);
         // PIN should be hashed
         assert_ne!(employee.pin, "2345");
