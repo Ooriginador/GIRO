@@ -782,6 +782,91 @@ impl<'a> ProductRepository<'a> {
         Ok(())
     }
 
+    /// Exclui um produto permanentemente (hard delete)
+    /// ATENÇÃO: Esta ação é irreversível!
+    pub async fn hard_delete(&self, id: &str) -> AppResult<String> {
+        let mut tx = self.pool.begin().await?;
+
+        // Buscar nome do produto antes de deletar
+        let name = sqlx::query_scalar::<_, String>("SELECT name FROM products WHERE id = ?")
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound {
+                entity: "Product".into(),
+                id: id.into(),
+            })?;
+
+        // Verificar se produto tem vendas associadas
+        let sale_count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM sale_items WHERE product_id = ?")
+                .bind(id)
+                .fetch_one(&mut *tx)
+                .await?;
+
+        if sale_count.0 > 0 {
+            return Err(crate::error::AppError::Validation(format!(
+                "Produto '{}' possui {} venda(s) associada(s). Desative o produto em vez de excluir.",
+                name, sale_count.0
+            )));
+        }
+
+        // Deletar registros relacionados em ordem
+        // 1. Alertas
+        sqlx::query("DELETE FROM alerts WHERE product_id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+
+        // 2. Histórico de preços
+        sqlx::query("DELETE FROM price_history WHERE product_id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+
+        // 3. Movimentações de estoque
+        sqlx::query("DELETE FROM stock_movements WHERE product_id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+
+        // 4. Lotes
+        sqlx::query("DELETE FROM product_lots WHERE product_id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+
+        // 5. Compatibilidades (motopeças)
+        sqlx::query("DELETE FROM product_compatibilities WHERE product_id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+
+        // 6. Saldos de estoque (enterprise)
+        sqlx::query("DELETE FROM stock_balances WHERE product_id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+
+        // 7. Finalmente, deletar o produto
+        sqlx::query("DELETE FROM products WHERE id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+
+        // Notificar evento de exclusão
+        if let Some(service) = self.event_service {
+            service.emit_sync_push(
+                "product_deleted",
+                serde_json::json!({ "id": id, "name": name }),
+            );
+        }
+
+        Ok(name)
+    }
+
     /// Reativa um produto que foi desativado (soft deleted)
     pub async fn reactivate(&self, id: &str) -> AppResult<Product> {
         sqlx::query(
