@@ -69,7 +69,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Pre-build (Create dummy dist for Tauri macro)
-        run: mkdir -p dist && touch dist/index.html
+        run: mkdir -p dist && echo '<!DOCTYPE html><html><head></head><body></body></html>' > dist/index.html
 
       - name: Lint (ESLint)
         run: pnpm lint
