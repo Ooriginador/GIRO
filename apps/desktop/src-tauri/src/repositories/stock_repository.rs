@@ -212,20 +212,8 @@ impl<'a> StockRepository<'a> {
         days: i32,
         category_id: Option<String>,
     ) -> AppResult<Vec<ProductLot>> {
-        let base_cols = Self::LOT_COLS
-            .replace("id,", "pl.id,")
-            .replace("product_id,", "pl.product_id,")
-            .replace("supplier_id,", "pl.supplier_id,")
-            .replace("lot_number,", "pl.lot_number,")
-            .replace("expiration_date,", "pl.expiration_date,")
-            .replace("manufacturing_date,", "pl.manufacturing_date,")
-            .replace("purchase_date,", "pl.purchase_date,")
-            .replace("initial_quantity,", "pl.initial_quantity,")
-            .replace("current_quantity,", "pl.current_quantity,")
-            .replace("cost_price,", "pl.cost_price,")
-            .replace("status,", "pl.status,")
-            .replace("created_at,", "pl.created_at,")
-            .replace("updated_at", "pl.updated_at");
+        // Use explicit column list with proper aliases to avoid replacement issues
+        let base_cols = "pl.id, pl.product_id, pl.supplier_id, pl.lot_number, pl.expiration_date, pl.manufacturing_date, pl.purchase_date, pl.initial_quantity, pl.current_quantity, pl.cost_price, pl.status, pl.created_at, pl.updated_at";
 
         if let Some(cat_id) = category_id {
             let query = format!(
