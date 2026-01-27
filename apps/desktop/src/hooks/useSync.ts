@@ -6,7 +6,7 @@
 
 import { invoke } from '@/lib/tauri';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 // ────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -149,15 +149,15 @@ export function useSyncPull() {
 
 /**
  * Mutation para sincronização completa (push + pull)
+ * Sincroniza todas as entidades automaticamente
  */
 export function useSyncFull() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (entityTypes: SyncEntityType[]) => {
-      const result = await invoke<SyncResult>('sync_full', {
-        payload: { entityTypes },
-      });
+    mutationFn: async () => {
+      // sync_full não recebe parâmetros - sincroniza todas entidades
+      const result = await invoke<SyncResult>('sync_full');
       return result;
     },
     onSuccess: () => {
@@ -169,14 +169,15 @@ export function useSyncFull() {
 
 /**
  * Mutation para resetar sincronização
+ * @param entityType - Tipo de entidade para resetar (opcional, se não informado reseta todas)
  */
 export function useSyncReset() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
-      const result = await invoke<SyncResult>('sync_reset');
-      return result;
+    mutationFn: async (entityType?: SyncEntityType) => {
+      // sync_reset retorna void, não SyncResult
+      await invoke<void>('sync_reset', { entityType: entityType ?? null });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SYNC_QUERY_KEY });
@@ -198,20 +199,17 @@ export function useSync() {
   const fullMutation = useSyncFull();
   const resetMutation = useSyncReset();
 
-  const allEntityTypes: SyncEntityType[] = [
-    'product',
-    'category',
-    'supplier',
-    'customer',
-    'setting',
-  ];
+  const allEntityTypes: SyncEntityType[] = useMemo(
+    () => ['product', 'category', 'supplier', 'customer', 'setting'],
+    []
+  );
 
   /**
    * Sincronização completa de todas as entidades
    */
   const syncAll = useCallback(async () => {
-    return fullMutation.mutateAsync(allEntityTypes);
-  }, [fullMutation, allEntityTypes]);
+    return fullMutation.mutateAsync();
+  }, [fullMutation]);
 
   /**
    * Push de todas as entidades
