@@ -2,7 +2,9 @@
 //!
 //! Tauri commands for multi-PC data synchronization
 
-use crate::license::{SyncClient, SyncEntityType, SyncItem, SyncItemStatus, SyncOperation, SyncPullItem};
+use crate::license::{
+    SyncClient, SyncEntityType, SyncItem, SyncItemStatus, SyncOperation, SyncPullItem,
+};
 use crate::repositories::{
     CategoryRepository, CustomerRepository, ProductRepository, SettingsRepository,
     SupplierRepository,

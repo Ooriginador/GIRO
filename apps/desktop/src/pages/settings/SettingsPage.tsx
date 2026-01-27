@@ -10,6 +10,8 @@ import {
   MobileServerSettings,
   NetworkSettings,
   CloudLoginDialog,
+  BackupSettings,
+  SyncSettings,
 } from '@/components/settings';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -517,7 +519,7 @@ export const SettingsPage: FC = () => {
 
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList
-          className="grid w-full grid-cols-7 lg:w-[900px]"
+          className="grid w-full grid-cols-8 lg:w-[1000px]"
           aria-label="Seções de configuração"
         >
           <TabsTrigger value="general">
@@ -527,6 +529,10 @@ export const SettingsPage: FC = () => {
           <TabsTrigger value="license">
             <ShieldCheck className="mr-2 h-4 w-4" aria-hidden="true" />
             Licença
+          </TabsTrigger>
+          <TabsTrigger value="backup">
+            <Cloud className="mr-2 h-4 w-4" aria-hidden="true" />
+            Backup
           </TabsTrigger>
           <TabsTrigger value="fiscal">
             <FileCode className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -834,6 +840,11 @@ export const SettingsPage: FC = () => {
             onOpenChange={setIsCloudLoginOpen}
             onSuccess={handleSyncCloud}
           />
+        </TabsContent>
+
+        {/* Backup / Google Drive */}
+        <TabsContent value="backup" className="space-y-6">
+          <BackupSettings />
         </TabsContent>
 
         {/* Hardware */}
@@ -1188,6 +1199,7 @@ export const SettingsPage: FC = () => {
         {/* Network */}
         <TabsContent value="network" className="space-y-6">
           <NetworkSettings />
+          <SyncSettings />
         </TabsContent>
 
         {/* Aparência */}
