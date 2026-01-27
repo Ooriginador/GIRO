@@ -1,5 +1,16 @@
 # GIRO - Changelog
 
+## [2.1.6] - 2026-01-27
+
+### Corrigido
+
+- **Hardware/Impressora Windows**: Melhorada detecção de impressoras no Windows via PowerShell (`Get-Printer`).
+- **Listagem de Portas**: Impressoras Windows agora aparecem automaticamente como `\\localhost\NomeImpressora`.
+- **Mensagens de Erro**: Instruções mais claras para configuração de impressora no Windows.
+- **UI Settings**: Renomeada opção "USB (Automático/Físico)" para "USB (Automático - Linux)" e adicionada nota explicativa.
+
+---
+
 ## [1.1.6] - 2026-01-23
 
 ### Corrigido
