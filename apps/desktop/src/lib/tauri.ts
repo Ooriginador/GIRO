@@ -1660,10 +1660,24 @@ export async function adjustStock(
   newQuantity: number,
   reason: string
 ): Promise<void> {
+  // Buscar estoque atual para calcular delta
+  const product = await getProductById(productId);
+  if (!product) {
+    throw new Error(`Produto não encontrado: ${productId}`);
+  }
+
+  const currentStock = product.currentStock ?? 0;
+  const delta = newQuantity - currentStock;
+
+  // Se não há diferença, não criar movimento
+  if (Math.abs(delta) < 0.001) {
+    return;
+  }
+
   return tauriInvoke<void>('create_stock_movement', {
     input: {
       productId,
-      quantity: newQuantity,
+      quantity: delta, // Envia o DELTA, não o valor absoluto
       movementType: 'ADJUSTMENT',
       reason,
     },
