@@ -173,8 +173,10 @@ pub struct PaginationMeta {
 
 /// Pagination wrapper
 #[derive(Debug, Deserialize, specta::Type)]
+#[allow(dead_code)]
 struct PaginatedResponse<T> {
     pub data: Vec<T>,
+    #[allow(dead_code)]
     pub pagination: PaginationMeta,
 }
 

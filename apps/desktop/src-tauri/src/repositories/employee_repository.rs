@@ -438,23 +438,84 @@ impl<'a> EmployeeRepository<'a> {
 fn hash_pin(pin: &str) -> String {
     // Deterministic HMAC-SHA256 using PIN_HMAC_KEY env var for lookup-friendly PIN hashing
     type HmacSha256 = Hmac<Sha256>;
-    let key = std::env::var("PIN_HMAC_KEY").unwrap_or_else(|_| {
-        #[cfg(debug_assertions)]
-        {
-            tracing::warn!("PIN_HMAC_KEY não definida, usando chave de desenvolvimento");
-            "giro-dev-pin-key".to_string()
-        }
-        #[cfg(not(debug_assertions))]
-        {
-            panic!("PIN_HMAC_KEY environment variable is required in production");
-        }
-    });
+
+    let key = get_or_create_hmac_key();
+
     let mut mac =
         HmacSha256::new_from_slice(key.as_bytes()).expect("HMAC can take key of any size");
     mac.update(pin.as_bytes());
     let result = mac.finalize();
     let bytes = result.into_bytes();
     hex::encode(bytes)
+}
+
+/// Obtém ou cria a chave HMAC para hash de PIN
+/// Prioridade: 1) variável de ambiente, 2) arquivo de configuração, 3) gera nova chave
+fn get_or_create_hmac_key() -> String {
+    // 1. Tentar obter da variável de ambiente
+    if let Ok(key) = std::env::var("PIN_HMAC_KEY") {
+        if !key.is_empty() {
+            return key;
+        }
+    }
+
+    // 2. Tentar ler do arquivo de configuração
+    let key_file = get_hmac_key_path();
+    if let Ok(key) = std::fs::read_to_string(&key_file) {
+        let key = key.trim().to_string();
+        if !key.is_empty() {
+            tracing::info!("PIN_HMAC_KEY carregada do arquivo de configuração");
+            return key;
+        }
+    }
+
+    // 3. Gerar nova chave e salvar
+    tracing::warn!("PIN_HMAC_KEY não encontrada, gerando nova chave...");
+    let new_key = generate_hmac_key();
+
+    // Tentar salvar no arquivo
+    if let Some(parent) = key_file.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Err(e) = std::fs::write(&key_file, &new_key) {
+        tracing::error!(
+            "Falha ao salvar PIN_HMAC_KEY: {}. Os PINs podem ser invalidados!",
+            e
+        );
+    } else {
+        tracing::info!("PIN_HMAC_KEY gerada e salva em: {:?}", key_file);
+    }
+
+    new_key
+}
+
+/// Gera uma nova chave HMAC aleatória
+fn generate_hmac_key() -> String {
+    use rand::Rng;
+    let mut rng = rand::rng();
+    let bytes: [u8; 32] = rng.random();
+    base64::Engine::encode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, bytes)
+}
+
+/// Retorna o caminho do arquivo de chave HMAC
+fn get_hmac_key_path() -> std::path::PathBuf {
+    // Usar diretório de dados do app
+    #[cfg(target_os = "windows")]
+    {
+        let local_app_data = std::env::var("LOCALAPPDATA")
+            .unwrap_or_else(|_| std::env::var("APPDATA").unwrap_or_else(|_| ".".to_string()));
+        std::path::PathBuf::from(local_app_data)
+            .join("GIRO")
+            .join(".hmac_key")
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        std::path::PathBuf::from(home)
+            .join(".config")
+            .join("giro")
+            .join(".hmac_key")
+    }
 }
 
 fn hash_password(password: &str) -> String {
