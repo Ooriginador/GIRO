@@ -286,85 +286,119 @@ pub async fn sync_pull(
 }
 
 /// Apply pulled items to local database
-/// Currently only handles deletions - upserts require careful field mapping
+/// Handles both deletions and upserts using repository methods
 async fn apply_pulled_items(items: &[SyncPullItem], pool: &sqlx::SqlitePool) -> Result<(), String> {
     for item in items {
         match item.entity_type {
             SyncEntityType::Product => {
+                let repo = ProductRepository::new(pool);
                 if item.operation == SyncOperation::Delete {
-                    let repo = ProductRepository::new(pool);
-                    let _ = repo.hard_delete(&item.entity_id).await;
-                    tracing::info!("Sync: deleted product {}", item.entity_id);
+                    if let Err(e) = repo.hard_delete(&item.entity_id).await {
+                        tracing::warn!("Sync: failed to delete product {}: {}", item.entity_id, e);
+                    } else {
+                        tracing::info!("Sync: deleted product {}", item.entity_id);
+                    }
+                } else if let Ok(product) =
+                    serde_json::from_value::<crate::models::Product>(item.data.clone())
+                {
+                    if let Err(e) = repo.upsert_from_sync(product).await {
+                        tracing::warn!("Sync: failed to upsert product {}: {}", item.entity_id, e);
+                    } else {
+                        tracing::info!("Sync: upserted product {}", item.entity_id);
+                    }
                 } else {
-                    // TODO: Implement product upsert with proper field mapping
-                    tracing::info!(
-                        "Sync: would upsert product {} (not implemented yet)",
-                        item.entity_id
-                    );
+                    tracing::warn!("Sync: failed to deserialize product {}", item.entity_id);
                 }
             }
             SyncEntityType::Category => {
+                let repo = CategoryRepository::new(pool);
                 if item.operation == SyncOperation::Delete {
-                    let repo = CategoryRepository::new(pool);
-                    let _ = repo.delete(&item.entity_id).await;
-                    tracing::info!("Sync: deleted category {}", item.entity_id);
+                    if let Err(e) = repo.delete(&item.entity_id).await {
+                        tracing::warn!("Sync: failed to delete category {}: {}", item.entity_id, e);
+                    } else {
+                        tracing::info!("Sync: deleted category {}", item.entity_id);
+                    }
+                } else if let Ok(category) =
+                    serde_json::from_value::<crate::models::Category>(item.data.clone())
+                {
+                    if let Err(e) = repo.upsert_from_sync(category).await {
+                        tracing::warn!("Sync: failed to upsert category {}: {}", item.entity_id, e);
+                    } else {
+                        tracing::info!("Sync: upserted category {}", item.entity_id);
+                    }
                 } else {
-                    tracing::info!(
-                        "Sync: would upsert category {} (not implemented yet)",
-                        item.entity_id
-                    );
+                    tracing::warn!("Sync: failed to deserialize category {}", item.entity_id);
                 }
             }
             SyncEntityType::Supplier => {
+                let repo = SupplierRepository::new(pool);
                 if item.operation == SyncOperation::Delete {
-                    let repo = SupplierRepository::new(pool);
-                    let _ = repo.delete(&item.entity_id).await;
-                    tracing::info!("Sync: deleted supplier {}", item.entity_id);
+                    if let Err(e) = repo.delete(&item.entity_id).await {
+                        tracing::warn!("Sync: failed to delete supplier {}: {}", item.entity_id, e);
+                    } else {
+                        tracing::info!("Sync: deleted supplier {}", item.entity_id);
+                    }
+                } else if let Ok(supplier) =
+                    serde_json::from_value::<crate::models::Supplier>(item.data.clone())
+                {
+                    if let Err(e) = repo.upsert_from_sync(supplier).await {
+                        tracing::warn!("Sync: failed to upsert supplier {}: {}", item.entity_id, e);
+                    } else {
+                        tracing::info!("Sync: upserted supplier {}", item.entity_id);
+                    }
                 } else {
-                    tracing::info!(
-                        "Sync: would upsert supplier {} (not implemented yet)",
-                        item.entity_id
-                    );
+                    tracing::warn!("Sync: failed to deserialize supplier {}", item.entity_id);
                 }
             }
             SyncEntityType::Customer => {
+                let repo = CustomerRepository::new(pool);
                 if item.operation == SyncOperation::Delete {
-                    let repo = CustomerRepository::new(pool);
-                    let _ = repo.deactivate(&item.entity_id).await;
-                    tracing::info!("Sync: deactivated customer {}", item.entity_id);
+                    if let Err(e) = repo.deactivate(&item.entity_id).await {
+                        tracing::warn!(
+                            "Sync: failed to deactivate customer {}: {}",
+                            item.entity_id,
+                            e
+                        );
+                    } else {
+                        tracing::info!("Sync: deactivated customer {}", item.entity_id);
+                    }
+                } else if let Ok(customer) =
+                    serde_json::from_value::<crate::models::Customer>(item.data.clone())
+                {
+                    if let Err(e) = repo.upsert_from_sync(customer).await {
+                        tracing::warn!("Sync: failed to upsert customer {}: {}", item.entity_id, e);
+                    } else {
+                        tracing::info!("Sync: upserted customer {}", item.entity_id);
+                    }
                 } else {
-                    tracing::info!(
-                        "Sync: would upsert customer {} (not implemented yet)",
-                        item.entity_id
-                    );
+                    tracing::warn!("Sync: failed to deserialize customer {}", item.entity_id);
                 }
             }
             SyncEntityType::Employee => {
                 // Employees require special handling due to security (passwords, PINs)
-                tracing::info!(
+                tracing::debug!(
                     "Sync: employee {} sync skipped for security",
                     item.entity_id
                 );
             }
             SyncEntityType::Setting => {
+                let repo = SettingsRepository::new(pool);
                 if item.operation == SyncOperation::Delete {
-                    let repo = SettingsRepository::new(pool);
-                    let _ = repo.delete(&item.entity_id).await;
-                    tracing::info!("Sync: deleted setting {}", item.entity_id);
+                    if let Err(e) = repo.delete(&item.entity_id).await {
+                        tracing::warn!("Sync: failed to delete setting {}: {}", item.entity_id, e);
+                    } else {
+                        tracing::info!("Sync: deleted setting {}", item.entity_id);
+                    }
                 } else if let Ok(setting) =
                     serde_json::from_value::<crate::models::Setting>(item.data.clone())
                 {
-                    let repo = SettingsRepository::new(pool);
-                    let _ = repo
-                        .set(crate::models::SetSetting {
-                            key: setting.key.clone(),
-                            value: setting.value,
-                            value_type: Some(setting.setting_type),
-                            group_name: Some(setting.group_name),
-                            description: setting.description,
-                        })
-                        .await;
-                    tracing::info!("Sync: upserted setting {}", setting.key);
+                    if let Err(e) = repo.upsert_from_sync(setting.clone()).await {
+                        tracing::warn!("Sync: failed to upsert setting {}: {}", item.entity_id, e);
+                    } else {
+                        tracing::info!("Sync: upserted setting {}", setting.key);
+                    }
+                } else {
+                    tracing::warn!("Sync: failed to deserialize setting {}", item.entity_id);
                 }
             }
         }

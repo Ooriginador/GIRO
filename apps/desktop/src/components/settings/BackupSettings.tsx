@@ -73,9 +73,13 @@ interface LocalBackup {
   checksum: string;
 }
 
+// API URL do License Server
+const LICENSE_SERVER_URL =
+  import.meta.env.VITE_LICENSE_SERVER_URL || 'https://license.girosmart.com.br';
+
 export function BackupSettings() {
   const { toast } = useToast();
-  const { licenseKey, apiUrl } = useLicenseStore();
+  const { licenseKey } = useLicenseStore();
 
   // Google Drive OAuth state
   const [driveStatus, setDriveStatus] = useState<GoogleDriveStatus>({
@@ -106,14 +110,14 @@ export function BackupSettings() {
 
   // Check Google Drive connection status
   const checkDriveStatus = useCallback(async () => {
-    if (!licenseKey || !apiUrl) {
+    if (!licenseKey) {
       setIsCheckingStatus(false);
       return;
     }
 
     setIsCheckingStatus(true);
     try {
-      const response = await fetch(`${apiUrl}/api/v1/oauth/google/status`, {
+      const response = await fetch(`${LICENSE_SERVER_URL}/api/v1/oauth/google/status`, {
         headers: {
           'X-Api-Key': licenseKey,
         },
@@ -133,7 +137,7 @@ export function BackupSettings() {
     } finally {
       setIsCheckingStatus(false);
     }
-  }, [licenseKey, apiUrl]);
+  }, [licenseKey]);
 
   // Load local backups
   const loadLocalBackups = useCallback(async () => {
@@ -150,7 +154,7 @@ export function BackupSettings() {
           }))
         );
         // Set last backup date from most recent
-        if (result.data.length > 0) {
+        if (result.data.length > 0 && result.data[0]) {
           setLastBackupDate(result.data[0].createdAt);
         }
       }
@@ -163,11 +167,11 @@ export function BackupSettings() {
 
   // Load Drive backups
   const loadDriveBackups = useCallback(async () => {
-    if (!driveStatus.connected || !licenseKey || !apiUrl) return;
+    if (!driveStatus.connected || !licenseKey) return;
 
     setIsLoadingBackups(true);
     try {
-      const response = await fetch(`${apiUrl}/api/v1/oauth/google/backups`, {
+      const response = await fetch(`${LICENSE_SERVER_URL}/api/v1/oauth/google/backups`, {
         headers: {
           'X-Api-Key': licenseKey,
         },
@@ -189,7 +193,7 @@ export function BackupSettings() {
     } finally {
       setIsLoadingBackups(false);
     }
-  }, [driveStatus.connected, licenseKey, apiUrl]);
+  }, [driveStatus.connected, licenseKey]);
 
   useEffect(() => {
     checkDriveStatus();
@@ -204,7 +208,7 @@ export function BackupSettings() {
 
   // Connect Google Drive via OAuth
   const handleConnectDrive = async () => {
-    if (!licenseKey || !apiUrl) {
+    if (!licenseKey) {
       toast({
         title: 'Erro',
         description: 'Licença não configurada. Configure primeiro na aba Licença.',
@@ -215,7 +219,7 @@ export function BackupSettings() {
 
     setIsConnecting(true);
     try {
-      const response = await fetch(`${apiUrl}/api/v1/oauth/google/connect`, {
+      const response = await fetch(`${LICENSE_SERVER_URL}/api/v1/oauth/google/connect`, {
         headers: {
           'X-Api-Key': licenseKey,
         },
@@ -229,13 +233,8 @@ export function BackupSettings() {
       const data = await response.json();
       const authUrl = data.auth_url;
 
-      // Open in system browser
-      if (window.__TAURI__) {
-        const { open } = await import('@tauri-apps/plugin-shell');
-        await open(authUrl);
-      } else {
-        window.open(authUrl, '_blank');
-      }
+      // Open in system browser - Tauri 2.0 uses opener plugin, but we can use window.open for now
+      window.open(authUrl, '_blank');
 
       toast({
         title: 'Autorização Iniciada',
@@ -255,10 +254,10 @@ export function BackupSettings() {
 
   // Disconnect Google Drive
   const handleDisconnectDrive = async () => {
-    if (!licenseKey || !apiUrl) return;
+    if (!licenseKey) return;
 
     try {
-      const response = await fetch(`${apiUrl}/api/v1/oauth/google/disconnect`, {
+      const response = await fetch(`${LICENSE_SERVER_URL}/api/v1/oauth/google/disconnect`, {
         method: 'DELETE',
         headers: {
           'X-Api-Key': licenseKey,
@@ -291,7 +290,7 @@ export function BackupSettings() {
   const handleCreateBackup = async () => {
     setIsCreatingBackup(true);
     try {
-      const result = await tauriCommands.createBackup();
+      const result = await tauriCommands.createBackup(null);
       if (result.status === 'ok') {
         toast({
           title: 'Backup Criado',
@@ -314,7 +313,7 @@ export function BackupSettings() {
 
   // Upload backup to Drive via License Server
   const handleUploadToDrive = async (filename: string) => {
-    if (!driveStatus.connected || !licenseKey || !apiUrl) {
+    if (!driveStatus.connected || !licenseKey) {
       toast({
         title: 'Não Conectado',
         description: 'Conecte sua conta Google Drive primeiro.',
@@ -332,7 +331,7 @@ export function BackupSettings() {
 
       // Use the Tauri command to read backup file and upload
       // The License Server handles the OAuth tokens internally
-      const response = await fetch(`${apiUrl}/api/v1/oauth/google/backups`, {
+      const response = await fetch(`${LICENSE_SERVER_URL}/api/v1/oauth/google/backups`, {
         method: 'POST',
         headers: {
           'X-Api-Key': licenseKey,
@@ -373,10 +372,10 @@ export function BackupSettings() {
 
   // Download backup from Drive
   const handleDownloadFromDrive = async (fileId: string, filename: string) => {
-    if (!licenseKey || !apiUrl) return;
+    if (!licenseKey) return;
 
     try {
-      const response = await fetch(`${apiUrl}/api/v1/oauth/google/backups/${fileId}`, {
+      const response = await fetch(`${LICENSE_SERVER_URL}/api/v1/oauth/google/backups/${fileId}`, {
         headers: {
           'X-Api-Key': licenseKey,
         },
@@ -412,10 +411,10 @@ export function BackupSettings() {
 
   // Delete backup from Drive
   const handleDeleteFromDrive = async (fileId: string) => {
-    if (!licenseKey || !apiUrl) return;
+    if (!licenseKey) return;
 
     try {
-      const response = await fetch(`${apiUrl}/api/v1/oauth/google/backups/${fileId}`, {
+      const response = await fetch(`${LICENSE_SERVER_URL}/api/v1/oauth/google/backups/${fileId}`, {
         method: 'DELETE',
         headers: {
           'X-Api-Key': licenseKey,

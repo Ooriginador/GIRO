@@ -48,14 +48,13 @@ Este guia mostra como configurar o Google Drive para que os usuários do GIRO po
 
    **Domínio do app:**
 
-   - Página inicial: `https://giro.arkheion.com.br` (ou seu domínio)
-   - Política de privacidade: `https://giro.arkheion.com.br/privacidade`
-   - Termos de serviço: `https://giro.arkheion.com.br/termos`
+   - Página inicial: `https://giro-website-production.up.railway.app`
+   - Política de privacidade: `https://giro-website-production.up.railway.app/privacidade`
+   - Termos de serviço: `https://giro-website-production.up.railway.app/termos`
 
    **Domínios autorizados:**
 
-   - Adicione: `arkheion.com.br` (ou seu domínio)
-   - Adicione: `railway.app` (se usar Railway)
+   - Adicione: `railway.app`
 
    **Informações de contato do desenvolvedor:**
 
@@ -120,8 +119,12 @@ Este guia mostra como configurar o Google Drive para que os usuários do GIRO po
 
 ### No Railway (Produção):
 
-1. Acesse seu projeto no [Railway](https://railway.app)
-2. Selecione o serviço do License Server
+> 📍 **Projeto:** `refreshing-creation`  
+> 📍 **Serviço:** `giro-license-server`  
+> 📍 **Domínio:** `https://giro-license-server-production.up.railway.app`
+
+1. Acesse seu projeto no [Railway](https://railway.app/project/refreshing-creation)
+2. Selecione o serviço **giro-license-server**
 3. Vá em **"Variables"**
 4. Adicione:
 
