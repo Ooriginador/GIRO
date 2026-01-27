@@ -898,7 +898,7 @@ export const SettingsPage: FC = () => {
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USB">USB (Automático/Físico)</SelectItem>
+                      <SelectItem value="USB">USB (Automático - Linux)</SelectItem>
                       {availablePorts.map((p) => (
                         <SelectItem key={p} value={p}>
                           {p}
@@ -906,6 +906,9 @@ export const SettingsPage: FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Windows: selecione a impressora da lista (\\localhost\Nome) ou COM serial.
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="printerBaud">Velocidade (Baud Rate)</Label>

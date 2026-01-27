@@ -507,14 +507,14 @@ impl ThermalPrinter {
             let port = self.config.port.trim();
             if port.is_empty() {
                 return Err(HardwareError::NotConfigured(
-                    "Para Windows, a porta USB deve ser o caminho do compartilhamento (ex: \\\\localhost\\impressora) ou LPTx".into()
+                    "Windows: Selecione uma impressora na lista de portas. As impressoras instaladas aparecem como \\\\localhost\\NomeImpressora. Você também pode usar COMx para conexão serial.".into()
                 ));
             }
 
             // Tenta abrir como arquivo (funciona para LPT, COM mapeada, e UNC path)
             let mut dev = OpenOptions::new().write(true).open(port).map_err(|e| {
                 HardwareError::ConnectionFailed(format!(
-                    "Falha ao abrir impressora windows '{}': {}",
+                    "Falha ao abrir impressora '{}': {}. Verifique se a impressora está instalada e compartilhada corretamente.",
                     port, e
                 ))
             })?;

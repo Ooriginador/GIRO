@@ -69,7 +69,7 @@ pub fn list_serial_ports() -> Vec<String> {
     hardware::list_serial_ports()
 }
 
-/// Lista todas as portas de hardware relevantes (Serial + USB Printer no Linux)
+/// Lista todas as portas de hardware relevantes (Serial + USB Printer no Linux + Impressoras Windows)
 #[tauri::command]
 #[specta::specta]
 pub fn list_hardware_ports() -> Vec<String> {
@@ -86,6 +86,33 @@ pub fn list_hardware_ports() -> Vec<String> {
             if std::path::Path::new(&path_lp).exists() {
                 ports.push(path_lp);
             }
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // Lista impressoras Windows via PowerShell
+        if let Ok(output) = std::process::Command::new("powershell")
+            .args([
+                "-Command",
+                "Get-Printer | Select-Object -ExpandProperty Name",
+            ])
+            .output()
+        {
+            if let Ok(stdout) = String::from_utf8(output.stdout) {
+                for line in stdout.lines() {
+                    let name = line.trim();
+                    if !name.is_empty() {
+                        // Formata como caminho UNC local
+                        ports.push(format!("\\\\localhost\\{}", name));
+                    }
+                }
+            }
+        }
+
+        // Adiciona opções comuns de LPT
+        for i in 1..=3 {
+            ports.push(format!("LPT{}", i));
         }
     }
 
