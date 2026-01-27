@@ -222,7 +222,7 @@ impl<'a> EmployeeRepository<'a> {
         // ═══════════════════════════════════════════════════════════════════
         // VALIDAÇÕES
         // ═══════════════════════════════════════════════════════════════════
-        
+
         // Nome: se fornecido, validar
         let name = if let Some(ref new_name) = data.name {
             let trimmed = new_name.trim();
@@ -258,9 +258,7 @@ impl<'a> EmployeeRepository<'a> {
         // Email: se fornecido, validar formato
         if let Some(ref new_email) = data.email {
             if !new_email.is_empty() && !is_valid_email(new_email) {
-                return Err(crate::error::AppError::Validation(
-                    "E-mail inválido".into(),
-                ));
+                return Err(crate::error::AppError::Validation("E-mail inválido".into()));
             }
         }
 
@@ -268,16 +266,15 @@ impl<'a> EmployeeRepository<'a> {
         if let Some(ref new_cpf) = data.cpf {
             if !new_cpf.is_empty() {
                 if !is_valid_cpf(new_cpf) {
-                    return Err(crate::error::AppError::Validation(
-                        "CPF inválido".into(),
-                    ));
+                    return Err(crate::error::AppError::Validation("CPF inválido".into()));
                 }
                 // Verificar duplicidade (excluindo o próprio funcionário)
                 if let Some(existing_with_cpf) = self.find_by_cpf(new_cpf).await? {
                     if existing_with_cpf.id != id && existing_with_cpf.is_active {
-                        return Err(crate::error::AppError::Duplicate(
-                            format!("CPF '{}' já está cadastrado para outro funcionário", mask_cpf(new_cpf)),
-                        ));
+                        return Err(crate::error::AppError::Duplicate(format!(
+                            "CPF '{}' já está cadastrado para outro funcionário",
+                            mask_cpf(new_cpf)
+                        )));
                     }
                 }
             }
@@ -687,8 +684,8 @@ fn is_valid_cpf(cpf: &str) -> bool {
 
     // Validação do primeiro dígito verificador
     let mut sum: u32 = 0;
-    for i in 0..9 {
-        sum += digits[i] * (10 - i as u32);
+    for (i, &digit) in digits.iter().enumerate().take(9) {
+        sum += digit * (10 - i as u32);
     }
     let mut remainder = (sum * 10) % 11;
     if remainder == 10 || remainder == 11 {
@@ -700,8 +697,8 @@ fn is_valid_cpf(cpf: &str) -> bool {
 
     // Validação do segundo dígito verificador
     sum = 0;
-    for i in 0..10 {
-        sum += digits[i] * (11 - i as u32);
+    for (i, &digit) in digits.iter().enumerate().take(10) {
+        sum += digit * (11 - i as u32);
     }
     remainder = (sum * 10) % 11;
     if remainder == 10 || remainder == 11 {
