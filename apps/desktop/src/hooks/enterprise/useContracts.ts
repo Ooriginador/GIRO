@@ -40,13 +40,32 @@ export function useContract(id: string) {
 }
 
 /**
- * Hook para dashboard geral de contratos
+ * Hook para dashboard geral de contratos (Enterprise Global)
  */
-export function useContractDashboard() {
+export function useEnterpriseDashboard() {
   return useQuery({
-    queryKey: ['contracts', 'dashboard'] as const,
-    queryFn: () => tauri.getContractDashboard(),
+    queryKey: ['enterprise', 'dashboard'] as const,
+    queryFn: () => tauri.getEnterpriseDashboard(),
     staleTime: 1000 * 60 * 2, // 2 minutos
+  });
+}
+
+/**
+ * Hook para dashboard de um contrato específico
+ */
+export function useContractDashboard(id?: string) {
+  // If no ID provided, fail or return null (legacy behaviour support if needed)
+  // But previously it was calling the wrong command.
+  // We will deprecate the no-arg usage.
+
+  return useQuery({
+    queryKey: contractKeys.dashboard(id || ''),
+    queryFn: () => {
+      if (!id) throw new Error('Contract ID required');
+      return tauri.getContractDashboard(id); // Check if tauri.getContractDashboard accepts ID now
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2,
   });
 }
 

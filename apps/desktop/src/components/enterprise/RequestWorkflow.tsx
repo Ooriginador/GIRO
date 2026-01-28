@@ -55,6 +55,7 @@ const getWorkflowSteps = (request: MaterialRequest): WorkflowStep[] => {
       'PENDING',
       'APPROVED',
       'SEPARATING',
+      'READY',
       'DELIVERED',
     ];
     const currentIndex = statusOrder.indexOf(status);
@@ -326,8 +327,8 @@ export const RequestWorkflow: FC<RequestWorkflowProps> = ({
       );
     }
 
-    // Entregar (SEPARATING -> DELIVERED)
-    if (status === 'SEPARATING' && onDeliver && permissions.canDeliver) {
+    // Entregar (SEPARATING -> DELIVERED or READY -> DELIVERED)
+    if ((status === 'SEPARATING' || status === 'READY') && onDeliver && permissions.canDeliver) {
       actions.push(
         <Button key="deliver" onClick={() => handleAction(onDeliver)} disabled={isSubmitting}>
           <Truck className="mr-2 h-4 w-4" />

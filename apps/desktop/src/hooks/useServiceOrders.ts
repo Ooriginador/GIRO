@@ -92,6 +92,7 @@ export interface ServiceOrderItem {
   unit_price: number;
   discount: number;
   total: number;
+  notes?: string;
   warranty_days?: number;
   employee_id?: string;
   current_stock?: number;
@@ -112,18 +113,30 @@ export interface Service {
   updated_at: string;
 }
 
+export interface CreateServiceOrderItemInput {
+  productId?: string;
+  itemType: ServiceItemType;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discount?: number;
+  notes?: string;
+  employeeId?: string;
+}
+
 export interface CreateServiceOrderInput {
   [key: string]: unknown;
-  customer_id: string;
-  customer_vehicle_id: string;
-  vehicle_year_id: string;
-  employee_id?: string;
-  vehicle_km?: number;
+  customerId: string;
+  customerVehicleId: string;
+  vehicleYearId: string;
+  employeeId?: string;
+  vehicleKm?: number;
   symptoms?: string;
-  scheduled_date?: string;
+  scheduledDate?: string;
   notes?: string;
-  internal_notes?: string;
+  internalNotes?: string;
   status?: string;
+  items?: CreateServiceOrderItemInput[];
 }
 
 export interface UpdateServiceOrderInput {
@@ -143,14 +156,15 @@ export interface UpdateServiceOrderInput {
 
 export interface AddServiceOrderItemInput {
   [key: string]: unknown;
-  order_id: string;
-  product_id?: string;
-  item_type: ServiceItemType;
+  orderId: string;
+  productId?: string;
+  itemType: ServiceItemType;
   description: string;
   quantity: number;
-  unit_price: number;
+  unitPrice: number;
   discount?: number;
-  warranty_days?: number;
+  notes?: string;
+  warrantyDays?: number;
 }
 
 export interface ServiceOrderFilters {
@@ -394,12 +408,12 @@ export function useServiceOrderItems(orderId?: string) {
       employeeId?: string;
     }) => {
       const result = await invoke<ServiceOrderItem>('update_service_order_item', {
-        item_id: vars.itemId,
+        itemId: vars.itemId,
         quantity: vars.quantity,
-        unit_price: vars.unitPrice,
+        unitPrice: vars.unitPrice,
         discount: vars.discount,
         notes: vars.notes,
-        employee_id: vars.employeeId,
+        employeeId: vars.employeeId,
       });
       return result;
     },

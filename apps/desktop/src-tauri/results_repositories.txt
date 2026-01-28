@@ -1,0 +1,22 @@
+    Blocking waiting for file lock on artifact directory
+   Compiling giro-desktop v2.1.1 (/home/jhonslife/CICLOGIRO/GIRO/apps/desktop/src-tauri)
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+   --> src/services/enterprise.rs:187:23
+    |
+187 |         self.req_repo.deliver(request_id).await
+    |                       ^^^^^^^------------ argument #2 of type `std::option::Option<std::string::String>` is missing
+    |
+note: method defined here
+   --> src/repositories/material_request_repository.rs:414:18
+    |
+414 |     pub async fn deliver(&self, id: &str, signature: Option<String>) ->...
+    |                  ^^^^^^^                  -------------------------
+help: provide the argument
+    |
+187 |         self.req_repo.deliver(request_id, /* std::option::Option<std::string::String> */).await
+    |                                         ++++++++++++++++++++++++++++++++++++++++++++++++
+
+For more information about this error, try `rustc --explain E0061`.
+error: could not compile `giro-desktop` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `giro-desktop` (lib test) due to 1 previous error

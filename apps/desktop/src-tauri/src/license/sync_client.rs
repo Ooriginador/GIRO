@@ -221,10 +221,9 @@ impl SyncClient {
     /// Format connection error with Windows-specific hints
     fn format_connection_error(&self, error: &reqwest::Error) -> String {
         if error.is_timeout() {
-            format!(
-                "Tempo limite excedido ao conectar com servidor de sincronização. \
-                 Verifique sua conexão com a internet."
-            )
+            "Tempo limite excedido ao conectar com servidor de sincronização. \
+             Verifique sua conexão com a internet."
+                .to_string()
         } else if error.is_connect() {
             #[cfg(target_os = "windows")]
             return format!(
@@ -369,5 +368,26 @@ impl SyncClient {
             .await?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_serialization_snake_case() {
+        let item = SyncItem {
+            entity_type: SyncEntityType::Product,
+            entity_id: "123".to_string(),
+            operation: SyncOperation::Update,
+            data: serde_json::json!({"name": "Test"}),
+            local_version: 1,
+        };
+
+        let json = serde_json::to_string(&item).unwrap();
+        assert!(json.contains("product")); // product vs Product
+        assert!(json.contains("update")); // update vs Update
+        assert!(json.contains("entity_type")); // snake_case
     }
 }

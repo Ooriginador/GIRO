@@ -6,9 +6,9 @@ use sqlx::{Pool, QueryBuilder, Sqlite};
 
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    AddServiceOrderItem, CreateService, CreateServiceOrder, Service, ServiceOrder,
-    ServiceOrderFilters, ServiceOrderItem, ServiceOrderSummary, ServiceOrderWithDetails,
-    UpdateService, UpdateServiceOrder, UpdateServiceOrderItem,
+    AddServiceOrderItem, CreateService, CreateServiceOrder, CreateServiceOrderItem, Service,
+    ServiceOrder, ServiceOrderFilters, ServiceOrderItem, ServiceOrderSummary,
+    ServiceOrderWithDetails, UpdateService, UpdateServiceOrder, UpdateServiceOrderItem,
 };
 use crate::repositories::{new_id, PaginatedResult, Pagination, SaleRepository};
 
@@ -363,7 +363,7 @@ impl ServiceOrderRepository {
         let id = new_id();
         let now = chrono::Utc::now().to_rfc3339();
         let order_number = self.next_order_number_tx(&mut tx).await?;
-        let status = input.status.unwrap_or_else(|| "OPEN".to_string());
+        let status = input.status.clone().unwrap_or_else(|| "OPEN".to_string());
 
         sqlx::query!(
             r#"
@@ -392,6 +392,15 @@ impl ServiceOrderRepository {
         )
         .execute(&mut *tx)
         .await?;
+
+        if let Some(items) = input.items {
+            let is_quote = status == "QUOTE";
+            for item in items {
+                self.add_order_item_tx(&mut tx, &id, item, is_quote).await?;
+            }
+            // Recalculate totals
+            self.recalculate_totals_tx(&mut tx, &id).await?;
+        }
 
         tx.commit().await?;
 
@@ -506,6 +515,154 @@ impl ServiceOrderRepository {
                 entity: "ServiceOrder".to_string(),
                 id: id.to_string(),
             })
+    }
+
+    async fn add_order_item_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        order_id: &str,
+        item: CreateServiceOrderItem,
+        is_quote: bool,
+    ) -> AppResult<()> {
+        let id = new_id();
+        let now = chrono::Utc::now().to_rfc3339();
+
+        let discount_value = item.discount.unwrap_or(0.0);
+        let subtotal = item.quantity * item.unit_price;
+        let total = subtotal - discount_value;
+        let mut linked_lot_id: Option<String> = None;
+
+        if item.item_type == "PART" {
+            let product_id = item
+                .product_id
+                .as_ref()
+                .ok_or_else(|| AppError::Validation("Product ID required for parts".into()))?;
+
+            // Verificar estoque
+            let product = sqlx::query!(
+                "SELECT current_stock FROM products WHERE id = ?",
+                product_id
+            )
+            .fetch_optional(&mut **tx)
+            .await?
+            .ok_or_else(|| AppError::NotFound {
+                entity: "Product".into(),
+                id: product_id.clone(),
+            })?;
+
+            // Validar estoque disponível (apenas se NÃO for orçamento)
+            if !is_quote && product.current_stock < item.quantity {
+                return Err(AppError::Validation(format!(
+                    "Estoque insuficiente para produto {}. Disponível: {:.2}, Solicitado: {:.2}",
+                    product_id, product.current_stock, item.quantity
+                )));
+            }
+
+            // Só consumir estoque se NÃO for orçamento
+            if !is_quote {
+                let new_stock = product.current_stock - item.quantity;
+                sqlx::query!(
+                    "UPDATE products SET current_stock = ?, updated_at = ? WHERE id = ?",
+                    new_stock,
+                    now,
+                    product_id
+                )
+                .execute(&mut **tx)
+                .await?;
+
+                // Consume from lots (FIFO)
+                let mut remaining_to_consume = item.quantity;
+                let lots = sqlx::query!(
+                    "SELECT id, current_quantity FROM product_lots WHERE product_id = ? AND current_quantity > 0 AND status = 'AVAILABLE' ORDER BY expiration_date ASC, purchase_date ASC",
+                    product_id
+                )
+                .fetch_all(&mut **tx)
+                .await?;
+
+                for lot in lots {
+                    if remaining_to_consume <= 0.0 {
+                        break;
+                    }
+
+                    let consume = lot.current_quantity.min(remaining_to_consume);
+                    sqlx::query!(
+                        "UPDATE product_lots SET current_quantity = current_quantity - ?, updated_at = ? WHERE id = ?",
+                        consume, now, lot.id
+                    )
+                    .execute(&mut **tx)
+                    .await?;
+
+                    remaining_to_consume -= consume;
+                    if linked_lot_id.is_none() {
+                        linked_lot_id = Some(lot.id);
+                    }
+                }
+
+                // Record stock movement
+                let movement_id = new_id();
+                let movement_qty = -item.quantity;
+                sqlx::query!(
+                    "INSERT INTO stock_movements (id, product_id, type, quantity, previous_stock, new_stock, reason, reference_id, reference_type, employee_id, created_at) VALUES (?, ?, 'USAGE', ?, ?, ?, 'Uso em OS', ?, 'SERVICE_ORDER', ?, ?)",
+                    movement_id, product_id, movement_qty, product.current_stock, new_stock, order_id, item.employee_id, now
+                )
+                .execute(&mut **tx)
+                .await?;
+            }
+
+            // Insert into order_products
+            sqlx::query(
+                r#"
+                INSERT INTO order_products (
+                    id, order_id, product_id, employee_id, quantity, unit_price, 
+                    discount_percent, discount_value, subtotal, total, 
+                    lot_id, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
+                "#,
+            )
+            .bind(&id)
+            .bind(order_id)
+            .bind(product_id)
+            .bind(&item.employee_id)
+            .bind(item.quantity)
+            .bind(item.unit_price)
+            .bind(discount_value)
+            .bind(subtotal)
+            .bind(total)
+            .bind(linked_lot_id)
+            .bind(&now)
+            .bind(&now)
+            .execute(&mut **tx)
+            .await?;
+        } else {
+            // Insert into order_services
+            sqlx::query!(
+                r#"
+                INSERT INTO order_services (
+                    id, order_id, description, employee_id,
+                    quantity, unit_price, discount_percent, discount_value, subtotal, total,
+                    notes, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
+                "#,
+                id,
+                order_id,
+                item.description,
+                item.employee_id,
+                item.quantity,
+                item.unit_price,
+                discount_value,
+                subtotal,
+                total,
+                item.notes,
+                now,
+                now
+            )
+            .execute(&mut **tx)
+            .await?;
+        }
+
+        Ok(())
     }
 
     async fn recalculate_totals_tx(
@@ -1781,5 +1938,99 @@ impl ServiceOrderRepository {
         .await?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{CreateServiceOrder, CreateServiceOrderItem};
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    async fn setup_test_db() -> Pool<Sqlite> {
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let url = format!("file:/tmp/giro_so_test_{}?mode=rwc", ts);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect(&url)
+            .await
+            .unwrap();
+
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
+
+        // Setup initial data
+        // Employees
+        sqlx::query("INSERT INTO employees (id, name, pin, role, is_active, created_at, updated_at) VALUES ('emp1', 'Mechanic', '1234', 'MECHANIC', 1, datetime('now'), datetime('now'))")
+            .execute(&pool).await.unwrap();
+
+        // Products
+        sqlx::query("INSERT INTO categories (id, name, created_at, updated_at) VALUES ('cat1', 'Test Cat', datetime('now'), datetime('now'))")
+            .execute(&pool).await.unwrap();
+
+        sqlx::query("INSERT INTO products (id, name, unit, sale_price, cost_price, current_stock, category_id, is_active, created_at, updated_at) VALUES ('p1', 'Oil Filter', 'UN', 50.0, 30.0, 10.0, 'cat1', 1, datetime('now'), datetime('now'))")
+             .execute(&pool).await.unwrap();
+
+        // Customers & Vehicles
+        sqlx::query("INSERT INTO vehicle_brands (id, name, is_active, created_at, updated_at) VALUES ('brand1', 'Honda', 1, datetime('now'), datetime('now'))")
+             .execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO vehicle_models (id, brand_id, name, is_active, created_at, updated_at) VALUES ('model1', 'brand1', 'Titan 160', 1, datetime('now'), datetime('now'))")
+             .execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO vehicle_years (id, model_id, year, year_label, is_active, created_at, updated_at) VALUES ('year1', 'model1', 2024, '2024', 1, datetime('now'), datetime('now'))")
+             .execute(&pool).await.unwrap();
+
+        sqlx::query("INSERT INTO customers (id, name, created_at, updated_at) VALUES ('cust1', 'John Doe', datetime('now'), datetime('now'))")
+             .execute(&pool).await.unwrap();
+
+        sqlx::query("INSERT INTO customer_vehicles (id, customer_id, vehicle_year_id, plate, created_at, updated_at) VALUES ('cveh1', 'cust1', 'year1', 'ABC-1234', datetime('now'), datetime('now'))")
+             .execute(&pool).await.unwrap();
+
+        pool
+    }
+
+    #[tokio::test]
+    async fn test_create_atomic_order_with_items() {
+        let pool = setup_test_db().await;
+        let repo = ServiceOrderRepository::new(pool.clone());
+
+        // Create Order with Items
+        let items = vec![CreateServiceOrderItem {
+            product_id: Some("p1".to_string()),
+            item_type: "PART".to_string(),
+            description: "Oil Filter".to_string(),
+            quantity: 2.0,
+            unit_price: 50.0,
+            employee_id: Some("emp1".to_string()),
+            discount: None,
+            notes: None,
+        }];
+
+        let input = CreateServiceOrder {
+            customer_id: "cust1".to_string(),
+            customer_vehicle_id: "cveh1".to_string(),
+            vehicle_year_id: "year1".to_string(),
+            employee_id: "emp1".to_string(),
+            vehicle_km: Some(1000),
+            symptoms: Some("Oil leak".to_string()),
+            status: Some("IN_PROGRESS".to_string()),
+            scheduled_date: None,
+            notes: None,
+            internal_notes: None,
+            items: Some(items),
+        };
+
+        let order = repo.create(input).await.unwrap();
+
+        assert_eq!(order.total, 100.0); // 2 * 50
+        assert_eq!(order.parts_cost, 100.0);
+
+        // Verify Stock
+        let (stock,): (f64,) = sqlx::query_as("SELECT current_stock FROM products WHERE id = 'p1'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(stock, 8.0); // 10 - 2
     }
 }

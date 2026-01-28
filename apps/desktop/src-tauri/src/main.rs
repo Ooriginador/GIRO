@@ -284,6 +284,7 @@ async fn main() {
             commands::update_contract,
             commands::delete_contract,
             commands::get_contract_dashboard,
+            commands::get_enterprise_dashboard,
             // Enterprise Module - Work Fronts
             commands::get_work_fronts_by_contract,
             commands::get_work_fronts_by_supervisor,
@@ -347,6 +348,14 @@ async fn main() {
             commands::report_consumption_by_cost_center,
             commands::report_stock_position,
             commands::report_pending_requests,
+            // Enterprise Module - Inventory
+            commands::inventory_enterprise::create_inventory_count,
+            commands::inventory_enterprise::get_inventory_counts_paginated,
+            commands::inventory_enterprise::get_inventory_count_by_id,
+            commands::inventory_enterprise::get_inventory_count_items,
+            commands::inventory_enterprise::register_inventory_count_item,
+            commands::inventory_enterprise::complete_inventory_count,
+            commands::inventory_enterprise::update_inventory_count,
         ]);
 
         builder
@@ -947,6 +956,7 @@ async fn main() {
             commands::update_contract,
             commands::delete_contract,
             commands::get_contract_dashboard,
+            commands::get_enterprise_dashboard,
             // Enterprise Module - Work Fronts
             commands::get_work_fronts_by_contract,
             commands::get_work_fronts_by_supervisor,
@@ -1010,6 +1020,14 @@ async fn main() {
             commands::report_consumption_by_cost_center,
             commands::report_stock_position,
             commands::report_pending_requests,
+            // Enterprise Module - Inventory
+            commands::inventory_enterprise::create_inventory_count,
+            commands::inventory_enterprise::get_inventory_counts_paginated,
+            commands::inventory_enterprise::get_inventory_count_by_id,
+            commands::inventory_enterprise::get_inventory_count_items,
+            commands::inventory_enterprise::register_inventory_count_item,
+            commands::inventory_enterprise::complete_inventory_count,
+            commands::inventory_enterprise::update_inventory_count,
             // Enterprise Module - ERP Exports
             commands::export_sienge_csv,
             commands::export_uau_xml,

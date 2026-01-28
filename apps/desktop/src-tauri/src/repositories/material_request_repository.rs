@@ -21,7 +21,7 @@ impl<'a> MaterialRequestRepository<'a> {
     async fn next_request_number(&self) -> AppResult<String> {
         let year = chrono::Utc::now().format("%Y").to_string();
         let (count,): (i32,) = sqlx::query_as(
-            "SELECT CAST(COUNT(*) AS INTEGER) + 1 FROM MaterialRequest WHERE requestNumber LIKE ?",
+            "SELECT CAST(COUNT(*) AS INTEGER) + 1 FROM material_requests WHERE request_number LIKE ?",
         )
         .bind(format!("RM-{}-%", year))
         .fetch_one(self.pool)
@@ -34,20 +34,20 @@ impl<'a> MaterialRequestRepository<'a> {
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<MaterialRequest>> {
         let result = sqlx::query_as::<_, MaterialRequest>(
             r#"
-            SELECT id, requestNumber as request_number, contractId as contract_id,
-                   workFrontId as work_front_id, activityId as activity_id,
-                   requesterId as requester_id, approverId as approver_id,
-                   separatorId as separator_id, status, priority,
-                   neededDate as needed_date, approvedAt as approved_at,
-                   separatedAt as separated_at, deliveredAt as delivered_at,
-                   rejectionReason as rejection_reason, notes,
-                   sourceLocationId as source_location_id,
-                   destinationLocationId as destination_location_id,
-                   totalItems as total_items, CAST(totalValue AS REAL) as total_value,
-                   isActive as is_active, createdAt as created_at,
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM MaterialRequest
-            WHERE id = ? AND deletedAt IS NULL
+            SELECT id, request_number, contract_id,
+                   work_front_id, activity_id,
+                   requester_id, approver_id,
+                   separator_id, status, priority,
+                   needed_date, approved_at,
+                   separated_at, delivered_at, delivered_by_signature,
+                   rejection_reason, notes,
+                   source_location_id,
+                   destination_location_id,
+                   total_items, CAST(total_value AS REAL) as total_value,
+                   is_active, created_at,
+                   updated_at, deleted_at
+            FROM material_requests
+            WHERE id = ? AND deleted_at IS NULL
             "#,
         )
         .bind(id)
@@ -64,20 +64,20 @@ impl<'a> MaterialRequestRepository<'a> {
     ) -> AppResult<Option<MaterialRequest>> {
         let result = sqlx::query_as::<_, MaterialRequest>(
             r#"
-            SELECT id, requestNumber as request_number, contractId as contract_id,
-                   workFrontId as work_front_id, activityId as activity_id,
-                   requesterId as requester_id, approverId as approver_id,
-                   separatorId as separator_id, status, priority,
-                   neededDate as needed_date, approvedAt as approved_at,
-                   separatedAt as separated_at, deliveredAt as delivered_at,
-                   rejectionReason as rejection_reason, notes,
-                   sourceLocationId as source_location_id,
-                   destinationLocationId as destination_location_id,
-                   totalItems as total_items, CAST(totalValue AS REAL) as total_value,
-                   isActive as is_active, createdAt as created_at,
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM MaterialRequest
-            WHERE contractId = ? AND requestNumber = ? AND deletedAt IS NULL
+            SELECT id, request_number, contract_id,
+                   work_front_id, activity_id,
+                   requester_id, approver_id,
+                   separator_id, status, priority,
+                   needed_date, approved_at,
+                   separated_at, delivered_at, delivered_by_signature,
+                   rejection_reason, notes,
+                   source_location_id,
+                   destination_location_id,
+                   total_items, CAST(total_value AS REAL) as total_value,
+                   is_active, created_at,
+                   updated_at, deleted_at
+            FROM material_requests
+            WHERE contract_id = ? AND request_number = ? AND deleted_at IS NULL
             "#,
         )
         .bind(contract_id)
@@ -97,19 +97,19 @@ impl<'a> MaterialRequestRepository<'a> {
         let mut params: Vec<String> = vec![];
 
         if let Some(search) = &filters.search {
-            conditions.push("(requestNumber LIKE ? OR notes LIKE ?)".to_string());
+            conditions.push("(request_number LIKE ? OR notes LIKE ?)".to_string());
             let pattern = format!("%{}%", search);
             params.push(pattern.clone());
             params.push(pattern);
         }
 
         if let Some(contract_id) = &filters.contract_id {
-            conditions.push("contractId = ?".to_string());
+            conditions.push("contract_id = ?".to_string());
             params.push(contract_id.clone());
         }
 
         if let Some(work_front_id) = &filters.work_front_id {
-            conditions.push("workFrontId = ?".to_string());
+            conditions.push("work_front_id = ?".to_string());
             params.push(work_front_id.clone());
         }
 
@@ -124,14 +124,14 @@ impl<'a> MaterialRequestRepository<'a> {
         }
 
         if let Some(requester_id) = &filters.requester_id {
-            conditions.push("requesterId = ?".to_string());
+            conditions.push("requester_id = ?".to_string());
             params.push(requester_id.clone());
         }
 
         let where_clause = conditions.join(" AND ");
 
         let count_sql = format!(
-            "SELECT COUNT(*) FROM MaterialRequest WHERE {}",
+            "SELECT COUNT(*) FROM material_requests WHERE {}",
             where_clause
         );
         let mut count_query = sqlx::query_as::<_, (i64,)>(&count_sql);
@@ -142,21 +142,21 @@ impl<'a> MaterialRequestRepository<'a> {
 
         let data_sql = format!(
             r#"
-            SELECT id, requestNumber as request_number, contractId as contract_id,
-                   workFrontId as work_front_id, activityId as activity_id,
-                   requesterId as requester_id, approverId as approver_id,
-                   separatorId as separator_id, status, priority,
-                   neededDate as needed_date, approvedAt as approved_at,
-                   separatedAt as separated_at, deliveredAt as delivered_at,
-                   rejectionReason as rejection_reason, notes,
-                   sourceLocationId as source_location_id,
-                   destinationLocationId as destination_location_id,
-                   totalItems as total_items, CAST(totalValue AS REAL) as total_value,
-                   isActive as is_active, createdAt as created_at,
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM MaterialRequest
+            SELECT id, request_number, contract_id,
+                   work_front_id, activity_id,
+                   requester_id, approver_id,
+                   separator_id, status, priority,
+                   needed_date, approved_at,
+                   separated_at, delivered_at, delivered_by_signature,
+                   rejection_reason, notes,
+                   source_location_id,
+                   destination_location_id,
+                   total_items, CAST(total_value AS REAL) as total_value,
+                   is_active, created_at,
+                   updated_at, deleted_at
+            FROM material_requests
             WHERE {}
-            ORDER BY createdAt DESC
+            ORDER BY created_at DESC
             LIMIT ? OFFSET ?
             "#,
             where_clause
@@ -193,11 +193,11 @@ impl<'a> MaterialRequestRepository<'a> {
 
         sqlx::query(
             r#"
-            INSERT INTO MaterialRequest (
-                id, requestNumber, contractId, workFrontId, activityId,
-                requesterId, status, priority, neededDate,
-                sourceLocationId, destinationLocationId, notes,
-                totalItems, totalValue, isActive, createdAt, updatedAt
+            INSERT INTO material_requests (
+                id, request_number, contract_id, work_front_id, activity_id,
+                requester_id, status, priority, needed_date,
+                source_location_id, destination_location_id, notes,
+                total_items, total_value, is_active, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, 'DRAFT', ?, ?, ?, ?, ?, 0, 0, 1, ?, ?)
             "#,
         )
@@ -235,15 +235,15 @@ impl<'a> MaterialRequestRepository<'a> {
 
         let result = sqlx::query(
             r#"
-            UPDATE MaterialRequest 
-            SET workFrontId = COALESCE(?, workFrontId),
-                activityId = COALESCE(?, activityId),
+            UPDATE material_requests 
+            SET work_front_id = COALESCE(?, work_front_id),
+                activity_id = COALESCE(?, activity_id),
                 priority = COALESCE(?, priority),
-                neededDate = COALESCE(?, neededDate),
-                destinationLocationId = COALESCE(?, destinationLocationId),
+                needed_date = COALESCE(?, needed_date),
+                destination_location_id = COALESCE(?, destination_location_id),
                 notes = COALESCE(?, notes),
-                updatedAt = ?
-            WHERE id = ? AND status = 'DRAFT' AND deletedAt IS NULL
+                updated_at = ?
+            WHERE id = ? AND status = 'DRAFT' AND deleted_at IS NULL
             "#,
         )
         .bind(data.work_front_id)
@@ -286,7 +286,7 @@ impl<'a> MaterialRequestRepository<'a> {
     pub async fn delete(&self, id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
         let result =
-            sqlx::query("UPDATE MaterialRequest SET deletedAt = ?, isActive = 0 WHERE id = ?")
+            sqlx::query("UPDATE material_requests SET deleted_at = ?, is_active = 0 WHERE id = ?")
                 .bind(&now)
                 .bind(id)
                 .execute(self.pool)
@@ -308,7 +308,7 @@ impl<'a> MaterialRequestRepository<'a> {
     /// Envia requisição para aprovação
     pub async fn submit(&self, id: &str) -> AppResult<MaterialRequest> {
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE MaterialRequest SET status = 'PENDING', updatedAt = ? WHERE id = ?")
+        sqlx::query("UPDATE material_requests SET status = 'PENDING', updated_at = ? WHERE id = ?")
             .bind(&now)
             .bind(id)
             .execute(self.pool)
@@ -326,7 +326,7 @@ impl<'a> MaterialRequestRepository<'a> {
     pub async fn approve(&self, id: &str, approver_id: &str) -> AppResult<MaterialRequest> {
         let now = chrono::Utc::now().to_rfc3339();
         sqlx::query(
-            "UPDATE MaterialRequest SET status = 'APPROVED', approverId = ?, approvedAt = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE material_requests SET status = 'APPROVED', approver_id = ?, approved_at = ?, updated_at = ? WHERE id = ?",
         )
         .bind(approver_id)
         .bind(&now)
@@ -355,7 +355,7 @@ impl<'a> MaterialRequestRepository<'a> {
         // Atualiza approved_qty de cada item
         for item in items {
             sqlx::query(
-                "UPDATE MaterialRequestItem SET approvedQty = ?, updatedAt = ? WHERE id = ? AND requestId = ?",
+                "UPDATE material_request_items SET approved_qty = ?, updated_at = ? WHERE id = ? AND request_id = ?",
             )
             .bind(item.approved_qty)
             .bind(&now)
@@ -367,7 +367,7 @@ impl<'a> MaterialRequestRepository<'a> {
 
         // Atualiza status da requisição
         sqlx::query(
-            "UPDATE MaterialRequest SET status = 'APPROVED', approverId = ?, approvedAt = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE material_requests SET status = 'APPROVED', approver_id = ?, approved_at = ?, updated_at = ? WHERE id = ?",
         )
         .bind(approver_id)
         .bind(&now)
@@ -393,7 +393,7 @@ impl<'a> MaterialRequestRepository<'a> {
     ) -> AppResult<MaterialRequest> {
         let now = chrono::Utc::now().to_rfc3339();
         sqlx::query(
-            "UPDATE MaterialRequest SET status = 'REJECTED', approverId = ?, rejectionReason = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE material_requests SET status = 'REJECTED', approver_id = ?, rejection_reason = ?, updated_at = ? WHERE id = ?",
         )
         .bind(approver_id)
         .bind(reason)
@@ -411,12 +411,13 @@ impl<'a> MaterialRequestRepository<'a> {
     }
 
     /// Marca como entregue
-    pub async fn deliver(&self, id: &str) -> AppResult<MaterialRequest> {
+    pub async fn deliver(&self, id: &str, signature: Option<String>) -> AppResult<MaterialRequest> {
         let now = chrono::Utc::now().to_rfc3339();
         sqlx::query(
-            "UPDATE MaterialRequest SET status = 'DELIVERED', deliveredAt = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE material_requests SET status = 'DELIVERED', delivered_at = ?, delivered_by_signature = ?, updated_at = ? WHERE id = ?",
         )
         .bind(&now)
+        .bind(signature)
         .bind(&now)
         .bind(id)
         .execute(self.pool)
@@ -438,13 +439,13 @@ impl<'a> MaterialRequestRepository<'a> {
     pub async fn get_items(&self, request_id: &str) -> AppResult<Vec<MaterialRequestItem>> {
         let result = sqlx::query_as::<_, MaterialRequestItem>(
             r#"
-            SELECT id, requestId as request_id, productId as product_id,
-                   requestedQty as requested_qty, approvedQty as approved_qty,
-                   separatedQty as separated_qty, deliveredQty as delivered_qty,
-                   CAST(unitPrice AS REAL) as unit_price, notes,
-                   createdAt as created_at, updatedAt as updated_at
-            FROM MaterialRequestItem
-            WHERE requestId = ?
+            SELECT id, request_id, product_id,
+                   requested_qty, approved_qty,
+                   separated_qty, delivered_qty,
+                   CAST(unit_price AS REAL) as unit_price, notes,
+                   created_at, updated_at
+            FROM material_request_items
+            WHERE request_id = ?
             "#,
         )
         .bind(request_id)
@@ -478,13 +479,13 @@ impl<'a> MaterialRequestRepository<'a> {
             ),
         >(
             r#"
-            SELECT i.id, i.requestId, i.productId, i.requestedQty, i.approvedQty,
-                   i.separatedQty, i.deliveredQty, CAST(i.unitPrice AS REAL),
-                   i.notes, i.createdAt, i.updatedAt,
-                   p.name as product_name, p.sku as product_code, p.unit as product_unit
-            FROM MaterialRequestItem i
-            JOIN Product p ON i.productId = p.id
-            WHERE i.requestId = ?
+            SELECT i.id, i.request_id, i.product_id, i.requested_qty, i.approved_qty,
+                   i.separated_qty, i.delivered_qty, CAST(i.unit_price AS REAL),
+                   i.notes, i.created_at, i.updated_at,
+                   p.name as product_name, p.internal_code as product_code, p.unit as product_unit
+            FROM material_request_items i
+            JOIN products p ON i.product_id = p.id
+            WHERE i.request_id = ?
             ORDER BY p.name
             "#,
         )
@@ -528,7 +529,7 @@ impl<'a> MaterialRequestRepository<'a> {
 
         // Get product price
         let (unit_price,): (f64,) = sqlx::query_as(
-            "SELECT CAST(COALESCE(costPrice, salePrice, 0) AS REAL) FROM Product WHERE id = ?",
+            "SELECT CAST(COALESCE(cost_price, sale_price, 0) AS REAL) FROM products WHERE id = ?",
         )
         .bind(&data.product_id)
         .fetch_one(self.pool)
@@ -537,8 +538,8 @@ impl<'a> MaterialRequestRepository<'a> {
 
         sqlx::query(
             r#"
-            INSERT INTO MaterialRequestItem (
-                id, requestId, productId, requestedQty, unitPrice, notes, createdAt, updatedAt
+            INSERT INTO material_request_items (
+                id, request_id, product_id, requested_qty, unit_price, notes, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
@@ -558,12 +559,12 @@ impl<'a> MaterialRequestRepository<'a> {
 
         let item = sqlx::query_as::<_, MaterialRequestItem>(
             r#"
-            SELECT id, requestId as request_id, productId as product_id,
-                   requestedQty as requested_qty, approvedQty as approved_qty,
-                   separatedQty as separated_qty, deliveredQty as delivered_qty,
-                   CAST(unitPrice AS REAL) as unit_price, notes,
-                   createdAt as created_at, updatedAt as updated_at
-            FROM MaterialRequestItem
+            SELECT id, request_id, product_id,
+                   requested_qty, approved_qty,
+                   separated_qty, delivered_qty,
+                   CAST(unit_price AS REAL) as unit_price, notes,
+                   created_at, updated_at
+            FROM material_request_items
             WHERE id = ?
             "#,
         )
@@ -576,13 +577,41 @@ impl<'a> MaterialRequestRepository<'a> {
 
     /// Remove item da requisição
     pub async fn remove_item(&self, request_id: &str, item_id: &str) -> AppResult<()> {
-        sqlx::query("DELETE FROM MaterialRequestItem WHERE id = ? AND requestId = ?")
+        sqlx::query("DELETE FROM material_request_items WHERE id = ? AND request_id = ?")
             .bind(item_id)
             .bind(request_id)
             .execute(self.pool)
             .await?;
 
         self.update_totals(request_id).await?;
+        Ok(())
+    }
+
+    /// Atualiza quantidade entregue do item
+    pub async fn update_item_delivered(&self, item_id: &str, qty: f64) -> AppResult<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        sqlx::query(
+            "UPDATE material_request_items SET delivered_qty = ?, updated_at = ? WHERE id = ?",
+        )
+        .bind(qty)
+        .bind(&now)
+        .bind(item_id)
+        .execute(self.pool)
+        .await?;
+        Ok(())
+    }
+
+    /// Atualiza quantidade separada do item
+    pub async fn update_item_separated_qty(&self, item_id: &str, qty: f64) -> AppResult<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        sqlx::query(
+            "UPDATE material_request_items SET separated_qty = ?, updated_at = ? WHERE id = ?",
+        )
+        .bind(qty)
+        .bind(&now)
+        .bind(item_id)
+        .execute(self.pool)
+        .await?;
         Ok(())
     }
 
@@ -593,9 +622,9 @@ impl<'a> MaterialRequestRepository<'a> {
         let (total_items, total_value): (i32, f64) = sqlx::query_as(
             r#"
             SELECT CAST(COUNT(*) AS INTEGER), 
-                   COALESCE(SUM(requestedQty * unitPrice), 0)
-            FROM MaterialRequestItem 
-            WHERE requestId = ?
+                   COALESCE(SUM(requested_qty * unit_price), 0)
+            FROM material_request_items 
+            WHERE request_id = ?
             "#,
         )
         .bind(request_id)
@@ -603,7 +632,7 @@ impl<'a> MaterialRequestRepository<'a> {
         .await?;
 
         sqlx::query(
-            "UPDATE MaterialRequest SET totalItems = ?, totalValue = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE material_requests SET total_items = ?, total_value = ?, updated_at = ? WHERE id = ?",
         )
         .bind(total_items)
         .bind(total_value)
@@ -626,21 +655,21 @@ impl<'a> MaterialRequestRepository<'a> {
     ) -> AppResult<Vec<MaterialRequest>> {
         let result = sqlx::query_as::<_, MaterialRequest>(
             r#"
-            SELECT id, requestNumber as request_number, contractId as contract_id,
-                   workFrontId as work_front_id, activityId as activity_id,
-                   requesterId as requester_id, approverId as approver_id,
-                   separatorId as separator_id, status, priority,
-                   neededDate as needed_date, approvedAt as approved_at,
-                   separatedAt as separated_at, deliveredAt as delivered_at,
-                   rejectionReason as rejection_reason, notes,
-                   sourceLocationId as source_location_id,
-                   destinationLocationId as destination_location_id,
-                   totalItems as total_items, CAST(totalValue AS REAL) as total_value,
-                   isActive as is_active, createdAt as created_at,
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM MaterialRequest
-            WHERE status = 'PENDING' AND deletedAt IS NULL
-            ORDER BY priority DESC, createdAt ASC
+            SELECT id, request_number, contract_id,
+                   work_front_id, activity_id,
+                   requester_id, approver_id,
+                   separator_id, status, priority,
+                   needed_date, approved_at,
+                   separated_at, delivered_at, delivered_by_signature,
+                   rejection_reason, notes,
+                   source_location_id,
+                   destination_location_id,
+                   total_items, CAST(total_value AS REAL) as total_value,
+                   is_active, created_at,
+                   updated_at, deleted_at
+            FROM material_requests
+            WHERE status = 'PENDING' AND deleted_at IS NULL
+            ORDER BY priority DESC, created_at ASC
             "#,
         )
         .fetch_all(self.pool)
@@ -656,7 +685,7 @@ impl<'a> MaterialRequestRepository<'a> {
     ) -> AppResult<MaterialRequest> {
         let now = chrono::Utc::now().to_rfc3339();
         sqlx::query(
-            "UPDATE MaterialRequest SET status = 'SEPARATING', separatorId = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE material_requests SET status = 'SEPARATING', separator_id = ?, updated_at = ? WHERE id = ?",
         )
         .bind(separator_id)
         .bind(&now)
@@ -676,7 +705,7 @@ impl<'a> MaterialRequestRepository<'a> {
     pub async fn complete_separation(&self, id: &str) -> AppResult<MaterialRequest> {
         let now = chrono::Utc::now().to_rfc3339();
         sqlx::query(
-            "UPDATE MaterialRequest SET status = 'SEPARATED', separatedAt = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE material_requests SET status = 'SEPARATED', separated_at = ?, updated_at = ? WHERE id = ?",
         )
         .bind(&now)
         .bind(&now)
@@ -695,11 +724,13 @@ impl<'a> MaterialRequestRepository<'a> {
     /// Cancela requisição
     pub async fn cancel(&self, id: &str) -> AppResult<MaterialRequest> {
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE MaterialRequest SET status = 'CANCELLED', updatedAt = ? WHERE id = ?")
-            .bind(&now)
-            .bind(id)
-            .execute(self.pool)
-            .await?;
+        sqlx::query(
+            "UPDATE material_requests SET status = 'CANCELLED', updated_at = ? WHERE id = ?",
+        )
+        .bind(&now)
+        .bind(id)
+        .execute(self.pool)
+        .await?;
 
         self.find_by_id(id)
             .await?

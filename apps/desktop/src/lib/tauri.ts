@@ -28,6 +28,7 @@ import type {
   ProductFilter,
   ProductLot,
   Sale,
+  EnterpriseKPIs,
   SaleFilter,
   Setting,
   StatusResponse,
@@ -2248,8 +2249,12 @@ export async function getContracts(
   return tauriInvoke<ContractWithManager[]>('get_contracts', { status, managerId });
 }
 
-export async function getContractDashboard(): Promise<ContractDashboard> {
-  return tauriInvoke<ContractDashboard>('get_contract_dashboard');
+export async function getContractDashboard(id: string): Promise<ContractDashboard> {
+  return tauriInvoke<ContractDashboard>('get_contract_dashboard', { id });
+}
+
+export async function getEnterpriseDashboard(): Promise<EnterpriseKPIs> {
+  return tauriInvoke<EnterpriseKPIs>('get_enterprise_dashboard');
 }
 
 export async function updateContract(
@@ -2829,16 +2834,19 @@ export async function shipTransfer(
   transferId: string,
   shippedItems: Array<{ itemId: string; shippedQty: number }>
 ): Promise<EnterpriseStockTransfer> {
-  return tauriInvoke<EnterpriseStockTransfer>('ship_transfer', { transferId, shippedItems });
+  return tauriInvoke<EnterpriseStockTransfer>('ship_stock_transfer', { transferId, shippedItems });
 }
 
 export async function receiveTransfer(
   transferId: string,
   receivedItems: Array<{ itemId: string; receivedQty: number }>
 ): Promise<EnterpriseStockTransfer> {
-  return tauriInvoke<EnterpriseStockTransfer>('receive_transfer', { transferId, receivedItems });
+  return tauriInvoke<EnterpriseStockTransfer>('receive_stock_transfer', {
+    transferId,
+    receivedItems,
+  });
 }
 
 export async function cancelTransfer(transferId: string): Promise<EnterpriseStockTransfer> {
-  return tauriInvoke<EnterpriseStockTransfer>('cancel_transfer', { transferId });
+  return tauriInvoke<EnterpriseStockTransfer>('cancel_stock_transfer', { transferId });
 }

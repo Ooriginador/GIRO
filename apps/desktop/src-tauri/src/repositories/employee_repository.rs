@@ -548,6 +548,63 @@ impl<'a> EmployeeRepository<'a> {
 
         Ok(false)
     }
+
+    pub async fn find_delta(&self, last_sync: i64) -> AppResult<Vec<Employee>> {
+        let query = format!(
+            "SELECT {} FROM employees WHERE unixepoch(updated_at) > ? ORDER BY updated_at ASC",
+            Self::COLS
+        );
+        let result = sqlx::query_as::<_, Employee>(&query)
+            .bind(last_sync)
+            .fetch_all(self.pool)
+            .await?;
+        Ok(result.into_iter().map(Self::decrypt_employee).collect())
+    }
+
+    pub async fn upsert_from_sync(&self, mut employee: Employee) -> AppResult<()> {
+        // Encrypt CPF before saving if not already encrypted
+        if let Some(cpf) = &employee.cpf {
+            if !cpf.starts_with("enc:") {
+                 employee.cpf = pii::encrypt_optional(employee.cpf)?;
+            }
+        }
+        
+        sqlx::query(
+            r#"
+            INSERT INTO employees (
+                id, name, cpf, phone, email, pin, password, role, commission_rate, is_active, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                cpf = excluded.cpf,
+                phone = excluded.phone,
+                email = excluded.email,
+                pin = excluded.pin,
+                password = excluded.password,
+                role = excluded.role,
+                commission_rate = excluded.commission_rate,
+                is_active = excluded.is_active,
+                updated_at = excluded.updated_at
+            "#
+        )
+        .bind(employee.id)
+        .bind(employee.name)
+        .bind(employee.cpf)
+        .bind(employee.phone)
+        .bind(employee.email)
+        .bind(employee.pin)
+        .bind(employee.password)
+        .bind(employee.role)
+        .bind(employee.commission_rate)
+        .bind(employee.is_active)
+        .bind(employee.created_at)
+        .bind(employee.updated_at)
+        .execute(self.pool)
+        .await?;
+
+        Ok(())
+    }
 }
 
 // ────────────────────────────────────────────────────────────────────────────

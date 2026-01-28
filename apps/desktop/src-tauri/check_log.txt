@@ -1,0 +1,4 @@
+    Blocking waiting for file lock on build directory
+   Compiling giro-desktop v2.1.1 (/home/jhonslife/CICLOGIRO/GIRO/apps/desktop/src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.81s
+EXIT CODE: 0

@@ -22,7 +22,6 @@ import {
   Link,
   Loader2,
   RefreshCw,
-  Server,
   Wifi,
   WifiOff,
 } from 'lucide-react';
@@ -36,16 +35,37 @@ interface DiscoveredMaster {
   storeName: string | null;
 }
 
-type NetworkSetupChoice = 'scanning' | 'found_master' | 'no_master' | 'connecting' | 'connected' | 'skipped';
+type NetworkSetupChoice =
+  | 'scanning'
+  | 'found_master'
+  | 'no_master'
+  | 'connecting'
+  | 'connected'
+  | 'skipped';
 
 interface NetworkSetupStepProps {
   /** Callback quando setup de rede concluído */
-  onComplete: (result: { role: 'STANDALONE' | 'MASTER' | 'SATELLITE'; connectedTo?: string }) => void;
+  onComplete: (result: {
+    role: 'STANDALONE' | 'MASTER' | 'SATELLITE';
+    connectedTo?: string;
+  }) => void;
+  /** Masters já descobertos (evita re-scan) */
+  discoveredMasters?: DiscoveredMaster[];
+  /** Callback para voltar à tela anterior */
+  onBack?: () => void;
+  /** Callback para pular este step */
+  onSkip?: () => void;
   /** Permite pular este passo */
   allowSkip?: boolean;
 }
 
-export const NetworkSetupStep: FC<NetworkSetupStepProps> = ({ onComplete, allowSkip = true }) => {
+export const NetworkSetupStep: FC<NetworkSetupStepProps> = ({
+  onComplete,
+  discoveredMasters: initialMasters,
+  onBack,
+  onSkip,
+  allowSkip = true,
+}) => {
   const { toast } = useToast();
 
   const [step, setStep] = useState<NetworkSetupChoice>('scanning');
@@ -65,7 +85,9 @@ export const NetworkSetupStep: FC<NetworkSetupStepProps> = ({ onComplete, allowS
 
     try {
       // Scan por 8 segundos
-      const found = await invoke<DiscoveredMaster[]>('scan_network_for_masters', { timeoutSecs: 8 });
+      const found = await invoke<DiscoveredMaster[]>('scan_network_for_masters', {
+        timeoutSecs: 8,
+      });
 
       if (found.length > 0) {
         setMasters(found);
@@ -80,8 +102,14 @@ export const NetworkSetupStep: FC<NetworkSetupStepProps> = ({ onComplete, allowS
   }, []);
 
   useEffect(() => {
-    scanNetwork();
-  }, [scanNetwork]);
+    // Se já temos masters descobertos, use-os diretamente
+    if (initialMasters && initialMasters.length > 0) {
+      setMasters(initialMasters);
+      setStep('found_master');
+    } else {
+      scanNetwork();
+    }
+  }, [scanNetwork, initialMasters]);
 
   // Testar conexão com Master
   const handleConnect = async () => {
@@ -113,6 +141,13 @@ export const NetworkSetupStep: FC<NetworkSetupStepProps> = ({ onComplete, allowS
           setSetting('network.master_ip', selectedMaster.ip),
           setSetting('network.master_port', String(selectedMaster.port)),
         ]);
+
+        // Iniciar cliente de rede imediatamente
+        try {
+          await invoke('start_network_client', { terminalName });
+        } catch (e) {
+          console.warn('Alerta ao iniciar cliente de rede (pode já estar rodando):', e);
+        }
 
         setStep('connected');
 
@@ -185,9 +220,7 @@ export const NetworkSetupStep: FC<NetworkSetupStepProps> = ({ onComplete, allowS
           <div className="text-center py-8">
             <Loader2 className="h-12 w-12 animate-spin mx-auto text-blue-500 mb-4" />
             <p className="text-lg font-medium">Procurando outros caixas na rede...</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Isso pode levar alguns segundos
-            </p>
+            <p className="text-sm text-muted-foreground mt-2">Isso pode levar alguns segundos</p>
           </div>
         )}
 
@@ -197,7 +230,8 @@ export const NetworkSetupStep: FC<NetworkSetupStepProps> = ({ onComplete, allowS
             <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
               <CheckCircle2 className="h-5 w-5" />
               <span className="font-medium">
-                Encontramos {masters.length} {masters.length === 1 ? 'caixa' : 'caixas'} na sua rede!
+                Encontramos {masters.length} {masters.length === 1 ? 'caixa' : 'caixas'} na sua
+                rede!
               </span>
             </div>
 
@@ -315,13 +349,23 @@ export const NetworkSetupStep: FC<NetworkSetupStepProps> = ({ onComplete, allowS
 
             {/* Alternativas */}
             <div className="pt-4 border-t">
-              <p className="text-sm text-muted-foreground mb-3">Ou configure este computador como:</p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Ou configure este computador como:
+              </p>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => handleSetupAsPrimary('STANDALONE')} className="flex-1">
+                <Button
+                  variant="outline"
+                  onClick={() => handleSetupAsPrimary('STANDALONE')}
+                  className="flex-1"
+                >
                   <Laptop className="mr-2 h-4 w-4" />
                   Caixa Único
                 </Button>
-                <Button variant="outline" onClick={() => handleSetupAsPrimary('MASTER')} className="flex-1">
+                <Button
+                  variant="outline"
+                  onClick={() => handleSetupAsPrimary('MASTER')}
+                  className="flex-1"
+                >
                   <Crown className="mr-2 h-4 w-4" />
                   Caixa Principal
                 </Button>
@@ -407,18 +451,30 @@ export const NetworkSetupStep: FC<NetworkSetupStepProps> = ({ onComplete, allowS
           </div>
         )}
 
-        {/* Botão Pular */}
-        {allowSkip && step !== 'connected' && step !== 'scanning' && (
-          <div className="text-center pt-4 border-t">
-            <Button
-              variant="link"
-              onClick={() => {
-                setStep('skipped');
-                onComplete({ role: 'STANDALONE' });
-              }}
-            >
-              Pular e configurar depois
-            </Button>
+        {/* Botão Voltar e Pular */}
+        {step !== 'connected' && step !== 'scanning' && (
+          <div className="flex justify-between pt-4 border-t">
+            {onBack && (
+              <Button variant="ghost" onClick={onBack}>
+                ← Voltar
+              </Button>
+            )}
+            {(allowSkip || onSkip) && (
+              <Button
+                variant="link"
+                className="ml-auto"
+                onClick={() => {
+                  setStep('skipped');
+                  if (onSkip) {
+                    onSkip();
+                  } else {
+                    onComplete({ role: 'STANDALONE' });
+                  }
+                }}
+              >
+                Configurar como Caixa Único
+              </Button>
+            )}
           </div>
         )}
       </CardContent>

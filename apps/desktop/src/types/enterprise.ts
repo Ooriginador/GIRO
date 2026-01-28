@@ -305,6 +305,7 @@ export interface MaterialRequest {
   needDate?: string | null; // Alias
   approvedAt?: string | null;
   deliveredAt?: string | null;
+  deliveredBySignature?: string | null;
 
   // Contagem de itens
   itemCount?: number;
@@ -392,9 +393,15 @@ export interface StockTransferItem {
   transfer?: StockTransfer;
   productId: string;
   product?: Product;
+  productName?: string;
+  productCode?: string;
   lotId?: string | null;
-  quantity: number;
-  receivedQuantity?: number | null;
+  quantity: number; // Keeping for compatibility if used elsewhere, but moving towards requestedQty
+  requestedQty: number;
+  shippedQty?: number | null;
+  receivedQty?: number | null;
+  unitPrice?: number;
+  notes?: string | null;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -509,7 +516,9 @@ export interface EnterpriseKPIs {
   activeContracts: number;
   pendingRequests: number;
   inTransitTransfers: number;
-  lowStockAlerts: number;
+  lowStockItems: number;
+  monthlyConsumption: number;
+  consumptionTrend: number;
 }
 
 /** Tipo de atividade recente no dashboard */
@@ -576,4 +585,58 @@ export interface ContractConsumption {
   contractName: string;
   totalValue: number;
   percentage: number;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// TIPOS DE INVENTÁRIO
+// ────────────────────────────────────────────────────────────────────────────
+
+/** Status de Contagem de Inventário */
+export type InventoryCountStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+/** Contagem de Inventário (Tabela inventory_counts) */
+export interface InventoryCount {
+  id: string;
+  locationId: string;
+  countType: 'FULL' | 'SPOT';
+  status: InventoryCountStatus;
+  startedAt: string;
+  completedAt?: string | null;
+  startedById: string;
+  completedById?: string | null;
+  totalItems: number;
+  itemsCounted: number;
+  discrepancies: number;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Item da Contagem (Tabela inventory_count_items) */
+export interface InventoryCountItem {
+  id: string;
+  countId: string;
+  productId: string;
+  systemQty: number; // Snapshot do estoque no momento da criação
+  countedQty?: number | null; // Nulo se ainda não foi contado
+  difference?: number | null; // countedQty - systemQty
+  countedAt?: string | null;
+  countedById?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Item com dados do produto para listagem */
+export interface InventoryCountItemWithProduct extends InventoryCountItem {
+  productName: string;
+  productCode: string; // SKU
+  productUnit: string;
+}
+
+/** Payload para criar inventário */
+export interface CreateInventoryCountPayload {
+  locationId: string;
+  countType: string;
+  notes?: string | null;
 }

@@ -24,8 +24,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { TransferWorkflow } from '@/components/enterprise';
 import { useCanDo } from '@/hooks/useEnterprisePermission';
+import { toast } from '@/hooks/use-toast';
 import type { StockTransfer, StockTransferItem } from '@/types/enterprise';
 
 // Status badge colors
@@ -62,6 +73,11 @@ export function TransferDetailPage() {
   const [transfer, setTransfer] = useState<StockTransfer | null>(null);
   const [items, setItems] = useState<StockTransferItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // Dialog State
+  const [actionDialogOpen, setActionDialogOpen] = useState(false);
+  const [currentAction, setCurrentAction] = useState<'SHIP' | 'RECEIVE' | null>(null);
+  const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({});
+  const [actionNotes, setActionNotes] = useState('');
 
   const loadTransfer = useCallback(async () => {
     if (!id) return;
@@ -87,20 +103,39 @@ export function TransferDetailPage() {
 
   async function handleStatusChange(newStatus: string, reason?: string) {
     if (!transfer) return;
+
+    // Intercept SHIP and RECEIVE to show dialog
+    if (newStatus === 'IN_TRANSIT') {
+      setCurrentAction('SHIP');
+      const initialQtys: Record<string, number> = {};
+      items.forEach((item) => {
+        initialQtys[item.id] = item.requestedQty || item.quantity;
+      });
+      setItemQuantities(initialQtys);
+      setActionDialogOpen(true);
+      return;
+    }
+
+    if (newStatus === 'RECEIVED') {
+      setCurrentAction('RECEIVE');
+      const initialQtys: Record<string, number> = {};
+      items.forEach((item) => {
+        // Default receive amount is what was shipped, or requested if not shipped yet
+        initialQtys[item.id] = item.shippedQty || item.requestedQty || item.quantity;
+      });
+      setItemQuantities(initialQtys);
+      setActionDialogOpen(true);
+      return;
+    }
+
     try {
       // Map status to appropriate command
       switch (newStatus) {
         case 'APPROVED':
           await invoke('approve_stock_transfer', { id: transfer.id });
           break;
-        case 'IN_TRANSIT':
-          await invoke('ship_stock_transfer', { id: transfer.id });
-          break;
-        case 'RECEIVED':
-          await invoke('receive_stock_transfer', { id: transfer.id });
-          break;
         case 'CANCELLED':
-          await invoke('cancel_stock_transfer', { id: transfer.id });
+          await invoke('cancel_stock_transfer', { transferId: transfer.id });
           break;
         case 'REJECTED':
           await invoke('reject_stock_transfer', { id: transfer.id, reason: reason || '' });
@@ -108,9 +143,50 @@ export function TransferDetailPage() {
         default:
           console.warn('Unknown status:', newStatus);
       }
+      toast({
+        title: 'Status atualizado',
+        description: `Transferência atualizada para ${statusLabels[newStatus] || newStatus}`,
+      });
       await loadTransfer();
     } catch (error) {
       console.error('Failed to update status:', error);
+      toast({
+        title: 'Erro ao atualizar status',
+        description: String(error),
+        variant: 'destructive',
+      });
+    }
+  }
+
+  async function handleConfirmAction() {
+    if (!transfer || !currentAction) return;
+
+    try {
+      if (currentAction === 'SHIP') {
+        const shippedItems = Object.entries(itemQuantities).map(([itemId, qty]) => ({
+          itemId,
+          shippedQty: Number(qty),
+        }));
+        await invoke('ship_stock_transfer', {
+          transferId: transfer.id,
+          shippedItems,
+        });
+      } else if (currentAction === 'RECEIVE') {
+        const receivedItems = Object.entries(itemQuantities).map(([itemId, qty]) => ({
+          itemId,
+          receivedQty: Number(qty),
+        }));
+        await invoke('receive_stock_transfer', {
+          transferId: transfer.id,
+          receivedItems,
+        });
+      }
+
+      setActionDialogOpen(false);
+      toast({ title: 'Sucesso', description: 'Operação realizada com sucesso' });
+      await loadTransfer();
+    } catch (error) {
+      toast({ title: 'Erro', description: String(error), variant: 'destructive' });
     }
   }
 
@@ -442,6 +518,82 @@ export function TransferDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Action Dialog */}
+      <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {currentAction === 'SHIP' ? 'Confirmar Envio' : 'Confirmar Recebimento'}
+            </DialogTitle>
+            <DialogDescription>
+              {currentAction === 'SHIP'
+                ? 'Confirme as quantidades enviadas para cada item.'
+                : 'Confirme as quantidades recebidas para cada item.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produto</TableHead>
+                  <TableHead className="text-right">Solicitado</TableHead>
+                  {currentAction === 'RECEIVE' && (
+                    <TableHead className="text-right">Enviado</TableHead>
+                  )}
+                  <TableHead className="text-right w-[150px]">
+                    {currentAction === 'SHIP' ? 'Qtd. Envio' : 'Qtd. Recebimento'}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="font-medium">
+                        {item.productName || item.product?.name || item.productId}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {item.productCode || item.product?.code}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {item.requestedQty || item.quantity}
+                    </TableCell>
+                    {currentAction === 'RECEIVE' && (
+                      <TableCell className="text-right">{item.shippedQty || '-'}</TableCell>
+                    )}
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="text-right"
+                        value={itemQuantities[item.id] ?? ''}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setItemQuantities((prev) => ({
+                            ...prev,
+                            [item.id]: isNaN(val) ? 0 : val,
+                          }));
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setActionDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmAction}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -2,8 +2,10 @@
 //!
 //! Gerencia conexão com o Master, sincronização e envio de vendas remotas.
 
-use crate::models::{Customer, Product, Setting};
-use crate::repositories::{CustomerRepository, ProductRepository, SettingsRepository};
+use crate::models::{Customer, Employee, Product, Setting};
+use crate::repositories::{
+    CustomerRepository, EmployeeRepository, ProductRepository, SettingsRepository,
+};
 use crate::services::mobile_protocol::{
     AuthSystemPayload, MobileEvent, MobileRequest, MobileResponse, SaleRemoteCreatePayload,
     SyncDeltaPayload, SyncFullPayload, SyncPushPayload,
@@ -470,8 +472,16 @@ impl NetworkClient {
                                 id: chrono::Utc::now().timestamp_millis() as u64,
                                 action: "sync.full".into(),
                                 payload: serde_json::to_value(SyncFullPayload {
-                                    tables: vec!["products".into(), "customers".into(), "settings".into()]
-                                }).unwrap(),
+                                    tables: vec![
+                                        "products".into(),
+                                        "customers".into(),
+                                        "settings".into(),
+                                        "employees".into(),
+                                        "categories".into(),
+                                        "suppliers".into(),
+                                    ],
+                                })
+                                .unwrap(),
                                 token: current_token,
                                 timestamp: chrono::Utc::now().timestamp_millis(),
                             };
@@ -504,8 +514,16 @@ impl NetworkClient {
                                 }).unwrap()
                             } else {
                                 serde_json::to_value(SyncFullPayload {
-                                    tables: vec!["products".into(), "customers".into(), "settings".into(), "categories".into(), "suppliers".into()]
-                                }).unwrap()
+                                    tables: vec![
+                                        "products".into(),
+                                        "customers".into(),
+                                        "settings".into(),
+                                        "categories".into(),
+                                        "suppliers".into(),
+                                        "employees".into(),
+                                    ],
+                                })
+                                .unwrap()
                             };
                             let req = MobileRequest {
                                 id: chrono::Utc::now().timestamp_millis() as u64,
@@ -583,6 +601,14 @@ impl NetworkClient {
                     }
                 }
             }
+            "employee.updated" => {
+                if let Ok(employee) = serde_json::from_value::<Employee>(event.data) {
+                    let repo = EmployeeRepository::new(&self.pool);
+                    if let Err(e) = repo.upsert_from_sync(employee).await {
+                        tracing::error!("Erro ao atualizar funcionário via evento: {:?}", e);
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -595,6 +621,7 @@ impl NetworkClient {
                     if obj.contains_key("products")
                         || obj.contains_key("customers")
                         || obj.contains_key("settings")
+                        || obj.contains_key("employees")
                     {
                         tracing::info!("Recebendo dados de sincronização...");
 
@@ -655,6 +682,28 @@ impl NetworkClient {
                                     }
                                 }
                                 tracing::info!("Sincronizados {}/{} configurações", count, total);
+                            }
+                        }
+
+                        // Funcionários
+                        if let Some(employees_val) = obj.get("employees") {
+                            if let Ok(employees) =
+                                serde_json::from_value::<Vec<Employee>>(employees_val.clone())
+                            {
+                                let repo = EmployeeRepository::new(&self.pool);
+                                let total = employees.len();
+                                let mut count = 0;
+                                for e in employees {
+                                    if let Err(err) = repo.upsert_from_sync(e).await {
+                                        tracing::error!(
+                                            "Erro ao sincronizar funcionário: {:?}",
+                                            err
+                                        );
+                                    } else {
+                                        count += 1;
+                                    }
+                                }
+                                tracing::info!("Sincronizados {}/{} funcionários", count, total);
                             }
                         }
 

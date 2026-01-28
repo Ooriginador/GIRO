@@ -10,12 +10,12 @@ use crate::models::{
 #[cfg(debug_assertions)]
 use crate::repositories::{
     new_id, CashRepository, CategoryRepository, EmployeeRepository, ProductRepository,
-    SaleRepository, StockRepository, SupplierRepository,
+    SaleRepository, StockRepository, SupplierRepository, VehicleRepository,
 };
 #[cfg(debug_assertions)]
 use crate::AppState;
 #[cfg(debug_assertions)]
-use chrono::{Duration, NaiveTime, Utc};
+use chrono::{Datelike, Duration, NaiveTime, Utc};
 #[cfg(debug_assertions)]
 use rand::rngs::StdRng;
 #[cfg(debug_assertions)]
@@ -112,14 +112,125 @@ const SUPPLIERS: &[&str] = &[
 ];
 
 const VEHICLE_BRANDS: &[&str] = &["Honda", "Yamaha", "Suzuki", "Kawasaki", "BMW"];
-const HONDA_MODELS: &[&str] = &["CG 160 Titan", "CB 300F Twister", "XRE 300", "Biz 125"];
-const YAMAHA_MODELS: &[&str] = &["Fazer FZ25", "Lander 250", "MT-03", "Factor 150"];
+
+const HONDA_MODELS: &[&str] = &[
+    "CG 160 Titan",
+    "CG 160 Fan",
+    "Biz 125",
+    "Biz 110i",
+    "Pop 110i",
+    "CB 250F Twister",
+    "XRE 300",
+    "NXR 160 Bros",
+    "PCX 150",
+    "Elite 125",
+];
+
+const YAMAHA_MODELS: &[&str] = &[
+    "YBR 150 Factor",
+    "Fazer 250",
+    "Fazer 150",
+    "Crosser 150",
+    "Lander 250",
+    "NMAX 160",
+    "Neo 125",
+    "Fluo 125",
+    "XMAX 250",
+    "MT-03",
+];
+const FIPE_DATA: &[(&str, &[(&str, &str)])] = &[
+    (
+        "Honda",
+        &[
+            ("CG 160 Titan", "STREET"),
+            ("CG 160 Fan", "STREET"),
+            ("Biz 125", "SCOOTER"),
+            ("NXR 160 Bros", "TRAIL"),
+            ("CB 500F", "NAKED"),
+            ("XRE 300", "ADVENTURE"),
+        ],
+    ),
+    (
+        "Yamaha",
+        &[
+            ("Fazer 250", "STREET"),
+            ("Factor 150", "STREET"),
+            ("Lander 250", "TRAIL"),
+            ("NMax 160", "SCOOTER"),
+            ("MT-03", "NAKED"),
+        ],
+    ),
+    (
+        "Suzuki",
+        &[("GSX-S750", "NAKED"), ("V-Strom 650", "ADVENTURE")],
+    ),
+];
+
+#[cfg(debug_assertions)]
+async fn seed_vehicles(pool: &sqlx::SqlitePool) -> AppResult<()> {
+    let repo = VehicleRepository::new(pool);
+
+    for (brand_name, models) in FIPE_DATA {
+        // Create Brand if not exists
+        let brand_id = if let Some(id) =
+            sqlx::query_scalar::<_, String>("SELECT id FROM vehicle_brands WHERE name = ?")
+                .bind(brand_name)
+                .fetch_optional(pool)
+                .await?
+        {
+            id
+        } else {
+            let b = repo
+                .create_brand(crate::models::CreateVehicleBrand {
+                    name: brand_name.to_string(),
+                    logo_url: None,
+                })
+                .await?;
+            b.id
+        };
+
+        for (model_name, category) in *models {
+            // Create Model if not exists
+            if sqlx::query_scalar::<_, String>(
+                "SELECT id FROM vehicle_models WHERE name = ? AND brand_id = ?",
+            )
+            .bind(model_name)
+            .bind(&brand_id)
+            .fetch_optional(pool)
+            .await?
+            .is_none()
+            {
+                let m = repo
+                    .create_model(crate::models::CreateVehicleModel {
+                        brand_id: brand_id.clone(),
+                        name: model_name.to_string(),
+                        category: Some(category.to_string()),
+                        engine_size: None,
+                    })
+                    .await?;
+
+                // Add some years
+                let current_year = Utc::now().year();
+                for year in (current_year - 10)..=current_year {
+                    repo.create_year(crate::models::CreateVehicleYear {
+                        model_id: m.id.clone(),
+                        year,
+                        year_label: year.to_string(),
+                    })
+                    .await?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
 
 #[tauri::command]
 #[cfg(debug_assertions)]
 pub async fn seed_database(employee_id: String, state: State<'_, AppState>) -> AppResult<String> {
     crate::require_permission!(state.pool(), &employee_id, Permission::UpdateSettings);
     let pool = state.pool();
+    seed_vehicles(pool).await?;
     let product_repo = ProductRepository::new(pool);
     let category_repo = CategoryRepository::new(pool);
     let supplier_repo = SupplierRepository::new(pool);
@@ -239,6 +350,10 @@ pub async fn seed_database(employee_id: String, state: State<'_, AppState>) -> A
                     max_stock: None,
                     category_id: cat_id,
                     notes: None,
+                    oem_code: None,
+                    aftermarket_code: None,
+                    part_brand: None,
+                    application: None,
                 })
                 .await?
         };

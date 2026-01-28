@@ -20,15 +20,15 @@ impl<'a> ContractRepository<'a> {
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Contract>> {
         let result = sqlx::query_as::<_, Contract>(
             r#"
-            SELECT id, code, name, description, clientName as client_name, 
-                   clientCNPJ as client_document, status,
-                   startDate as start_date, endDate as end_date, 
-                   CAST(budget AS REAL) as budget, managerId as manager_id, 
+            SELECT id, code, name, description, client_name, 
+                   client_document, status,
+                   start_date, end_date, 
+                   CAST(budget AS REAL) as budget, manager_id, 
                    address, city, state, notes,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM Contract
-            WHERE id = ? AND deletedAt IS NULL
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM contracts
+            WHERE id = ? AND deleted_at IS NULL
             "#,
         )
         .bind(id)
@@ -41,15 +41,15 @@ impl<'a> ContractRepository<'a> {
     pub async fn find_by_code(&self, code: &str) -> AppResult<Option<Contract>> {
         let result = sqlx::query_as::<_, Contract>(
             r#"
-            SELECT id, code, name, description, clientName as client_name, 
-                   clientCNPJ as client_document, status,
-                   startDate as start_date, endDate as end_date, 
-                   CAST(budget AS REAL) as budget, managerId as manager_id, 
+            SELECT id, code, name, description, client_name, 
+                   client_document, status,
+                   start_date, end_date, 
+                   CAST(budget AS REAL) as budget, manager_id, 
                    address, city, state, notes,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM Contract
-            WHERE code = ? AND deletedAt IS NULL
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM contracts
+            WHERE code = ? AND deleted_at IS NULL
             "#,
         )
         .bind(code)
@@ -62,15 +62,15 @@ impl<'a> ContractRepository<'a> {
     pub async fn find_all_active(&self) -> AppResult<Vec<Contract>> {
         let result = sqlx::query_as::<_, Contract>(
             r#"
-            SELECT id, code, name, description, clientName as client_name, 
-                   clientCNPJ as client_document, status,
-                   startDate as start_date, endDate as end_date, 
-                   CAST(budget AS REAL) as budget, managerId as manager_id, 
+            SELECT id, code, name, description, client_name, 
+                   client_document, status,
+                   start_date, end_date, 
+                   CAST(budget AS REAL) as budget, manager_id, 
                    address, city, state, notes,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM Contract
-            WHERE isActive = 1 AND deletedAt IS NULL
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM contracts
+            WHERE is_active = 1 AND deleted_at IS NULL
             ORDER BY name
             "#,
         )
@@ -85,11 +85,11 @@ impl<'a> ContractRepository<'a> {
         pagination: &Pagination,
         filters: &ContractFilters,
     ) -> AppResult<PaginatedResult<Contract>> {
-        let mut conditions = vec!["deletedAt IS NULL".to_string()];
+        let mut conditions = vec!["deleted_at IS NULL".to_string()];
         let mut params: Vec<String> = vec![];
 
         if let Some(search) = &filters.search {
-            conditions.push("(code LIKE ? OR name LIKE ? OR clientName LIKE ?)".to_string());
+            conditions.push("(code LIKE ? OR name LIKE ? OR client_name LIKE ?)".to_string());
             let pattern = format!("%{}%", search);
             params.push(pattern.clone());
             params.push(pattern.clone());
@@ -102,19 +102,19 @@ impl<'a> ContractRepository<'a> {
         }
 
         if let Some(manager_id) = &filters.manager_id {
-            conditions.push("managerId = ?".to_string());
+            conditions.push("manager_id = ?".to_string());
             params.push(manager_id.clone());
         }
 
         if let Some(is_active) = filters.is_active {
-            conditions.push("isActive = ?".to_string());
+            conditions.push("is_active = ?".to_string());
             params.push(if is_active { "1" } else { "0" }.to_string());
         }
 
         let where_clause = conditions.join(" AND ");
 
         // Count total
-        let count_sql = format!("SELECT COUNT(*) FROM Contract WHERE {}", where_clause);
+        let count_sql = format!("SELECT COUNT(*) FROM contracts WHERE {}", where_clause);
         let mut count_query = sqlx::query_as::<_, (i64,)>(&count_sql);
         for p in &params {
             count_query = count_query.bind(p);
@@ -124,16 +124,16 @@ impl<'a> ContractRepository<'a> {
         // Fetch data
         let data_sql = format!(
             r#"
-            SELECT id, code, name, description, clientName as client_name, 
-                   clientCNPJ as client_document, status,
-                   startDate as start_date, endDate as end_date, 
-                   CAST(budget AS REAL) as budget, managerId as manager_id, 
+            SELECT id, code, name, description, client_name as client_name, 
+                   client_document as client_document, status,
+                   start_date, end_date, 
+                   CAST(budget AS REAL) as budget, manager_id, 
                    address, city, state, notes,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM Contract
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM contracts
             WHERE {}
-            ORDER BY createdAt DESC
+            ORDER BY created_at DESC
             LIMIT ? OFFSET ?
             "#,
             where_clause
@@ -165,11 +165,11 @@ impl<'a> ContractRepository<'a> {
 
         sqlx::query(
             r#"
-            INSERT INTO Contract (
-                id, code, name, description, clientName, clientCNPJ, status,
-                startDate, endDate, budget, costCenter, managerId, address, city, state, notes,
-                isActive, createdAt, updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, 'PLANNING', ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+            INSERT INTO contracts (
+                id, code, name, description, client_name, client_document, status,
+                start_date, end_date, budget, manager_id, address, city, state, notes,
+                is_active, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 'PLANNING', ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
             "#,
         )
         .bind(&id)
@@ -181,7 +181,6 @@ impl<'a> ContractRepository<'a> {
         .bind(&data.start_date)
         .bind(&data.end_date)
         .bind(budget)
-        .bind("DEFAULT") // costCenter
         .bind(&data.manager_id)
         .bind(&data.address)
         .bind(&data.city)
@@ -214,21 +213,21 @@ impl<'a> ContractRepository<'a> {
 
         sqlx::query(
             r#"
-            UPDATE Contract SET
+            UPDATE contracts SET
                 name = COALESCE(?, name),
                 description = COALESCE(?, description),
-                clientName = COALESCE(?, clientName),
-                clientCNPJ = COALESCE(?, clientCNPJ),
+                client_name = COALESCE(?, client_name),
+                client_document = COALESCE(?, client_document),
                 status = COALESCE(?, status),
-                startDate = COALESCE(?, startDate),
-                endDate = COALESCE(?, endDate),
+                start_date = COALESCE(?, start_date),
+                end_date = COALESCE(?, end_date),
                 budget = COALESCE(?, budget),
-                managerId = COALESCE(?, managerId),
+                manager_id = COALESCE(?, manager_id),
                 address = COALESCE(?, address),
                 city = COALESCE(?, city),
                 state = COALESCE(?, state),
                 notes = COALESCE(?, notes),
-                updatedAt = ?
+                updated_at = ?
             WHERE id = ?
             "#,
         )
@@ -261,7 +260,7 @@ impl<'a> ContractRepository<'a> {
     /// Soft delete de contrato
     pub async fn delete(&self, id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
-        let result = sqlx::query("UPDATE Contract SET deletedAt = ?, isActive = 0 WHERE id = ?")
+        let result = sqlx::query("UPDATE contracts SET deleted_at = ?, is_active = 0 WHERE id = ?")
             .bind(&now)
             .bind(id)
             .execute(self.pool)
@@ -279,7 +278,7 @@ impl<'a> ContractRepository<'a> {
     /// Altera status do contrato
     pub async fn update_status(&self, id: &str, status: &str) -> AppResult<Contract> {
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE Contract SET status = ?, updatedAt = ? WHERE id = ?")
+        sqlx::query("UPDATE contracts SET status = ?, updated_at = ? WHERE id = ?")
             .bind(status)
             .bind(&now)
             .bind(id)
@@ -292,6 +291,81 @@ impl<'a> ContractRepository<'a> {
                 entity: "Contract".into(),
                 id: id.to_string(),
             })
+    }
+
+    /// Dashboard Global Enterprise
+    pub async fn get_global_dashboard(
+        &self,
+    ) -> AppResult<crate::models::enterprise::EnterpriseDashboardStats> {
+        // Active Contracts
+        let (active_contracts,): (i32,) = sqlx::query_as(
+            "SELECT CAST(COUNT(*) AS INTEGER) FROM contracts WHERE status = 'ACTIVE' AND deleted_at IS NULL",
+        )
+        .fetch_one(self.pool)
+        .await?;
+
+        // Pending Requests
+        let (pending_requests,): (i32,) = sqlx::query_as(
+            "SELECT CAST(COUNT(*) AS INTEGER) FROM material_requests WHERE status = 'PENDING' AND deleted_at IS NULL",
+        )
+        .fetch_one(self.pool)
+        .await?;
+
+        // In Transit Transfers
+        let (in_transit_transfers,): (i32,) = sqlx::query_as(
+            "SELECT CAST(COUNT(*) AS INTEGER) FROM stock_transfers WHERE status = 'IN_TRANSIT' AND deleted_at IS NULL",
+        )
+        .fetch_one(self.pool)
+        .await?;
+
+        // Low Stock Items (Global count)
+        // Checks products where total balances <= min_stock
+        let (low_stock_items,): (i32,) = sqlx::query_as(
+            r#"
+            SELECT CAST(COUNT(*) AS INTEGER)
+            FROM (
+                SELECT p.id
+                FROM products p
+                LEFT JOIN stock_balances sb ON p.id = sb.product_id
+                WHERE p.is_active = 1
+                GROUP BY p.id
+                HAVING COALESCE(SUM(sb.quantity), 0) <= p.min_stock
+            )
+            "#,
+        )
+        .fetch_one(self.pool)
+        .await?;
+
+        // Monthly Consumption (Current Month)
+        let (monthly_consumption,): (f64,) = sqlx::query_as(
+            "SELECT COALESCE(SUM(total_cost), 0.0) FROM material_consumptions WHERE consumed_at >= date('now', 'start of month')",
+        )
+        .fetch_one(self.pool)
+        .await?;
+
+        // Previous Month Consumption for Trend
+        let (prev_month_consumption,): (f64,) = sqlx::query_as(
+            "SELECT COALESCE(SUM(total_cost), 0.0) FROM material_consumptions WHERE consumed_at >= date('now', 'start of month', '-1 month') AND consumed_at < date('now', 'start of month')",
+        )
+        .fetch_one(self.pool)
+        .await?;
+
+        let consumption_trend = if prev_month_consumption > 0.0 {
+            ((monthly_consumption - prev_month_consumption) / prev_month_consumption) * 100.0
+        } else if monthly_consumption > 0.0 {
+            100.0
+        } else {
+            0.0
+        };
+
+        Ok(crate::models::enterprise::EnterpriseDashboardStats {
+            active_contracts,
+            pending_requests,
+            in_transit_transfers,
+            low_stock_items,
+            monthly_consumption,
+            consumption_trend,
+        })
     }
 
     /// Dashboard do contrato

@@ -75,12 +75,14 @@ impl ProductUnit {
 /// Produto do catálogo
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
+#[sqlx(rename_all = "camelCase")]
 pub struct Product {
     pub id: String,
     pub barcode: Option<String>,
     pub internal_code: String,
     pub name: String,
     pub description: Option<String>,
+    pub notes: Option<String>,
     pub unit: String, // Armazenado como String no SQLite
     pub is_weighted: bool,
     pub sale_price: f64,
@@ -90,7 +92,13 @@ pub struct Product {
     pub max_stock: Option<f64>, // Added for schema sync
     pub is_active: bool,
     pub category_id: String,
-    pub notes: Option<String>,
+
+    // Campos Motopeças
+    pub oem_code: Option<String>,
+    pub aftermarket_code: Option<String>,
+    pub part_brand: Option<String>,
+    pub application: Option<String>,
+
     pub created_at: String, // SQLite armazena como TEXT
     pub updated_at: String,
 }
@@ -113,6 +121,7 @@ pub struct CreateProduct {
     pub internal_code: Option<String>, // Será gerado se não fornecido
     pub name: String,
     pub description: Option<String>,
+    pub notes: Option<String>,
     pub unit: Option<ProductUnit>,
     pub is_weighted: Option<bool>,
     pub sale_price: f64,
@@ -121,7 +130,12 @@ pub struct CreateProduct {
     pub min_stock: Option<f64>,
     pub max_stock: Option<f64>,
     pub category_id: String,
-    pub notes: Option<String>,
+
+    // Campos Motopeças
+    pub oem_code: Option<String>,
+    pub aftermarket_code: Option<String>,
+    pub part_brand: Option<String>,
+    pub application: Option<String>,
 }
 
 /// Para atualizar produto
@@ -131,6 +145,7 @@ pub struct UpdateProduct {
     pub barcode: Option<String>,
     pub name: Option<String>,
     pub description: Option<String>,
+    pub notes: Option<String>,
     pub unit: Option<ProductUnit>,
     pub is_weighted: Option<bool>,
     pub sale_price: Option<f64>,
@@ -140,9 +155,14 @@ pub struct UpdateProduct {
     pub max_stock: Option<f64>,
     pub is_active: Option<bool>,
     pub category_id: Option<String>,
-    pub notes: Option<String>,
+
+    // Campos Motopeças
+    pub oem_code: Option<String>,
+    pub aftermarket_code: Option<String>,
+    pub part_brand: Option<String>,
+    pub application: Option<String>,
+
     pub reason: Option<String>,
-    /// ID do funcionário que está fazendo a alteração (para auditoria)
     /// ID do funcionário que está fazendo a alteração (para auditoria)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub employee_id: Option<String>,

@@ -734,4 +734,17 @@ mod tests {
         assert!(event.id.starts_with("evt_"));
         assert_eq!(event.event, "stock.updated");
     }
+
+    #[test]
+    fn test_event_types_string_conversion() {
+        assert_eq!(MobileEventType::StockUpdated.to_string(), "stock.updated");
+        assert_eq!(MobileEventType::SyncPush.to_string(), "sync.push");
+        assert_eq!(
+            MobileEventType::CustomerUpdated.to_string(),
+            "customer.updated"
+        );
+
+        let event = MobileEvent::from_type(MobileEventType::SyncPush, serde_json::json!({}));
+        assert_eq!(event.event, "sync.push");
+    }
 }

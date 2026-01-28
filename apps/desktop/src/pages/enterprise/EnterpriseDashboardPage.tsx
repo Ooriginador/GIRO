@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useContractDashboard, usePendingRequests, useContracts } from '@/hooks/enterprise';
+import { useEnterpriseDashboard, usePendingRequests, useContracts } from '@/hooks/enterprise';
 import { cn } from '@/lib/utils';
 import {
   AlertTriangle,
@@ -292,19 +292,50 @@ export const EnterpriseDashboardPage: FC = () => {
   const navigate = useNavigate();
 
   // Real hooks with Tauri invoke (React Query)
+  // TODO: Create a proper global dashboard hook. Using individual hooks for now to compose.
   const {
-    data: dashboard,
-    isLoading: isLoadingDashboard,
-    refetch: refetchDashboard,
-  } = useContractDashboard();
+    data: contracts,
+    isLoading: isLoadingContracts,
+    refetch: refetchContracts,
+  } = useContracts();
   const {
-    data: pendingRequests,
+    data: requests,
     isLoading: isLoadingRequests,
     refetch: refetchRequests,
   } = usePendingRequests();
-  const { data: contracts, isLoading: isLoadingContracts } = useContracts('ACTIVE');
+  // We need stock transfers hook here too for KPIs
 
-  const isLoading = isLoadingDashboard || isLoadingRequests;
+  // Calculate KPIs locally until backend aggregator is ready
+  const activeContracts = contracts?.filter((c) => c.status === 'ACTIVE').length || 0;
+  const pendingRequests = requests?.length || 0;
+  // const inTransitTransfers = ...
+
+  const kpis: EnterpriseKPIs = {
+    activeContracts,
+    pendingRequests,
+    inTransitTransfers: 0, // Placeholder
+    lowStockAlerts: 0, // Placeholder
+  };
+
+  const recentRequests: RecentRequest[] =
+    requests?.slice(0, 5).map((r) => ({
+      id: r.id,
+      code: r.requestNumber,
+      status: r.status as any,
+      requesterName: 'Unknown', // Need join
+      contractName: 'Unknown', // Need join
+      requestedAt: r.createdAt || new Date().toISOString(), // Fallback
+      priority: r.priority as any,
+    })) || [];
+
+  const consumptionData: ContractConsumption[] = []; // Placeholder
+
+  const isLoading = isLoadingContracts || isLoadingRequests;
+
+  const handleRefresh = () => {
+    refetchContracts();
+    refetchRequests();
+  };
 
   // Transform pending requests to recent requests format
   const recentRequests: RecentRequest[] = (pendingRequests || []).slice(0, 5).map((r) => ({

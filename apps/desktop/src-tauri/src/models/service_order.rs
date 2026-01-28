@@ -192,6 +192,20 @@ pub struct Service {
 // DTOs DE ENTRADA
 // ═══════════════════════════════════════════════════════════════════════════
 
+/// Para criar item na criação da OS
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateServiceOrderItem {
+    pub product_id: Option<String>,
+    pub item_type: String, // "PART" or "SERVICE"
+    pub description: String,
+    pub employee_id: Option<String>,
+    pub quantity: f64,
+    pub unit_price: f64,
+    pub discount: Option<f64>,
+    pub notes: Option<String>,
+}
+
 /// Para criar ordem de serviço
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -206,6 +220,7 @@ pub struct CreateServiceOrder {
     pub notes: Option<String>,
     pub internal_notes: Option<String>,
     pub status: Option<String>,
+    pub items: Option<Vec<CreateServiceOrderItem>>,
 }
 
 /// Para atualizar ordem de serviço

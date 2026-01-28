@@ -8,6 +8,10 @@ pub mod employee_repository;
 pub mod fiscal_repository;
 pub mod held_sale_repository;
 pub mod inventory_repository;
+
+#[cfg(test)]
+pub mod inventory_repository_test;
+
 pub mod price_history_repository;
 pub mod product_lot_repository;
 pub mod product_repository;
@@ -22,15 +26,39 @@ pub mod warranty_repository;
 // Enterprise Module
 pub mod activity_repository;
 pub mod contract_repository;
+pub mod enterprise_inventory_repository;
+pub mod material_consumption_repository;
 pub mod material_request_repository;
 pub mod stock_location_repository;
 pub mod stock_transfer_repository;
 pub mod work_front_repository;
 
 #[cfg(test)]
+mod activity_repository_test;
+#[cfg(test)]
+mod contract_repository_test;
+#[cfg(test)]
+mod customer_repository_test;
+#[cfg(test)]
+mod enterprise_inventory_repository_test;
+#[cfg(test)]
+mod material_request_repository_test;
+#[cfg(test)]
+mod product_lot_repository_test;
+#[cfg(test)]
+mod report_motoparts_repository_test;
+#[cfg(test)]
 mod service_order_repository_test;
 #[cfg(test)]
+mod settings_repository_test;
+#[cfg(test)]
+mod stock_location_repository_test;
+#[cfg(test)]
 mod stock_repository_test;
+#[cfg(test)]
+mod stock_transfer_repository_test;
+#[cfg(test)]
+mod work_front_repository_test;
 
 pub use alert_repository::AlertRepository;
 pub use cash_repository::CashRepository;
@@ -54,6 +82,8 @@ pub use warranty_repository::WarrantyRepository;
 // Enterprise Module
 pub use activity_repository::ActivityRepository;
 pub use contract_repository::ContractRepository;
+pub use enterprise_inventory_repository::EnterpriseInventoryRepository;
+pub use material_consumption_repository::MaterialConsumptionRepository;
 pub use material_request_repository::MaterialRequestRepository;
 pub use stock_location_repository::StockLocationRepository;
 pub use stock_transfer_repository::StockTransferRepository;
