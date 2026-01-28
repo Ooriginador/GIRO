@@ -120,6 +120,25 @@ pub struct EntityCount {
     pub synced_version: i64,
 }
 
+/// License info for sync status (connected devices)
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+pub struct SyncLicenseInfo {
+    pub max_hardware: i32,
+    pub active_hardware: i32,
+    pub devices: Vec<SyncDeviceInfo>,
+}
+
+/// Device info for connected PCs
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+pub struct SyncDeviceInfo {
+    pub hardware_id_masked: String,
+    pub machine_name: Option<String>,
+    pub last_seen: DateTime<Utc>,
+    pub is_current: bool,
+}
+
 /// Sync status response
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "snake_case")]
@@ -127,6 +146,9 @@ pub struct SyncStatusResponse {
     pub entity_counts: Vec<EntityCount>,
     pub last_sync: Option<DateTime<Utc>>,
     pub pending_changes: i64,
+    /// License info including connected devices (optional for backward compat)
+    #[serde(default)]
+    pub license_info: Option<SyncLicenseInfo>,
 }
 
 /// Sync client
