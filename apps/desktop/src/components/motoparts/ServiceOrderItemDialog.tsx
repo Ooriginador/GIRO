@@ -45,6 +45,7 @@ const formSchema = z
     unitPrice: z.coerce.number().min(0, 'Preço inválido'),
     discount: z.coerce.number().optional(),
     employeeId: z.string().optional(),
+    notes: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.itemType === 'PART' && !data.productId) {
@@ -56,12 +57,16 @@ const formSchema = z
     }
   });
 
+import { CreateServiceOrderItemInput } from '@/hooks/useServiceOrders';
+
 interface ServiceOrderItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  orderId: string;
+  orderId?: string;
   orderStatus?: string;
   itemToEdit?: ServiceOrderItem | null;
+  onAddItem?: (item: CreateServiceOrderItemInput) => void;
+  onUpdateItem?: (item: CreateServiceOrderItemInput) => void;
 }
 
 export function ServiceOrderItemDialog({
@@ -69,6 +74,8 @@ export function ServiceOrderItemDialog({
   onOpenChange,
   orderId,
   itemToEdit,
+  onAddItem,
+  onUpdateItem: onUpdateItemLocal,
 }: ServiceOrderItemDialogProps) {
   const [activeTab, setActiveTab] = useState<'PART' | 'SERVICE'>('PART');
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,6 +152,7 @@ export function ServiceOrderItemDialog({
         unitPrice: itemToEdit.unit_price,
         discount: itemToEdit.discount || undefined,
         employeeId: itemToEdit.employee_id || undefined,
+        notes: itemToEdit.notes || undefined,
       });
       setActiveTab(itemToEdit.item_type);
       // Se for produto, idealmente buscaríamos os dados dele, mas por enquanto:
@@ -215,26 +223,58 @@ export function ServiceOrderItemDialog({
             onSubmit={form.handleSubmit(async (data) => {
               try {
                 if (itemToEdit) {
-                  await updateItem.mutateAsync({
-                    itemId: itemToEdit.id,
-                    quantity: data.quantity,
-                    unitPrice: data.unitPrice,
-                    discount: data.discount,
-                    employeeId: data.employeeId,
-                  });
-                  toast.success('Item atualizado!');
+                  // Edição
+                  if (onUpdateItemLocal) {
+                    onUpdateItemLocal({
+                      productId: data.productId,
+                      itemType: data.itemType,
+                      description: data.description,
+                      quantity: data.quantity,
+                      unitPrice: data.unitPrice,
+                      discount: data.discount,
+                      employeeId: data.employeeId,
+                      notes: data.notes,
+                    });
+                    toast.success('Item atualizado!');
+                  } else if (orderId) {
+                    await updateItem.mutateAsync({
+                      itemId: itemToEdit.id,
+                      quantity: data.quantity,
+                      unitPrice: data.unitPrice,
+                      discount: data.discount,
+                      employeeId: data.employeeId,
+                      notes: data.notes,
+                    });
+                    toast.success('Item atualizado!');
+                  }
                 } else {
-                  await addItem.mutateAsync({
-                    order_id: orderId,
-                    item_type: data.itemType,
-                    product_id: data.productId,
-                    description: data.description,
-                    quantity: data.quantity,
-                    unit_price: data.unitPrice,
-                    discount: data.discount,
-                    employee_id: data.employeeId,
-                  });
-                  toast.success('Item adicionado!');
+                  // Adição
+                  if (onAddItem) {
+                    onAddItem({
+                      productId: data.productId,
+                      itemType: data.itemType,
+                      description: data.description,
+                      quantity: data.quantity,
+                      unitPrice: data.unitPrice,
+                      discount: data.discount,
+                      employeeId: data.employeeId,
+                      notes: data.notes,
+                    });
+                    toast.success('Item adicionado à lista!');
+                  } else if (orderId) {
+                    await addItem.mutateAsync({
+                      orderId: orderId,
+                      itemType: data.itemType,
+                      productId: data.productId,
+                      description: data.description,
+                      quantity: data.quantity,
+                      unitPrice: data.unitPrice,
+                      discount: data.discount,
+                      employeeId: data.employeeId,
+                      notes: data.notes,
+                    });
+                    toast.success('Item adicionado!');
+                  }
                 }
                 onOpenChange(false);
               } catch (error) {
@@ -502,6 +542,20 @@ export function ServiceOrderItemDialog({
                   <FormLabel>Desconto (R$)</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Observações</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Detalhes adicionais..." />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

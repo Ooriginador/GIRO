@@ -18,14 +18,14 @@ impl<'a> ActivityRepository<'a> {
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Activity>> {
         let result = sqlx::query_as::<_, Activity>(
             r#"
-            SELECT id, workFrontId as work_front_id, code, name, description, status,
-                   unit, plannedQty as planned_qty, executedQty as executed_qty,
-                   CAST(unitCost AS REAL) as unit_cost, costCenter as cost_center,
-                   startDate as start_date, endDate as end_date, notes,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM Activity
-            WHERE id = ? AND deletedAt IS NULL
+            SELECT id, work_front_id, code, name, description, status,
+                   unit, planned_qty, executed_qty,
+                   CAST(unit_cost AS REAL) as unit_cost, cost_center,
+                   start_date, end_date, notes,
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM activities
+            WHERE id = ? AND deleted_at IS NULL
             "#,
         )
         .bind(id)
@@ -38,14 +38,14 @@ impl<'a> ActivityRepository<'a> {
     pub async fn find_by_work_front(&self, work_front_id: &str) -> AppResult<Vec<Activity>> {
         let result = sqlx::query_as::<_, Activity>(
             r#"
-            SELECT id, workFrontId as work_front_id, code, name, description, status,
-                   unit, plannedQty as planned_qty, executedQty as executed_qty,
-                   CAST(unitCost AS REAL) as unit_cost, costCenter as cost_center,
-                   startDate as start_date, endDate as end_date, notes,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM Activity
-            WHERE workFrontId = ? AND deletedAt IS NULL
+            SELECT id, work_front_id, code, name, description, status,
+                   unit, planned_qty, executed_qty,
+                   CAST(unit_cost AS REAL) as unit_cost, cost_center,
+                   start_date, end_date, notes,
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM activities
+            WHERE work_front_id = ? AND deleted_at IS NULL
             ORDER BY code
             "#,
         )
@@ -59,15 +59,15 @@ impl<'a> ActivityRepository<'a> {
     pub async fn find_by_contract(&self, contract_id: &str) -> AppResult<Vec<Activity>> {
         let result = sqlx::query_as::<_, Activity>(
             r#"
-            SELECT a.id, a.workFrontId as work_front_id, a.code, a.name, a.description, a.status,
-                   a.unit, a.plannedQty as planned_qty, a.executedQty as executed_qty,
-                   CAST(a.unitCost AS REAL) as unit_cost, a.costCenter as cost_center,
-                   a.startDate as start_date, a.endDate as end_date, a.notes,
-                   a.isActive as is_active, a.createdAt as created_at, 
-                   a.updatedAt as updated_at, a.deletedAt as deleted_at
-            FROM Activity a
-            JOIN WorkFront wf ON a.workFrontId = wf.id
-            WHERE wf.contractId = ? AND a.deletedAt IS NULL
+            SELECT a.id, a.work_front_id, a.code, a.name, a.description, a.status,
+                   a.unit, a.planned_qty, a.executed_qty,
+                   CAST(a.unit_cost AS REAL) as unit_cost, a.cost_center,
+                   a.start_date, a.end_date, a.notes,
+                   a.is_active, a.created_at, 
+                   a.updated_at, a.deleted_at
+            FROM activities a
+            JOIN work_fronts wf ON a.work_front_id = wf.id
+            WHERE wf.contract_id = ? AND a.deleted_at IS NULL
             ORDER BY a.code
             "#,
         )
@@ -81,14 +81,14 @@ impl<'a> ActivityRepository<'a> {
     pub async fn find_by_cost_center(&self, cost_center: &str) -> AppResult<Vec<Activity>> {
         let result = sqlx::query_as::<_, Activity>(
             r#"
-            SELECT id, workFrontId as work_front_id, code, name, description, status,
-                   unit, plannedQty as planned_qty, executedQty as executed_qty,
-                   CAST(unitCost AS REAL) as unit_cost, costCenter as cost_center,
-                   startDate as start_date, endDate as end_date, notes,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM Activity
-            WHERE costCenter = ? AND deletedAt IS NULL
+            SELECT id, work_front_id, code, name, description, status,
+                   unit, planned_qty, executed_qty,
+                   CAST(unit_cost AS REAL) as unit_cost, cost_center,
+                   start_date, end_date, notes,
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM activities
+            WHERE cost_center = ? AND deleted_at IS NULL
             ORDER BY code
             "#,
         )
@@ -106,13 +106,13 @@ impl<'a> ActivityRepository<'a> {
     ) -> AppResult<PaginatedResult<Activity>> {
         let (where_clause, bind_wf) = match work_front_id {
             Some(wfid) => (
-                "workFrontId = ? AND deletedAt IS NULL".to_string(),
+                "work_front_id = ? AND deleted_at IS NULL".to_string(),
                 Some(wfid),
             ),
-            None => ("deletedAt IS NULL".to_string(), None),
+            None => ("deleted_at IS NULL".to_string(), None),
         };
 
-        let count_sql = format!("SELECT COUNT(*) FROM Activity WHERE {}", where_clause);
+        let count_sql = format!("SELECT COUNT(*) FROM activities WHERE {}", where_clause);
         let mut count_query = sqlx::query_as::<_, (i64,)>(&count_sql);
         if let Some(wfid) = bind_wf {
             count_query = count_query.bind(wfid);
@@ -121,13 +121,13 @@ impl<'a> ActivityRepository<'a> {
 
         let data_sql = format!(
             r#"
-            SELECT id, workFrontId as work_front_id, code, name, description, status,
-                   unit, plannedQty as planned_qty, executedQty as executed_qty,
-                   CAST(unitCost AS REAL) as unit_cost, costCenter as cost_center,
-                   startDate as start_date, endDate as end_date, notes,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM Activity
+            SELECT id, work_front_id, code, name, description, status,
+                   unit, planned_qty, executed_qty,
+                   CAST(unit_cost AS REAL) as unit_cost, cost_center,
+                   start_date, end_date, notes,
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM activities
             WHERE {}
             ORDER BY code
             LIMIT ? OFFSET ?
@@ -163,10 +163,10 @@ impl<'a> ActivityRepository<'a> {
 
         sqlx::query(
             r#"
-            INSERT INTO Activity (
-                id, workFrontId, code, name, description, status, unit,
-                plannedQty, executedQty, unitCost, costCenter,
-                startDate, endDate, notes, isActive, createdAt, updatedAt
+            INSERT INTO activities (
+                id, work_front_id, code, name, description, status, unit,
+                planned_qty, executed_qty, unit_cost, cost_center,
+                start_date, end_date, notes, is_active, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, ?, 0, ?, ?, ?, ?, ?, 1, ?, ?)
             "#,
         )
@@ -209,19 +209,19 @@ impl<'a> ActivityRepository<'a> {
 
         sqlx::query(
             r#"
-            UPDATE Activity SET
+            UPDATE activities SET
                 name = COALESCE(?, name),
                 description = COALESCE(?, description),
                 status = COALESCE(?, status),
                 unit = COALESCE(?, unit),
-                plannedQty = COALESCE(?, plannedQty),
-                executedQty = COALESCE(?, executedQty),
-                unitCost = COALESCE(?, unitCost),
-                costCenter = COALESCE(?, costCenter),
-                startDate = COALESCE(?, startDate),
-                endDate = COALESCE(?, endDate),
+                planned_qty = COALESCE(?, planned_qty),
+                executed_qty = COALESCE(?, executed_qty),
+                unit_cost = COALESCE(?, unit_cost),
+                cost_center = COALESCE(?, cost_center),
+                start_date = COALESCE(?, start_date),
+                end_date = COALESCE(?, end_date),
                 notes = COALESCE(?, notes),
-                updatedAt = ?
+                updated_at = ?
             WHERE id = ?
             "#,
         )
@@ -252,11 +252,12 @@ impl<'a> ActivityRepository<'a> {
     /// Soft delete de atividade
     pub async fn delete(&self, id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
-        let result = sqlx::query("UPDATE Activity SET deletedAt = ?, isActive = 0 WHERE id = ?")
-            .bind(&now)
-            .bind(id)
-            .execute(self.pool)
-            .await?;
+        let result =
+            sqlx::query("UPDATE activities SET deleted_at = ?, is_active = 0 WHERE id = ?")
+                .bind(&now)
+                .bind(id)
+                .execute(self.pool)
+                .await?;
 
         if result.rows_affected() == 0 {
             return Err(AppError::NotFound {
@@ -270,7 +271,7 @@ impl<'a> ActivityRepository<'a> {
     /// Atualiza quantidade executada
     pub async fn update_executed_qty(&self, id: &str, executed_qty: f64) -> AppResult<Activity> {
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE Activity SET executedQty = ?, updatedAt = ? WHERE id = ?")
+        sqlx::query("UPDATE activities SET executed_qty = ?, updated_at = ? WHERE id = ?")
             .bind(executed_qty)
             .bind(&now)
             .bind(id)
@@ -293,7 +294,7 @@ impl<'a> ActivityRepository<'a> {
     /// Altera status
     pub async fn update_status(&self, id: &str, status: &str) -> AppResult<Activity> {
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE Activity SET status = ?, updatedAt = ? WHERE id = ?")
+        sqlx::query("UPDATE activities SET status = ?, updated_at = ? WHERE id = ?")
             .bind(status)
             .bind(&now)
             .bind(id)

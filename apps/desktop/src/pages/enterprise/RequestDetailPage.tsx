@@ -25,8 +25,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { RequestWorkflow } from '@/components/enterprise';
+import { SeparationDialog } from '@/components/enterprise/requests/SeparationDialog';
+import { SignaturePad } from '@/components/shared/SignaturePad';
 import { useCanDo } from '@/hooks/useEnterprisePermission';
+import { toast } from '@/hooks/use-toast';
 import type { MaterialRequest, MaterialRequestItem } from '@/types/enterprise';
 
 // Status badge colors
@@ -65,6 +75,8 @@ export function RequestDetailPage() {
   const [request, setRequest] = useState<MaterialRequest | null>(null);
   const [items, setItems] = useState<MaterialRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDeliverDialogOpen, setIsDeliverDialogOpen] = useState(false);
+  const [isSeparationDialogOpen, setIsSeparationDialogOpen] = useState(false);
 
   const loadRequest = useCallback(async () => {
     if (!id) return;
@@ -88,7 +100,7 @@ export function RequestDetailPage() {
     loadRequest();
   }, [loadRequest]);
 
-  async function handleStatusChange(newStatus: string, reason?: string) {
+  async function handleStatusChange(newStatus: string, reason?: string, signature?: string) {
     if (!request) return;
     try {
       // Map status to appropriate command
@@ -103,10 +115,11 @@ export function RequestDetailPage() {
           await invoke('start_request_separation', { id: request.id });
           break;
         case 'READY':
+          // This case is now handled by SeparationDialog
           await invoke('complete_request_separation', { id: request.id });
           break;
         case 'DELIVERED':
-          await invoke('deliver_material_request', { id: request.id });
+          await invoke('deliver_material_request', { id: request.id, signature });
           break;
         case 'CANCELLED':
           await invoke('cancel_material_request', { id: request.id });
@@ -117,9 +130,56 @@ export function RequestDetailPage() {
         default:
           console.warn('Unknown status:', newStatus);
       }
+
+      if (newStatus === 'DELIVERED') {
+        setIsDeliverDialogOpen(false);
+      }
+
+      toast({
+        title: 'Status atualizado',
+        description: `Requisição atualizada para ${statusLabels[newStatus] || newStatus}`,
+      });
       await loadRequest();
     } catch (error) {
       console.error('Failed to update status:', error);
+      toast({
+        title: 'Erro ao atualizar status',
+        description: String(error),
+        variant: 'destructive',
+      });
+    }
+  }
+
+  async function handleSeparationConfirm(
+    separatedItems: Array<{ itemId: string; separatedQty: number }>
+  ) {
+    if (!request) return;
+    try {
+      // 1. Update quantities individually (sequential for now, could be parallel or bulk in backend)
+      // Ideally backend command should accept the list, but we are reusing existing
+      for (const item of separatedItems) {
+        await invoke('update_request_item_separated_qty', {
+          itemId: item.itemId,
+          separatedQty: item.separatedQty,
+        });
+      }
+
+      // 2. Complete separation
+      await invoke('complete_request_separation', { id: request.id });
+
+      setIsSeparationDialogOpen(false);
+      toast({
+        title: 'Separação finalizada',
+        description: 'A requisição está pronta para entrega.',
+      });
+      await loadRequest();
+    } catch (error) {
+      console.error('Failed to complete separation:', error);
+      toast({
+        title: 'Erro na separação',
+        description: String(error),
+        variant: 'destructive',
+      });
     }
   }
 
@@ -354,6 +414,28 @@ export function RequestDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Delivery Signature */}
+          {request.deliveredBySignature && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Comprovante de Entrega</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-md p-4 bg-white inline-block">
+                  <img
+                    src={request.deliveredBySignature}
+                    alt="Assinatura do Recebedor"
+                    className="max-h-32"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Recebido em{' '}
+                    {new Date(request.deliveredAt || new Date()).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar - 1 column */}
@@ -376,9 +458,9 @@ export function RequestDetailPage() {
                   canDo.separateRequest ? () => handleStatusChange('SEPARATING') : undefined
                 }
                 onCompleteSeparation={
-                  canDo.separateRequest ? () => handleStatusChange('READY') : undefined
+                  canDo.separateRequest ? () => setIsSeparationDialogOpen(true) : undefined
                 }
-                onDeliver={canDo.deliverRequest ? () => handleStatusChange('DELIVERED') : undefined}
+                onDeliver={canDo.deliverRequest ? () => setIsDeliverDialogOpen(true) : undefined}
               />
             </CardContent>
           </Card>
@@ -437,6 +519,33 @@ export function RequestDetailPage() {
           </Card>
         </div>
       </div>
+      <Dialog open={isDeliverDialogOpen} onOpenChange={setIsDeliverDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Assinatura de Recebimento</DialogTitle>
+            <DialogDescription>
+              Colete a assinatura do recebedor para confirmar a entrega dos materiais.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <SignaturePad
+              onConfirm={(signature) => handleStatusChange('DELIVERED', undefined, signature)}
+              onCancel={() => setIsDeliverDialogOpen(false)}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Separation Dialog */}
+      {request && (
+        <SeparationDialog
+          open={isSeparationDialogOpen}
+          onOpenChange={setIsSeparationDialogOpen}
+          request={request}
+          items={items}
+          onConfirm={handleSeparationConfirm}
+        />
+      )}
     </div>
   );
 }

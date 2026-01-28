@@ -94,6 +94,17 @@ pub async fn delete_contract(id: String, state: State<'_, AppState>) -> AppResul
     repo.delete(&id).await
 }
 
+/// Obtém dashboard global do enterprise
+#[tauri::command]
+#[specta::specta]
+pub async fn get_enterprise_dashboard(
+    state: State<'_, AppState>,
+) -> AppResult<crate::models::enterprise::EnterpriseDashboardStats> {
+    let _info = state.session.require_authenticated()?;
+    let repo = ContractRepository::new(state.pool());
+    repo.get_global_dashboard().await
+}
+
 /// Busca dashboard do contrato
 #[tauri::command]
 #[specta::specta]

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -40,7 +41,14 @@ const productSchema = z.object({
   maxStock: z.number().min(0).optional(),
   initialStock: z.number().min(0).default(0),
   isWeighted: z.boolean().default(false),
+  description: z.string().optional(),
   notes: z.string().optional(),
+
+  // Motoparts fields
+  oemCode: z.string().optional(),
+  aftermarketCode: z.string().optional(),
+  partBrand: z.string().optional(),
+  application: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -90,7 +98,12 @@ export const ProductFormPage: FC = () => {
         maxStock: product.maxStock ?? undefined,
         initialStock: product.currentStock,
         isWeighted: product.isWeighted,
-        notes: product.description || '',
+        description: product.description || '',
+        notes: product.notes || '',
+        oemCode: product.oemCode || '',
+        aftermarketCode: product.aftermarketCode || '',
+        partBrand: product.partBrand || '',
+        application: product.application || '',
       });
     }
   }, [product, reset]);
@@ -361,19 +374,65 @@ export const ProductFormPage: FC = () => {
             </CardContent>
           </Card>
 
+          {/* Detalhes Automotivos (Motopeças) */}
+          {isFeatureEnabled('vehicleCompatibility') && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Detalhes Automotivos</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="partBrand">Marca da Peça</Label>
+                    <Input
+                      id="partBrand"
+                      {...register('partBrand')}
+                      placeholder="Ex: Honda, Yamaha, Scud"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="application">Aplicação / Modelo</Label>
+                    <Input
+                      id="application"
+                      {...register('application')}
+                      placeholder="Ex: Titan 150 2014-2015"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="oemCode">Código Original (OEM)</Label>
+                    <Input
+                      id="oemCode"
+                      {...register('oemCode')}
+                      placeholder="Código da montadora"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="aftermarketCode">Código Paralelo</Label>
+                    <Input
+                      id="aftermarketCode"
+                      {...register('aftermarketCode')}
+                      placeholder="Código do fabricante"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Notas/Comentários */}
           <Card>
             <CardHeader>
-              <CardTitle>Notas / Comentários</CardTitle>
+              <CardTitle>Informações Adicionais</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <Label htmlFor="notes">Observações sobre o produto</Label>
-                <textarea
+                <Textarea
                   id="notes"
                   {...register('notes')}
                   placeholder="Ex: Verificar validade com frequência, produto frágil..."
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <p className="text-xs text-muted-foreground">
                   Informações internas sobre o produto (não aparece no cupom)

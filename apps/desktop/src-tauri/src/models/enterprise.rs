@@ -493,6 +493,7 @@ pub struct MaterialRequest {
     pub approved_at: Option<String>,
     pub separated_at: Option<String>,
     pub delivered_at: Option<String>,
+    pub delivered_by_signature: Option<String>,
     pub rejection_reason: Option<String>,
     pub notes: Option<String>,
     pub source_location_id: Option<String>,
@@ -638,6 +639,22 @@ pub struct AddTransferItem {
     pub notes: Option<String>,
 }
 
+/// DTO para item despachado
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ShipTransferItem {
+    pub item_id: String,
+    pub shipped_qty: f64,
+}
+
+/// DTO para item recebido
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ReceiveTransferItem {
+    pub item_id: String,
+    pub received_qty: f64,
+}
+
 /// Consumo de Material
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
@@ -654,6 +671,79 @@ pub struct MaterialConsumption {
     pub consumed_by_id: String,
     pub notes: Option<String>,
     pub created_at: String,
+}
+
+/// Contagem de Inventário (Enterprise)
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct InventoryCount {
+    pub id: String,
+    pub location_id: String,
+    pub count_type: String,
+    pub status: String,
+    pub started_at: String,
+    pub completed_at: Option<String>,
+    pub started_by_id: String,
+    pub completed_by_id: Option<String>,
+    pub total_items: i32,
+    pub items_counted: i32,
+    pub discrepancies: i32,
+    pub notes: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// DTO para criação de contagem
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateEnterpriseInventoryCount {
+    pub location_id: String,
+    pub count_type: String,
+    pub notes: Option<String>,
+}
+
+/// DTO para atualização de contagem
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateInventoryCount {
+    pub notes: Option<String>,
+}
+
+/// Item da Contagem de Inventário
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct InventoryCountItem {
+    pub id: String,
+    pub count_id: String,
+    pub product_id: String,
+    pub system_qty: f64,
+    pub counted_qty: Option<f64>,
+    pub difference: Option<f64>,
+    pub counted_at: Option<String>,
+    pub counted_by_id: Option<String>,
+    pub notes: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// Item de contagem com informações do produto
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct InventoryCountItemWithProduct {
+    #[serde(flatten)]
+    pub item: InventoryCountItem,
+    pub product_name: String,
+    pub product_code: String,
+    pub product_unit: String,
+}
+
+/// DTO para registrar contagem de item
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RegisterCountItem {
+    pub item_id: String,
+    pub counted_qty: f64,
+    pub notes: Option<String>,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -738,4 +828,16 @@ pub struct StockPositionReport {
     pub total_value: f64,
     pub low_stock_items: i32,
     pub items: Vec<StockBalanceWithProduct>,
+}
+
+/// Stats do Dashboard Enterprise (Global)
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct EnterpriseDashboardStats {
+    pub active_contracts: i32,
+    pub pending_requests: i32,
+    pub in_transit_transfers: i32,
+    pub low_stock_items: i32,
+    pub monthly_consumption: f64,
+    pub consumption_trend: f64,
 }

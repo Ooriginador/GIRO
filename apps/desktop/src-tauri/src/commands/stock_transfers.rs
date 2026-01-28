@@ -131,34 +131,52 @@ pub async fn reject_stock_transfer(
 #[tauri::command]
 #[specta::specta]
 pub async fn ship_stock_transfer(
-    id: String,
+    transfer_id: String,
+    shipped_items: Option<Vec<ShipTransferItem>>,
     state: State<'_, AppState>,
 ) -> AppResult<StockTransfer> {
     let info = state.session.require_authenticated()?;
     let repo = StockTransferRepository::new(state.pool());
-    repo.ship(&id, &info.employee_id).await
+
+    if let Some(items) = shipped_items {
+        for item in items {
+            repo.update_item_shipped_qty(&item.item_id, item.shipped_qty)
+                .await?;
+        }
+    }
+
+    repo.ship(&transfer_id, &info.employee_id).await
 }
 
 /// Recebe transferência
 #[tauri::command]
 #[specta::specta]
 pub async fn receive_stock_transfer(
-    id: String,
+    transfer_id: String,
+    received_items: Option<Vec<ReceiveTransferItem>>,
     state: State<'_, AppState>,
 ) -> AppResult<StockTransfer> {
     let info = state.session.require_authenticated()?;
     let repo = StockTransferRepository::new(state.pool());
-    repo.receive(&id, &info.employee_id).await
+
+    if let Some(items) = received_items {
+        for item in items {
+            repo.update_item_received_qty(&item.item_id, item.received_qty)
+                .await?;
+        }
+    }
+
+    repo.receive(&transfer_id, &info.employee_id).await
 }
 
 /// Cancela transferência
 #[tauri::command]
 #[specta::specta]
 pub async fn cancel_stock_transfer(
-    id: String,
+    transfer_id: String,
     state: State<'_, AppState>,
 ) -> AppResult<StockTransfer> {
     let _info = state.session.require_authenticated()?;
     let repo = StockTransferRepository::new(state.pool());
-    repo.cancel(&id).await
+    repo.cancel(&transfer_id).await
 }

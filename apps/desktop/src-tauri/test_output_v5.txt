@@ -1,32 +1,55 @@
-   Compiling giro-desktop v1.0.19 (/home/jhonslife/CICLOGIRO/GIRO/apps/desktop/src-tauri)
-error: set `DATABASE_URL` to use query macros online, or run `cargo sqlx prepare` to update the query cache
-   --> src/repositories/service_order_repository.rs:691:13
-    |
-691 | /             sqlx::query!(
-692 | |                 r#"
-693 | |                 INSERT INTO order_products (
-694 | |                     id, order_id, product_id, employee_id, quantity, unit_price, 
-...   |
-711 | |                 now
-712 | |             )
-    | |_____________^
-    |
-    = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+   Compiling giro-desktop v2.1.1 (/home/jhonslife/CICLOGIRO/GIRO/apps/desktop/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.81s
+     Running unittests src/lib.rs (target/debug/deps/giro_lib-dd599cbb8afeccd6)
 
-error: set `DATABASE_URL` to use query macros online, or run `cargo sqlx prepare` to update the query cache
-    --> src/repositories/service_order_repository.rs:1051:17
-     |
-1051 | /                 sqlx::query!(
-1052 | |                     r#"UPDATE order_products SET 
-1053 | |                         quantity = ?, unit_price = ?, discount_value = ?, subtotal = ?, total = ?, 
-1054 | |                         employee_id = COALESCE(?, employee_id), updated_at = ?
-1055 | |                     WHERE id = ?"#,
-1056 | |                     new_qty, new_price, new_discount, subtotal, total, input.employee_id, now, item_id
-1057 | |                 )
-     | |_________________^
-     |
-     = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+running 2 tests
+test services::enterprise::tests::test_approve_request_reserves_stock ... FAILED
+test services::enterprise::tests::test_deliver_material_request ... FAILED
 
-error: could not compile `giro-desktop` (lib) due to 2 previous errors
-warning: build failed, waiting for other jobs to finish...
-error: could not compile `giro-desktop` (lib test) due to 2 previous errors
+failures:
+
+---- services::enterprise::tests::test_approve_request_reserves_stock stdout ----
+StockBalance Column: id
+StockBalance Column: location_id
+StockBalance Column: product_id
+StockBalance Column: quantity
+StockBalance Column: reserved_qty
+StockBalance Column: min_qty
+StockBalance Column: max_qty
+StockBalance Column: last_count_date
+StockBalance Column: last_count_qty
+StockBalance Column: created_at
+StockBalance Column: updated_at
+
+thread 'services::enterprise::tests::test_approve_request_reserves_stock' (54089) panicked at src/services/enterprise.rs:284:9:
+assertion `left == right` failed
+  left: 0.0
+ right: 10.0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- services::enterprise::tests::test_deliver_material_request stdout ----
+StockBalance Column: id
+StockBalance Column: location_id
+StockBalance Column: product_id
+StockBalance Column: quantity
+StockBalance Column: reserved_qty
+StockBalance Column: min_qty
+StockBalance Column: max_qty
+StockBalance Column: last_count_date
+StockBalance Column: last_count_qty
+StockBalance Column: created_at
+StockBalance Column: updated_at
+
+thread 'services::enterprise::tests::test_deliver_material_request' (54090) panicked at src/services/enterprise.rs:334:9:
+assertion `left == right` failed
+  left: 100.0
+ right: 90.0
+
+
+failures:
+    services::enterprise::tests::test_approve_request_reserves_stock
+    services::enterprise::tests::test_deliver_material_request
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 201 filtered out; finished in 0.53s
+
+error: test failed, to rerun pass `--lib`

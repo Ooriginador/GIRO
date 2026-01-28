@@ -3,6 +3,7 @@
 //! Este módulo contém a lógica de negócio da aplicação.
 
 pub mod backup_service;
+pub mod enterprise;
 pub mod mdns_service;
 pub mod mobile_events;
 pub mod mobile_handlers;

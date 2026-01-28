@@ -20,7 +20,7 @@ impl<'a> StockTransferRepository<'a> {
     async fn next_transfer_number(&self) -> AppResult<String> {
         let year = chrono::Utc::now().format("%Y").to_string();
         let (count,): (i32,) = sqlx::query_as(
-            "SELECT CAST(COUNT(*) AS INTEGER) + 1 FROM StockTransfer WHERE transferNumber LIKE ?",
+            "SELECT CAST(COUNT(*) AS INTEGER) + 1 FROM stock_transfers WHERE transfer_number LIKE ?",
         )
         .bind(format!("TR-{}-%", year))
         .fetch_one(self.pool)
@@ -33,19 +33,19 @@ impl<'a> StockTransferRepository<'a> {
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<StockTransfer>> {
         let result = sqlx::query_as::<_, StockTransfer>(
             r#"
-            SELECT id, transferNumber as transfer_number, 
-                   sourceLocationId as source_location_id,
-                   destinationLocationId as destination_location_id,
-                   requesterId as requester_id, approverId as approver_id,
-                   shipperId as shipper_id, receiverId as receiver_id,
-                   status, requestedAt as requested_at, approvedAt as approved_at,
-                   shippedAt as shipped_at, receivedAt as received_at,
-                   rejectionReason as rejection_reason, notes,
-                   totalItems as total_items, CAST(totalValue AS REAL) as total_value,
-                   isActive as is_active, createdAt as created_at,
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockTransfer
-            WHERE id = ? AND deletedAt IS NULL
+            SELECT id, transfer_number, 
+                   source_location_id,
+                   destination_location_id,
+                   requester_id, approver_id,
+                   shipper_id, receiver_id,
+                   status, requested_at, approved_at,
+                   shipped_at, received_at,
+                   rejection_reason, notes,
+                   total_items, CAST(total_value AS REAL) as total_value,
+                   is_active, created_at,
+                   updated_at, deleted_at
+            FROM stock_transfers
+            WHERE id = ? AND deleted_at IS NULL
             "#,
         )
         .bind(id)
@@ -62,7 +62,7 @@ impl<'a> StockTransferRepository<'a> {
         source_location_id: Option<&str>,
         destination_location_id: Option<&str>,
     ) -> AppResult<PaginatedResult<StockTransfer>> {
-        let mut conditions = vec!["deletedAt IS NULL".to_string()];
+        let mut conditions = vec!["deleted_at IS NULL".to_string()];
         let mut params: Vec<String> = vec![];
 
         if let Some(s) = status {
@@ -71,18 +71,21 @@ impl<'a> StockTransferRepository<'a> {
         }
 
         if let Some(src) = source_location_id {
-            conditions.push("sourceLocationId = ?".to_string());
+            conditions.push("source_location_id = ?".to_string());
             params.push(src.to_string());
         }
 
         if let Some(dst) = destination_location_id {
-            conditions.push("destinationLocationId = ?".to_string());
+            conditions.push("destination_location_id = ?".to_string());
             params.push(dst.to_string());
         }
 
         let where_clause = conditions.join(" AND ");
 
-        let count_sql = format!("SELECT COUNT(*) FROM StockTransfer WHERE {}", where_clause);
+        let count_sql = format!(
+            "SELECT COUNT(*) FROM stock_transfers WHERE {}",
+            where_clause
+        );
         let mut count_query = sqlx::query_as::<_, (i64,)>(&count_sql);
         for p in &params {
             count_query = count_query.bind(p);
@@ -91,20 +94,20 @@ impl<'a> StockTransferRepository<'a> {
 
         let data_sql = format!(
             r#"
-            SELECT id, transferNumber as transfer_number, 
-                   sourceLocationId as source_location_id,
-                   destinationLocationId as destination_location_id,
-                   requesterId as requester_id, approverId as approver_id,
-                   shipperId as shipper_id, receiverId as receiver_id,
-                   status, requestedAt as requested_at, approvedAt as approved_at,
-                   shippedAt as shipped_at, receivedAt as received_at,
-                   rejectionReason as rejection_reason, notes,
-                   totalItems as total_items, CAST(totalValue AS REAL) as total_value,
-                   isActive as is_active, createdAt as created_at,
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockTransfer
+            SELECT id, transfer_number, 
+                   source_location_id,
+                   destination_location_id,
+                   requester_id, approver_id,
+                   shipper_id, receiver_id,
+                   status, requested_at, approved_at,
+                   shipped_at, received_at,
+                   rejection_reason, notes,
+                   total_items, CAST(total_value AS REAL) as total_value,
+                   is_active, created_at,
+                   updated_at, deleted_at
+            FROM stock_transfers
             WHERE {}
-            ORDER BY createdAt DESC
+            ORDER BY created_at DESC
             LIMIT ? OFFSET ?
             "#,
             where_clause
@@ -140,10 +143,10 @@ impl<'a> StockTransferRepository<'a> {
 
         sqlx::query(
             r#"
-            INSERT INTO StockTransfer (
-                id, transferNumber, sourceLocationId, destinationLocationId,
-                requesterId, status, requestedAt, notes,
-                totalItems, totalValue, isActive, createdAt, updatedAt
+            INSERT INTO stock_transfers (
+                id, transfer_number, source_location_id, destination_location_id,
+                requester_id, status, requested_at, notes,
+                total_items, total_value, is_active, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, ?, 0, 0, 1, ?, ?)
             "#,
         )
@@ -173,12 +176,12 @@ impl<'a> StockTransferRepository<'a> {
 
         let result = sqlx::query(
             r#"
-            UPDATE StockTransfer 
-            SET sourceLocationId = COALESCE(?, sourceLocationId),
-                destinationLocationId = COALESCE(?, destinationLocationId),
+            UPDATE stock_transfers 
+            SET source_location_id = COALESCE(?, source_location_id),
+                destination_location_id = COALESCE(?, destination_location_id),
                 notes = COALESCE(?, notes),
-                updatedAt = ?
-            WHERE id = ? AND status = 'PENDING' AND deletedAt IS NULL
+                updated_at = ?
+            WHERE id = ? AND status = 'PENDING' AND deleted_at IS NULL
             "#,
         )
         .bind(data.source_location_id)
@@ -217,7 +220,7 @@ impl<'a> StockTransferRepository<'a> {
     pub async fn delete(&self, id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
         let result =
-            sqlx::query("UPDATE StockTransfer SET deletedAt = ?, isActive = 0 WHERE id = ?")
+            sqlx::query("UPDATE stock_transfers SET deleted_at = ?, is_active = 0 WHERE id = ?")
                 .bind(&now)
                 .bind(id)
                 .execute(self.pool)
@@ -236,7 +239,7 @@ impl<'a> StockTransferRepository<'a> {
     pub async fn approve(&self, id: &str, approver_id: &str) -> AppResult<StockTransfer> {
         let now = chrono::Utc::now().to_rfc3339();
         sqlx::query(
-            "UPDATE StockTransfer SET status = 'APPROVED', approverId = ?, approvedAt = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE stock_transfers SET status = 'APPROVED', approver_id = ?, approved_at = ?, updated_at = ? WHERE id = ?",
         )
         .bind(approver_id)
         .bind(&now)
@@ -262,7 +265,7 @@ impl<'a> StockTransferRepository<'a> {
     ) -> AppResult<StockTransfer> {
         let now = chrono::Utc::now().to_rfc3339();
         sqlx::query(
-            "UPDATE StockTransfer SET status = 'REJECTED', approverId = ?, rejectionReason = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE stock_transfers SET status = 'REJECTED', approver_id = ?, rejection_reason = ?, updated_at = ? WHERE id = ?",
         )
         .bind(approver_id)
         .bind(reason)
@@ -282,8 +285,43 @@ impl<'a> StockTransferRepository<'a> {
     /// Marca como em trânsito
     pub async fn ship(&self, id: &str, shipper_id: &str) -> AppResult<StockTransfer> {
         let now = chrono::Utc::now().to_rfc3339();
+
+        // Buscar transferência
+        let transfer = self
+            .find_by_id(id)
+            .await?
+            .ok_or_else(|| AppError::NotFound {
+                entity: "StockTransfer".into(),
+                id: id.to_string(),
+            })?;
+
+        // Buscar itens
+        let items = self.get_items(id).await?;
+
+        // Deduzir do estoque de origem
+        let loc_repo = crate::repositories::StockLocationRepository::new(self.pool);
+        for item in &items {
+            // Atualiza saldo (negativo)
+            loc_repo
+                .upsert_balance(
+                    &transfer.source_location_id,
+                    &item.product_id,
+                    -item.requested_qty,
+                )
+                .await?;
+
+            // Define shipped_qty = requested_qty se null
+            if item.shipped_qty.is_none() {
+                sqlx::query("UPDATE stock_transfer_items SET shipped_qty = ? WHERE id = ?")
+                    .bind(item.requested_qty)
+                    .bind(&item.id)
+                    .execute(self.pool)
+                    .await?;
+            }
+        }
+
         sqlx::query(
-            "UPDATE StockTransfer SET status = 'IN_TRANSIT', shipperId = ?, shippedAt = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE stock_transfers SET status = 'IN_TRANSIT', shipper_id = ?, shipped_at = ?, updated_at = ? WHERE id = ?",
         )
         .bind(shipper_id)
         .bind(&now)
@@ -303,8 +341,48 @@ impl<'a> StockTransferRepository<'a> {
     /// Recebe transferência
     pub async fn receive(&self, id: &str, receiver_id: &str) -> AppResult<StockTransfer> {
         let now = chrono::Utc::now().to_rfc3339();
+
+        // Buscar transferência
+        let transfer = self
+            .find_by_id(id)
+            .await?
+            .ok_or_else(|| AppError::NotFound {
+                entity: "StockTransfer".into(),
+                id: id.to_string(),
+            })?;
+
+        // Buscar itens
+        let items = self.get_items(id).await?;
+
+        // Adicionar ao estoque de destino
+        let loc_repo = crate::repositories::StockLocationRepository::new(self.pool);
+        for item in &items {
+            // Se received_qty não foi setado (recebimento total automático), usa shipped_qty ou requested
+            let qty_to_receive = item
+                .received_qty
+                .unwrap_or(item.shipped_qty.unwrap_or(item.requested_qty));
+
+            // Atualiza saldo (positivo)
+            loc_repo
+                .upsert_balance(
+                    &transfer.destination_location_id,
+                    &item.product_id,
+                    qty_to_receive,
+                )
+                .await?;
+
+            // Atualiza o item se necessário
+            if item.received_qty.is_none() {
+                sqlx::query("UPDATE stock_transfer_items SET received_qty = ? WHERE id = ?")
+                    .bind(qty_to_receive)
+                    .bind(&item.id)
+                    .execute(self.pool)
+                    .await?;
+            }
+        }
+
         sqlx::query(
-            "UPDATE StockTransfer SET status = 'COMPLETED', receiverId = ?, receivedAt = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE stock_transfers SET status = 'COMPLETED', receiver_id = ?, received_at = ?, updated_at = ? WHERE id = ?",
         )
         .bind(receiver_id)
         .bind(&now)
@@ -325,12 +403,12 @@ impl<'a> StockTransferRepository<'a> {
     pub async fn get_items(&self, transfer_id: &str) -> AppResult<Vec<StockTransferItem>> {
         let result = sqlx::query_as::<_, StockTransferItem>(
             r#"
-            SELECT id, transferId as transfer_id, productId as product_id,
-                   requestedQty as requested_qty, shippedQty as shipped_qty,
-                   receivedQty as received_qty, CAST(unitPrice AS REAL) as unit_price,
-                   notes, createdAt as created_at, updatedAt as updated_at
-            FROM StockTransferItem
-            WHERE transferId = ?
+            SELECT id, transfer_id, product_id,
+                   requested_qty, shipped_qty,
+                   received_qty, CAST(unit_price AS REAL) as unit_price,
+                   notes, created_at, updated_at
+            FROM stock_transfer_items
+            WHERE transfer_id = ?
             "#,
         )
         .bind(transfer_id)
@@ -349,7 +427,7 @@ impl<'a> StockTransferRepository<'a> {
         let now = chrono::Utc::now().to_rfc3339();
 
         let (unit_price,): (f64,) = sqlx::query_as(
-            "SELECT CAST(COALESCE(costPrice, salePrice, 0) AS REAL) FROM Product WHERE id = ?",
+            "SELECT CAST(COALESCE(cost_price, sale_price, 0) AS REAL) FROM products WHERE id = ?",
         )
         .bind(&data.product_id)
         .fetch_one(self.pool)
@@ -358,8 +436,8 @@ impl<'a> StockTransferRepository<'a> {
 
         sqlx::query(
             r#"
-            INSERT INTO StockTransferItem (
-                id, transferId, productId, requestedQty, unitPrice, notes, createdAt, updatedAt
+            INSERT INTO stock_transfer_items (
+                id, transfer_id, product_id, requested_qty, unit_price, notes, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
@@ -378,11 +456,11 @@ impl<'a> StockTransferRepository<'a> {
 
         let item = sqlx::query_as::<_, StockTransferItem>(
             r#"
-            SELECT id, transferId as transfer_id, productId as product_id,
-                   requestedQty as requested_qty, shippedQty as shipped_qty,
-                   receivedQty as received_qty, CAST(unitPrice AS REAL) as unit_price,
-                   notes, createdAt as created_at, updatedAt as updated_at
-            FROM StockTransferItem
+            SELECT id, transfer_id, product_id,
+                   requested_qty, shipped_qty,
+                   received_qty, CAST(unit_price AS REAL) as unit_price,
+                   notes, created_at, updated_at
+            FROM stock_transfer_items
             WHERE id = ?
             "#,
         )
@@ -395,13 +473,39 @@ impl<'a> StockTransferRepository<'a> {
 
     /// Remove item
     pub async fn remove_item(&self, transfer_id: &str, item_id: &str) -> AppResult<()> {
-        sqlx::query("DELETE FROM StockTransferItem WHERE id = ? AND transferId = ?")
+        sqlx::query("DELETE FROM stock_transfer_items WHERE id = ? AND transfer_id = ?")
             .bind(item_id)
             .bind(transfer_id)
             .execute(self.pool)
             .await?;
 
         self.update_totals(transfer_id).await?;
+        Ok(())
+    }
+
+    /// Atualiza quantidade despachada do item
+    pub async fn update_item_shipped_qty(&self, item_id: &str, quantity: f64) -> AppResult<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        sqlx::query("UPDATE stock_transfer_items SET shipped_qty = ?, updated_at = ? WHERE id = ?")
+            .bind(quantity)
+            .bind(&now)
+            .bind(item_id)
+            .execute(self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Atualiza quantidade recebida do item
+    pub async fn update_item_received_qty(&self, item_id: &str, quantity: f64) -> AppResult<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        sqlx::query(
+            "UPDATE stock_transfer_items SET received_qty = ?, updated_at = ? WHERE id = ?",
+        )
+        .bind(quantity)
+        .bind(&now)
+        .bind(item_id)
+        .execute(self.pool)
+        .await?;
         Ok(())
     }
 
@@ -412,9 +516,9 @@ impl<'a> StockTransferRepository<'a> {
         let (total_items, total_value): (i32, f64) = sqlx::query_as(
             r#"
             SELECT CAST(COUNT(*) AS INTEGER), 
-                   COALESCE(SUM(requestedQty * unitPrice), 0)
-            FROM StockTransferItem 
-            WHERE transferId = ?
+                   COALESCE(SUM(requested_qty * unit_price), 0)
+            FROM stock_transfer_items 
+            WHERE transfer_id = ?
             "#,
         )
         .bind(transfer_id)
@@ -422,7 +526,7 @@ impl<'a> StockTransferRepository<'a> {
         .await?;
 
         sqlx::query(
-            "UPDATE StockTransfer SET totalItems = ?, totalValue = ?, updatedAt = ? WHERE id = ?",
+            "UPDATE stock_transfers SET total_items = ?, total_value = ?, updated_at = ? WHERE id = ?",
         )
         .bind(total_items)
         .bind(total_value)
@@ -442,19 +546,19 @@ impl<'a> StockTransferRepository<'a> {
     pub async fn find_by_number(&self, transfer_number: &str) -> AppResult<Option<StockTransfer>> {
         let result = sqlx::query_as::<_, StockTransfer>(
             r#"
-            SELECT id, transferNumber as transfer_number, 
-                   sourceLocationId as source_location_id,
-                   destinationLocationId as destination_location_id,
-                   requesterId as requester_id, approverId as approver_id,
-                   shipperId as shipper_id, receiverId as receiver_id,
-                   status, requestedAt as requested_at, approvedAt as approved_at,
-                   shippedAt as shipped_at, receivedAt as received_at,
-                   rejectionReason as rejection_reason, notes,
-                   totalItems as total_items, CAST(totalValue AS REAL) as total_value,
-                   isActive as is_active, createdAt as created_at,
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockTransfer
-            WHERE transferNumber = ? AND deletedAt IS NULL
+            SELECT id, transfer_number, 
+                   source_location_id,
+                   destination_location_id,
+                   requester_id, approver_id,
+                   shipper_id, receiver_id,
+                   status, requested_at, approved_at,
+                   shipped_at, received_at,
+                   rejection_reason, notes,
+                   total_items, CAST(total_value AS REAL) as total_value,
+                   is_active, created_at,
+                   updated_at, deleted_at
+            FROM stock_transfers
+            WHERE transfer_number = ? AND deleted_at IS NULL
             "#,
         )
         .bind(transfer_number)
@@ -467,20 +571,20 @@ impl<'a> StockTransferRepository<'a> {
     pub async fn find_by_source(&self, location_id: &str) -> AppResult<Vec<StockTransfer>> {
         let result = sqlx::query_as::<_, StockTransfer>(
             r#"
-            SELECT id, transferNumber as transfer_number, 
-                   sourceLocationId as source_location_id,
-                   destinationLocationId as destination_location_id,
-                   requesterId as requester_id, approverId as approver_id,
-                   shipperId as shipper_id, receiverId as receiver_id,
-                   status, requestedAt as requested_at, approvedAt as approved_at,
-                   shippedAt as shipped_at, receivedAt as received_at,
-                   rejectionReason as rejection_reason, notes,
-                   totalItems as total_items, CAST(totalValue AS REAL) as total_value,
-                   isActive as is_active, createdAt as created_at,
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockTransfer
-            WHERE sourceLocationId = ? AND deletedAt IS NULL
-            ORDER BY createdAt DESC
+            SELECT id, transfer_number, 
+                   source_location_id,
+                   destination_location_id,
+                   requester_id, approver_id,
+                   shipper_id, receiver_id,
+                   status, requested_at, approved_at,
+                   shipped_at, received_at,
+                   rejection_reason, notes,
+                   total_items, CAST(total_value AS REAL) as total_value,
+                   is_active, created_at,
+                   updated_at, deleted_at
+            FROM stock_transfers
+            WHERE source_location_id = ? AND deleted_at IS NULL
+            ORDER BY created_at DESC
             "#,
         )
         .bind(location_id)
@@ -493,20 +597,20 @@ impl<'a> StockTransferRepository<'a> {
     pub async fn find_by_destination(&self, location_id: &str) -> AppResult<Vec<StockTransfer>> {
         let result = sqlx::query_as::<_, StockTransfer>(
             r#"
-            SELECT id, transferNumber as transfer_number, 
-                   sourceLocationId as source_location_id,
-                   destinationLocationId as destination_location_id,
-                   requesterId as requester_id, approverId as approver_id,
-                   shipperId as shipper_id, receiverId as receiver_id,
-                   status, requestedAt as requested_at, approvedAt as approved_at,
-                   shippedAt as shipped_at, receivedAt as received_at,
-                   rejectionReason as rejection_reason, notes,
-                   totalItems as total_items, CAST(totalValue AS REAL) as total_value,
-                   isActive as is_active, createdAt as created_at,
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockTransfer
-            WHERE destinationLocationId = ? AND deletedAt IS NULL
-            ORDER BY createdAt DESC
+            SELECT id, transfer_number, 
+                   source_location_id,
+                   destination_location_id,
+                   requester_id, approver_id,
+                   shipper_id, receiver_id,
+                   status, requested_at, approved_at,
+                   shipped_at, received_at,
+                   rejection_reason, notes,
+                   total_items, CAST(total_value AS REAL) as total_value,
+                   is_active, created_at,
+                   updated_at, deleted_at
+            FROM stock_transfers
+            WHERE destination_location_id = ? AND deleted_at IS NULL
+            ORDER BY created_at DESC
             "#,
         )
         .bind(location_id)
@@ -519,20 +623,20 @@ impl<'a> StockTransferRepository<'a> {
     pub async fn find_pending(&self) -> AppResult<Vec<StockTransfer>> {
         let result = sqlx::query_as::<_, StockTransfer>(
             r#"
-            SELECT id, transferNumber as transfer_number, 
-                   sourceLocationId as source_location_id,
-                   destinationLocationId as destination_location_id,
-                   requesterId as requester_id, approverId as approver_id,
-                   shipperId as shipper_id, receiverId as receiver_id,
-                   status, requestedAt as requested_at, approvedAt as approved_at,
-                   shippedAt as shipped_at, receivedAt as received_at,
-                   rejectionReason as rejection_reason, notes,
-                   totalItems as total_items, CAST(totalValue AS REAL) as total_value,
-                   isActive as is_active, createdAt as created_at,
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockTransfer
-            WHERE status = 'PENDING' AND deletedAt IS NULL
-            ORDER BY createdAt DESC
+            SELECT id, transfer_number, 
+                   source_location_id,
+                   destination_location_id,
+                   requester_id, approver_id,
+                   shipper_id, receiver_id,
+                   status, requested_at, approved_at,
+                   shipped_at, received_at,
+                   rejection_reason, notes,
+                   total_items, CAST(total_value AS REAL) as total_value,
+                   is_active, created_at,
+                   updated_at, deleted_at
+            FROM stock_transfers
+            WHERE status = 'PENDING' AND deleted_at IS NULL
+            ORDER BY created_at DESC
             "#,
         )
         .fetch_all(self.pool)
@@ -544,20 +648,20 @@ impl<'a> StockTransferRepository<'a> {
     pub async fn find_in_transit(&self) -> AppResult<Vec<StockTransfer>> {
         let result = sqlx::query_as::<_, StockTransfer>(
             r#"
-            SELECT id, transferNumber as transfer_number, 
-                   sourceLocationId as source_location_id,
-                   destinationLocationId as destination_location_id,
-                   requesterId as requester_id, approverId as approver_id,
-                   shipperId as shipper_id, receiverId as receiver_id,
-                   status, requestedAt as requested_at, approvedAt as approved_at,
-                   shippedAt as shipped_at, receivedAt as received_at,
-                   rejectionReason as rejection_reason, notes,
-                   totalItems as total_items, CAST(totalValue AS REAL) as total_value,
-                   isActive as is_active, createdAt as created_at,
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockTransfer
-            WHERE status = 'IN_TRANSIT' AND deletedAt IS NULL
-            ORDER BY shippedAt DESC
+            SELECT id, transfer_number, 
+                   source_location_id,
+                   destination_location_id,
+                   requester_id, approver_id,
+                   shipper_id, receiver_id,
+                   status, requested_at, approved_at,
+                   shipped_at, received_at,
+                   rejection_reason, notes,
+                   total_items, CAST(total_value AS REAL) as total_value,
+                   is_active, created_at,
+                   updated_at, deleted_at
+            FROM stock_transfers
+            WHERE status = 'IN_TRANSIT' AND deleted_at IS NULL
+            ORDER BY shipped_at DESC
             "#,
         )
         .fetch_all(self.pool)
@@ -568,7 +672,7 @@ impl<'a> StockTransferRepository<'a> {
     /// Cancela transferência
     pub async fn cancel(&self, id: &str) -> AppResult<StockTransfer> {
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query("UPDATE StockTransfer SET status = 'CANCELLED', updatedAt = ? WHERE id = ?")
+        sqlx::query("UPDATE stock_transfers SET status = 'CANCELLED', updated_at = ? WHERE id = ?")
             .bind(&now)
             .bind(id)
             .execute(self.pool)

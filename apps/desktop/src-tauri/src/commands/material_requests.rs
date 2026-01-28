@@ -125,8 +125,8 @@ pub async fn approve_material_request(
     state: State<'_, AppState>,
 ) -> AppResult<MaterialRequest> {
     let info = state.session.require_authenticated()?;
-    let repo = MaterialRequestRepository::new(state.pool());
-    repo.approve(&id, &info.employee_id).await
+    let service = crate::services::enterprise::EnterpriseService::new(state.pool());
+    service.approve_request_fully(&id, &info.employee_id).await
 }
 
 /// DTO para item aprovado parcialmente
@@ -146,8 +146,9 @@ pub async fn approve_material_request_with_items(
     state: State<'_, AppState>,
 ) -> AppResult<MaterialRequest> {
     let info = state.session.require_authenticated()?;
-    let repo = MaterialRequestRepository::new(state.pool());
-    repo.approve_with_items(&id, &info.employee_id, &items)
+    let service = crate::services::enterprise::EnterpriseService::new(state.pool());
+    service
+        .approve_material_request(&id, &info.employee_id, &items)
         .await
 }
 
@@ -162,6 +163,20 @@ pub async fn reject_material_request(
     let info = state.session.require_authenticated()?;
     let repo = MaterialRequestRepository::new(state.pool());
     repo.reject(&id, &info.employee_id, &reason).await
+}
+
+/// Atualiza quantidade separada de um item
+#[tauri::command]
+#[specta::specta]
+pub async fn update_request_item_separated_qty(
+    item_id: String,
+    separated_qty: f64,
+    state: State<'_, AppState>,
+) -> AppResult<()> {
+    let _info = state.session.require_authenticated()?;
+    let repo = MaterialRequestRepository::new(state.pool());
+    repo.update_item_separated_qty(&item_id, separated_qty)
+        .await
 }
 
 /// Inicia separação da requisição
@@ -184,8 +199,8 @@ pub async fn complete_request_separation(
     state: State<'_, AppState>,
 ) -> AppResult<MaterialRequest> {
     let _info = state.session.require_authenticated()?;
-    let repo = MaterialRequestRepository::new(state.pool());
-    repo.complete_separation(&id).await
+    let service = crate::services::enterprise::EnterpriseService::new(state.pool());
+    service.complete_separation(&id).await
 }
 
 /// Registra entrega da requisição
@@ -193,11 +208,12 @@ pub async fn complete_request_separation(
 #[specta::specta]
 pub async fn deliver_material_request(
     id: String,
+    signature: Option<String>,
     state: State<'_, AppState>,
 ) -> AppResult<MaterialRequest> {
     let _info = state.session.require_authenticated()?;
-    let repo = MaterialRequestRepository::new(state.pool());
-    repo.deliver(&id).await
+    let service = crate::services::enterprise::EnterpriseService::new(state.pool());
+    service.deliver_material_request(&id, signature).await
 }
 
 /// Cancela requisição

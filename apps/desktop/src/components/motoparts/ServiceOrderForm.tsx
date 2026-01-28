@@ -1,11 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, ArrowLeft, Loader2, User } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Loader2, User, Package, Plus, Trash2, Edit } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
 import { Button } from '@/components/ui/button';
-import { getErrorMessage } from '@/lib/utils';
+import { getErrorMessage, formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Form,
@@ -27,11 +27,25 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerVehicles } from '@/hooks/useCustomers';
-import { useServiceOrders } from '@/hooks/useServiceOrders';
+import {
+  useServiceOrders,
+  CreateServiceOrderItemInput,
+  ServiceOrderUtils,
+} from '@/hooks/useServiceOrders';
 import { useAuthStore } from '@/stores/auth-store';
 import { CustomerSearch } from './CustomerSearch';
 import { VehicleHistoryPopover } from './VehicleHistoryPopover';
 import { History } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { ServiceOrderItemDialog } from './ServiceOrderItemDialog';
 
 interface Vehicle {
   id: string;
@@ -67,6 +81,11 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const { vehicles = [], isLoading: isLoadingVehicles } = useCustomerVehicles(selectedCustomerId);
 
+  // Items State
+  const [items, setItems] = useState<CreateServiceOrderItemInput[]>([]);
+  const [itemDialogOpen, setItemDialogOpen] = useState(false);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -75,6 +94,25 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
       is_quote: false,
     },
   });
+
+  const handleAddItem = (item: CreateServiceOrderItemInput) => {
+    setItems((prev) => [...prev, item]);
+  };
+
+  const handleUpdateItem = (item: CreateServiceOrderItemInput) => {
+    if (editingItemIndex !== null) {
+      setItems((prev) => {
+        const newItems = [...prev];
+        newItems[editingItemIndex] = item;
+        return newItems;
+      });
+      setEditingItemIndex(null);
+    }
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -98,14 +136,15 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
       }
 
       const result = await createOrder.mutateAsync({
-        customer_id: values.customer_id,
-        customer_vehicle_id: values.customer_vehicle_id,
-        vehicle_year_id: selectedVehicle.vehicleYearId,
-        employee_id: employee.id,
-        vehicle_km: Number.isFinite(values.vehicle_km) ? Math.trunc(values.vehicle_km) : undefined,
+        customerId: values.customer_id,
+        customerVehicleId: values.customer_vehicle_id,
+        vehicleYearId: selectedVehicle.vehicleYearId,
+        employeeId: employee.id,
+        vehicleKm: Number.isFinite(values.vehicle_km) ? Math.trunc(values.vehicle_km) : undefined,
         symptoms: values.symptoms,
-        scheduled_date: values.scheduled_date || undefined,
+        scheduledDate: values.scheduled_date || undefined,
         status: values.is_quote ? 'QUOTE' : 'OPEN',
+        items: items,
       });
 
       const orderType = values.is_quote ? 'Orçamento' : 'Ordem de Serviço';
@@ -301,6 +340,120 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
                 </FormItem>
               )}
             />
+
+            {/* ITENS SECTION */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Itens e Serviços</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Adicione peças e serviços à ordem (opcional)
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingItemIndex(null);
+                    setItemDialogOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Item
+                </Button>
+              </div>
+
+              {items.length > 0 ? (
+                <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead className="text-right">Qtd</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="w-[80px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Badge variant={item.itemType === 'PART' ? 'default' : 'secondary'}>
+                              {ServiceOrderUtils.getItemTypeLabel(item.itemType)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{item.description}</TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(item.unitPrice)}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(item.unitPrice * item.quantity - (item.discount || 0))}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingItemIndex(index);
+                                  setItemDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveItem(index)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-muted/50 font-medium">
+                        <TableCell colSpan={4} className="text-right">
+                          Total Estimado:
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(
+                            items.reduce(
+                              (acc, item) =>
+                                acc + (item.unitPrice * item.quantity - (item.discount || 0)),
+                              0
+                            )
+                          )}
+                        </TableCell>
+                        <TableCell />
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-8 border rounded-md border-dashed text-muted-foreground bg-muted/5">
+                  <Package className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                  <p>Nenhum item adicionado ainda.</p>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="mt-2"
+                    onClick={() => {
+                      setEditingItemIndex(null);
+                      setItemDialogOpen(true);
+                    }}
+                  >
+                    Adicionar agora
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
           <CardFooter className="justify-end gap-2">
             <Button variant="ghost" type="button" onClick={onCancel}>
@@ -313,6 +466,33 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
           </CardFooter>
         </form>
       </Form>
+
+      <ServiceOrderItemDialog
+        open={itemDialogOpen}
+        onOpenChange={setItemDialogOpen}
+        onAddItem={handleAddItem}
+        onUpdateItem={handleUpdateItem}
+        // When editing existing items from the list via index
+        itemToEdit={
+          editingItemIndex !== null
+            ? {
+                id: 'temp',
+                order_id: 'temp',
+                product_id: items[editingItemIndex].productId,
+                item_type: items[editingItemIndex].itemType,
+                description: items[editingItemIndex].description,
+                quantity: items[editingItemIndex].quantity,
+                unit_price: items[editingItemIndex].unitPrice,
+                discount: items[editingItemIndex].discount || 0,
+                employee_id: items[editingItemIndex].employeeId,
+                notes: items[editingItemIndex].notes,
+                total: 0,
+                created_at: '',
+                updated_at: '',
+              }
+            : undefined
+        }
+      />
     </Card>
   );
 }

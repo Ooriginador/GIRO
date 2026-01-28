@@ -104,6 +104,7 @@ async fn test_create_service_order_increments_number() {
         notes: None,
         internal_notes: None,
         status: None,
+        items: Some(vec![]),
     };
 
     let os1 = repo.create(input.clone()).await.unwrap();
@@ -149,6 +150,7 @@ async fn test_add_item_to_quote_allows_insufficient_stock() {
         notes: None,
         internal_notes: None,
         status: Some("QUOTE".to_string()),
+        items: Some(vec![]),
     };
     let order = repo.create(input).await.unwrap();
 
@@ -185,6 +187,7 @@ async fn test_add_item_to_quote_allows_insufficient_stock() {
             notes: None,
             internal_notes: None,
             status: Some("OPEN".to_string()),
+            items: Some(vec![]),
         })
         .await
         .unwrap();
@@ -239,6 +242,7 @@ async fn test_quote_to_open_consumes_stock() {
             notes: None,
             internal_notes: None,
             status: Some("QUOTE".to_string()),
+            items: Some(vec![]),
         })
         .await
         .unwrap();
@@ -334,6 +338,7 @@ async fn test_finish_order_generates_commission() {
         notes: None,
         internal_notes: None,
         status: Some("OPEN".to_string()),
+        items: Some(vec![]),
     };
     let order = repo.create(order_input).await.unwrap();
 
@@ -477,6 +482,7 @@ async fn test_cancel_order_restores_stock() {
             notes: None,
             internal_notes: None,
             status: Some("OPEN".to_string()),
+            items: Some(vec![]),
         })
         .await
         .unwrap();

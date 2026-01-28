@@ -1,0 +1,110 @@
+   Compiling giro-desktop v2.1.1 (/home/jhonslife/CICLOGIRO/GIRO/apps/desktop/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.45s
+     Running unittests src/lib.rs (target/debug/deps/giro_lib-dd599cbb8afeccd6)
+
+running 96 tests
+test repositories::cash_repository::cash_repository_test::tests::test_close_session ... ok
+test repositories::cash_repository::cash_repository_test::tests::test_session_history ... ok
+test repositories::cash_repository::cash_repository_test::tests::test_add_movement ... ok
+test repositories::activity_repository_test::tests::test_create_activity ... ok
+test repositories::category_repository::category_repository_test::tests::test_create_category ... ok
+test repositories::cash_repository::cash_repository_test::tests::test_find_current_session ... ok
+test repositories::cash_repository::cash_repository_test::tests::test_open_session_success ... ok
+test repositories::cash_repository::cash_repository_test::tests::test_open_session_already_open ... ok
+test repositories::activity_repository_test::tests::test_update_activity_progress ... ok
+test repositories::cash_repository::cash_repository_test::tests::test_get_session_summary_calculations ... ok
+test repositories::activity_repository_test::tests::test_find_by_work_front ... ok
+test repositories::cash_repository::cash_repository_test::tests::test_find_movements_by_session ... ok
+test repositories::category_repository::category_repository_test::tests::test_delete_category ... ok
+test repositories::category_repository::category_repository_test::tests::test_find_all_active ... ok
+test repositories::category_repository::category_repository_test::tests::test_find_all_with_count ... ok
+test repositories::category_repository::category_repository_test::tests::test_find_children ... ok
+test repositories::category_repository::category_repository_test::tests::test_find_by_id ... ok
+test repositories::category_repository::category_repository_test::tests::test_update_category ... ok
+test repositories::contract_repository_test::tests::test_create_contract ... ok
+test repositories::contract_repository_test::tests::test_update_contract ... ok
+test repositories::contract_repository_test::tests::test_find_all_active ... ok
+test repositories::customer_repository_test::tests::test_find_by_id ... ok
+test repositories::customer_repository_test::tests::test_create_customer ... ok
+test repositories::customer_repository_test::tests::test_deactivate_reactivate ... ok
+test repositories::customer_repository_test::tests::test_update_customer ... ok
+test repositories::employee_repository::employee_repository_test::tests::test_authenticate_pin ... ok
+test repositories::employee_repository::employee_repository_test::tests::test_create_employee_duplicate_pin ... ok
+test repositories::employee_repository::employee_repository_test::tests::test_deactivate_employee ... ok
+test repositories::employee_repository::employee_repository_test::tests::test_create_employee ... ok
+test repositories::employee_repository::employee_repository_test::tests::test_find_all_active ... ok
+test repositories::employee_repository::employee_repository_test::tests::test_find_by_cpf ... ok
+test repositories::employee_repository::employee_repository_test::tests::test_update_employee ... ok
+test repositories::employee_repository::employee_repository_test::tests::test_role_formatting ... ok
+test repositories::inventory_repository_test::tests::test_create_inventory ... ok
+test repositories::enterprise_inventory_repository_test::tests::test_create_full_inventory_snapshot ... ok
+test repositories::enterprise_inventory_repository_test::tests::test_count_item_flow ... ok
+test repositories::material_request_repository_test::tests::test_create_material_request ... ok
+test repositories::product_lot_repository_test::tests::test_get_by_id ... ok
+test repositories::product_lot_repository_test::tests::test_list_expired ... ok
+test repositories::product_repository::product_repository_test::tests::test_create_product ... ok
+test repositories::product_lot_repository_test::tests::test_list_expiring_within ... ok
+test repositories::product_repository::product_repository_test::tests::test_create_product_duplicate_barcode ... ok
+test repositories::sale_repository::tests::test_cancel_sale ... ok
+test repositories::product_repository::product_repository_test::tests::test_delete_product ... ok
+test repositories::product_repository::product_repository_test::tests::test_find_by_barcode ... ok
+test repositories::product_repository::product_repository_test::tests::test_find_by_internal_code ... ok
+test repositories::product_repository::product_repository_test::tests::test_find_with_category_filter ... ok
+test repositories::product_repository::product_repository_test::tests::test_get_low_stock_products ... ok
+test repositories::product_repository::product_repository_test::tests::test_search_products ... ok
+test repositories::product_repository::product_repository_test::tests::test_update_product ... ok
+test repositories::product_repository::product_repository_test::tests::test_update_product_creates_stock_movement ... ok
+test repositories::sale_repository::tests::test_cancel_sale_reverses_commission ... ok
+test repositories::sale_repository::tests::test_create_sale_cash ... ok
+test repositories::sale_repository::tests::test_create_sale_generates_commission ... ok
+test repositories::sale_repository::tests::test_create_sale_insufficient_stock ... ok
+test repositories::sale_repository::tests::test_create_sale_with_discount ... ok
+test repositories::sale_repository::tests::test_find_sale_by_id ... ok
+test repositories::sale_repository::tests::test_find_today_sales ... ok
+test repositories::sale_repository::tests::test_get_daily_summary ... ok
+test repositories::service_order_repository_test::test_add_item_to_quote_allows_insufficient_stock ... ok
+test repositories::service_order_repository_test::test_cancel_order_restores_stock ... ok
+test repositories::service_order_repository_test::test_create_service_order_increments_number ... ok
+test repositories::service_order_repository_test::test_finish_order_generates_commission ... ok
+test repositories::settings_repository_test::tests::test_get_bool ... ok
+test repositories::settings_repository_test::tests::test_set_and_get_setting ... ok
+test repositories::settings_repository_test::tests::test_update_existing_setting ... ok
+test repositories::stock_location_repository_test::tests::test_create_stock_location ... ok
+test repositories::stock_location_repository_test::tests::test_delete_stock_location ... ok
+test repositories::stock_location_repository_test::tests::test_find_by_contract ... ok
+test repositories::stock_repository::tests::test_create_stock_movement_entry ... ok
+test repositories::service_order_repository_test::test_quote_to_open_consumes_stock ... ok
+test repositories::stock_repository::tests::test_create_stock_movement_exit ... ok
+test repositories::stock_repository::tests::test_find_expiring_lots ... ok
+test repositories::stock_repository::tests::test_find_lots_by_product ... ok
+test repositories::stock_repository::tests::test_find_movement_by_id ... ok
+test repositories::stock_repository::tests::test_find_movements_by_product ... ok
+test repositories::stock_repository::tests::test_find_recent_movements ... ok
+test repositories::stock_repository_test::test_create_stock_movement_entry ... ok
+test repositories::stock_repository_test::test_create_stock_movement_exit ... ok
+test repositories::stock_repository_test::test_find_movement_by_id_not_found ... ok
+test repositories::stock_repository_test::test_find_movement_by_id ... ok
+test repositories::stock_repository_test::test_find_movements_by_product ... ok
+test repositories::stock_repository_test::test_find_recent_movements ... ok
+test repositories::stock_repository_test::test_stock_update_after_movement ... ok
+test repositories::stock_transfer_repository_test::tests::test_create_stock_transfer ... ok
+test repositories::stock_transfer_repository_test::tests::test_find_paginated_filters ... ok
+test repositories::supplier_repository::supplier_repository_test::tests::test_create_duplicate_cnpj ... ok
+test repositories::supplier_repository::supplier_repository_test::tests::test_create_supplier ... ok
+test repositories::supplier_repository::supplier_repository_test::tests::test_delete_supplier ... ok
+test repositories::supplier_repository::supplier_repository_test::tests::test_find_by_cnpj ... ok
+test repositories::supplier_repository::supplier_repository_test::tests::test_find_all_active ... ok
+test repositories::supplier_repository::supplier_repository_test::tests::test_find_by_id ... ok
+test repositories::supplier_repository::supplier_repository_test::tests::test_update_supplier ... ok
+test repositories::work_front_repository_test::tests::test_create_work_front ... ok
+test repositories::work_front_repository_test::tests::test_find_by_contract ... ok
+test repositories::work_front_repository_test::tests::test_update_work_front ... ok
+
+test result: ok. 96 passed; 0 failed; 0 ignored; 0 measured; 107 filtered out; finished in 7.25s
+
+     Running unittests src/main.rs (target/debug/deps/giro_desktop-546baa6ca16465d5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

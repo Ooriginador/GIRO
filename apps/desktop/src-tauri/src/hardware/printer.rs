@@ -507,25 +507,41 @@ impl ThermalPrinter {
             let port = self.config.port.trim();
             if port.is_empty() {
                 return Err(HardwareError::NotConfigured(
-                    "Windows: Selecione uma impressora na lista de portas. As impressoras instaladas aparecem como \\\\localhost\\NomeImpressora. Você também pode usar COMx para conexão serial ou USB001-USB010 para portas USB virtuais.".into()
+                    "Windows: Nome da impressora ou porta não configurada.".into(),
                 ));
             }
 
-            // Tenta abrir como arquivo (funciona para LPT, COM mapeada, UNC path e USB virtual)
-            // Para portas USB virtuais (USB001, etc), precisamos tentar o caminho completo
-            let paths_to_try: Vec<String> = if port.starts_with("USB") && !port.contains("\\") {
-                // Porta USB virtual - tentar múltiplos formatos
-                vec![
-                    port.to_string(),
-                    format!("\\\\.\\{}", port), // \\.\USB001
-                ]
-            } else {
-                vec![port.to_string()]
-            };
+            // Estratégia de conexão para Windows (USB/RAW):
+            // 1. Tenta o caminho exato fornecido (ex: LPT1, \\Servidor\Impressora)
+            // 2. Tenta namespace de dispositivo local (ex: USB001 -> \\.\USB001)
+            // 3. Tenta compartilhamento local (ex: Elgin -> \\localhost\Elgin)
+
+            let mut paths_to_try = Vec::new();
+
+            // Caminho original
+            paths_to_try.push(port.to_string());
+
+            if !port.contains("\\") {
+                let upper = port.to_uppercase();
+
+                // Para portas físicas/virtuais (USBxxx, LPTx, COMx), tenta path de dispositivo
+                if upper.starts_with("USB") || upper.starts_with("LPT") || upper.starts_with("COM")
+                {
+                    paths_to_try.push(format!("\\\\.\\{}", port));
+                } else {
+                    // Para nomes simples, assume que pode ser um compartilhamento local
+                    // IMPORTANTE: A impressora DEVE estar compartilhada no Windows com este nome
+                    paths_to_try.push(format!("\\\\localhost\\{}", port));
+                    paths_to_try.push(format!("\\\\127.0.0.1\\{}", port));
+                }
+            }
 
             let mut last_error = String::new();
+
             for path in &paths_to_try {
-                match OpenOptions::new().write(true).open(path) {
+                // Tenta abrir para escrita
+                // Usamos OpenOptions para criar um handle de escrita Raw
+                match OpenOptions::new().write(true).create(false).open(path) {
                     Ok(mut dev) => {
                         dev.write_all(&self.buffer)
                             .map_err(HardwareError::IoError)?;
@@ -533,14 +549,20 @@ impl ThermalPrinter {
                         return Ok(());
                     }
                     Err(e) => {
-                        last_error = format!("{}: {}", path, e);
-                        tracing::debug!("Falha ao abrir '{}': {}", path, e);
+                        let err_msg = e.to_string();
+                        // Ignora erros comuns de "caminho não encontrado" para não poluir,
+                        // a menos que seja o último
+                        tracing::debug!("Tentativa de conexão falhou: '{}': {}", path, err_msg);
+                        last_error = format!("(Caminho: {}) {}", path, err_msg);
                     }
                 }
             }
 
             Err(HardwareError::ConnectionFailed(format!(
-                "Falha ao abrir impressora '{}': {}. Verifique se a impressora está instalada, ligada e configurada corretamente. Para impressoras USB, verifique no Gerenciador de Dispositivos qual porta foi atribuída (Painel de Controle > Dispositivos e Impressoras > Propriedades > Portas).",
+                "Falha ao conectar na impressora Windows '{}'. Tentativas falharam. \
+                Último erro: {}. \
+                DICA: Se for impressora USB, COMPARTILHE a impressora no Windows com um nome simples (ex: 'caixa') \
+                e use esse nome na configuração. Ou use o driver 'Generic / Text Only'.",
                 port, last_error
             )))
         }
@@ -1262,5 +1284,73 @@ mod tests {
         printer.print_receipt(&receipt);
 
         assert!(printer.buffer.len() > 100);
+    }
+
+    #[test]
+    fn test_formatting_commands() {
+        let config = PrinterConfig::default();
+        let mut printer = ThermalPrinter::new(config);
+
+        // Test Alignment
+        printer.align(TextAlign::Center);
+        // Look for ESC 'a' 1 (Center) -> [0x1B, 0x61, 0x01]
+        assert!(printer.buffer.ends_with(&[0x1B, 0x61, 0x01]));
+
+        // Test Bold
+        printer.style(TextStyle {
+            bold: true,
+            ..Default::default()
+        });
+        // Look for ESC 'E' 1 (Bold On) -> [0x1B, 0x45, 0x01]
+        // Note: style() first resets, so we check if it contains the bold command closer to end
+        assert!(printer.buffer.windows(3).any(|w| w == &[0x1B, 0x45, 0x01]));
+    }
+
+    #[test]
+    fn test_print_service_order_content() {
+        let config = PrinterConfig {
+            paper_width: 48,
+            ..Default::default()
+        };
+        let mut printer = ThermalPrinter::new(config);
+
+        let os = ServiceOrderReceipt {
+            company_name: "OFICINA".to_string(),
+            company_address: "Rua Mecanica".to_string(),
+            company_cnpj: None,
+            company_phone: None,
+            order_number: 100,
+            date_time: "01/01/2026".to_string(),
+            status: "ABERTO".to_string(),
+            mechanic_name: "Joao".to_string(),
+            customer_name: "Maria".to_string(),
+            customer_phone: None,
+            vehicle_display_name: "Honda Civic".to_string(),
+            vehicle_plate: Some("ABC-1234".to_string()),
+            vehicle_km: Some(50000),
+            symptoms: Some("Barulho no motor".to_string()),
+            items: vec![],
+            labor_cost: 100.0,
+            parts_cost: 50.0,
+            discount: 0.0,
+            total: 150.0,
+            warranty_days: 90,
+            notes: None,
+        };
+
+        printer.print_service_order(&os);
+
+        // Check content conversion to bytes (using simple check)
+        // Since encoding is WINDOWS_1252, ASCII chars are preserved 1:1
+        // We can inspect the buffer safely for ASCII substrings
+
+        fn has_sequence(buffer: &[u8], sub: &[u8]) -> bool {
+            buffer.windows(sub.len()).any(|w| w == sub)
+        }
+
+        assert!(has_sequence(&printer.buffer, b"Honda Civic"));
+        assert!(has_sequence(&printer.buffer, b"ABC-1234"));
+        assert!(has_sequence(&printer.buffer, b"Barulho no motor"));
+        assert!(has_sequence(&printer.buffer, b"TOTAL: R$ 150.00"));
     }
 }

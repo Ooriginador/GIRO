@@ -10,6 +10,7 @@ pub mod dispatcher;
 pub mod employees;
 pub mod hardware;
 pub mod held_sales;
+pub mod inventory_enterprise;
 pub mod lgpd;
 pub mod license;
 pub mod mobile;

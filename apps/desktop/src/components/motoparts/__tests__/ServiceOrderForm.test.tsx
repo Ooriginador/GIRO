@@ -18,6 +18,10 @@ vi.mock('@/hooks/useServiceOrders', () => ({
     history: [],
     isLoading: false,
   }),
+  useServiceOrderItems: () => ({
+    data: [],
+    isLoading: false,
+  }),
 }));
 
 vi.mock('@/hooks/useCustomers', () => {

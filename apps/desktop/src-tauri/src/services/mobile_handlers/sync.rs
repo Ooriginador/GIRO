@@ -2,9 +2,11 @@
 //!
 //! Processa ações: sync.full, sync.delta, sync.push, sale.remote_create
 
-use crate::models::{Category, CreateSale, Customer, Product, ServiceOrder, Setting, Supplier};
+use crate::models::{
+    Category, CreateSale, Customer, Employee, Product, ServiceOrder, Setting, Supplier,
+};
 use crate::repositories::{
-    CategoryRepository, CustomerRepository, ProductRepository, SaleRepository,
+    CategoryRepository, CustomerRepository, EmployeeRepository, ProductRepository, SaleRepository,
     ServiceOrderRepository, SettingsRepository, SupplierRepository,
 };
 use crate::services::mobile_protocol::{
@@ -94,6 +96,15 @@ impl SyncHandler {
                         );
                     }
                 }
+                "employees" => {
+                    let repo = EmployeeRepository::new(&self.pool);
+                    if let Ok(items) = repo.find_all_active().await {
+                        data.insert(
+                            "employees".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
+                    }
+                }
                 _ => {}
             }
         }
@@ -172,6 +183,17 @@ impl SyncHandler {
                         );
                     }
                 }
+                "employees" => {
+                    let repo = EmployeeRepository::new(&self.pool);
+
+                    // last_sync comes as i64 timestamp directly in this context due to strict typing in parent
+                    if let Ok(items) = repo.find_delta(last_sync).await {
+                        data.insert(
+                            "employees".into(),
+                            serde_json::to_value(items).unwrap_or_default(),
+                        );
+                    }
+                }
                 _ => {}
             }
         }
@@ -234,6 +256,16 @@ impl SyncHandler {
                     ))
                 }
             }
+            "employee" => {
+                if let Ok(item) = serde_json::from_value::<Employee>(payload.data.clone()) {
+                    let repo = EmployeeRepository::new(&self.pool);
+                    repo.upsert_from_sync(item).await
+                } else {
+                    Err(crate::error::AppError::Validation(
+                        "Invalid employee data".into(),
+                    ))
+                }
+            }
             "service_order" => {
                 if let Ok(item) = serde_json::from_value::<ServiceOrder>(payload.data.clone()) {
                     let repo = ServiceOrderRepository::new(self.pool.clone());
@@ -269,6 +301,9 @@ impl SyncHandler {
                         }
                         "supplier" => {
                             event_service.emit_sync_push("supplier", payload.data.clone());
+                        }
+                        "employee" => {
+                            event_service.emit_sync_push("employee", payload.data.clone());
                         }
                         _ => {}
                     };

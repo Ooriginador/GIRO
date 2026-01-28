@@ -21,3 +21,5 @@ export { LocationNewPage } from './LocationNewPage';
 export { LocationStockPage } from './LocationStockPage';
 export { ActivitiesPage } from './ActivitiesPage';
 export { InventoryPage } from './InventoryPage';
+export { InventoryDetailPage } from './InventoryDetailPage';
+export { EnterpriseReportsPage } from './reports/EnterpriseReportsPage';

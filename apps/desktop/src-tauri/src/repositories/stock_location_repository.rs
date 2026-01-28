@@ -20,13 +20,13 @@ impl<'a> StockLocationRepository<'a> {
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<StockLocation>> {
         let result = sqlx::query_as::<_, StockLocation>(
             r#"
-            SELECT id, code, name, description, locationType as location_type,
-                   contractId as contract_id, workFrontId as work_front_id,
-                   address, responsibleId as responsible_id,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockLocation
-            WHERE id = ? AND deletedAt IS NULL
+            SELECT id, code, name, description, location_type,
+                   contract_id, work_front_id,
+                   address, responsible_id,
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM stock_locations
+            WHERE id = ? AND deleted_at IS NULL
             "#,
         )
         .bind(id)
@@ -39,13 +39,13 @@ impl<'a> StockLocationRepository<'a> {
     pub async fn find_by_code(&self, code: &str) -> AppResult<Option<StockLocation>> {
         let result = sqlx::query_as::<_, StockLocation>(
             r#"
-            SELECT id, code, name, description, locationType as location_type,
-                   contractId as contract_id, workFrontId as work_front_id,
-                   address, responsibleId as responsible_id,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockLocation
-            WHERE code = ? AND deletedAt IS NULL
+            SELECT id, code, name, description, location_type,
+                   contract_id, work_front_id,
+                   address, responsible_id,
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM stock_locations
+            WHERE code = ? AND deleted_at IS NULL
             "#,
         )
         .bind(code)
@@ -58,13 +58,13 @@ impl<'a> StockLocationRepository<'a> {
     pub async fn find_by_contract(&self, contract_id: &str) -> AppResult<Vec<StockLocation>> {
         let result = sqlx::query_as::<_, StockLocation>(
             r#"
-            SELECT id, code, name, description, locationType as location_type,
-                   contractId as contract_id, workFrontId as work_front_id,
-                   address, responsibleId as responsible_id,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockLocation
-            WHERE contractId = ? AND deletedAt IS NULL
+            SELECT id, code, name, description, location_type,
+                   contract_id, work_front_id,
+                   address, responsible_id,
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM stock_locations
+            WHERE contract_id = ? AND deleted_at IS NULL
             ORDER BY name
             "#,
         )
@@ -78,13 +78,13 @@ impl<'a> StockLocationRepository<'a> {
     pub async fn find_all_active(&self) -> AppResult<Vec<StockLocation>> {
         let result = sqlx::query_as::<_, StockLocation>(
             r#"
-            SELECT id, code, name, description, locationType as location_type,
-                   contractId as contract_id, workFrontId as work_front_id,
-                   address, responsibleId as responsible_id,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockLocation
-            WHERE isActive = 1 AND deletedAt IS NULL
+            SELECT id, code, name, description, location_type,
+                   contract_id, work_front_id,
+                   address, responsible_id,
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM stock_locations
+            WHERE is_active = 1 AND deleted_at IS NULL
             ORDER BY name
             "#,
         )
@@ -101,13 +101,16 @@ impl<'a> StockLocationRepository<'a> {
     ) -> AppResult<PaginatedResult<StockLocation>> {
         let (where_clause, bind_type) = match location_type {
             Some(lt) => (
-                "locationType = ? AND deletedAt IS NULL".to_string(),
+                "location_type = ? AND deleted_at IS NULL".to_string(),
                 Some(lt),
             ),
-            None => ("deletedAt IS NULL".to_string(), None),
+            None => ("deleted_at IS NULL".to_string(), None),
         };
 
-        let count_sql = format!("SELECT COUNT(*) FROM StockLocation WHERE {}", where_clause);
+        let count_sql = format!(
+            "SELECT COUNT(*) FROM stock_locations WHERE {}",
+            where_clause
+        );
         let mut count_query = sqlx::query_as::<_, (i64,)>(&count_sql);
         if let Some(lt) = bind_type {
             count_query = count_query.bind(lt);
@@ -116,12 +119,12 @@ impl<'a> StockLocationRepository<'a> {
 
         let data_sql = format!(
             r#"
-            SELECT id, code, name, description, locationType as location_type,
-                   contractId as contract_id, workFrontId as work_front_id,
-                   address, responsibleId as responsible_id,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockLocation
+            SELECT id, code, name, description, location_type,
+                   contract_id, work_front_id,
+                   address, responsible_id,
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM stock_locations
             WHERE {}
             ORDER BY name
             LIMIT ? OFFSET ?
@@ -157,9 +160,9 @@ impl<'a> StockLocationRepository<'a> {
 
         sqlx::query(
             r#"
-            INSERT INTO StockLocation (
-                id, code, name, description, locationType, contractId, workFrontId,
-                address, responsibleId, isActive, createdAt, updatedAt
+            INSERT INTO stock_locations (
+                id, code, name, description, location_type, contract_id, work_front_id,
+                address, responsible_id, is_active, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
             "#,
         )
@@ -189,7 +192,7 @@ impl<'a> StockLocationRepository<'a> {
     pub async fn delete(&self, id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
         let result =
-            sqlx::query("UPDATE StockLocation SET deletedAt = ?, isActive = 0 WHERE id = ?")
+            sqlx::query("UPDATE stock_locations SET deleted_at = ?, is_active = 0 WHERE id = ?")
                 .bind(&now)
                 .bind(id)
                 .execute(self.pool)
@@ -216,13 +219,13 @@ impl<'a> StockLocationRepository<'a> {
     ) -> AppResult<Option<StockBalance>> {
         let result = sqlx::query_as::<_, StockBalance>(
             r#"
-            SELECT id, locationId as location_id, productId as product_id,
-                   quantity, reservedQty as reserved_qty, minQty as min_qty, 
-                   maxQty as max_qty, lastCountDate as last_count_date, 
-                   lastCountQty as last_count_qty,
-                   createdAt as created_at, updatedAt as updated_at
-            FROM StockBalance
-            WHERE locationId = ? AND productId = ?
+            SELECT id, location_id, product_id,
+                   quantity, reserved_qty, min_qty, 
+                   max_qty, last_count_date, 
+                   last_count_qty,
+                   created_at, updated_at
+            FROM stock_balances
+            WHERE location_id = ? AND product_id = ?
             "#,
         )
         .bind(location_id)
@@ -257,13 +260,13 @@ impl<'a> StockLocationRepository<'a> {
             ),
         >(
             r#"
-            SELECT sb.id, sb.locationId, sb.productId, sb.quantity, sb.reservedQty, 
-                   sb.minQty, sb.maxQty, sb.lastCountDate, sb.lastCountQty,
-                   sb.createdAt, sb.updatedAt,
-                   p.name as product_name, p.sku as product_code, p.unit as product_unit
-            FROM StockBalance sb
-            JOIN Product p ON sb.productId = p.id
-            WHERE sb.locationId = ?
+            SELECT sb.id, sb.location_id, sb.product_id, sb.quantity, sb.reserved_qty, 
+                   sb.min_qty, sb.max_qty, sb.last_count_date, sb.last_count_qty,
+                   sb.created_at, sb.updated_at,
+                   p.name as product_name, p.internal_code as product_code, p.unit as product_unit
+            FROM stock_balances sb
+            JOIN products p ON sb.product_id = p.id
+            WHERE sb.location_id = ?
             ORDER BY p.name
             "#,
         )
@@ -314,7 +317,7 @@ impl<'a> StockLocationRepository<'a> {
 
         if let Some(balance) = existing {
             let new_qty = balance.quantity + quantity_delta;
-            sqlx::query("UPDATE StockBalance SET quantity = ?, updatedAt = ? WHERE id = ?")
+            sqlx::query("UPDATE stock_balances SET quantity = ?, updated_at = ? WHERE id = ?")
                 .bind(new_qty)
                 .bind(&now)
                 .bind(&balance.id)
@@ -324,8 +327,8 @@ impl<'a> StockLocationRepository<'a> {
             let id = new_id();
             sqlx::query(
                 r#"
-                INSERT INTO StockBalance (
-                    id, locationId, productId, quantity, reservedQty, minQty, createdAt, updatedAt
+                INSERT INTO stock_balances (
+                    id, location_id, product_id, quantity, reserved_qty, min_qty, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, 0, 0, ?, ?)
                 "#,
             )
@@ -372,7 +375,7 @@ impl<'a> StockLocationRepository<'a> {
         }
 
         let new_reserved = balance.reserved_qty + quantity;
-        sqlx::query("UPDATE StockBalance SET reservedQty = ?, updatedAt = ? WHERE id = ?")
+        sqlx::query("UPDATE stock_balances SET reserved_qty = ?, updated_at = ? WHERE id = ?")
             .bind(new_reserved)
             .bind(&now)
             .bind(&balance.id)
@@ -404,7 +407,7 @@ impl<'a> StockLocationRepository<'a> {
             })?;
 
         let new_reserved = (balance.reserved_qty - quantity).max(0.0);
-        sqlx::query("UPDATE StockBalance SET reservedQty = ?, updatedAt = ? WHERE id = ?")
+        sqlx::query("UPDATE stock_balances SET reserved_qty = ?, updated_at = ? WHERE id = ?")
             .bind(new_reserved)
             .bind(&now)
             .bind(&balance.id)
@@ -427,13 +430,13 @@ impl<'a> StockLocationRepository<'a> {
     pub async fn find_by_type(&self, location_type: &str) -> AppResult<Vec<StockLocation>> {
         let result = sqlx::query_as::<_, StockLocation>(
             r#"
-            SELECT id, code, name, description, locationType as location_type,
-                   contractId as contract_id, workFrontId as work_front_id,
-                   address, responsibleId as responsible_id,
-                   isActive as is_active, createdAt as created_at, 
-                   updatedAt as updated_at, deletedAt as deleted_at
-            FROM StockLocation
-            WHERE locationType = ? AND deletedAt IS NULL
+            SELECT id, code, name, description, location_type,
+                   contract_id, work_front_id,
+                   address, responsible_id,
+                   is_active, created_at, 
+                   updated_at, deleted_at
+            FROM stock_locations
+            WHERE location_type = ? AND deleted_at IS NULL
             ORDER BY name
             "#,
         )

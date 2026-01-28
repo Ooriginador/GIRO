@@ -4,12 +4,12 @@
 
 use crate::middleware::audit::{AuditAction, AuditService, CreateAuditLog};
 use crate::models::enterprise::{
-    AddRequestItem, AddTransferItem, CreateMaterialRequest, CreateStockTransfer, RequestFilters,
-    UpdateMaterialRequest, UpdateStockTransfer,
+    AddRequestItem, AddTransferItem, CreateEnterpriseInventoryCount, CreateMaterialRequest,
+    CreateStockTransfer, RequestFilters, UpdateMaterialRequest, UpdateStockTransfer,
 };
 use crate::repositories::{
-    ContractRepository, MaterialRequestRepository, Pagination, StockLocationRepository,
-    StockTransferRepository,
+    ContractRepository, EnterpriseInventoryRepository, MaterialRequestRepository, Pagination,
+    StockLocationRepository, StockTransferRepository,
 };
 use crate::services::mobile_protocol::{MobileErrorCode, MobileResponse};
 use serde::Deserialize;
@@ -410,9 +410,12 @@ impl EnterpriseRequestHandler {
             );
         }
 
-        let repo = MaterialRequestRepository::new(&self.pool);
+        let service = crate::services::enterprise::EnterpriseService::new(&self.pool);
 
-        match repo.approve(&payload.request_id, employee_id).await {
+        match service
+            .approve_request_fully(&payload.request_id, employee_id)
+            .await
+        {
             Ok(request) => {
                 self.log_audit(
                     AuditAction::ProductUpdated,
@@ -736,6 +739,22 @@ impl EnterpriseTransferHandler {
     ) -> MobileResponse {
         let repo = StockTransferRepository::new(&self.pool);
 
+        // Se houver itens com quantidades específicas, atualiza antes de finalizar
+        if let Some(items) = &payload.items {
+            for item in items {
+                if let Err(e) = repo
+                    .update_item_received_qty(&item.item_id, item.received_quantity)
+                    .await
+                {
+                    return MobileResponse::error(
+                        id,
+                        MobileErrorCode::InternalError,
+                        format!("Erro ao atualizar item: {}", e),
+                    );
+                }
+            }
+        }
+
         match repo.receive(&payload.transfer_id, employee_id).await {
             Ok(transfer) => {
                 self.log_audit(
@@ -1014,6 +1033,7 @@ impl EnterpriseInventoryHandler {
         }
 
         let loc_repo = StockLocationRepository::new(&self.pool);
+        let repo = EnterpriseInventoryRepository::new(&self.pool);
 
         // Verificar se localização existe
         let location = match loc_repo.find_by_id(&payload.location_id).await {
@@ -1030,45 +1050,83 @@ impl EnterpriseInventoryHandler {
             }
         };
 
-        // Criar inventário (simplificado - usar tabela enterprise_inventories se existir)
-        let inventory_id = uuid::Uuid::new_v4().to_string();
-        let inventory_name = payload.name.unwrap_or_else(|| {
-            format!(
-                "Inventário {} - {}",
-                location.name,
-                chrono::Local::now().format("%d/%m/%Y")
-            )
-        });
+        // Criar inventário
+        let input = CreateEnterpriseInventoryCount {
+            location_id: payload.location_id.clone(),
+            count_type: payload.inventory_type.unwrap_or("FULL".to_string()),
+            notes: payload.notes,
+        };
 
-        self.log_audit(
-            AuditAction::ProductUpdated,
-            employee_id,
-            &inventory_id,
-            format!(
-                "Inventário enterprise iniciado na localização: {}",
-                location.name
-            ),
-        )
-        .await;
+        match repo.create(input, employee_id).await {
+            Ok(inventory) => {
+                let items = match repo.get_items(&inventory.id).await {
+                    Ok(i) => i,
+                    Err(e) => {
+                        return MobileResponse::error(
+                            id,
+                            MobileErrorCode::InternalError,
+                            e.to_string(),
+                        )
+                    }
+                };
 
-        tracing::info!(
-            "Inventário enterprise iniciado: {} em {}",
-            inventory_id,
-            location.name
-        );
+                let mobile_items: Vec<serde_json::Value> = items
+                    .iter()
+                    .map(|item| {
+                        serde_json::json!({
+                            "id": item.item.id,
+                            "productId": item.item.product_id,
+                            "productName": item.product_name,
+                            "productCode": item.product_code,
+                            "productUnit": item.product_unit,
+                            "expectedQuantity": item.item.system_qty,
+                            "countedQuantity": item.item.counted_qty.unwrap_or(0.0),
+                            "difference": item.item.difference.unwrap_or(0.0),
+                            "status": if item.item.counted_at.is_some() { "counted" } else { "pending" },
+                            "countedAt": item.item.counted_at,
+                            "notes": item.item.notes
+                        })
+                    })
+                    .collect();
 
-        MobileResponse::success(
-            id,
-            serde_json::json!({
-                "inventoryId": inventory_id,
-                "name": inventory_name,
-                "locationId": location.id,
-                "locationName": location.name,
-                "status": "IN_PROGRESS",
-                "startedAt": chrono::Utc::now().to_rfc3339(),
-                "startedBy": employee_id
-            }),
-        )
+                self.log_audit(
+                    AuditAction::ProductUpdated,
+                    employee_id,
+                    &inventory.id,
+                    format!(
+                        "Inventário enterprise iniciado na localização: {}",
+                        location.name
+                    ),
+                )
+                .await;
+
+                tracing::info!(
+                    "Inventário enterprise iniciado: {} em {}",
+                    inventory.id,
+                    location.name
+                );
+
+                MobileResponse::success(
+                    id,
+                    serde_json::json!({
+                        "inventoryId": inventory.id,
+                        "code": format!("INV-{}", &inventory.id[0..8]),
+                        "name": payload.name.unwrap_or(format!("Inventário {}", location.name)),
+                        "location": {
+                            "locationId": location.id,
+                            "name": location.name,
+                            "code": location.code,
+                            "type": location.location_type,
+                            "address": location.address
+                        },
+                        "expectedProducts": items.len(),
+                        "items": mobile_items,
+                        "startedAt": inventory.started_at
+                    }),
+                )
+            }
+            Err(e) => MobileResponse::error(id, MobileErrorCode::InternalError, e.to_string()),
+        }
     }
 
     /// Registra contagem de produto
@@ -1087,34 +1145,52 @@ impl EnterpriseInventoryHandler {
             );
         }
 
-        tracing::info!(
-            "Contagem inventário enterprise: produto {} = {} unidades",
-            payload.product_id,
-            payload.counted_quantity
-        );
+        let repo = EnterpriseInventoryRepository::new(&self.pool);
 
-        self.log_audit(
-            AuditAction::ProductUpdated,
-            employee_id,
-            &payload.inventory_id,
-            format!(
-                "Contagem registrada: produto {} = {} unidades",
-                payload.product_id, payload.counted_quantity
-            ),
-        )
-        .await;
+        // Buscar item pelo produto e inventário
+        let items = match repo.get_items(&payload.inventory_id).await {
+            Ok(i) => i,
+            Err(e) => {
+                return MobileResponse::error(id, MobileErrorCode::InternalError, e.to_string())
+            }
+        };
 
-        MobileResponse::success(
-            id,
-            serde_json::json!({
-                "inventoryId": payload.inventory_id,
-                "productId": payload.product_id,
-                "countedQuantity": payload.counted_quantity,
-                "lotNumber": payload.lot_number,
-                "recordedAt": chrono::Utc::now().to_rfc3339(),
-                "recordedBy": employee_id
-            }),
-        )
+        if let Some(item_wrapper) = items
+            .iter()
+            .find(|i| i.item.product_id == payload.product_id)
+        {
+            match repo
+                .count_item(
+                    &item_wrapper.item.id,
+                    payload.counted_quantity,
+                    employee_id,
+                    payload.notes.clone(),
+                )
+                .await
+            {
+                Ok(_) => {
+                    self.log_audit(
+                        AuditAction::ProductUpdated,
+                        employee_id,
+                        &payload.inventory_id,
+                        format!(
+                            "Contagem registrada: produto {} = {} unidades",
+                            payload.product_id, payload.counted_quantity
+                        ),
+                    )
+                    .await;
+
+                    MobileResponse::success(id, serde_json::json!({ "success": true }))
+                }
+                Err(e) => MobileResponse::error(id, MobileErrorCode::InternalError, e.to_string()),
+            }
+        } else {
+            MobileResponse::error(
+                id,
+                MobileErrorCode::NotFound,
+                "Produto não encontrado neste inventário",
+            )
+        }
     }
 
     /// Sincroniza múltiplas contagens
@@ -1133,26 +1209,61 @@ impl EnterpriseInventoryHandler {
             );
         }
 
-        let count = payload.counts.len();
+        let repo = EnterpriseInventoryRepository::new(&self.pool);
+
+        // Fetch items once
+        let items = match repo.get_items(&payload.inventory_id).await {
+            Ok(i) => i,
+            Err(e) => {
+                return MobileResponse::error(id, MobileErrorCode::InternalError, e.to_string())
+            }
+        };
+
+        let mut processed = 0;
+        let mut failed = 0;
+
+        for count_payload in payload.counts {
+            if let Some(item_wrapper) = items
+                .iter()
+                .find(|i| i.item.product_id == count_payload.product_id)
+            {
+                match repo
+                    .count_item(
+                        &item_wrapper.item.id,
+                        count_payload.counted_quantity,
+                        employee_id,
+                        count_payload.notes,
+                    )
+                    .await
+                {
+                    Ok(_) => processed += 1,
+                    Err(_) => failed += 1,
+                }
+            } else {
+                failed += 1;
+            }
+        }
 
         self.log_audit(
             AuditAction::ProductUpdated,
             employee_id,
             &payload.inventory_id,
-            format!("Sincronizadas {} contagens", count),
+            format!("Sincronizadas {} contagens. Falhas: {}", processed, failed),
         )
         .await;
 
         tracing::info!(
-            "Sincronização inventário enterprise: {} contagens processadas",
-            count
+            "Sincronização inventário enterprise: {} processadas, {} falhas",
+            processed,
+            failed
         );
 
         MobileResponse::success(
             id,
             serde_json::json!({
                 "inventoryId": payload.inventory_id,
-                "syncedCount": count,
+                "processed": processed,
+                "failed": failed,
                 "syncedAt": chrono::Utc::now().to_rfc3339()
             }),
         )
@@ -1174,37 +1285,51 @@ impl EnterpriseInventoryHandler {
             );
         }
 
-        self.log_audit(
-            AuditAction::ProductUpdated,
-            employee_id,
-            &payload.inventory_id,
-            format!(
-                "Inventário finalizado. Ajustes aplicados: {}",
-                if payload.apply_adjustments {
-                    "Sim"
-                } else {
-                    "Não"
-                }
-            ),
-        )
-        .await;
+        let repo = EnterpriseInventoryRepository::new(&self.pool);
 
-        tracing::info!(
-            "Inventário enterprise finalizado: {} (ajustes: {})",
-            payload.inventory_id,
-            payload.apply_adjustments
-        );
+        match repo
+            .complete(
+                &payload.inventory_id,
+                employee_id,
+                payload.apply_adjustments,
+            )
+            .await
+        {
+            Ok(_) => {
+                self.log_audit(
+                    AuditAction::ProductUpdated,
+                    employee_id,
+                    &payload.inventory_id,
+                    format!(
+                        "Inventário finalizado. Ajustes aplicados: {}",
+                        if payload.apply_adjustments {
+                            "Sim"
+                        } else {
+                            "Não"
+                        }
+                    ),
+                )
+                .await;
 
-        MobileResponse::success(
-            id,
-            serde_json::json!({
-                "inventoryId": payload.inventory_id,
-                "status": "COMPLETED",
-                "finishedAt": chrono::Utc::now().to_rfc3339(),
-                "finishedBy": employee_id,
-                "adjustmentsApplied": payload.apply_adjustments
-            }),
-        )
+                tracing::info!(
+                    "Inventário enterprise finalizado: {} (ajustes: {})",
+                    payload.inventory_id,
+                    payload.apply_adjustments
+                );
+
+                MobileResponse::success(
+                    id,
+                    serde_json::json!({
+                        "inventoryId": payload.inventory_id,
+                        "status": "COMPLETED",
+                        "finishedAt": chrono::Utc::now().to_rfc3339(),
+                        "finishedBy": employee_id,
+                        "adjustmentsApplied": payload.apply_adjustments
+                    }),
+                )
+            }
+            Err(e) => MobileResponse::error(id, MobileErrorCode::InternalError, e.to_string()),
+        }
     }
 
     /// Cancela inventário

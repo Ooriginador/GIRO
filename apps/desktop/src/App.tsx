@@ -66,6 +66,8 @@ import {
   LocationStockPage,
   ActivitiesPage,
   InventoryPage,
+  InventoryDetailPage,
+  EnterpriseReportsPage,
 } from '@/pages/enterprise';
 
 // Componente de rota protegida
@@ -427,6 +429,22 @@ const App: FC = () => {
               element={
                 <FeatureRoute feature="enterprise" redirectTo="/dashboard">
                   <InventoryPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/inventory/:id"
+              element={
+                <FeatureRoute feature="enterprise" redirectTo="/dashboard">
+                  <InventoryDetailPage />
+                </FeatureRoute>
+              }
+            />
+            <Route
+              path="enterprise/reports"
+              element={
+                <FeatureRoute feature="enterprise" redirectTo="/dashboard">
+                  <EnterpriseReportsPage />
                 </FeatureRoute>
               }
             />

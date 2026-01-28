@@ -13,11 +13,12 @@ import { recoverLicenseFromLogin, setSetting, updateLicenseAdmin, invoke } from 
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useLicenseStore } from '@/stores/license-store';
-import { CheckCircle2, Loader2, RefreshCw, Shield, UserPlus } from 'lucide-react';
+import { CheckCircle2, Crown, Loader2, RefreshCw, Shield, UserPlus, Wifi } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { NetworkSetupStep } from '@/components/setup';
 
 interface FormData {
   name: string;
@@ -37,10 +38,20 @@ interface FormErrors {
   confirmPin?: string;
 }
 
+interface DiscoveredMaster {
+  name: string;
+  ip: string;
+  port: number;
+  version: string | null;
+  storeName: string | null;
+}
+
 export const InitialSetupPage: FC = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<'welcome' | 'form' | 'success' | 'login'>('welcome');
+  const [step, setStep] = useState<'welcome' | 'form' | 'success' | 'login' | 'network'>('welcome');
   const [isLoading, setIsLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [discoveredMasters, setDiscoveredMasters] = useState<DiscoveredMaster[]>([]);
   const [formData, setFormData] = useState<FormData>({
     name: '',
     cpf: '',
@@ -56,8 +67,22 @@ export const InitialSetupPage: FC = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // No mount check if admin exists - if they are here manually we should probably let them work
-    // but the Guard in App.tsx already sends them here if needed.
+    // Scan for existing Masters on network when entering setup
+    const scanNetwork = async () => {
+      setIsScanning(true);
+      try {
+        const masters = await invoke<DiscoveredMaster[]>('scan_network_for_masters', {
+          timeoutSecs: 5,
+        });
+        setDiscoveredMasters(masters);
+        log.info(`Found ${masters.length} master(s) on network`);
+      } catch (err) {
+        log.warn('Network scan failed:', err);
+      } finally {
+        setIsScanning(false);
+      }
+    };
+    scanNetwork();
   }, []);
 
   const validateCPF = (cpf: string): boolean => {
@@ -234,11 +259,45 @@ export const InitialSetupPage: FC = () => {
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {/* Master encontrado na rede */}
+            {isScanning ? (
+              <div className="flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <span className="text-sm text-blue-700 dark:text-blue-300">
+                  Procurando caixas na rede...
+                </span>
+              </div>
+            ) : discoveredMasters.length > 0 ? (
+              <div className="space-y-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-green-600" />
+                  <span className="font-semibold text-green-700 dark:text-green-300">
+                    {discoveredMasters.length === 1
+                      ? 'Caixa Principal encontrado na rede!'
+                      : `${discoveredMasters.length} Caixas Principais encontrados!`}
+                  </span>
+                </div>
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Detectamos um sistema GIRO já configurado. Você pode conectar este computador como
+                  Caixa Auxiliar para compartilhar produtos, clientes e funcionários.
+                </p>
+                <Button
+                  onClick={() => setStep('network')}
+                  variant="outline"
+                  className="w-full border-green-300 bg-white hover:bg-green-50 dark:border-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50"
+                >
+                  <Wifi className="mr-2 h-4 w-4" />
+                  Conectar como Caixa Auxiliar
+                </Button>
+              </div>
+            ) : null}
+
             <div className="space-y-4 rounded-lg border bg-muted/50 p-6">
               <h3 className="font-semibold">🎉 Primeira execução detectada</h3>
               <p className="text-sm text-muted-foreground">
-                Para começar, você pode criar um novo administrador ou sincronizar com uma conta
-                existente.
+                {discoveredMasters.length > 0
+                  ? 'Ou configure este computador como um novo caixa independente:'
+                  : 'Para começar, você pode criar um novo administrador ou sincronizar com uma conta existente.'}
               </p>
 
               <div className="space-y-2 text-sm">
@@ -293,6 +352,21 @@ export const InitialSetupPage: FC = () => {
             });
           });
         }}
+      />
+    );
+  }
+
+  if (step === 'network') {
+    return (
+      <NetworkSetupStep
+        discoveredMasters={discoveredMasters}
+        onComplete={() => {
+          // After connecting as satellite, go to login page
+          // The satellite will sync employees from master
+          navigate('/login', { replace: true });
+        }}
+        onBack={() => setStep('welcome')}
+        onSkip={() => setStep('form')}
       />
     );
   }

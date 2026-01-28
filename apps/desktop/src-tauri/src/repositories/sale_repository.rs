@@ -33,11 +33,11 @@ impl<'a> SaleRepository<'a> {
         }
     }
 
-    const SALE_COLS: &'static str = "id, daily_number, subtotal, discount_type, discount_value, discount_reason, total, payment_method, amount_paid, change, status, canceled_at, canceled_by_id, cancel_reason, customer_id, employee_id, cash_session_id, created_at, updated_at";
-    const ITEM_COLS: &'static str = "id, sale_id, product_id, quantity, unit_price, discount, total, product_name, product_barcode, product_unit, lot_id, created_at";
+    const SALE_COLS: &'static str = "id, \"dailyNumber\" as daily_number, subtotal, \"discountType\" as discount_type, \"discountValue\" as discount_value, \"discountReason\" as discount_reason, total, \"paymentMethod\" as payment_method, \"amountPaid\" as amount_paid, change, status, \"canceledAt\" as canceled_at, \"canceledById\" as canceled_by_id, \"cancelReason\" as cancel_reason, \"customerId\" as customer_id, \"employeeId\" as employee_id, \"cashSessionId\" as cash_session_id, \"createdAt\" as created_at, \"updatedAt\" as updated_at";
+    const ITEM_COLS: &'static str = "id, \"saleId\" as sale_id, \"productId\" as product_id, quantity, \"unitPrice\" as unit_price, discount, total, \"productName\" as product_name, \"productBarcode\" as product_barcode, \"productUnit\" as product_unit, \"lotId\" as lot_id, \"createdAt\" as created_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Sale>> {
-        let query = format!("SELECT {} FROM sales WHERE id = ?", Self::SALE_COLS);
+        let query = format!("SELECT {} FROM \"Sale\" WHERE id = ?", Self::SALE_COLS);
         let result = sqlx::query_as::<_, Sale>(&query)
             .bind(id)
             .fetch_optional(self.pool)
@@ -47,7 +47,7 @@ impl<'a> SaleRepository<'a> {
 
     pub async fn find_items_by_sale(&self, sale_id: &str) -> AppResult<Vec<SaleItem>> {
         let query = format!(
-            "SELECT {} FROM sale_items WHERE sale_id = ?",
+            "SELECT {} FROM \"SaleItem\" WHERE \"saleId\" = ?",
             Self::ITEM_COLS
         );
         let result = sqlx::query_as::<_, SaleItem>(&query)
