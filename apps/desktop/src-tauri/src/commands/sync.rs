@@ -325,11 +325,28 @@ async fn apply_pulled_items(items: &[SyncPullItem], pool: &sqlx::SqlitePool) -> 
                 }
             }
             SyncEntityType::Employee => {
-                // Employees require special handling due to security (passwords, PINs)
-                tracing::debug!(
-                    "Sync: employee {} sync skipped for security",
-                    item.entity_id
-                );
+                let repo = crate::repositories::EmployeeRepository::new(pool);
+                if item.operation == SyncOperation::Delete {
+                    if let Err(e) = repo.deactivate(&item.entity_id).await {
+                        tracing::warn!(
+                            "Sync: failed to deactivate employee {}: {}",
+                            item.entity_id,
+                            e
+                        );
+                    } else {
+                        tracing::info!("Sync: deactivated employee {}", item.entity_id);
+                    }
+                } else if let Ok(employee) =
+                    serde_json::from_value::<crate::models::Employee>(item.data.clone())
+                {
+                    if let Err(e) = repo.upsert_from_sync(employee.clone()).await {
+                        tracing::warn!("Sync: failed to upsert employee {}: {}", item.entity_id, e);
+                    } else {
+                        tracing::info!("Sync: upserted employee {}", employee.name);
+                    }
+                } else {
+                    tracing::warn!("Sync: failed to deserialize employee {}", item.entity_id);
+                }
             }
             SyncEntityType::Setting => {
                 let repo = SettingsRepository::new(pool);
@@ -393,6 +410,7 @@ pub async fn sync_full(state: State<'_, AppState>) -> Result<SyncResult, String>
         SyncEntityType::Category,
         SyncEntityType::Supplier,
         SyncEntityType::Customer,
+        SyncEntityType::Employee,
         SyncEntityType::Setting,
     ];
 

@@ -200,7 +200,7 @@ export function useSync() {
   const resetMutation = useSyncReset();
 
   const allEntityTypes: SyncEntityType[] = useMemo(
-    () => ['product', 'category', 'supplier', 'customer', 'setting'],
+    () => ['product', 'category', 'supplier', 'customer', 'employee', 'setting'],
     []
   );
 
