@@ -31,10 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { invoke, seedDatabase, setSetting, syncBackupToCloud } from '@/lib/tauri';
 import { createLogger } from '@/lib/logger';
 import { useSettingsStore, useLicenseStore } from '@/stores';
-import {
-  useWindowsPrinters,
-  formatPrinterStatus,
-} from '@/hooks/useWindowsPrinters';
+import { useWindowsPrinters, formatPrinterStatus } from '@/hooks/useWindowsPrinters';
 import {
   Bell,
   Building2,
