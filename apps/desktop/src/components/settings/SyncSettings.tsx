@@ -255,8 +255,18 @@ export function SyncSettings() {
           {!isLicenseActive ? (
             <div className="text-center py-8 text-muted-foreground">
               <CloudOff className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="font-medium">Licença não ativa</p>
-              <p className="text-sm">Ative sua licença para usar a sincronização multi-PC</p>
+              <p className="font-medium mb-2">Licença não ativa</p>
+              <p className="text-sm mb-4">Ative sua licença para usar a sincronização multi-PC</p>
+              
+              {/* Help text */}
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-left text-xs">
+                <p className="font-medium mb-2 text-blue-700 dark:text-blue-300">💡 Como ativar:</p>
+                <ul className="space-y-1 text-blue-600 dark:text-blue-400">
+                  <li>1. Vá em Configurações → Licença</li>
+                  <li>2. Digite sua chave de ativação</li>
+                  <li>3. Clique em "Ativar Licença"</li>
+                </ul>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">

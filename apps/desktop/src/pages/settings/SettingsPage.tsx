@@ -446,9 +446,23 @@ export const SettingsPage: FC = () => {
         description: 'Dados da licença e empresa atualizados com sucesso.',
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Mensagens mais amigáveis
+      let userMessage = errorMessage;
+      if (errorMessage.includes('não encontrada no servidor')) {
+        userMessage = 'Licença não encontrada no servidor. Verifique se a chave está correta ou contate o suporte.';
+      } else if (errorMessage.includes('Hardware não autorizado')) {
+        userMessage = 'Este computador não está autorizado. Ative a licença novamente.';
+      } else if (errorMessage.includes('expirada')) {
+        userMessage = 'Sua licença expirou. Renove sua assinatura.';
+      } else if (errorMessage.includes('conexão') || errorMessage.includes('connect')) {
+        userMessage = 'Sem conexão com o servidor. Verifique sua internet.';
+      }
+
       toast({
         title: 'Erro na sincronização',
-        description: error instanceof Error ? error.message : 'Falha ao conectar com servidor.',
+        description: userMessage,
         variant: 'destructive',
       });
     } finally {

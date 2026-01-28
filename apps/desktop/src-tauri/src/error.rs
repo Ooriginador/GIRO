@@ -201,6 +201,10 @@ impl Serialize for AppError {
             Self::DiscountExceedsLimit { max } => Some(serde_json::json!({
                 "max": max
             })),
+            Self::Sql(e) => Some(serde_json::json!({
+                "sql_error": e.to_string(),
+                "kind": format!("{:?}", e)
+            })),
             _ => None,
         };
 
