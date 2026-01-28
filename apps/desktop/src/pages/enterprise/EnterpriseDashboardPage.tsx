@@ -302,11 +302,7 @@ export const EnterpriseDashboardPage: FC = () => {
     isLoading: isLoadingDashboard,
     refetch: refetchDashboard,
   } = useEnterpriseDashboard();
-  const {
-    data: contracts,
-    isLoading: isLoadingContracts,
-    refetch: refetchContracts,
-  } = useContracts();
+  const { isLoading: isLoadingContracts, refetch: refetchContracts } = useContracts();
   const {
     data: pendingRequests,
     isLoading: isLoadingRequests,

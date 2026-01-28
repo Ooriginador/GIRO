@@ -448,19 +448,41 @@ export function RequestDetailPage() {
             <CardContent>
               <RequestWorkflow
                 request={request}
-                onApprove={canDo.approveRequest ? () => handleStatusChange('APPROVED') : undefined}
+                onApprove={
+                  canDo.approveRequest
+                    ? async () => {
+                        await handleStatusChange('APPROVED');
+                      }
+                    : undefined
+                }
                 onReject={
                   canDo.approveRequest
-                    ? (reason: string) => handleStatusChange('CANCELLED', reason)
+                    ? async (reason: string) => {
+                        await handleStatusChange('CANCELLED', reason);
+                      }
                     : undefined
                 }
                 onStartSeparation={
-                  canDo.separateRequest ? () => handleStatusChange('SEPARATING') : undefined
+                  canDo.separateRequest
+                    ? async () => {
+                        await handleStatusChange('SEPARATING');
+                      }
+                    : undefined
                 }
                 onCompleteSeparation={
-                  canDo.separateRequest ? () => setIsSeparationDialogOpen(true) : undefined
+                  canDo.separateRequest
+                    ? async () => {
+                        setIsSeparationDialogOpen(true);
+                      }
+                    : undefined
                 }
-                onDeliver={canDo.deliverRequest ? () => setIsDeliverDialogOpen(true) : undefined}
+                onDeliver={
+                  canDo.deliverRequest
+                    ? async () => {
+                        setIsDeliverDialogOpen(true);
+                      }
+                    : undefined
+                }
               />
             </CardContent>
           </Card>

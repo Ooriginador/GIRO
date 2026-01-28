@@ -38,6 +38,16 @@ export function formatQuantity(value: number, unit: string = 'un'): string {
 }
 
 /**
+ * Formata número com separadores de milhar
+ */
+export function formatNumber(value: number, decimals: number = 0): string {
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(value);
+}
+
+/**
  * Formata data no padrão brasileiro
  */
 export function formatDate(date: Date | string): string {

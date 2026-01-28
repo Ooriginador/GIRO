@@ -44,6 +44,7 @@ export type MaterialRequestStatus =
   | 'PARTIALLY_APPROVED' // Aprovada parcialmente
   | 'REJECTED' // Rejeitada
   | 'SEPARATING' // Em separação
+  | 'READY' // Pronta para entrega
   | 'DELIVERED' // Entregue
   | 'CANCELLED'; // Cancelada
 
@@ -517,6 +518,7 @@ export interface EnterpriseKPIs {
   pendingRequests: number;
   inTransitTransfers: number;
   lowStockItems: number;
+  lowStockAlerts?: number; // Alias para lowStockItems
   monthlyConsumption: number;
   consumptionTrend: number;
 }

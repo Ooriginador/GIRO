@@ -7,19 +7,10 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
-import {
-  ArrowLeft,
-  CheckCircle2,
-  AlertTriangle,
-  Save,
-  ClipboardCheck,
-  Ban,
-  Filter,
-  Search,
-} from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Save, ClipboardCheck, Filter, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -40,7 +31,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { formatCurrency, formatQuantity } from '@/lib/formatters';
+import { formatQuantity } from '@/lib/formatters';
 import type { InventoryCount, InventoryCountItemWithProduct } from '@/types/enterprise';
 
 // ────────────────────────────────────────────────────────────────────────────

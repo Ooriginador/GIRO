@@ -144,13 +144,7 @@ export function useEnterpriseCommands(): UseEnterpriseCommandsReturn {
 
   const getEnterpriseKPIs = useCallback(async (): Promise<EnterpriseKPIs> => {
     return withLoading(async () => {
-      const dashboard = await tauri.getContractDashboard();
-      return {
-        activeContracts: dashboard.activeContracts,
-        pendingRequests: dashboard.pendingRequests,
-        inTransitTransfers: dashboard.inTransitTransfers,
-        lowStockAlerts: dashboard.lowStockAlerts,
-      };
+      return await tauri.getEnterpriseDashboard();
     });
   }, [withLoading]);
 
@@ -576,13 +570,8 @@ export function useContractDashboard() {
     setIsLoading(true);
     setError(null);
     try {
-      const dashboard = await tauri.getContractDashboard();
-      setKpis({
-        activeContracts: dashboard.activeContracts,
-        pendingRequests: dashboard.pendingRequests,
-        inTransitTransfers: dashboard.inTransitTransfers,
-        lowStockAlerts: dashboard.lowStockAlerts,
-      });
+      const dashboard = await tauri.getEnterpriseDashboard();
+      setKpis(dashboard);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {

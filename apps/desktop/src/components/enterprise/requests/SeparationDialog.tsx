@@ -1,7 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Dialog,
   DialogContent,
@@ -20,10 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import type { MaterialRequest, MaterialRequestItem } from '@/types/enterprise';
-import { formatCurrency } from '@/lib/utils'; // Assuming this helper exists, or I will use standard Intl
 
 interface SeparationDialogProps {
   open: boolean;

@@ -33,7 +33,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { TransferWorkflow } from '@/components/enterprise';
 import { useCanDo } from '@/hooks/useEnterprisePermission';
 import { toast } from '@/hooks/use-toast';
@@ -77,7 +76,6 @@ export function TransferDetailPage() {
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [currentAction, setCurrentAction] = useState<'SHIP' | 'RECEIVE' | null>(null);
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({});
-  const [actionNotes, setActionNotes] = useState('');
 
   const loadTransfer = useCallback(async () => {
     if (!id) return;
@@ -215,7 +213,7 @@ export function TransferDetailPage() {
   }
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalReceived = items.reduce((sum, item) => sum + (item.receivedQuantity || 0), 0);
+  const totalReceived = items.reduce((sum, item) => sum + (item.receivedQty || 0), 0);
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -381,7 +379,7 @@ export function TransferDetailPage() {
                 </TableHeader>
                 <TableBody>
                   {items.map((item) => {
-                    const diff = (item.receivedQuantity || 0) - item.quantity;
+                    const diff = (item.receivedQty || 0) - item.quantity;
 
                     return (
                       <TableRow key={item.id}>
@@ -392,7 +390,7 @@ export function TransferDetailPage() {
                         <TableCell className="text-right">
                           {item.quantity} {item.product?.unit}
                         </TableCell>
-                        <TableCell className="text-right">{item.receivedQuantity || '-'}</TableCell>
+                        <TableCell className="text-right">{item.receivedQty || '-'}</TableCell>
                         <TableCell className="text-center">
                           {transfer.status === 'RECEIVED' ? (
                             <span

@@ -455,6 +455,7 @@ const statusConfig: Record<MaterialRequestStatus, { label: string; color: string
   PARTIALLY_APPROVED: { label: 'Parcial', color: 'bg-blue-100 text-blue-800' },
   REJECTED: { label: 'Rejeitada', color: 'bg-red-100 text-red-800' },
   SEPARATING: { label: 'Separando', color: 'bg-purple-100 text-purple-800' },
+  READY: { label: 'Pronta', color: 'bg-indigo-100 text-indigo-800' },
   DELIVERED: { label: 'Entregue', color: 'bg-emerald-100 text-emerald-800' },
   CANCELLED: { label: 'Cancelada', color: 'bg-gray-200 text-gray-600' },
 };

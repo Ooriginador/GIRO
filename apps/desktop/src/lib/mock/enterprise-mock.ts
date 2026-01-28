@@ -193,7 +193,8 @@ export const mockTransferItems: StockTransferItem[] = [
     transferId: 'trf-1',
     productId: 'prod-1',
     quantity: 50,
-    receivedQuantity: 0,
+    requestedQty: 50,
+    receivedQty: 0,
   },
 ];
 

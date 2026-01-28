@@ -474,12 +474,12 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
         onUpdateItem={handleUpdateItem}
         // When editing existing items from the list via index
         itemToEdit={
-          editingItemIndex !== null
+          editingItemIndex !== null && items[editingItemIndex]
             ? {
                 id: 'temp',
                 order_id: 'temp',
-                product_id: items[editingItemIndex].productId,
                 item_type: items[editingItemIndex].itemType,
+                product_id: items[editingItemIndex].productId,
                 description: items[editingItemIndex].description,
                 quantity: items[editingItemIndex].quantity,
                 unit_price: items[editingItemIndex].unitPrice,
@@ -488,7 +488,6 @@ export function ServiceOrderForm({ onCancel, onSuccess }: ServiceOrderFormProps)
                 notes: items[editingItemIndex].notes,
                 total: 0,
                 created_at: '',
-                updated_at: '',
               }
             : undefined
         }

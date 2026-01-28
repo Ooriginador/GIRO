@@ -141,7 +141,10 @@ const initialKPIs: EnterpriseKPIs = {
   activeContracts: 0,
   pendingRequests: 0,
   inTransitTransfers: 0,
+  lowStockItems: 0,
   lowStockAlerts: 0,
+  monthlyConsumption: 0,
+  consumptionTrend: 0,
 };
 
 // ────────────────────────────────────────────────────────────────────────────

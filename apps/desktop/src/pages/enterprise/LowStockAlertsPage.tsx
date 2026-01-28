@@ -35,7 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLowStockAlerts, useLowStockAlertsCount } from '@/hooks/enterprise/useContracts';
 import { useStockLocations } from '@/hooks/enterprise';
-import { useCategories } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
 import { cn, formatNumber } from '@/lib/utils';
 import type { LowStockAlert } from '@/lib/tauri';
 
@@ -64,7 +64,7 @@ export function LowStockAlertsPage() {
   const [criticalityFilter, setCriticalityFilter] = useState<string>('all');
 
   const { data: locations } = useStockLocations();
-  const { data: categories } = useCategories();
+  const { data: categories = [] } = useCategories();
   const { data: alertsCount, isLoading: isLoadingCount } = useLowStockAlertsCount();
 
   const queryParams = useMemo(
@@ -264,7 +264,7 @@ export function LowStockAlertsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as categorias</SelectItem>
-                  {categories?.map((cat) => (
+                  {categories.map((cat: { id: string; name: string }) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
                     </SelectItem>

@@ -99,6 +99,10 @@ const requestStatusConfig: Record<MaterialRequestStatus, { label: string; color:
     label: 'Separando',
     color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
   },
+  READY: {
+    label: 'Pronta',
+    color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
+  },
   DELIVERED: {
     label: 'Entregue',
     color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',

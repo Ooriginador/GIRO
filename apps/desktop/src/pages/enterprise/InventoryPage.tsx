@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { format } from 'date-fns';
@@ -12,7 +12,7 @@ import { ptBR } from 'date-fns/locale';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -45,18 +45,14 @@ import { Label } from '@/components/ui/label';
 import { useStockLocations, useStockBalances } from '@/hooks/enterprise/useStockLocations';
 import { adjustStockBalance, type StockBalance } from '@/lib/tauri';
 import { useToast } from '@/hooks/use-toast';
-import { cn, getErrorMessage } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/utils';
 import type { InventoryCount, CreateInventoryCountPayload } from '@/types/enterprise';
 
 import {
-  AlertTriangle,
-  BarChart3,
-  Check,
   ClipboardList,
   Loader2,
   Package,
   Plus,
-  RefreshCw,
   Search,
   Warehouse,
   Eye,
@@ -124,9 +120,8 @@ function StockBalancesTab() {
   const [adjustmentType, setAdjustmentType] = useState<'set' | 'add' | 'sub'>('set');
 
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  const { data: locations = [], isLoading: loadingLocations } = useStockLocations();
+  const { data: locations = [] } = useStockLocations();
 
   const {
     data: balances = [],

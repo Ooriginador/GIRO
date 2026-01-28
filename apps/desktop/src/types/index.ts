@@ -114,6 +114,12 @@ export interface Product {
   isWeighted: boolean;
   isActive: boolean;
   imageUrl?: string;
+  // Motoparts fields
+  notes?: string;
+  oemCode?: string;
+  aftermarketCode?: string;
+  partBrand?: string;
+  application?: string;
   createdAt: string;
   updatedAt: string;
 }
