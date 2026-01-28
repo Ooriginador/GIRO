@@ -248,15 +248,14 @@ export const NetworkRoleSettings: FC = () => {
         }
       }
 
-      // Salvar todas as configurações
-      await Promise.all([
-        setSetting('network.role', role),
-        setSetting('terminal.name', terminalName),
-        setSetting('network.secret', networkSecret),
-        setSetting('network.master_ip', masterIp),
-        setSetting('network.master_port', masterPort),
-        setSetting('network.server_port', serverPort),
-      ]);
+      // Salvar todas as configurações SEQUENCIALMENTE para evitar database lock
+      // Promise.all causava race condition com transações SQLite simultâneas
+      await setSetting('network.role', role);
+      await setSetting('terminal.name', terminalName);
+      await setSetting('network.secret', networkSecret);
+      await setSetting('network.master_ip', masterIp);
+      await setSetting('network.master_port', masterPort);
+      await setSetting('network.server_port', serverPort);
 
       // Iniciar serviço correspondente
       if (role === 'MASTER') {
