@@ -158,12 +158,21 @@ describe('useContracts', () => {
 
       vi.mocked(tauri.getContractDashboard).mockResolvedValue(mockDashboard as any);
 
-      const { result } = renderHook(() => useContractDashboard(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useContractDashboard('contract-123'), {
+        wrapper: createWrapper(),
+      });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(tauri.getContractDashboard).toHaveBeenCalled();
+      expect(tauri.getContractDashboard).toHaveBeenCalledWith('contract-123');
       expect(result.current.data).toEqual(mockDashboard);
+    });
+
+    it('deve retornar disabled quando id não fornecido', () => {
+      const { result } = renderHook(() => useContractDashboard(), { wrapper: createWrapper() });
+
+      expect(result.current.isFetching).toBe(false);
+      expect(result.current.data).toBeUndefined();
     });
   });
 

@@ -225,7 +225,7 @@ describe('useAdjustStock', () => {
   });
 
   it('should adjust stock successfully', async () => {
-    vi.mocked(tauriLib.adjustStock).mockResolvedValue(undefined);
+    vi.mocked(tauriLib.adjustStock).mockResolvedValue({ adjusted: true, delta: 50 });
 
     const { result } = renderHook(() => useAdjustStock(), {
       wrapper: createWrapper(),

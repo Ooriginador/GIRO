@@ -155,7 +155,7 @@ describe('NetworkRoleSettings', () => {
       expect(
         screen.getByText(/Escolha esta opção se você tem apenas um computador/)
       ).toBeInTheDocument();
-      expect(screen.getByText(/Este é meu computador principal/)).toBeInTheDocument();
+      expect(screen.getByText(/Escolha no computador principal/)).toBeInTheDocument();
       expect(screen.getByText(/Escolha nos computadores secundários/)).toBeInTheDocument();
     });
   });

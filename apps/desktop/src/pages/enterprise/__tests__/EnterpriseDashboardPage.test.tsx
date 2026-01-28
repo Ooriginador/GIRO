@@ -2,7 +2,12 @@
  * @file EnterpriseDashboardPage.test.tsx - Testes para Dashboard Enterprise
  */
 
-import { useEnterpriseDashboard, usePendingRequests, useContracts } from '@/hooks/enterprise';
+import {
+  useEnterpriseDashboard,
+  usePendingRequests,
+  useContracts,
+  useContractsConsumptionSummary,
+} from '@/hooks/enterprise';
 import { EnterpriseDashboardPage } from '@/pages/enterprise/EnterpriseDashboardPage';
 import { createQueryWrapper } from '@/test/queryWrapper';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -14,6 +19,7 @@ vi.mock('@/hooks/enterprise', () => ({
   useEnterpriseDashboard: vi.fn(),
   usePendingRequests: vi.fn(),
   useContracts: vi.fn(),
+  useContractsConsumptionSummary: vi.fn(),
 }));
 
 vi.mock('@/hooks/useEnterprisePermission', () => ({
@@ -92,6 +98,12 @@ describe('EnterpriseDashboardPage', () => {
 
     vi.mocked(useContracts).mockReturnValue({
       data: mockContracts,
+      isLoading: false,
+      refetch: vi.fn(),
+    } as any);
+
+    vi.mocked(useContractsConsumptionSummary).mockReturnValue({
+      data: [],
       isLoading: false,
       refetch: vi.fn(),
     } as any);

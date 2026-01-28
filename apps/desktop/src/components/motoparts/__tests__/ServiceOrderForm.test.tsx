@@ -11,8 +11,13 @@ vi.mock('@/hooks/useServiceOrders', () => ({
     updateOrder: { mutateAsync: vi.fn(), isPending: false },
   }),
   useServices: () => ({
+    services: [],
     data: [],
     isLoading: false,
+    createService: {
+      mutateAsync: vi.fn().mockResolvedValue({ id: 'svc-1', name: 'Novo Serviço' }),
+      isPending: false,
+    },
   }),
   useVehicleHistory: () => ({
     history: [],
@@ -89,6 +94,12 @@ vi.mock('../CustomerSearch', () => ({
 // Mock VehicleHistoryPopover para evitar chamada ao hook
 vi.mock('../VehicleHistoryPopover', () => ({
   VehicleHistoryPopover: () => <div data-testid="vehicle-history-popover">History</div>,
+}));
+
+// Mock ServiceOrderItemDialog para evitar problemas com hooks internos
+vi.mock('../ServiceOrderItemDialog', () => ({
+  ServiceOrderItemDialog: ({ open, onOpenChange }: any) =>
+    open ? <div data-testid="service-order-item-dialog">Item Dialog</div> : null,
 }));
 
 // Mock simplificado para Popover e Command para evitar problemas com JSDOM
@@ -215,8 +226,8 @@ describe('ServiceOrderForm', () => {
     await waitFor(() => {
       expect(mockCreateOrder).toHaveBeenCalledWith(
         expect.objectContaining({
-          customer_id: 'cust-1',
-          customer_vehicle_id: 'veh-1',
+          customerId: 'cust-1',
+          customerVehicleId: 'veh-1',
           symptoms: 'Barulho no motor',
           status: 'OPEN',
         })
