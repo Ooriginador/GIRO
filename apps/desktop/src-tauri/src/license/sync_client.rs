@@ -136,6 +136,11 @@ pub struct SyncClient {
     client: reqwest::Client,
 }
 
+/// Maximum retry attempts for sync operations
+const MAX_RETRIES: u32 = 3;
+/// Base delay for exponential backoff (in milliseconds)
+const BASE_DELAY_MS: u64 = 500;
+
 impl SyncClient {
     /// Create new sync client
     pub fn new(config: LicenseClientConfig) -> Self {
@@ -145,6 +150,114 @@ impl SyncClient {
             .expect("Failed to create HTTP client");
 
         Self { config, client }
+    }
+
+    /// Execute request with retry and exponential backoff
+    async fn request_with_retry<T: serde::de::DeserializeOwned>(
+        &self,
+        method: reqwest::Method,
+        url: &str,
+        license_key: &str,
+        payload: &impl serde::Serialize,
+        operation_name: &str,
+    ) -> Result<T, String> {
+        let mut last_error = String::new();
+
+        for attempt in 0..MAX_RETRIES {
+            if attempt > 0 {
+                // Exponential backoff: 500ms, 1000ms, 2000ms
+                let delay = BASE_DELAY_MS * (1 << attempt);
+                tracing::info!(
+                    "[SyncClient] Tentativa {} de {} para {} (aguardando {}ms)",
+                    attempt + 1,
+                    MAX_RETRIES,
+                    operation_name,
+                    delay
+                );
+                tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
+            }
+
+            let request = self
+                .client
+                .request(method.clone(), url)
+                .header("X-License-Key", license_key)
+                .json(payload);
+
+            match request.send().await {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        match response.json::<T>().await {
+                            Ok(result) => return Ok(result),
+                            Err(e) => {
+                                last_error = format!("Erro ao processar resposta: {}", e);
+                                continue;
+                            }
+                        }
+                    } else {
+                        let status = response.status();
+                        let error_text = response.text().await.unwrap_or_default();
+
+                        // Don't retry client errors (4xx) - they won't succeed on retry
+                        if status.is_client_error() {
+                            return Err(self.format_server_error(&error_text, status.as_u16()));
+                        }
+
+                        last_error = format!("Servidor retornou erro {}: {}", status, error_text);
+                    }
+                }
+                Err(e) => {
+                    last_error = self.format_connection_error(&e);
+                    // Continue to retry for network errors
+                }
+            }
+        }
+
+        Err(format!(
+            "Falha após {} tentativas para {}: {}",
+            MAX_RETRIES, operation_name, last_error
+        ))
+    }
+
+    /// Format connection error with Windows-specific hints
+    fn format_connection_error(&self, error: &reqwest::Error) -> String {
+        if error.is_timeout() {
+            format!(
+                "Tempo limite excedido ao conectar com servidor de sincronização. \
+                 Verifique sua conexão com a internet."
+            )
+        } else if error.is_connect() {
+            #[cfg(target_os = "windows")]
+            return format!(
+                "Não foi possível conectar ao servidor de licenças. \
+                 Possíveis causas:\n\
+                 • Sem conexão com a internet\n\
+                 • Firewall do Windows bloqueando conexão\n\
+                 • Antivírus bloqueando a aplicação\n\
+                 Erro: {}",
+                error
+            );
+
+            #[cfg(not(target_os = "windows"))]
+            format!(
+                "Não foi possível conectar ao servidor de licenças. \
+                 Verifique sua conexão com a internet. Erro: {}",
+                error
+            )
+        } else {
+            format!("Erro de conexão: {}", error)
+        }
+    }
+
+    /// Format server error response
+    fn format_server_error(&self, error_text: &str, status_code: u16) -> String {
+        match status_code {
+            401 => "Licença inválida ou expirada. Verifique sua chave de licença.".to_string(),
+            403 => "Hardware não autorizado para esta licença.".to_string(),
+            404 => "Licença não encontrada no servidor.".to_string(),
+            429 => "Muitas requisições. Aguarde alguns minutos e tente novamente.".to_string(),
+            500..=599 => format!("Erro no servidor de licenças. Tente novamente mais tarde."),
+            _ => format!("Erro do servidor ({}): {}", status_code, error_text),
+        }
     }
 
     /// Push changes to server
@@ -164,27 +277,14 @@ impl SyncClient {
             items,
         };
 
-        let response = self
-            .client
-            .post(&url)
-            .header("X-License-Key", license_key)
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| format!("Erro ao conectar com servidor de sync: {}", e))?;
-
-        if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
-            tracing::error!("[SyncClient] Erro no push: {}", error_text);
-            return Err(format!("Falha no sync push: {}", error_text));
-        }
-
-        let result = response
-            .json::<SyncPushResponse>()
-            .await
-            .map_err(|e| format!("Erro ao processar resposta: {}", e))?;
-
-        Ok(result)
+        self.request_with_retry(
+            reqwest::Method::POST,
+            &url,
+            license_key,
+            &payload,
+            "sync push",
+        )
+        .await
     }
 
     /// Pull changes from server
@@ -206,27 +306,14 @@ impl SyncClient {
             limit,
         };
 
-        let response = self
-            .client
-            .post(&url)
-            .header("X-License-Key", license_key)
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| format!("Erro ao conectar com servidor de sync: {}", e))?;
-
-        if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
-            tracing::error!("[SyncClient] Erro no pull: {}", error_text);
-            return Err(format!("Falha no sync pull: {}", error_text));
-        }
-
-        let result = response
-            .json::<SyncPullResponse>()
-            .await
-            .map_err(|e| format!("Erro ao processar resposta: {}", e))?;
-
-        Ok(result)
+        self.request_with_retry(
+            reqwest::Method::POST,
+            &url,
+            license_key,
+            &payload,
+            "sync pull",
+        )
+        .await
     }
 
     /// Get sync status
@@ -244,27 +331,14 @@ impl SyncClient {
             hardware_id: hardware_id.to_string(),
         };
 
-        let response = self
-            .client
-            .post(&url)
-            .header("X-License-Key", license_key)
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| format!("Erro ao conectar com servidor de sync: {}", e))?;
-
-        if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
-            tracing::error!("[SyncClient] Erro ao obter status: {}", error_text);
-            return Err(format!("Falha ao obter status de sync: {}", error_text));
-        }
-
-        let result = response
-            .json::<SyncStatusResponse>()
-            .await
-            .map_err(|e| format!("Erro ao processar resposta: {}", e))?;
-
-        Ok(result)
+        self.request_with_retry(
+            reqwest::Method::POST,
+            &url,
+            license_key,
+            &payload,
+            "sync status",
+        )
+        .await
     }
 
     /// Reset sync cursor (force full resync)
@@ -284,20 +358,15 @@ impl SyncClient {
             "entity_type": entity_type
         });
 
-        let response = self
-            .client
-            .post(&url)
-            .header("X-License-Key", license_key)
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| format!("Erro ao conectar com servidor de sync: {}", e))?;
-
-        if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
-            tracing::error!("[SyncClient] Erro ao resetar cursor: {}", error_text);
-            return Err(format!("Falha ao resetar sync: {}", error_text));
-        }
+        let _: serde_json::Value = self
+            .request_with_retry(
+                reqwest::Method::POST,
+                &url,
+                license_key,
+                &payload,
+                "sync reset",
+            )
+            .await?;
 
         Ok(())
     }

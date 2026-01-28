@@ -86,6 +86,12 @@ pub enum AppError {
     Hardware(String),
 
     // ═══════════════════════════════════════════════════════════════════════
+    // Erros de Rede
+    // ═══════════════════════════════════════════════════════════════════════
+    #[error("Erro de rede: {0}")]
+    Network(String),
+
+    // ═══════════════════════════════════════════════════════════════════════
     // Erros de Sistema
     // ═══════════════════════════════════════════════════════════════════════
     #[error("Erro de IO: {0}")]
@@ -155,6 +161,7 @@ impl Serialize for AppError {
             Self::ExpiredProduct => "EXPIRED_PRODUCT",
             Self::DiscountExceedsLimit { .. } => "DISCOUNT_EXCEEDS_LIMIT",
             Self::Hardware(_) => "HARDWARE_ERROR",
+            Self::Network(_) => "NETWORK_ERROR",
             Self::Io(_) => "IO_ERROR",
             Self::Serialization(_) => "SERIALIZATION_ERROR",
             Self::Internal(_) => "INTERNAL_ERROR",

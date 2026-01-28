@@ -1,24 +1,26 @@
 # 🔄 Debug Report: Sistema de Sincronização Multi-PC
 
 > **Data:** 2026-01-27  
-> **Versão:** 2.1.0  
-> **Status:** ✅ Implementação Completa
+> **Versão:** 2.1.1  
+> **Status:** ✅ Implementação Completa + Sync Automático
 
 ---
 
 ## 📊 Resumo Executivo
 
-| Componente | Status | Observação |
-|------------|--------|------------|
-| Desktop Commands (Rust) | ✅ Compila | 5 comandos Tauri funcionais |
-| Desktop Sync Client | ✅ Compila | HTTP client para API |
-| Frontend Hook | ✅ Sem erros TS | useSync hook completo |
-| Frontend UI | ✅ Sem erros TS | SyncSettings componente |
-| License Server Routes | ✅ Compila | 4 endpoints registrados |
-| License Server Service | ✅ Compila | Lógica de negócio |
-| PostgreSQL Migration | ✅ Criada | 3 tabelas + índices |
-| Pull Upsert | ✅ Implementado | Todas entidades |
-| **E2E Integration** | ⚠️ Não testado | Requer server rodando |
+| Componente              | Status          | Observação                  |
+| ----------------------- | --------------- | --------------------------- |
+| Desktop Commands (Rust) | ✅ Compila      | 6 comandos Tauri funcionais |
+| Desktop Sync Client     | ✅ Compila      | HTTP client para API        |
+| Frontend Hook           | ✅ Sem erros TS | useSync hook completo       |
+| Frontend UI             | ✅ Sem erros TS | SyncSettings componente     |
+| License Server Routes   | ✅ Compila      | 4 endpoints registrados     |
+| License Server Service  | ✅ Compila      | Lógica de negócio           |
+| PostgreSQL Migration    | ✅ Criada       | 3 tabelas + índices         |
+| Pull Upsert             | ✅ Implementado | Todas entidades             |
+| **Sync Automático**     | ✅ Implementado | A cada 5 minutos            |
+| **Force Sync**          | ✅ Implementado | Botão manual na UI          |
+| **E2E Integration**     | ⚠️ Não testado  | Requer server rodando       |
 
 ---
 
@@ -31,6 +33,7 @@
 **Antes:** Só implementava deleções, upserts marcados como TODO.
 
 **Depois:** Usa métodos `upsert_from_sync()` que já existiam nos repositórios:
+
 - `ProductRepository::upsert_from_sync()`
 - `CategoryRepository::upsert_from_sync()`
 - `SupplierRepository::upsert_from_sync()`
@@ -43,14 +46,14 @@
 
 ## 📋 Matriz de Entidades (Atualizada)
 
-| Entidade | Push Server | Pull Delete | Pull Upsert | Status |
-|----------|-------------|-------------|-------------|--------|
-| Product | ✅ | ✅ | ✅ | Completo |
-| Category | ✅ | ✅ | ✅ | Completo |
-| Supplier | ✅ | ✅ | ✅ | Completo |
-| Customer | ✅ | ✅ (deactivate) | ✅ | Completo |
-| Setting | ✅ | ✅ | ✅ | Completo |
-| Employee | ⛔ | ⛔ | ⛔ | Skip (security) |
+| Entidade | Push Server | Pull Delete     | Pull Upsert | Status          |
+| -------- | ----------- | --------------- | ----------- | --------------- |
+| Product  | ✅          | ✅              | ✅          | Completo        |
+| Category | ✅          | ✅              | ✅          | Completo        |
+| Supplier | ✅          | ✅              | ✅          | Completo        |
+| Customer | ✅          | ✅ (deactivate) | ✅          | Completo        |
+| Setting  | ✅          | ✅              | ✅          | Completo        |
+| Employee | ⛔          | ⛔              | ⛔          | Skip (security) |
 
 ---
 
@@ -74,39 +77,42 @@ SyncEntityType::Employee => {
 
 ## 🔧 Ações Pendentes (Menor Prioridade)
 
-### P2 - Médio (Qualidade)
+### ~~P2 - Médio (Qualidade)~~ ✅ Concluídas
 
-1. **Limpar Warnings do Server**
-   - Remover imports não usados em sync_service.rs
-
-2. **Adicionar Sync Automático** (Futuro)
-   - Trigger ao detectar conexão
-   - Sync periódico em background
+1. ~~**Limpar Warnings do Server**~~ - Já está limpo
+2. ~~**Adicionar Sync Automático**~~ - ✅ Implementado (5 min interval)
+   - Trigger ao detectar conexão ✅
+   - Sync periódico em background ✅
+   - Comando `force_network_sync` para sync manual ✅
 
 ### P3 - Baixo (Nice to have)
 
 3. **UI de Conflitos**
+
    - Mostrar itens em conflito
    - Permitir resolução manual
 
-4. **Sync Cursors Local**
-   - Adicionar tabela SQLite para persistir cursor
-   - Evitar resync completo após restart
+4. ~~**Sync Cursors Local**~~ - ✅ Já implementado
+   - Usa `settings` table com key `network.last_sync`
+   - Persiste entre restarts
 
 ---
 
 ## 📁 Arquivos do Sistema de Sync
 
 ### Desktop (Tauri/Rust)
+
 - `apps/desktop/src-tauri/src/commands/sync.rs` - 5 comandos Tauri
 - `apps/desktop/src-tauri/src/license/sync_client.rs` - HTTP client
 - `apps/desktop/src-tauri/src/repositories/*.rs` - Métodos upsert_from_sync
 
 ### Desktop (React)
+
 - `apps/desktop/src/hooks/useSync.ts` - Hook React Query
 - `apps/desktop/src/components/settings/SyncSettings.tsx` - UI
 
 ### License Server
+
 - `giro-license-server/backend/src/routes/sync.rs` - Endpoints
 - `giro-license-server/backend/src/services/sync_service.rs` - Lógica
 - `giro-license-server/backend/src/repositories/sync_repo.rs` - DB ops
@@ -117,6 +123,7 @@ SyncEntityType::Employee => {
 ## 🧪 Testes Recomendados
 
 ### Cenário 1: Push Básico
+
 ```
 1. PC-A: Criar novo produto
 2. PC-A: Chamar sync_push
@@ -124,6 +131,7 @@ SyncEntityType::Employee => {
 ```
 
 ### Cenário 2: Pull Básico
+
 ```
 1. Server: Ter snapshot com produto X
 2. PC-B: Chamar sync_pull
@@ -131,6 +139,7 @@ SyncEntityType::Employee => {
 ```
 
 ### Cenário 3: Conflito
+
 ```
 1. PC-A e PC-B: Editar mesmo produto offline
 2. PC-A: Push primeiro (sucesso)
@@ -139,6 +148,7 @@ SyncEntityType::Employee => {
 ```
 
 ### Cenário 4: Delete Propagation
+
 ```
 1. PC-A: Deletar produto
 2. PC-A: Push

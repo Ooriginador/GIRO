@@ -131,18 +131,45 @@ export function NetworkSettings() {
             )}
 
             {status.isRunning && (
-              <div className="flex items-center gap-2 text-sm">
-                <div
-                  className={`h-2 w-2 rounded-full ${
-                    status.connectedMaster ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'
-                  }`}
-                />
-                <span>
-                  {status.connectedMaster
-                    ? `Conectado a ${status.connectedMaster}`
-                    : 'Buscando servidor Master...'}
-                </span>
-              </div>
+              <>
+                <div className="flex items-center gap-2 text-sm">
+                  <div
+                    className={`h-2 w-2 rounded-full ${
+                      status.connectedMaster ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'
+                    }`}
+                  />
+                  <span>
+                    {status.connectedMaster
+                      ? `Conectado a ${status.connectedMaster}`
+                      : 'Buscando servidor Master...'}
+                  </span>
+                </div>
+                {status.connectedMaster && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await invoke('force_network_sync');
+                        toast({
+                          title: 'Sincronização iniciada',
+                          description: 'Dados serão atualizados em instantes',
+                        });
+                      } catch (e) {
+                        toast({
+                          title: 'Erro ao sincronizar',
+                          description: e instanceof Error ? e.message : String(e),
+                          variant: 'destructive',
+                        });
+                      }
+                    }}
+                    disabled={loading}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Sincronizar Agora
+                  </Button>
+                )}
+              </>
             )}
           </div>
 
@@ -150,8 +177,8 @@ export function NetworkSettings() {
             <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground flex items-center gap-2">
               <Wifi className="h-4 w-4" />
               <p>
-                Este terminal está sincronizando produtos e enviando vendas para o Master
-                automaticamente.
+                Este terminal sincroniza automaticamente a cada 5 minutos. Vendas são enviadas
+                instantaneamente para o Master.
               </p>
             </div>
           )}

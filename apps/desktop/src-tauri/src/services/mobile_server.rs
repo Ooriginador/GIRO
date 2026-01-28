@@ -113,7 +113,31 @@ impl MobileServer {
     /// Inicia o servidor
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let addr = format!("{}:{}", self.config.host, self.config.port);
-        let listener = TcpListener::bind(&addr).await?;
+
+        let listener = match TcpListener::bind(&addr).await {
+            Ok(l) => l,
+            Err(e) => {
+                let error_kind = e.kind();
+                let error_msg = if error_kind == std::io::ErrorKind::AddrInUse {
+                    format!(
+                        "A porta {} já está em uso por outro programa. Feche-o ou escolha outra porta.",
+                        self.config.port
+                    )
+                } else if error_kind == std::io::ErrorKind::PermissionDenied {
+                    format!(
+                        "Permissão negada para abrir a porta {}. No Windows, execute como Administrador ou libere no Firewall.",
+                        self.config.port
+                    )
+                } else {
+                    format!(
+                        "Falha ao iniciar servidor na porta {}: {}. No Windows, verifique o Firewall.",
+                        self.config.port, e
+                    )
+                };
+                tracing::error!("❌ {}", error_msg);
+                return Err(error_msg.into());
+            }
+        };
 
         tracing::info!("🔌 Servidor Mobile WebSocket iniciado em {}", addr);
 

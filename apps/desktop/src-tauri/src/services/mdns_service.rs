@@ -13,6 +13,45 @@ const SERVICE_TYPE: &str = "_giro._tcp.local.";
 /// Porta padrão do WebSocket
 const DEFAULT_PORT: u16 = 3847;
 
+/// Obtém o hostname da máquina de forma cross-platform
+fn get_hostname() -> String {
+    // Tentar COMPUTERNAME primeiro (Windows)
+    if let Ok(name) = std::env::var("COMPUTERNAME") {
+        if !name.is_empty() {
+            return name;
+        }
+    }
+
+    // Tentar HOSTNAME (Linux/Mac)
+    if let Ok(name) = std::env::var("HOSTNAME") {
+        if !name.is_empty() {
+            return name;
+        }
+    }
+
+    // Fallback usando gethostname do sistema
+    #[cfg(unix)]
+    {
+        if let Ok(hostname) = hostname::get() {
+            if let Some(name) = hostname.to_str() {
+                return name.to_string();
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    {
+        // No Windows, tentar via winapi se env var falhar
+        if let Ok(hostname) = hostname::get() {
+            if let Some(name) = hostname.to_str() {
+                return name.to_string();
+            }
+        }
+    }
+
+    "giro-desktop".to_string()
+}
+
 /// Configuração do mDNS
 #[derive(Debug, Clone)]
 pub struct MdnsConfig {
@@ -71,13 +110,23 @@ impl MdnsService {
 
         let config = self.config.read().await.clone();
 
-        // Obter hostname usando gethostname do std
-        let hostname = std::env::var("HOSTNAME")
-            .or_else(|_| std::env::var("COMPUTERNAME"))
-            .unwrap_or_else(|_| "giro-desktop".into());
+        // Obter hostname - Windows usa COMPUTERNAME, Linux/Mac usam HOSTNAME
+        let hostname = get_hostname();
+        tracing::info!("📡 Iniciando mDNS com hostname: {}", hostname);
 
         // Criar daemon
-        let daemon = ServiceDaemon::new().map_err(|e| MdnsError::DaemonCreation(e.to_string()))?;
+        let daemon = match ServiceDaemon::new() {
+            Ok(d) => d,
+            Err(e) => {
+                // No Windows, mDNS pode falhar por firewall ou permissões
+                let error_msg = e.to_string();
+                tracing::warn!("⚠️ Falha ao criar daemon mDNS: {}. Em Windows, verifique se o Firewall permite multicast.", error_msg);
+                return Err(MdnsError::DaemonCreation(format!(
+                    "{} (Windows: verifique Firewall e permissões de rede)",
+                    error_msg
+                )));
+            }
+        };
 
         // Preparar propriedades TXT
         let mut properties: HashMap<String, String> = HashMap::new();

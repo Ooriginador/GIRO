@@ -158,19 +158,31 @@ interface StockAdjustInput {
  */
 export function useAdjustStock() {
   const queryClient = useQueryClient();
-  const { success, error } = useToast();
+  const { success, error, warning } = useToast();
 
   return useMutation({
     mutationFn: (input: StockAdjustInput) =>
       adjustStock(input.productId, input.newQuantity, input.reason),
-    onSuccess: (_, variables) => {
+    onSuccess: (result, variables) => {
+      if (!result.adjusted) {
+        warning('Nenhuma alteração', 'O estoque já está com essa quantidade');
+        return;
+      }
+
+      // Invalidar queries de estoque
       queryClient.invalidateQueries({ queryKey: stockKeys.movements(variables.productId) });
       queryClient.invalidateQueries({ queryKey: stockKeys.lowStock() });
       queryClient.invalidateQueries({ queryKey: stockKeys.report() });
-      queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.productId) });
-      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
 
-      success('Estoque ajustado', `Quantidade atualizada para ${variables.newQuantity}`);
+      // Invalidar queries de produto para atualizar a lista
+      queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.productId) });
+      queryClient.invalidateQueries({
+        queryKey: productKeys.all,
+        refetchType: 'all', // Forçar refetch de todas as queries de produtos
+      });
+
+      const deltaText = result.delta > 0 ? `+${result.delta}` : `${result.delta}`;
+      success('Estoque ajustado', `Quantidade: ${variables.newQuantity} (${deltaText})`);
     },
     onError: (err) => {
       error('Erro no ajuste', err.message);

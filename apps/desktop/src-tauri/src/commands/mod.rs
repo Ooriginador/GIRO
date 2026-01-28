@@ -57,6 +57,7 @@ pub use held_sales::*;
 pub use lgpd::*;
 pub use license::*;
 pub use mobile::*;
+pub use network::*;
 pub use price_history::*;
 pub use products::*;
 pub use reports::*;

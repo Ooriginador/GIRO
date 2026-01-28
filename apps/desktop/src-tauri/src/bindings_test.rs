@@ -237,6 +237,7 @@ mod tests {
             commands::network::start_network_client,
             commands::network::stop_network_client,
             commands::network::get_network_status,
+            commands::network::force_network_sync,
             // Mobile
             commands::start_mobile_server,
             commands::stop_mobile_server,

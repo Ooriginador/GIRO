@@ -5,10 +5,13 @@
 use crate::error::{AppError, AppResult};
 use crate::services::network_client::{ConnectionState, NetworkClient};
 use crate::AppState;
+use mdns_sd::{ServiceDaemon, ServiceEvent};
 use serde::Serialize;
 use std::sync::Arc;
+use std::time::Duration;
 use tauri::State;
 use tokio::sync::RwLock;
+use tokio::time::sleep;
 
 /// Status da rede
 #[derive(Debug, Clone, Serialize, specta::Type)]
@@ -17,6 +20,22 @@ pub struct NetworkStatus {
     pub is_running: bool,
     pub status: String,
     pub connected_master: Option<String>,
+}
+
+/// Master encontrado na rede
+#[derive(Debug, Clone, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveredMaster {
+    /// Nome da instância (ex: "GIRO Desktop - Loja X")
+    pub name: String,
+    /// Endereço IP
+    pub ip: String,
+    /// Porta
+    pub port: u16,
+    /// Versão do GIRO
+    pub version: Option<String>,
+    /// Nome da loja (se configurado)
+    pub store_name: Option<String>,
 }
 
 /// Estado do cliente de rede
@@ -102,5 +121,189 @@ pub async fn get_network_status(
             status: "Stopped".into(),
             connected_master: None,
         })
+    }
+}
+
+/// Força sincronização imediata com o Master
+#[tauri::command]
+#[specta::specta]
+pub async fn force_network_sync(
+    network_state: State<'_, RwLock<NetworkState>>,
+    app_state: State<'_, AppState>,
+) -> AppResult<()> {
+    app_state.session.require_authenticated()?;
+    let state = network_state.read().await;
+
+    if let Some(ref client) = state.client {
+        client
+            .force_sync()
+            .await
+            .map_err(|e| AppError::Network(e.to_string()))?;
+        tracing::info!("Sincronização forçada iniciada");
+        Ok(())
+    } else {
+        Err(AppError::Validation(
+            "Cliente de rede não está rodando".into(),
+        ))
+    }
+}
+
+/// Escaneia a rede local em busca de Masters GIRO
+///
+/// Usado no setup inicial para detectar se já existe um GIRO Principal na rede.
+/// Faz scan mDNS por até `timeout_secs` segundos.
+#[tauri::command]
+#[specta::specta]
+pub async fn scan_network_for_masters(
+    timeout_secs: Option<u64>,
+) -> AppResult<Vec<DiscoveredMaster>> {
+    let timeout = timeout_secs.unwrap_or(10);
+    tracing::info!(
+        "🔍 Escaneando rede por Masters GIRO (timeout: {}s)...",
+        timeout
+    );
+
+    let mdns = match ServiceDaemon::new() {
+        Ok(d) => d,
+        Err(e) => {
+            // mDNS pode falhar no Windows por firewall - não é erro crítico
+            tracing::warn!(
+                "⚠️ Descoberta automática indisponível: {}. O usuário pode configurar IP manualmente.", 
+                e
+            );
+            // Retorna lista vazia ao invés de erro
+            return Ok(vec![]);
+        }
+    };
+
+    let receiver = match mdns.browse("_giro._tcp.local.") {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::warn!("⚠️ Falha ao buscar serviços mDNS: {}", e);
+            return Ok(vec![]);
+        }
+    };
+
+    let mut masters: Vec<DiscoveredMaster> = Vec::new();
+    let timeout_duration = sleep(Duration::from_secs(timeout));
+    tokio::pin!(timeout_duration);
+
+    loop {
+        tokio::select! {
+            event = receiver.recv_async() => {
+                if let Ok(ServiceEvent::ServiceResolved(info)) = event {
+                    if let Some(ip) = info.get_addresses().iter().next() {
+                        let ip_str = ip.to_string();
+                        let port = info.get_port();
+                        let name = info.get_fullname().to_string();
+
+                        // Extrair propriedades TXT
+                        let properties = info.get_properties();
+                        let version = properties.get("version").map(|v| v.val_str().to_string());
+                        let store_name = properties.get("store").map(|v| v.val_str().to_string());
+
+                        // Evitar duplicatas
+                        if !masters.iter().any(|m| m.ip == ip_str && m.port == port) {
+                            tracing::info!("✅ Master encontrado: {} ({}:{})", name, ip_str, port);
+
+                            masters.push(DiscoveredMaster {
+                                name: name.replace("._giro._tcp.local.", ""),
+                                ip: ip_str,
+                                port,
+                                version,
+                                store_name,
+                            });
+                        }
+                    }
+                }
+            }
+            _ = &mut timeout_duration => {
+                tracing::info!("⏰ Scan finalizado. {} Master(s) encontrado(s).", masters.len());
+                break;
+            }
+        }
+    }
+
+    // Tentar parar o daemon graciosamente
+    let _ = mdns.shutdown();
+
+    Ok(masters)
+}
+
+/// Tenta conectar a um Master específico com senha
+///
+/// Usado no setup para testar a conexão antes de salvar as configurações.
+#[tauri::command]
+#[specta::specta]
+pub async fn test_master_connection(ip: String, port: u16, secret: String) -> AppResult<bool> {
+    use futures_util::{SinkExt, StreamExt};
+    use tokio_tungstenite::connect_async;
+    use tokio_tungstenite::tungstenite::Message;
+
+    let url = format!("ws://{}:{}/ws", ip, port);
+    tracing::info!("🔌 Testando conexão com Master: {}", url);
+
+    // Timeout de 10 segundos para conexão
+    let connect_result = tokio::time::timeout(Duration::from_secs(10), connect_async(&url)).await;
+
+    let (ws_stream, _) = match connect_result {
+        Ok(Ok(stream)) => stream,
+        Ok(Err(e)) => {
+            tracing::warn!("❌ Falha ao conectar: {}", e);
+            return Ok(false);
+        }
+        Err(_) => {
+            tracing::warn!("❌ Timeout ao conectar");
+            return Ok(false);
+        }
+    };
+
+    let (mut write, mut read) = ws_stream.split();
+
+    // Enviar autenticação
+    let auth_msg = serde_json::json!({
+        "type": "auth",
+        "payload": {
+            "deviceId": "setup-test",
+            "deviceName": "Setup Wizard",
+            "secret": secret
+        }
+    });
+
+    if let Err(e) = write.send(Message::Text(auth_msg.to_string().into())).await {
+        tracing::warn!("❌ Falha ao enviar auth: {}", e);
+        return Ok(false);
+    }
+
+    // Aguardar resposta (timeout 5s)
+    let response = tokio::time::timeout(Duration::from_secs(5), read.next()).await;
+
+    match response {
+        Ok(Some(Ok(Message::Text(text)))) => {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
+                let response_type = json.get("type").and_then(|t| t.as_str());
+                let success = json
+                    .get("success")
+                    .and_then(|s| s.as_bool())
+                    .unwrap_or(false);
+
+                if response_type == Some("auth_response") && success {
+                    tracing::info!("✅ Autenticação bem-sucedida!");
+                    return Ok(true);
+                } else {
+                    let error = json
+                        .get("error")
+                        .and_then(|e| e.as_str())
+                        .unwrap_or("Senha incorreta");
+                    tracing::warn!("❌ Autenticação falhou: {}", error);
+                    return Ok(false);
+                }
+            }
+            Ok(false)
+        }
+        _ => {
+            tracing::warn!("❌ Nenhuma resposta do Master");
+            Ok(false)
+        }
     }
 }

@@ -83,11 +83,14 @@ export function SyncSettings() {
     'setting',
   ]);
 
+  const [lastError, setLastError] = useState<string | null>(null);
+
   // ────────────────────────────────────────────────────────────────────────
   // HANDLERS
   // ────────────────────────────────────────────────────────────────────────
 
   const handleSyncAll = useCallback(async () => {
+    setLastError(null);
     try {
       const result = await sync.syncAll();
       toast({
@@ -98,15 +101,18 @@ export function SyncSettings() {
         variant: result.conflicts > 0 ? 'destructive' : 'default',
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setLastError(errorMessage);
       toast({
         title: 'Erro na sincronização',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
   }, [sync, toast]);
 
   const handlePush = useCallback(async () => {
+    setLastError(null);
     try {
       const result = await sync.push.mutateAsync(selectedEntities);
       toast({
@@ -114,15 +120,18 @@ export function SyncSettings() {
         description: `${result.processed} itens processados`,
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setLastError(errorMessage);
       toast({
         title: 'Erro ao enviar dados',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
   }, [sync, selectedEntities, toast]);
 
   const handlePull = useCallback(async () => {
+    setLastError(null);
     try {
       const result = await sync.pull.mutateAsync(selectedEntities);
       toast({
@@ -130,15 +139,18 @@ export function SyncSettings() {
         description: `${result.items.length} itens atualizados`,
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setLastError(errorMessage);
       toast({
         title: 'Erro ao receber dados',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
   }, [sync, selectedEntities, toast]);
 
   const handleReset = useCallback(async () => {
+    setLastError(null);
     try {
       await sync.reset();
       toast({
@@ -146,9 +158,11 @@ export function SyncSettings() {
         description: 'Histórico de sincronização foi limpo',
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setLastError(errorMessage);
       toast({
         title: 'Erro ao resetar',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
@@ -246,6 +260,25 @@ export function SyncSettings() {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Alerta de erro */}
+              {lastError && (
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="font-medium text-destructive">Erro na sincronização</p>
+                      <p className="text-sm text-destructive/80 whitespace-pre-wrap">{lastError}</p>
+                      <button
+                        onClick={() => setLastError(null)}
+                        className="text-xs text-muted-foreground hover:underline mt-2"
+                      >
+                        Fechar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Última sincronização */}
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-3">
