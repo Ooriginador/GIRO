@@ -5,11 +5,11 @@
   "platforms": {
     "windows-x86_64": {
       "signature": "",
-      "url": "https://github.com/arkheion/giro/releases/latest/download/GIRO_x64-setup.nsis.zip"
+      "url": "https://github.com/Ooriginador/GIRO/releases/latest/download/GIRO_x64-setup.nsis.zip"
     },
     "linux-x86_64": {
       "signature": "",
-      "url": "https://github.com/arkheion/giro/releases/latest/download/GIRO_amd64.AppImage.tar.gz"
+      "url": "https://github.com/Ooriginador/GIRO/releases/latest/download/GIRO_amd64.AppImage.tar.gz"
     }
   }
 }
