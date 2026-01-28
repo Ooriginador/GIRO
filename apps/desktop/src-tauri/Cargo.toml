@@ -4,7 +4,7 @@ version = "2.4.9"
 description = "GIRO - Sistema de Gestao Comercial para Varejo"
 authors = ["Arkheion"]
 license = "Proprietary"
-repository = "https://github.com/jhonslife/GIRO"
+repository = "https://github.com/Ooriginador/GIRO"
 edition = "2021"
 rust-version = "1.75"
 

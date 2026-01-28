@@ -120,12 +120,12 @@ jobs:
 
             ### ✨ O que há de novo
 
-            Veja o [CHANGELOG](https://github.com/jhonslife/GIRO/blob/main/CHANGELOG.md) para detalhes completos.
+            Veja o [CHANGELOG](https://github.com/Ooriginador/GIRO/blob/main/CHANGELOG.md) para detalhes completos.
 
             ### 📖 Documentação
 
-            - [Guia de Instalação](https://jhonslife.github.io/GIRO)
-            - [Documentação Completa](https://github.com/jhonslife/GIRO/tree/main/docs)
+            - [Guia de Instalação](https://ooriginador.github.io/GIRO)
+            - [Documentação Completa](https://github.com/Ooriginador/GIRO/tree/main/docs)
 
             ### 🔄 Atualização Automática
 
@@ -173,11 +173,11 @@ jobs:
             "platforms": {
               "windows-x86_64": {
                 "signature": "",
-                "url": "https://github.com/jhonslife/GIRO/releases/download/${VERSION}/GIRO_${VERSION_NUM}_x64-setup.exe.zip"
+                "url": "https://github.com/Ooriginador/GIRO/releases/download/${VERSION}/GIRO_${VERSION_NUM}_x64-setup.exe.zip"
               },
               "linux-x86_64": {
                 "signature": "",
-                "url": "https://github.com/jhonslife/GIRO/releases/download/${VERSION}/giro_${VERSION_NUM}_amd64.AppImage.tar.gz"
+                "url": "https://github.com/Ooriginador/GIRO/releases/download/${VERSION}/giro_${VERSION_NUM}_amd64.AppImage.tar.gz"
               }
             }
           }
