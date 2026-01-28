@@ -137,7 +137,21 @@ pub fn list_hardware_ports() -> Vec<String> {
 
     ports.sort();
     ports.dedup();
-    ports
+
+    // Check for thermal candidates and mark/sort them
+    let mut prioritized_ports = Vec::new();
+    let mut other_ports = Vec::new();
+
+    for port in ports {
+        if ThermalPrinter::is_thermal_candidate(&port) {
+            prioritized_ports.push(port);
+        } else {
+            other_ports.push(port);
+        }
+    }
+
+    // Return prioritized first
+    [prioritized_ports, other_ports].concat()
 }
 
 /// Verifica se uma porta existe
@@ -665,6 +679,104 @@ pub async fn auto_detect_scale(state: State<'_, AppState>) -> AppResult<ScaleAut
         config: result.config,
         failures: result.failures,
     })
+}
+
+/// Detecta automaticamente a impressora (Windows)
+#[tauri::command]
+#[specta::specta]
+pub async fn auto_detect_printer_async(
+    state: State<'_, AppState>,
+) -> AppResult<PrinterAutoDetectInfo> {
+    state.session.require_authenticated()?;
+
+    let mut config: Option<PrinterConfig> = None;
+    let mut candidates = Vec::new();
+    let mut logs = Vec::new();
+
+    #[cfg(target_os = "windows")]
+    {
+        use crate::utils::windows::run_powershell;
+
+        logs.push("Iniciando busca de impressoras via PowerShell...".to_string());
+
+        // Busca todas as impressoras
+        match run_powershell(
+            "Get-Printer | Select-Object Name, PortName, DriverName, PrinterStatus",
+        ) {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines().skip(3) {
+                    // Skip headers
+                    let line = line.trim();
+                    if line.is_empty() {
+                        continue;
+                    }
+
+                    // A saída do PowerShell pode variar, mas geralmente o Name é o primeiro
+                    // Vamos tentar uma abordagem mais robusta buscando nomes conhecidos
+
+                    if ThermalPrinter::is_thermal_candidate(line) {
+                        // Extrai o nome da impressora (simplificado)
+                        // Em uma saída formatada do PS, o nome é o primeiro campo
+                        let parts: Vec<&str> = line.split_whitespace().collect();
+                        if let Some(name) = parts.first() {
+                            let printer_name = name.to_string();
+                            logs.push(format!("Candidato encontrado: {}", printer_name));
+                            candidates.push(printer_name);
+                        }
+                    }
+                }
+            }
+            Err(e) => logs.push(format!("Erro ao executar PowerShell: {}", e)),
+        }
+
+        // Se encontrou candidatos, pega o primeiro
+        if let Some(best_match) = candidates.first() {
+            logs.push(format!("Selecionando melhor candidato: {}", best_match));
+
+            // Tenta determinar o modelo
+            let model = if best_match.to_lowercase().contains("epson") {
+                crate::hardware::printer::PrinterModel::Epson
+            } else if best_match.to_lowercase().contains("bematech") {
+                crate::hardware::printer::PrinterModel::Bematech
+            } else if best_match.to_lowercase().contains("elgin") {
+                crate::hardware::printer::PrinterModel::Elgin
+            } else if best_match.to_lowercase().contains("c3tech") {
+                crate::hardware::printer::PrinterModel::C3Tech
+            } else {
+                crate::hardware::printer::PrinterModel::Generic
+            };
+
+            config = Some(PrinterConfig {
+                enabled: true,
+                model,
+                connection: crate::hardware::printer::PrinterConnection::Usb, // Windows Spooler usa "USB" ou direto
+                port: best_match.clone(), // Nome da impressora para Spooler
+                ..Default::default()
+            });
+        } else {
+            logs.push("Nenhuma impressora térmica detectada.".to_string());
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        logs.push("Auto-detecção disponível apenas para Windows no momento.".to_string());
+    }
+
+    Ok(PrinterAutoDetectInfo {
+        config,
+        candidates,
+        logs,
+    })
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PrinterAutoDetectInfo {
+    pub config: Option<PrinterConfig>,
+    pub candidates: Vec<String>,
+    pub logs: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]

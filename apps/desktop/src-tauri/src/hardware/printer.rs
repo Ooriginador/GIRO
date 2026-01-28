@@ -281,6 +281,17 @@ impl ThermalPrinter {
         }
     }
 
+    /// Verifica se o nome da impressora sugere ser uma impressora térmica
+    pub fn is_thermal_candidate(name: &str) -> bool {
+        let name_lower = name.to_lowercase();
+        // Palavras-chave comuns em drivers de impressoras térmicas
+        let keywords = [
+            "pos", "thermal", "receipt", "cupom", "termica", "80mm", "58mm", 
+            "mp-4200", "tm-t", "c3tech", "elgin", "daruma", "bematech", "epson"
+        ];
+        keywords.iter().any(|k| name_lower.contains(k))
+    }
+
     /// Inicializa a impressora
     pub fn init(&mut self) -> &mut Self {
         self.buffer.extend_from_slice(&escpos::INIT);
@@ -828,13 +839,9 @@ if ($result) {{ exit 0 }} else {{ exit 1 }}
                 );
 
                 // Tenta buscar pelo modelo configurado
-                if model_name.to_lowercase().contains("c3tech") {
-                    if let Some(printer) = Self::find_printer_by_port("LPT1") {
-                        return self.print_windows_spooler(&printer);
-                    }
-                    // Tenta nome comum via spooler
-                    return self.print_windows_spooler("C3Tech IT-100");
-                }
+                // (Removido fallback forçado para C3Tech/LPT1 em favor de detecção via Spooler)
+                let _ = model_name; 
+
             }
 
             // Se for caminho UNC ou nome de impressora, usa o spooler do Windows
