@@ -257,7 +257,7 @@ export function SyncSettings() {
               <CloudOff className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="font-medium mb-2">Licença não ativa</p>
               <p className="text-sm mb-4">Ative sua licença para usar a sincronização multi-PC</p>
-              
+
               {/* Help text */}
               <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-left text-xs">
                 <p className="font-medium mb-2 text-blue-700 dark:text-blue-300">💡 Como ativar:</p>

@@ -100,13 +100,15 @@ export function LicenseSettings() {
       });
     } catch (error) {
       const errorMessage = typeof error === 'string' ? error : 'Falha ao sincronizar com servidor.';
-      
+
       // Mensagens mais amigáveis para erros comuns
       let userMessage = errorMessage;
       if (errorMessage.includes('não encontrada no servidor')) {
-        userMessage = 'Licença não encontrada no servidor. Verifique se a chave está correta ou entre em contato com o suporte.';
+        userMessage =
+          'Licença não encontrada no servidor. Verifique se a chave está correta ou entre em contato com o suporte.';
       } else if (errorMessage.includes('Hardware não autorizado')) {
-        userMessage = 'Este computador não está autorizado para usar esta licença. Ative novamente ou contate o suporte.';
+        userMessage =
+          'Este computador não está autorizado para usar esta licença. Ative novamente ou contate o suporte.';
       } else if (errorMessage.includes('expirada')) {
         userMessage = 'Sua licença expirou. Renove sua assinatura para continuar usando o sistema.';
       }

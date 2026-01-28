@@ -200,6 +200,12 @@ export function getErrorMessage(error: unknown): string {
     if (typeof err.error === 'string' && err.error) {
       return err.error;
     }
+
+    // Rust AppError serialized format: { code: string, message: string, details?: any }
+    if (typeof err.code === 'string' && typeof err.message === 'string') {
+      return err.message;
+    }
+
     // Rust AppError format: may come as { Validation: "message" } or similar
     if (typeof err.Validation === 'string') {
       return err.Validation;
@@ -207,6 +213,13 @@ export function getErrorMessage(error: unknown): string {
     if (typeof err.NotFound === 'string') {
       return err.NotFound;
     }
+    if (typeof err.Database === 'string') {
+      return err.Database;
+    }
+    if (typeof err.PermissionDenied === 'string') {
+      return err.PermissionDenied;
+    }
+
     // Try to get a meaningful string representation
     try {
       const str = JSON.stringify(error);
@@ -215,10 +228,22 @@ export function getErrorMessage(error: unknown): string {
         // If it's a simple error object, extract the value
         const parsed = JSON.parse(str);
         if (typeof parsed === 'object' && parsed !== null) {
+          // Try to extract message from common error structures
+          if (parsed.message && typeof parsed.message === 'string') {
+            return parsed.message;
+          }
+          if (parsed.error && typeof parsed.error === 'string') {
+            return parsed.error;
+          }
+          // Extract first string value
           const values = Object.values(parsed);
           if (values.length === 1 && typeof values[0] === 'string') {
             return values[0];
           }
+        }
+        // If still too complex, don't show JSON
+        if (str.length > 200) {
+          return 'Erro ao processar operação';
         }
         return str;
       }
@@ -260,6 +285,12 @@ export function formatUserError(error: unknown, context?: string): string {
     }
     if (message.includes('FOREIGN KEY') && message.includes('category')) {
       return 'A categoria selecionada não existe.';
+    }
+    if (message.includes('FOREIGN KEY constraint failed')) {
+      return 'Não é possível excluir este produto pois existem vendas ou movimentações relacionadas.';
+    }
+    if (message.includes('RESTRICT') || message.includes('constraint')) {
+      return 'Não é possível excluir este produto. Verifique se não há registros relacionados.';
     }
   }
 
