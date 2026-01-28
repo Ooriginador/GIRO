@@ -76,9 +76,16 @@ const mapPrinterModelToBackend = (model: string): BackendPrinterModel => {
 const mapPrinterPortToConnection = (port: string): BackendPrinterConnection => {
   const trimmed = port.trim();
   if (!trimmed) return 'serial';
+  // Linux USB devices
   if (trimmed === 'USB' || trimmed.includes('/dev/usb/lp') || trimmed.includes('/dev/lp'))
     return 'usb';
+  // Windows shared printers (UNC path) or USB virtual ports
+  if (trimmed.startsWith('\\\\') || trimmed.toUpperCase().startsWith('USB')) return 'usb';
+  // Windows LPT ports (tratados como USB/Raw no backend)
+  if (trimmed.toUpperCase().startsWith('LPT')) return 'usb';
+  // Network printers (IP:port)
   if (trimmed.includes(':')) return 'network';
+  // Default to serial (COM ports, etc.)
   return 'serial';
 };
 
@@ -180,15 +187,12 @@ export const SettingsPage: FC = () => {
   const buildBackendPrinterConfig = () => {
     const connection = mapPrinterPortToConnection(printerPort);
 
-    if (printerPort === 'LPT1') {
-      throw new Error('Porta LPT1 não suportada. Use COMx (Serial) ou USB (Linux raw).');
-    }
-
     return {
       enabled: printerEnabled,
       model: mapPrinterModelToBackend(printerModel),
       connection,
-      // Para USB, deixar vazio para o backend tentar /dev/usb/lp0 (Linux)
+      // Para USB (Linux), deixar vazio para o backend tentar /dev/usb/lp0
+      // Para Windows, enviar a porta/nome da impressora
       port: printerPort === 'USB' ? '' : printerPort,
       paperWidth: 48,
       autoCut: printer.autoCut ?? true,
@@ -913,17 +917,33 @@ export const SettingsPage: FC = () => {
                       />
                     </SelectTrigger>
                     <SelectContent>
+                      {/* Linux USB automático */}
                       <SelectItem value="USB">USB (Automático - Linux)</SelectItem>
-                      {availablePorts.map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {p}
-                        </SelectItem>
-                      ))}
+
+                      {/* Portas Windows comuns */}
+                      <SelectItem value="LPT1">LPT1 (Porta Paralela)</SelectItem>
+                      <SelectItem value="COM1">COM1 (Serial)</SelectItem>
+                      <SelectItem value="COM2">COM2 (Serial)</SelectItem>
+                      <SelectItem value="COM3">COM3 (Serial)</SelectItem>
+
+                      {/* Impressoras detectadas pelo sistema */}
+                      {availablePorts.length > 0 && (
+                        <>
+                          <SelectItem value="---" disabled>
+                            ── Impressoras Detectadas ──
+                          </SelectItem>
+                          {availablePorts.map((p) => (
+                            <SelectItem key={p} value={p}>
+                              {p}
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Windows: selecione COM (serial), USB001-USB010 (virtual) ou \\localhost\Nome
-                    (compartilhada).
+                    Windows: selecione a impressora da lista ou use LPT1/COM1. Se não aparecer,
+                    verifique se a impressora está compartilhada no Painel de Controle.
                   </p>
                 </div>
                 <div>
