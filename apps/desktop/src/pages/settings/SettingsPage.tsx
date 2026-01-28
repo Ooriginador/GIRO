@@ -150,9 +150,11 @@ export const SettingsPage: FC = () => {
     setIsLoadingPorts(true);
     try {
       const ports = await invoke<SerialPort[]>('list_hardware_ports');
+      console.log('[SettingsPage] Hardware ports received:', ports);
       setAvailablePorts(ports);
     } catch (error) {
       settingsLogger.error('Erro ao listar portas:', error);
+      console.error('[SettingsPage] Error listing hardware ports:', error);
     } finally {
       setIsLoadingPorts(false);
     }
