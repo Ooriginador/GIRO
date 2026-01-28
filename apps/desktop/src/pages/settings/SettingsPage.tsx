@@ -912,38 +912,55 @@ export const SettingsPage: FC = () => {
                     <SelectTrigger id="printerPort">
                       <SelectValue
                         placeholder={
-                          isLoadingPorts ? 'Carregando portas...' : 'Selecione a porta...'
+                          isLoadingPorts ? 'Carregando portas...' : 'Selecione a impressora...'
                         }
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      {/* Linux USB automático */}
-                      <SelectItem value="USB">USB (Automático - Linux)</SelectItem>
-
-                      {/* Portas Windows comuns */}
-                      <SelectItem value="LPT1">LPT1 (Porta Paralela)</SelectItem>
-                      <SelectItem value="COM1">COM1 (Serial)</SelectItem>
-                      <SelectItem value="COM2">COM2 (Serial)</SelectItem>
-                      <SelectItem value="COM3">COM3 (Serial)</SelectItem>
-
-                      {/* Impressoras detectadas pelo sistema */}
+                      {/* Impressoras detectadas pelo Windows - PRIMEIRA OPÇÃO */}
                       {availablePorts.length > 0 && (
                         <>
-                          <SelectItem value="---" disabled>
-                            ── Impressoras Detectadas ──
+                          <SelectItem value="---detected" disabled>
+                            ── Impressoras Instaladas (Recomendado) ──
                           </SelectItem>
-                          {availablePorts.map((p) => (
-                            <SelectItem key={p} value={p}>
-                              {p}
-                            </SelectItem>
-                          ))}
+                          {availablePorts.map((p) => {
+                            // Extrai o nome amigável da impressora
+                            const displayName = p.startsWith('\\\\localhost\\')
+                              ? p.replace('\\\\localhost\\', '')
+                              : p;
+                            return (
+                              <SelectItem key={p} value={p}>
+                                🖨️ {displayName}
+                              </SelectItem>
+                            );
+                          })}
                         </>
                       )}
+
+                      {/* Linux USB automático */}
+                      <SelectItem value="---linux" disabled>
+                        ── Linux ──
+                      </SelectItem>
+                      <SelectItem value="USB">USB (Automático)</SelectItem>
+
+                      {/* Portas seriais (para impressoras antigas) */}
+                      <SelectItem value="---serial" disabled>
+                        ── Portas Seriais ──
+                      </SelectItem>
+                      <SelectItem value="COM1">COM1</SelectItem>
+                      <SelectItem value="COM2">COM2</SelectItem>
+                      <SelectItem value="COM3">COM3</SelectItem>
+
+                      {/* LPT (muito raro em PCs modernos) */}
+                      <SelectItem value="---legacy" disabled>
+                        ── Portas Paralelas (Legacy) ──
+                      </SelectItem>
+                      <SelectItem value="LPT1">LPT1</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Windows: selecione a impressora da lista ou use LPT1/COM1. Se não aparecer,
-                    verifique se a impressora está compartilhada no Painel de Controle.
+                    <strong>Windows:</strong> Selecione a impressora instalada da lista acima. Se
+                    não aparecer, verifique se o driver está instalado no Painel de Controle.
                   </p>
                 </div>
                 <div>
