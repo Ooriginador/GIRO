@@ -352,3 +352,38 @@ async fn sync_company_data(info: &LicenseInfo, pool: &sqlx::SqlitePool) {
             .await;
     }
 }
+
+/// Response for connected devices command
+pub use crate::license::client::{ConnectedDeviceInfo, ConnectedDevicesResponse};
+
+/// Get all devices connected to the current license
+/// This allows users to see which PCs are using the same license
+#[tauri::command]
+#[specta::specta]
+pub async fn get_license_devices(
+    state: State<'_, AppState>,
+) -> Result<ConnectedDevicesResponse, String> {
+    // Read license key from config
+    let config_path = state
+        .db_path
+        .parent()
+        .ok_or("Invalid DB path")?
+        .join("license.json");
+
+    let content = tokio::fs::read_to_string(&config_path)
+        .await
+        .map_err(|_| "Licença não encontrada. Ative primeiro.")?;
+
+    let data: serde_json::Value =
+        serde_json::from_str(&content).map_err(|_| "Arquivo de licença corrompido.")?;
+
+    let license_key = data["key"]
+        .as_str()
+        .ok_or("Chave de licença não encontrada.")?;
+
+    // Fetch connected devices from server
+    let client = &state.license_client;
+    let devices = client.get_connected_devices(license_key).await?;
+
+    Ok(devices)
+}
