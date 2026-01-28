@@ -20,16 +20,17 @@ pub const CREATE_NO_WINDOW: u32 = 0x08000000;
 ///     .args(["-NoProfile", "-Command", "Get-Date"])
 ///     .output();
 /// ```
+#[cfg(target_os = "windows")]
 pub fn silent_command(program: &str) -> Command {
+    use std::os::windows::process::CommandExt;
     let mut cmd = Command::new(program);
-
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(CREATE_NO_WINDOW);
-    }
-
+    cmd.creation_flags(CREATE_NO_WINDOW);
     cmd
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn silent_command(program: &str) -> Command {
+    Command::new(program)
 }
 
 /// Executa um comando silenciosamente e retorna o output

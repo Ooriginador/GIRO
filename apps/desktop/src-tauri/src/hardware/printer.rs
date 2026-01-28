@@ -624,7 +624,13 @@ if ($result) {{ exit 0 }} else {{ exit 1 }}
         }
 
         let result = cmd
-            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_script])
+            .args([
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                &ps_script,
+            ])
             .output();
 
         // Limpa arquivo temporário
@@ -641,9 +647,13 @@ if ($result) {{ exit 0 }} else {{ exit 1 }}
                 } else {
                     let stderr = String::from_utf8_lossy(&output.stderr);
                     let stdout = String::from_utf8_lossy(&output.stdout);
-                    
+
                     // Fallback: tentar método copy /b
-                    tracing::warn!("WritePrinter falhou, tentando copy /b: {} {}", stdout, stderr);
+                    tracing::warn!(
+                        "WritePrinter falhou, tentando copy /b: {} {}",
+                        stdout,
+                        stderr
+                    );
                     self.print_windows_copy_fallback(printer_name)
                 }
             }
@@ -686,7 +696,13 @@ if ($result) {{ exit 0 }} else {{ exit 1 }}
 
         // Usa aspas ao redor do caminho para lidar com espaços
         let result = cmd
-            .args(["/C", "copy", "/b", &temp_file.to_string_lossy(), &format!("\"{}\"", unc_path)])
+            .args([
+                "/C",
+                "copy",
+                "/b",
+                &temp_file.to_string_lossy(),
+                &format!("\"{}\"", unc_path),
+            ])
             .output();
 
         let _ = std::fs::remove_file(&temp_file);
