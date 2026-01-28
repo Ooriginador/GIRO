@@ -9,6 +9,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
+import { platform } from '@tauri-apps/api/os';
 import { useState, useCallback, useEffect } from 'react';
 
 /**
@@ -42,13 +43,42 @@ export function useWindowsPrinters() {
   const [printers, setPrinters] = useState<PrinterInfo[]>([]);
   const [defaultPrinter, setDefaultPrinter] = useState<string | null>(null);
   const [suggestedPrinter, setSuggestedPrinter] = useState<string | null>(null);
+  const [isWindows, setIsWindows] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    platform()
+      .then((value) => {
+        if (!isMounted) return;
+        setIsWindows(value.toLowerCase().startsWith('win'));
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setIsWindows(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   /**
    * Carrega a lista de impressoras do Windows
    */
   const loadPrinters = useCallback(async () => {
+    if (isWindows === false) {
+      setPrinters([]);
+      setDefaultPrinter(null);
+      setSuggestedPrinter(null);
+      return;
+    }
+
+    if (isWindows === null) {
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -81,31 +111,39 @@ export function useWindowsPrinters() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isWindows]);
 
   /**
    * Verifica se uma impressora está pronta
    */
-  const checkPrinterReady = useCallback(async (printerName: string): Promise<boolean> => {
-    try {
-      return await invoke<boolean>('is_printer_ready', { printerName });
-    } catch (err) {
-      console.error('[useWindowsPrinters] Error checking printer ready:', err);
-      return false;
-    }
-  }, []);
+  const checkPrinterReady = useCallback(
+    async (printerName: string): Promise<boolean> => {
+      try {
+        if (!isWindows) return false;
+        return await invoke<boolean>('is_printer_ready', { printerName });
+      } catch (err) {
+        console.error('[useWindowsPrinters] Error checking printer ready:', err);
+        return false;
+      }
+    },
+    [isWindows]
+  );
 
   /**
    * Obtém informações detalhadas de uma impressora
    */
-  const getPrinterInfo = useCallback(async (printerName: string): Promise<PrinterInfo | null> => {
-    try {
-      return await invoke<PrinterInfo | null>('get_printer_info', { printerName });
-    } catch (err) {
-      console.error('[useWindowsPrinters] Error getting printer info:', err);
-      return null;
-    }
-  }, []);
+  const getPrinterInfo = useCallback(
+    async (printerName: string): Promise<PrinterInfo | null> => {
+      try {
+        if (!isWindows) return null;
+        return await invoke<PrinterInfo | null>('get_printer_info', { printerName });
+      } catch (err) {
+        console.error('[useWindowsPrinters] Error getting printer info:', err);
+        return null;
+      }
+    },
+    [isWindows]
+  );
 
   /**
    * Filtra apenas impressoras térmicas

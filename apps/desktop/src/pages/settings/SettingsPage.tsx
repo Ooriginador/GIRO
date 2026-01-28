@@ -209,7 +209,11 @@ export const SettingsPage: FC = () => {
   // const [alertsEnabled, setAlertsEnabled] = useState(true); // Unused
 
   const buildBackendPrinterConfig = () => {
-    const connection = mapPrinterPortToConnection(printerPort);
+    const normalizedPort = printerPort.startsWith('__DEFAULT__:')
+      ? printerPort.replace('__DEFAULT__:', '')
+      : printerPort;
+    const isWindowsPrinter = windowsPrinters.some((p) => p.name === normalizedPort);
+    const connection = isWindowsPrinter ? 'usb' : mapPrinterPortToConnection(normalizedPort);
 
     return {
       enabled: printerEnabled,
@@ -217,7 +221,7 @@ export const SettingsPage: FC = () => {
       connection,
       // Para USB (Linux), deixar vazio para o backend tentar /dev/usb/lp0
       // Para Windows, enviar a porta/nome da impressora
-      port: printerPort === 'USB' ? '' : printerPort,
+      port: normalizedPort === 'USB' ? '' : normalizedPort,
       paperWidth: 48,
       autoCut: printer.autoCut ?? true,
       openDrawerOnSale: printer.openDrawer ?? true,
@@ -936,6 +940,7 @@ export const SettingsPage: FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
+                      aria-label="Atualizar impressoras"
                       onClick={() => {
                         fetchPorts();
                         refreshWindowsPrinters();
