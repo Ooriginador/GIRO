@@ -181,6 +181,38 @@ struct PaginatedResponse<T> {
     pub pagination: PaginationMeta,
 }
 
+/// Response for listing connected devices
+#[derive(Debug, Clone, Deserialize, Serialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+pub struct ConnectedDevicesResponse {
+    /// Maximum allowed devices
+    pub max_devices: i32,
+    /// Number of active devices
+    pub active_devices: i32,
+    /// List of connected devices
+    pub devices: Vec<ConnectedDeviceInfo>,
+}
+
+/// Information about a connected device
+#[derive(Debug, Clone, Deserialize, Serialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+pub struct ConnectedDeviceInfo {
+    /// Device UUID
+    pub id: String,
+    /// Masked hardware ID (last 8 chars for privacy)
+    pub hardware_id_masked: String,
+    /// Machine name if available
+    pub machine_name: Option<String>,
+    /// OS version if available
+    pub os_version: Option<String>,
+    /// When the device was activated
+    pub activated_at: DateTime<Utc>,
+    /// Last seen timestamp
+    pub last_seen: DateTime<Utc>,
+    /// Whether the device is active
+    pub is_active: bool,
+}
+
 /// Metrics inner payload
 #[derive(Debug, Serialize)]
 pub struct MetricsData {
@@ -824,6 +856,44 @@ impl LicenseClient {
             .map_err(|e| format!("Resposta inválida do servidor: {}", e))?;
 
         Ok(body.data)
+    }
+
+    /// Get connected devices for a license
+    /// Returns info about all devices connected to this license (multi-PC)
+    pub async fn get_connected_devices(
+        &self,
+        license_key: &str,
+    ) -> Result<ConnectedDevicesResponse, String> {
+        let url = format!(
+            "{}/api/v1/licenses/{}/devices",
+            self.config.server_url, license_key
+        );
+        tracing::debug!("[LicenseClient] Buscando devices conectados: {}", url);
+
+        let res = self
+            .client
+            .get(&url)
+            .header("X-API-Key", &self.config.api_key)
+            .timeout(self.config.timeout)
+            .send()
+            .await
+            .map_err(|e| format!("Falha na conexão: {}", e))?;
+
+        if !res.status().is_success() {
+            let status = res.status();
+            let text = res.text().await.unwrap_or_default();
+            return Err(format!(
+                "Falha ao buscar dispositivos ({}): {}",
+                status, text
+            ));
+        }
+
+        let body: ConnectedDevicesResponse = res
+            .json()
+            .await
+            .map_err(|e| format!("Resposta inválida do servidor: {}", e))?;
+
+        Ok(body)
     }
 
     /// Test connection to license server

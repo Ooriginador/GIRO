@@ -276,6 +276,7 @@ async fn main() {
             commands::recover_license_from_login,
             commands::license_server_login,
             commands::test_license_connection,
+            commands::get_license_devices,
             // Enterprise Module - Contracts
             commands::get_contracts,
             commands::get_contracts_paginated,
@@ -948,6 +949,7 @@ async fn main() {
             commands::restore_license,
             commands::update_license_admin,
             commands::test_license_connection,
+            commands::get_license_devices,
             // LGPD Compliance
             commands::lgpd_hard_delete_customer,
             commands::lgpd_hard_delete_employee,
