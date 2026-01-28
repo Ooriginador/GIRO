@@ -286,8 +286,8 @@ impl ThermalPrinter {
         let name_lower = name.to_lowercase();
         // Palavras-chave comuns em drivers de impressoras térmicas
         let keywords = [
-            "pos", "thermal", "receipt", "cupom", "termica", "80mm", "58mm", 
-            "mp-4200", "tm-t", "c3tech", "elgin", "daruma", "bematech", "epson"
+            "pos", "thermal", "receipt", "cupom", "termica", "80mm", "58mm", "mp-4200", "tm-t",
+            "c3tech", "elgin", "daruma", "bematech", "epson",
         ];
         keywords.iter().any(|k| name_lower.contains(k))
     }
@@ -840,8 +840,7 @@ if ($result) {{ exit 0 }} else {{ exit 1 }}
 
                 // Tenta buscar pelo modelo configurado
                 // (Removido fallback forçado para C3Tech/LPT1 em favor de detecção via Spooler)
-                let _ = model_name; 
-
+                let _ = model_name;
             }
 
             // Se for caminho UNC ou nome de impressora, usa o spooler do Windows
