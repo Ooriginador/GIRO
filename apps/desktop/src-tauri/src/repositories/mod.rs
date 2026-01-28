@@ -23,6 +23,9 @@ pub mod supplier_repository;
 pub mod vehicle_repository;
 pub mod warranty_repository;
 
+// Sync Module
+pub mod sync_pending;
+
 // Enterprise Module
 pub mod activity_repository;
 pub mod contract_repository;
@@ -78,6 +81,9 @@ pub use stock_repository::StockRepository;
 pub use supplier_repository::SupplierRepository;
 pub use vehicle_repository::VehicleRepository;
 pub use warranty_repository::WarrantyRepository;
+
+// Sync Module
+pub use sync_pending::{SyncCursorRepository, SyncPendingRepository};
 
 // Enterprise Module
 pub use activity_repository::ActivityRepository;
