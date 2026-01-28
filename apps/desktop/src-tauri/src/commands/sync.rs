@@ -2,12 +2,10 @@
 //!
 //! Tauri commands for multi-PC data synchronization
 
-use crate::license::{
-    SyncClient, SyncEntityType, SyncItem, SyncItemStatus, SyncOperation, SyncPullItem,
-};
+use crate::license::{SyncClient, SyncEntityType, SyncItemStatus, SyncOperation, SyncPullItem};
 use crate::repositories::{
     CategoryRepository, CustomerRepository, ProductRepository, SettingsRepository,
-    SupplierRepository,
+    SupplierRepository, SyncCursorRepository, SyncPendingRepository,
 };
 use crate::AppState;
 use serde::{Deserialize, Serialize};
@@ -125,6 +123,7 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatusRes
 }
 
 /// Push local changes to server
+/// Now uses the pending queue instead of sending all entities
 #[tauri::command]
 #[specta::specta]
 pub async fn sync_push(
@@ -140,89 +139,40 @@ pub async fn sync_push(
     let hardware_id = &state.hardware_id;
     let pool = state.pool();
 
-    let mut items: Vec<SyncItem> = Vec::new();
+    // Use pending repository to get only changed items
+    let pending_repo = SyncPendingRepository::new(pool);
+    let items = pending_repo
+        .get_pending_as_sync_items(&payload.entity_types)
+        .await
+        .map_err(|e| e.to_string())?;
 
-    for entity_type in payload.entity_types {
-        match entity_type {
-            SyncEntityType::Product => {
-                let repo = ProductRepository::new(pool);
-                let products = repo.find_all().await.map_err(|e| e.to_string())?;
-
-                for product in products {
-                    items.push(SyncItem {
-                        entity_type: SyncEntityType::Product,
-                        entity_id: product.id.clone(),
-                        operation: SyncOperation::Update,
-                        data: serde_json::to_value(&product).unwrap_or_default(),
-                        local_version: 0, // Desktop doesn't track versions yet
-                    });
-                }
-            }
-            SyncEntityType::Category => {
-                let repo = CategoryRepository::new(pool);
-                let categories = repo.find_all().await.map_err(|e| e.to_string())?;
-
-                for category in categories {
-                    items.push(SyncItem {
-                        entity_type: SyncEntityType::Category,
-                        entity_id: category.id.clone(),
-                        operation: SyncOperation::Update,
-                        data: serde_json::to_value(&category).unwrap_or_default(),
-                        local_version: 0,
-                    });
-                }
-            }
-            SyncEntityType::Supplier => {
-                let repo = SupplierRepository::new(pool);
-                let suppliers = repo.find_all().await.map_err(|e| e.to_string())?;
-
-                for supplier in suppliers {
-                    items.push(SyncItem {
-                        entity_type: SyncEntityType::Supplier,
-                        entity_id: supplier.id.clone(),
-                        operation: SyncOperation::Update,
-                        data: serde_json::to_value(&supplier).unwrap_or_default(),
-                        local_version: 0,
-                    });
-                }
-            }
-            SyncEntityType::Customer => {
-                let repo = CustomerRepository::new(pool);
-                let customers = repo.find_all_active().await.map_err(|e| e.to_string())?;
-
-                for customer in customers {
-                    items.push(SyncItem {
-                        entity_type: SyncEntityType::Customer,
-                        entity_id: customer.id.clone(),
-                        operation: SyncOperation::Update,
-                        data: serde_json::to_value(&customer).unwrap_or_default(),
-                        local_version: 0,
-                    });
-                }
-            }
-            SyncEntityType::Employee => {
-                // Employees are skipped for security - passwords and PINs should not sync
-                tracing::info!("Sync push: skipping employees for security");
-            }
-            SyncEntityType::Setting => {
-                let repo = SettingsRepository::new(pool);
-                let settings = repo.find_all().await.map_err(|e| e.to_string())?;
-
-                for setting in settings {
-                    items.push(SyncItem {
-                        entity_type: SyncEntityType::Setting,
-                        entity_id: setting.key.clone(),
-                        operation: SyncOperation::Update,
-                        data: serde_json::to_value(&setting).unwrap_or_default(),
-                        local_version: 0,
-                    });
-                }
-            }
-        }
+    if items.is_empty() {
+        return Ok(SyncPushResult {
+            success: true,
+            processed: 0,
+            results: vec![],
+            server_time: chrono::Utc::now().to_rfc3339(),
+        });
     }
 
     let sync_client = SyncClient::new(state.license_client.config().clone());
     let response = sync_client.push(&license_key, hardware_id, items).await?;
+
+    // Remove successfully synced items from pending queue
+    for result in &response.results {
+        if result.status == SyncItemStatus::Ok {
+            if let Err(e) = pending_repo
+                .remove_synced(result.entity_type, &result.entity_id)
+                .await
+            {
+                tracing::warn!(
+                    "Failed to remove synced item from pending: {} - {}",
+                    result.entity_id,
+                    e
+                );
+            }
+        }
+    }
 
     // Convert to local type
     Ok(SyncPushResult {
@@ -429,6 +379,7 @@ pub async fn sync_reset(
 }
 
 /// Full bidirectional sync
+/// Order: Push first (send local changes), then Pull (get server changes)
 #[tauri::command]
 #[specta::specta]
 pub async fn sync_full(state: State<'_, AppState>) -> Result<SyncResult, String> {
@@ -445,16 +396,12 @@ pub async fn sync_full(state: State<'_, AppState>) -> Result<SyncResult, String>
         SyncEntityType::Setting,
     ];
 
-    // 1. Pull first (get latest from server)
-    let pull_result = sync_pull(all_types.clone(), state.clone()).await?;
-    let pulled = pull_result.items.len();
-
-    // 2. Push local changes
+    // 1. Push local changes FIRST (prevents losing local changes)
     let push_result = sync_push(
         SyncPushPayload {
-            entity_types: all_types,
+            entity_types: all_types.clone(),
         },
-        state,
+        state.clone(),
     )
     .await?;
 
@@ -463,6 +410,10 @@ pub async fn sync_full(state: State<'_, AppState>) -> Result<SyncResult, String>
         .iter()
         .filter(|r| r.status == SyncItemStatus::Conflict)
         .count();
+
+    // 2. Then Pull from server (get latest)
+    let pull_result = sync_pull(all_types, state).await?;
+    let pulled = pull_result.items.len();
 
     Ok(SyncResult {
         success: true,
@@ -474,6 +425,64 @@ pub async fn sync_full(state: State<'_, AppState>) -> Result<SyncResult, String>
             push_result.processed, pulled, conflicts
         ),
     })
+}
+
+/// Local sync status (pending changes count)
+#[derive(Debug, Clone, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalSyncStatus {
+    pub pending_count: i64,
+    pub last_sync: Option<String>,
+    pub is_online: bool,
+}
+
+/// Get local sync status (pending items)
+#[tauri::command]
+#[specta::specta]
+pub async fn get_local_sync_status(state: State<'_, AppState>) -> Result<LocalSyncStatus, String> {
+    state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
+
+    let pool = state.pool();
+    let pending_repo = SyncPendingRepository::new(pool);
+    let cursor_repo = SyncCursorRepository::new(pool);
+
+    let pending_count = pending_repo
+        .count_pending()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Get last sync time from any cursor
+    let cursors = cursor_repo
+        .get_all_cursors()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let last_sync = cursors.iter().map(|c| &c.last_synced_at).max().cloned();
+
+    // Check if license server is reachable
+    let is_online = check_server_connectivity(&state).await;
+
+    Ok(LocalSyncStatus {
+        pending_count,
+        last_sync,
+        is_online,
+    })
+}
+
+/// Check if license server is reachable
+async fn check_server_connectivity(state: &AppState) -> bool {
+    let sync_client = SyncClient::new(state.license_client.config().clone());
+
+    // Try to get license key and check status
+    if let Ok(license_key) = get_license_key(state).await {
+        let hardware_id = &state.hardware_id;
+        sync_client.status(&license_key, hardware_id).await.is_ok()
+    } else {
+        false
+    }
 }
 
 /// Helper to get license key from stored config
