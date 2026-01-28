@@ -1,6 +1,6 @@
 {
   "name": "@giro/design-tokens",
-  "version": "2.0.8",
+  "version": "2.2.0",
   "description": "Sistema de design unificado para o ecossistema GIRO",
   "main": "index.css",
   "files": [
