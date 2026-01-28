@@ -447,11 +447,12 @@ export const SettingsPage: FC = () => {
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       // Mensagens mais amigáveis
       let userMessage = errorMessage;
       if (errorMessage.includes('não encontrada no servidor')) {
-        userMessage = 'Licença não encontrada no servidor. Verifique se a chave está correta ou contate o suporte.';
+        userMessage =
+          'Licença não encontrada no servidor. Verifique se a chave está correta ou contate o suporte.';
       } else if (errorMessage.includes('Hardware não autorizado')) {
         userMessage = 'Este computador não está autorizado. Ative a licença novamente.';
       } else if (errorMessage.includes('expirada')) {
