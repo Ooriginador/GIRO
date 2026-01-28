@@ -681,10 +681,19 @@ if ($result) {{ exit 0 }} else {{ exit 1 }}
         file.flush().map_err(|e| HardwareError::IoError(e))?;
         drop(file);
 
-        // Formata o caminho UNC
-        let unc_path = if printer_name.starts_with("\\\\") {
+        let upper = printer_name.to_uppercase();
+
+        // Determina o caminho de destino correto
+        // LPT1, LPT2, COM1, etc são portas físicas - usar diretamente
+        // Nomes de impressora precisam do caminho UNC
+        let dest_path = if upper.starts_with("LPT") || upper.starts_with("COM") {
+            // Porta física - usar diretamente
+            printer_name.to_string()
+        } else if printer_name.starts_with("\\\\") {
+            // Já é caminho UNC
             printer_name.to_string()
         } else {
+            // Nome de impressora - converter para UNC
             format!("\\\\localhost\\{}", printer_name)
         };
 
@@ -701,7 +710,7 @@ if ($result) {{ exit 0 }} else {{ exit 1 }}
                 "copy",
                 "/b",
                 &temp_file.to_string_lossy(),
-                &format!("\"{}\"", unc_path),
+                &format!("\"{}\"", dest_path),
             ])
             .output();
 
@@ -710,14 +719,14 @@ if ($result) {{ exit 0 }} else {{ exit 1 }}
         match result {
             Ok(output) => {
                 if output.status.success() {
-                    tracing::info!("Impressão via copy /b bem-sucedida: {}", printer_name);
+                    tracing::info!("Impressão via copy /b bem-sucedida: {}", dest_path);
                     Ok(())
                 } else {
                     let stderr = String::from_utf8_lossy(&output.stderr);
                     let stdout = String::from_utf8_lossy(&output.stdout);
                     Err(HardwareError::CommunicationError(format!(
                         "Falha ao enviar para impressora '{}': {} {}",
-                        printer_name, stdout, stderr
+                        dest_path, stdout, stderr
                     )))
                 }
             }
@@ -798,10 +807,22 @@ if ($result) {{ exit 0 }} else {{ exit 1 }}
                     return self.print_windows_spooler(&printer_name);
                 }
 
-                // Não encontrou impressora na porta, tenta com o nome do modelo configurado
+                // Não encontrou impressora na porta via WMI/PowerShell
+                // Tenta enviar diretamente para a porta física (LPT1, etc)
+                tracing::info!(
+                    "Impressora não encontrada via spooler na porta {}, tentando acesso direto",
+                    port
+                );
+
+                // Para LPT, tenta copy /b diretamente para a porta
+                if upper.starts_with("LPT") {
+                    return self.print_windows_copy_fallback(port);
+                }
+
+                // Para USB, tenta buscar pelo modelo configurado
                 let model_name = format!("{:?}", self.config.model);
                 tracing::info!(
-                    "Impressora não encontrada na porta {}, tentando modelo: {}",
+                    "Porta USB {} sem impressora mapeada, tentando modelo: {}",
                     port,
                     model_name
                 );
@@ -811,7 +832,7 @@ if ($result) {{ exit 0 }} else {{ exit 1 }}
                     if let Some(printer) = Self::find_printer_by_port("LPT1") {
                         return self.print_windows_spooler(&printer);
                     }
-                    // Tenta nome comum
+                    // Tenta nome comum via spooler
                     return self.print_windows_spooler("C3Tech IT-100");
                 }
             }
