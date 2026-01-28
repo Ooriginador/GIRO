@@ -286,14 +286,21 @@ export const ProductsPage: FC = () => {
     if (!productToDelete) return;
 
     try {
+      console.log(
+        '🗑️ Excluindo produto permanentemente:',
+        productToDelete.id,
+        productToDelete.name
+      );
       await deleteProduct.mutateAsync(productToDelete.id);
+      console.log('✅ Produto excluído com sucesso');
       toast({
         title: 'Produto excluído',
-        description: `${productToDelete.name} foi excluído permanentemente.`,
+        description: `${productToDelete.name} foi excluído permanentemente do sistema.`,
       });
     } catch (error) {
+      console.error('❌ Erro ao excluir produto:', error);
       toast({
-        title: 'Erro ao excluir',
+        title: 'Não foi possível excluir o produto',
         description: formatUserError(error, 'product'),
         variant: 'destructive',
       });

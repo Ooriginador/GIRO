@@ -19,7 +19,8 @@ impl Default for LicenseClientConfig {
         Self {
             server_url: "http://localhost:3000".to_string(),
             api_key: String::new(),
-            timeout: Duration::from_secs(10),
+            // Increased timeout for Windows (slower DNS/firewall)
+            timeout: Duration::from_secs(30),
         }
     }
 }

@@ -172,6 +172,8 @@ pub async fn delete_product(
     state: State<'_, AppState>,
     network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<()> {
+    tracing::info!("🗑️ Iniciando exclusão permanente do produto id={}", id);
+
     let info = state.session.require_authenticated()?;
     let employee_id = info.employee_id;
     let employee = require_permission!(state.pool(), &employee_id, Permission::DeleteProducts);
@@ -179,6 +181,12 @@ pub async fn delete_product(
 
     // Hard delete - exclusão permanente
     let product_name = repo.hard_delete(&id).await?;
+
+    tracing::info!(
+        "✅ Produto '{}' (id={}) excluído permanentemente do banco de dados",
+        product_name,
+        id
+    );
 
     // Audit Log
     let audit_service = AuditService::new(state.pool().clone());

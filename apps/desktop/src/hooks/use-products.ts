@@ -133,7 +133,11 @@ export function useUpdateProduct() {
   return useMutation({
     mutationFn: (input: UpdateProductInput) => updateProduct(input),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      // Invalidar todas as queries de produtos para forçar atualização
+      queryClient.invalidateQueries({
+        queryKey: ['products'],
+        refetchType: 'all', // Força refetch de todas as queries, incluindo paginadas
+      });
       queryClient.invalidateQueries({ queryKey: ['product', variables.id] });
     },
   });
@@ -148,7 +152,10 @@ export function useDeleteProduct() {
   return useMutation({
     mutationFn: (id: string) => deleteProduct(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({
+        queryKey: ['products'],
+        refetchType: 'all',
+      });
     },
   });
 }
@@ -162,7 +169,10 @@ export function useDeactivateProduct() {
   return useMutation({
     mutationFn: (id: string) => deactivateProduct(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({
+        queryKey: ['products'],
+        refetchType: 'all',
+      });
       queryClient.invalidateQueries({ queryKey: ['inactiveProducts'] });
     },
   });
@@ -177,7 +187,10 @@ export function useReactivateProduct() {
   return useMutation({
     mutationFn: (id: string) => reactivateProduct(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({
+        queryKey: ['products'],
+        refetchType: 'all',
+      });
       queryClient.invalidateQueries({ queryKey: ['inactiveProducts'] });
     },
   });

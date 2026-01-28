@@ -54,8 +54,13 @@ enum ClientCommand {
     PushUpdate(String, serde_json::Value),
     SyncFull,
     SyncDelta,
+    ForceSyncNow,
+    SendPing,
     Disconnect,
 }
+
+/// Intervalo de sync automático em segundos (5 minutos)
+const AUTO_SYNC_INTERVAL_SECS: u64 = 300;
 
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase", tag = "event", content = "payload")]
@@ -65,6 +70,8 @@ pub enum ClientEvent {
     SyncCompleted,
     StockUpdated,
     Error(String),
+    /// Tentando reconectar (número da tentativa)
+    Reconnecting(u32),
 }
 
 impl NetworkClient {
@@ -143,26 +150,50 @@ impl NetworkClient {
         }
     }
 
+    /// Força sincronização imediata
+    pub async fn force_sync(&self) -> Result<(), String> {
+        if let Some(tx) = self.tx.read().await.as_ref() {
+            tx.send(ClientCommand::ForceSyncNow)
+                .await
+                .map_err(|e| e.to_string())?;
+            Ok(())
+        } else {
+            Err("Cliente desconectado".to_string())
+        }
+    }
+
     /// Obtém estado atual
     pub async fn get_state(&self) -> ConnectionState {
         self.state.read().await.clone()
     }
 
     async fn run_loop(&self) {
+        let mut reconnect_attempt: u32 = 0;
+        const MAX_BACKOFF_SECS: u64 = 60;
+        const BASE_BACKOFF_SECS: u64 = 5;
+
         loop {
-            // 1. Busca mDNS
-            self.set_state(ConnectionState::Searching).await;
-            let target = self.discover_master().await;
+            // 1. Tentar IP estático primeiro (se configurado)
+            let static_target = self.get_static_master().await;
+
+            // 2. Se não tem IP estático, buscar via mDNS
+            let target = if static_target.is_some() {
+                static_target
+            } else {
+                self.set_state(ConnectionState::Searching).await;
+                self.discover_master().await
+            };
 
             if let Some((ip, port)) = target {
                 let addr = format!("{}:{}", ip, port);
                 self.set_state(ConnectionState::Connecting(addr.clone()))
                     .await;
 
-                // 2. Tenta conectar
+                // 3. Tenta conectar
                 match self.connect_and_handle(&addr).await {
                     Ok(_) => {
                         tracing::info!("Conexão com Master encerrada limpa");
+                        reconnect_attempt = 0; // Reset no sucesso
                     }
                     Err(e) => {
                         tracing::error!("Erro na conexão com Master: {}", e);
@@ -171,17 +202,78 @@ impl NetworkClient {
                 }
             }
 
-            // Wait before retry
-            sleep(Duration::from_secs(5)).await;
+            // Backoff exponencial: 5s, 10s, 20s, 40s, 60s (max)
+            reconnect_attempt = reconnect_attempt.saturating_add(1);
+            let backoff_secs = std::cmp::min(
+                BASE_BACKOFF_SECS * 2u64.saturating_pow(reconnect_attempt.saturating_sub(1)),
+                MAX_BACKOFF_SECS,
+            );
+
+            tracing::info!(
+                "🔄 Reconexão tentativa #{} em {} segundos...",
+                reconnect_attempt,
+                backoff_secs
+            );
+            self.broadcast(ClientEvent::Reconnecting(reconnect_attempt));
+
+            sleep(Duration::from_secs(backoff_secs)).await;
         }
     }
 
-    async fn discover_master(&self) -> Option<(String, u16)> {
-        let mdns = ServiceDaemon::new().ok()?;
-        let receiver = mdns.browse("_giro._tcp.local.").ok()?;
+    /// Obtém IP estático do Master se configurado (fallback para redes sem mDNS)
+    async fn get_static_master(&self) -> Option<(String, u16)> {
+        let settings_repo = SettingsRepository::new(&self.pool);
 
-        // Timeout de 10s para achar
-        let timeout = sleep(Duration::from_secs(10));
+        let ip = settings_repo
+            .get_value("network.master_ip")
+            .await
+            .ok()
+            .flatten()?;
+
+        let port = settings_repo
+            .get_number("network.master_port")
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or(3847.0) as u16;
+
+        if ip.is_empty() {
+            return None;
+        }
+
+        tracing::info!("📍 Usando IP estático do Master: {}:{}", ip, port);
+        Some((ip, port))
+    }
+
+    async fn discover_master(&self) -> Option<(String, u16)> {
+        tracing::info!("🔍 Iniciando descoberta automática do Master via mDNS...");
+
+        let mdns = match ServiceDaemon::new() {
+            Ok(d) => d,
+            Err(e) => {
+                // mDNS pode falhar no Windows por firewall
+                tracing::warn!(
+                    "⚠️ Falha ao iniciar mDNS: {}. Verifique o Firewall do Windows ou configure IP estático.", 
+                    e
+                );
+                self.broadcast(ClientEvent::Error(
+                    "Descoberta automática falhou. Configure o IP do Master manualmente."
+                        .to_string(),
+                ));
+                return None;
+            }
+        };
+
+        let receiver = match mdns.browse("_giro._tcp.local.") {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!("⚠️ Falha ao buscar serviços mDNS: {}", e);
+                return None;
+            }
+        };
+
+        // Timeout de 15s para achar (aumentado para redes Windows lentas)
+        let timeout = sleep(Duration::from_secs(15));
         tokio::pin!(timeout);
 
         loop {
@@ -191,12 +283,17 @@ impl NetworkClient {
                          if let Some(ip) = info.get_addresses().iter().next() {
                               let ip_str = ip.to_string();
                               let port = info.get_port();
+                              tracing::info!("✅ Master encontrado: {}:{}", ip_str, port);
                               self.broadcast(ClientEvent::MasterFound(ip_str.clone(), port));
                               return Some((ip_str, port));
                          }
                      }
                 }
                 _ = &mut timeout => {
+                    tracing::warn!("⏰ Timeout na descoberta automática. Configure o IP do Master manualmente.");
+                    self.broadcast(ClientEvent::Error(
+                        "Master não encontrado. Verifique se o Master está online ou configure o IP manualmente.".to_string()
+                    ));
                     break;
                 }
             }
@@ -206,7 +303,28 @@ impl NetworkClient {
 
     async fn connect_and_handle(&self, addr: &str) -> anyhow::Result<()> {
         let url = format!("ws://{}/ws", addr);
-        let (ws_stream, _) = connect_async(&url).await?;
+        tracing::info!("🔌 Conectando ao Master: {}", url);
+
+        let (ws_stream, _) = match connect_async(&url).await {
+            Ok(stream) => stream,
+            Err(e) => {
+                let error_msg = format!("Falha ao conectar: {}", e);
+                tracing::error!("❌ {}", error_msg);
+
+                // Mensagem mais amigável para Windows
+                let user_msg = if cfg!(windows) {
+                    format!(
+                        "Não foi possível conectar ao Master ({}). Verifique: 1) O Master está online? 2) A porta {} está liberada no Firewall?", 
+                        addr,
+                        addr.split(':').last().unwrap_or("3847")
+                    )
+                } else {
+                    format!("Não foi possível conectar ao Master ({})", addr)
+                };
+
+                return Err(anyhow::anyhow!(user_msg));
+            }
+        };
 
         self.set_state(ConnectionState::Connected(addr.to_string()))
             .await;
@@ -286,26 +404,36 @@ impl NetworkClient {
             let _ = tx.send(ClientCommand::SyncFull).await;
         }
 
-        // 4. Iniciar Heartbeat
-        let _hb_tx = tx.clone();
+        // 4. Iniciar Heartbeat e Sync Automático Periódico
+        let auto_sync_tx = tx.clone();
+        let heartbeat_tx = tx.clone();
+
+        // Heartbeat com detecção de timeout
         tokio::spawn(async move {
+            let mut heartbeat_counter = 0u64;
+            const HEARTBEAT_INTERVAL: u64 = 15; // segundos entre pings
+
             loop {
-                sleep(Duration::from_secs(10)).await;
-                let ping = MobileRequest {
-                    id: chrono::Utc::now().timestamp_millis() as u64,
-                    action: "system.ping".into(),
-                    payload: serde_json::Value::Null,
-                    token: None,
-                    timestamp: chrono::Utc::now().timestamp_millis(),
-                };
-                if let Ok(_msg) = serde_json::to_string(&ping) {
-                    // This is a bit hacky because we need to send directly or via command
-                    // Let's stick to simple sleep and if loop breaks it's enough.
-                    // Real heartbeat would check for PONG response.
+                sleep(Duration::from_secs(HEARTBEAT_INTERVAL)).await;
+                heartbeat_counter += HEARTBEAT_INTERVAL;
+
+                // Sync automático a cada AUTO_SYNC_INTERVAL_SECS (5 min)
+                if heartbeat_counter >= AUTO_SYNC_INTERVAL_SECS {
+                    heartbeat_counter = 0;
+                    tracing::info!("🔄 Sync automático periódico iniciado");
+                    if auto_sync_tx.send(ClientCommand::SyncDelta).await.is_err() {
+                        tracing::warn!(
+                            "Falha ao enviar comando de sync automático - conexão perdida"
+                        );
+                        break;
+                    }
                 }
 
-                // If we want a real heartbeat that detects disconnection:
-                // We'd need to track last_pong_time.
+                // Enviar ping real via channel
+                if heartbeat_tx.send(ClientCommand::SendPing).await.is_err() {
+                    tracing::warn!("💔 Conexão perdida - não foi possível enviar heartbeat");
+                    break;
+                }
             }
         });
 
@@ -364,6 +492,45 @@ impl NetworkClient {
                             };
                             let msg = serde_json::to_string(&req)?;
                             write.send(Message::Text(msg)).await?;
+                        },
+                        Some(ClientCommand::ForceSyncNow) => {
+                            tracing::info!("🔄 Força sincronização solicitada pelo usuário");
+                            let last_sync_val = *self.last_sync.read().await;
+                            let action = if last_sync_val > 0 { "sync.delta" } else { "sync.full" };
+                            let payload = if last_sync_val > 0 {
+                                serde_json::to_value(SyncDeltaPayload {
+                                    last_sync: last_sync_val,
+                                    tables: None,
+                                }).unwrap()
+                            } else {
+                                serde_json::to_value(SyncFullPayload {
+                                    tables: vec!["products".into(), "customers".into(), "settings".into(), "categories".into(), "suppliers".into()]
+                                }).unwrap()
+                            };
+                            let req = MobileRequest {
+                                id: chrono::Utc::now().timestamp_millis() as u64,
+                                action: action.into(),
+                                payload,
+                                token: current_token,
+                                timestamp: chrono::Utc::now().timestamp_millis(),
+                            };
+                            let msg = serde_json::to_string(&req)?;
+                            write.send(Message::Text(msg)).await?;
+                        },
+                        Some(ClientCommand::SendPing) => {
+                            // Enviar ping real via WebSocket
+                            let req = MobileRequest {
+                                id: chrono::Utc::now().timestamp_millis() as u64,
+                                action: "system.ping".into(),
+                                payload: serde_json::Value::Null,
+                                token: current_token,
+                                timestamp: chrono::Utc::now().timestamp_millis(),
+                            };
+                            let msg = serde_json::to_string(&req)?;
+                            if let Err(e) = write.send(Message::Text(msg)).await {
+                                tracing::error!("💔 Falha ao enviar heartbeat: {}", e);
+                                break; // Conexão perdida
+                            }
                         },
                         Some(ClientCommand::Disconnect) => break,
                         None => break,
@@ -532,6 +699,7 @@ impl NetworkClient {
             ClientEvent::SyncCompleted => "network:sync-completed",
             ClientEvent::StockUpdated => "network:stock-updated",
             ClientEvent::Error(_) => "network:error",
+            ClientEvent::Reconnecting(_) => "network:reconnecting",
         };
 
         let _ = self.app_handle.emit(event_name, event);

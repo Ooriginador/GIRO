@@ -253,6 +253,9 @@ async fn main() {
             commands::network::start_network_client,
             commands::network::stop_network_client,
             commands::network::get_network_status,
+            commands::network::force_network_sync,
+            commands::network::scan_network_for_masters,
+            commands::network::test_master_connection,
             // Mobile
             commands::start_mobile_server,
             commands::stop_mobile_server,
@@ -830,10 +833,13 @@ async fn main() {
             commands::get_mobile_server_status,
             commands::get_connected_devices,
             commands::disconnect_mobile_device,
-            // Rede (PC-to-PC Syn)
+            // Rede (PC-to-PC Sync)
             commands::network::start_network_client,
             commands::network::stop_network_client,
             commands::network::get_network_status,
+            commands::network::force_network_sync,
+            commands::network::scan_network_for_masters,
+            commands::network::test_master_connection,
             // Histórico de Preços
             commands::get_price_history_by_product,
             commands::get_recent_price_history,
@@ -1054,18 +1060,37 @@ fn generate_hardware_id() -> String {
 }
 
 /// Get BIOS serial number (Highly stable on Windows)
+/// Uses WMIC with PowerShell fallback for Windows 11 compatibility
 fn get_bios_serial() -> String {
     #[cfg(target_os = "windows")]
     {
-        let output = std::process::Command::new("wmic")
+        // Try WMIC first (faster, but deprecated in Windows 11)
+        let wmic_result = std::process::Command::new("wmic")
             .args(["bios", "get", "serialnumber"])
             .output();
 
-        if let Ok(out) = output {
+        if let Ok(out) = wmic_result {
             if let Ok(stdout) = String::from_utf8(out.stdout) {
                 let lines: Vec<&str> = stdout.lines().filter(|l| !l.trim().is_empty()).collect();
                 if lines.len() > 1 {
-                    return lines[1].trim().to_string();
+                    let serial = lines[1].trim();
+                    if !serial.is_empty() && serial != "To be filled by O.E.M." {
+                        return serial.to_string();
+                    }
+                }
+            }
+        }
+
+        // PowerShell fallback for Windows 11
+        let ps_result = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-Command", "Get-CimInstance -ClassName Win32_BIOS | Select-Object -ExpandProperty SerialNumber"])
+            .output();
+
+        if let Ok(out) = ps_result {
+            if let Ok(stdout) = String::from_utf8(out.stdout) {
+                let serial = stdout.trim();
+                if !serial.is_empty() && serial != "To be filled by O.E.M." {
+                    return serial.to_string();
                 }
             }
         }
@@ -1074,6 +1099,7 @@ fn get_bios_serial() -> String {
 }
 
 /// Get CPU identifier
+/// Uses WMIC with PowerShell fallback for Windows 11 compatibility
 fn get_cpu_id() -> String {
     #[cfg(target_os = "linux")]
     {
@@ -1090,6 +1116,7 @@ fn get_cpu_id() -> String {
 
     #[cfg(target_os = "windows")]
     {
+        // Try WMIC first (faster, but deprecated in Windows 11)
         let wmic_cmd = std::process::Command::new("wmic")
             .args(["cpu", "get", "ProcessorId"])
             .output();
@@ -1098,7 +1125,24 @@ fn get_cpu_id() -> String {
             if let Ok(stdout) = String::from_utf8(output.stdout) {
                 let lines: Vec<&str> = stdout.lines().filter(|l| !l.trim().is_empty()).collect();
                 if lines.len() > 1 {
-                    return lines[1].trim().to_string();
+                    let cpu_id = lines[1].trim();
+                    if !cpu_id.is_empty() {
+                        return cpu_id.to_string();
+                    }
+                }
+            }
+        }
+
+        // PowerShell fallback for Windows 11
+        let ps_cmd = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-Command", "Get-CimInstance -ClassName Win32_Processor | Select-Object -ExpandProperty ProcessorId"])
+            .output();
+
+        if let Ok(output) = ps_cmd {
+            if let Ok(stdout) = String::from_utf8(output.stdout) {
+                let cpu_id = stdout.trim();
+                if !cpu_id.is_empty() {
+                    return cpu_id.to_string();
                 }
             }
         }
@@ -1156,9 +1200,9 @@ fn get_motherboard_serial() -> String {
             }
         }
 
-        // 2. PowerShell
+        // 2. PowerShell fallback (Windows 11)
         let ps_cmd = std::process::Command::new("powershell")
-            .args(["-Command", "Get-CimInstance -ClassName Win32_BaseBoard | Select-Object -ExpandProperty SerialNumber"])
+            .args(["-NoProfile", "-Command", "Get-CimInstance -ClassName Win32_BaseBoard | Select-Object -ExpandProperty SerialNumber"])
             .output();
 
         if let Ok(output) = ps_cmd {

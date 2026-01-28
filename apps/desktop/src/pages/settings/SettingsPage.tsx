@@ -8,7 +8,7 @@ import {
   FiscalSettings,
   LicenseSettings,
   MobileServerSettings,
-  NetworkSettings,
+  NetworkRoleSettings,
   CloudLoginDialog,
   BackupSettings,
   SyncSettings,
@@ -1202,7 +1202,7 @@ export const SettingsPage: FC = () => {
 
         {/* Network */}
         <TabsContent value="network" className="space-y-6">
-          <NetworkSettings />
+          <NetworkRoleSettings />
           <SyncSettings />
         </TabsContent>
 
