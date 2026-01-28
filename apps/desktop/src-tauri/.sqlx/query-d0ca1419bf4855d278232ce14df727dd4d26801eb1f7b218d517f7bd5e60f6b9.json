@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO service_orders (\n                id, order_number, customer_id, customer_vehicle_id, vehicle_year_id,\n                employee_id, vehicle_km, symptoms, diagnosis, status, labor_cost, \n                parts_cost, discount, total, warranty_days, warranty_until,\n                scheduled_date, started_at, completed_at, payment_method, is_paid,\n                notes, internal_notes, created_at, updated_at\n            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n            ON CONFLICT(id) DO UPDATE SET\n                order_number=excluded.order_number,\n                customer_id=excluded.customer_id,\n                customer_vehicle_id=excluded.customer_vehicle_id,\n                vehicle_year_id=excluded.vehicle_year_id,\n                employee_id=excluded.employee_id,\n                vehicle_km=excluded.vehicle_km,\n                symptoms=excluded.symptoms,\n                diagnosis=excluded.diagnosis,\n                status=excluded.status,\n                labor_cost=excluded.labor_cost,\n                parts_cost=excluded.parts_cost,\n                discount=excluded.discount,\n                total=excluded.total,\n                warranty_days=excluded.warranty_days,\n                warranty_until=excluded.warranty_until,\n                scheduled_date=excluded.scheduled_date,\n                started_at=excluded.started_at,\n                completed_at=excluded.completed_at,\n                payment_method=excluded.payment_method,\n                is_paid=excluded.is_paid,\n                notes=excluded.notes,\n                internal_notes=excluded.internal_notes,\n                updated_at=excluded.updated_at\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 25
+    },
+    "nullable": []
+  },
+  "hash": "d0ca1419bf4855d278232ce14df727dd4d26801eb1f7b218d517f7bd5e60f6b9"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE warranty_claims SET\n                status = 'CLOSED',\n                resolution_type = ?,\n                resolution = ?,\n                resolved_by_id = ?,\n                refund_amount = ?,\n                replacement_cost = ?,\n                resolved_at = ?,\n                updated_at = ?\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "251a75edd242eb8b3fcb05e1390d3c4b1ecc34da84465dba58a7cef517944303"
+}

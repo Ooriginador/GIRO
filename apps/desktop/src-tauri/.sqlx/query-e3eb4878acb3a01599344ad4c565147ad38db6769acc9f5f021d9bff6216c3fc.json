@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE customer_vehicles SET\n                vehicle_year_id = COALESCE(?, vehicle_year_id),\n                plate = COALESCE(?, plate),\n                chassis = COALESCE(?, chassis),\n                renavam = COALESCE(?, renavam),\n                color = COALESCE(?, color),\n                current_km = COALESCE(?, current_km),\n                nickname = COALESCE(?, nickname),\n                is_active = COALESCE(?, is_active),\n                notes = COALESCE(?, notes),\n                updated_at = ?\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 11
+    },
+    "nullable": []
+  },
+  "hash": "e3eb4878acb3a01599344ad4c565147ad38db6769acc9f5f021d9bff6216c3fc"
+}
