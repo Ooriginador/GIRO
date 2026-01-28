@@ -1,0 +1,29 @@
+# CODEOWNERS - Controle de Aprovação de PRs
+# 
+# Qualquer mudança nestas áreas críticas requer aprovação dos owners
+
+# Workflow de release e CI/CD
+/.github/workflows/ @Ooriginador
+
+# Configurações do Tauri e build
+/apps/desktop/src-tauri/tauri.conf.json @Ooriginador
+/apps/desktop/src-tauri/Cargo.toml @Ooriginador
+/.github/workflows/*.yml @Ooriginador
+
+# Configurações de licenciamento e assinatura
+/apps/desktop/src-tauri/src/license/ @Ooriginador
+/SETUP-SIGNING-KEYS.md @Ooriginador
+
+# Secrets e variáveis sensíveis
+/.env* @Ooriginador
+/apps/desktop/src-tauri/.env* @Ooriginador
+
+# Documentação de segurança
+/SECURITY.md @Ooriginador
+/LICENSE @Ooriginador
+
+# Configurações de banco de dados
+/packages/database/prisma/schema.prisma @Ooriginador
+
+# Todos os arquivos por padrão (qualquer PR precisa de aprovação)
+* @Ooriginador
