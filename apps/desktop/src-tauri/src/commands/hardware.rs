@@ -91,15 +91,10 @@ pub fn list_hardware_ports() -> Vec<String> {
 
     #[cfg(target_os = "windows")]
     {
+        use crate::utils::windows::{run_powershell, run_wmic};
+
         // Método 1: PowerShell Get-Printer (Windows 8+)
-        if let Ok(output) = std::process::Command::new("powershell")
-            .args([
-                "-NoProfile",
-                "-Command",
-                "Get-Printer | Select-Object -ExpandProperty Name",
-            ])
-            .output()
-        {
+        if let Ok(output) = run_powershell("Get-Printer | Select-Object -ExpandProperty Name") {
             if let Ok(stdout) = String::from_utf8(output.stdout) {
                 for line in stdout.lines() {
                     let name = line.trim();
@@ -112,10 +107,7 @@ pub fn list_hardware_ports() -> Vec<String> {
         }
 
         // Método 2: WMIC (compatibilidade com Windows mais antigos)
-        if let Ok(output) = std::process::Command::new("wmic")
-            .args(["printer", "get", "name"])
-            .output()
-        {
+        if let Ok(output) = run_wmic(["printer", "get", "name"]) {
             if let Ok(stdout) = String::from_utf8(output.stdout) {
                 for line in stdout.lines().skip(1) {
                     // Skip header
