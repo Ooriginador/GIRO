@@ -75,7 +75,7 @@ pub async fn lgpd_hard_delete_customer_impl(
 
     // 1. Anonimizar dados do cliente em vendas
     let sales_updated = sqlx::query("UPDATE sales SET customer_id = NULL WHERE customer_id = ?")
-        .bind(&customer_id)
+        .bind(customer_id)
         .execute(&mut *tx)
         .await?;
     anonymized_records += sales_updated.rows_affected() as u32;
@@ -83,14 +83,14 @@ pub async fn lgpd_hard_delete_customer_impl(
     // 2. Anonimizar em ordens de serviço
     let so_updated =
         sqlx::query("UPDATE service_orders SET customer_id = NULL WHERE customer_id = ?")
-            .bind(&customer_id)
+            .bind(customer_id)
             .execute(&mut *tx)
             .await?;
     anonymized_records += so_updated.rows_affected() as u32;
 
     // 3. Deletar veículos do cliente permanentemente
     let vehicles_deleted = sqlx::query("DELETE FROM customer_vehicles WHERE customer_id = ?")
-        .bind(&customer_id)
+        .bind(customer_id)
         .execute(&mut *tx)
         .await?;
     deleted_records += vehicles_deleted.rows_affected() as u32;
@@ -152,7 +152,7 @@ pub async fn lgpd_hard_delete_employee_impl(
 
     // 1. Anonimizar dados do funcionário em vendas
     let sales_updated = sqlx::query("UPDATE sales SET employee_id = NULL WHERE employee_id = ?")
-        .bind(&employee_id)
+        .bind(employee_id)
         .execute(&mut *tx)
         .await
         .map_err(|e| {
@@ -169,7 +169,7 @@ pub async fn lgpd_hard_delete_employee_impl(
     // 2. Anonimizar em sessões de caixa
     let cash_updated =
         sqlx::query("UPDATE cash_sessions SET employee_id = NULL WHERE employee_id = ?")
-            .bind(&employee_id)
+            .bind(employee_id)
             .execute(&mut *tx)
             .await
             .map_err(|e| {
@@ -193,7 +193,7 @@ pub async fn lgpd_hard_delete_employee_impl(
     let audit_updated = sqlx::query(
         "UPDATE audit_logs SET user_id = 'ANONYMIZED', user_name = 'ANONYMIZED' WHERE user_id = ?",
     )
-    .bind(&employee_id)
+    .bind(employee_id)
     .execute(&mut *tx)
     .await
     .map_err(|e| {
@@ -212,7 +212,7 @@ pub async fn lgpd_hard_delete_employee_impl(
 
     // 4. Deletar funcionário permanentemente
     let employee_deleted = sqlx::query("DELETE FROM employees WHERE id = ?")
-        .bind(&employee_id)
+        .bind(employee_id)
         .execute(&mut *tx)
         .await
         .map_err(|e| {
