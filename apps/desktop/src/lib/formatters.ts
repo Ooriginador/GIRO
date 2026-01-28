@@ -52,6 +52,10 @@ export function formatQuantity(value: number, unit: ProductUnit): string {
       return `${value.toFixed(0)} cx`;
     case 'PACK':
       return `${value.toFixed(0)} pct`;
+    case 'KIT':
+      return `${value.toFixed(0)} kit`;
+    case 'PAIR':
+      return `${value.toFixed(0)} par`;
     case 'UNIT':
     default:
       return `${value.toFixed(0)} un`;
@@ -73,6 +77,8 @@ export function getUnitLabel(unit: ProductUnit): string {
     BOX: 'Caixa',
     PACK: 'Pacote',
     DOZEN: 'Dúzia',
+    KIT: 'Kit',
+    PAIR: 'Par',
   };
   return labels[unit];
 }
@@ -92,6 +98,8 @@ export function getUnitAbbr(unit: ProductUnit): string {
     BOX: 'cx',
     PACK: 'pct',
     DOZEN: 'dz',
+    KIT: 'kit',
+    PAIR: 'par',
   };
   return abbrs[unit];
 }

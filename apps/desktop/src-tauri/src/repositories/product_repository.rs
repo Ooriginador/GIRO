@@ -568,6 +568,7 @@ impl<'a> ProductRepository<'a> {
         }
 
         let description = data.description.or(existing.description);
+        let notes = data.notes.or(existing.notes);
         let unit = data
             .unit
             .map(|u| u.as_db_str().to_string())

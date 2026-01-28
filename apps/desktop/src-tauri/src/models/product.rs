@@ -20,6 +20,8 @@ pub enum ProductUnit {
     Box,
     Pack,
     Dozen,
+    Kit,
+    Pair,
 }
 
 impl std::fmt::Display for ProductUnit {
@@ -35,6 +37,8 @@ impl std::fmt::Display for ProductUnit {
             Self::Box => write!(f, "cx"),
             Self::Pack => write!(f, "pct"),
             Self::Dozen => write!(f, "dz"),
+            Self::Kit => write!(f, "kit"),
+            Self::Pair => write!(f, "par"),
         }
     }
 }
@@ -52,6 +56,8 @@ impl ProductUnit {
             Self::Box => "BOX",
             Self::Pack => "PACK",
             Self::Dozen => "DOZEN",
+            Self::Kit => "KIT",
+            Self::Pair => "PAIR",
         }
     }
 
@@ -67,6 +73,8 @@ impl ProductUnit {
             "BOX" => Some(Self::Box),
             "PACK" => Some(Self::Pack),
             "DOZEN" => Some(Self::Dozen),
+            "KIT" => Some(Self::Kit),
+            "PAIR" => Some(Self::Pair),
             _ => None,
         }
     }
