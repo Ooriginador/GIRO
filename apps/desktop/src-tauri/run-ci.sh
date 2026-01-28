@@ -41,8 +41,10 @@ echo ""
 echo "📋 Step 4/4: Tests (cargo test)"
 echo "----------------------------------------"
 TEST_OUTPUT=$(cargo test --lib 2>&1)
-PASSED=$(echo "$TEST_OUTPUT" | grep -c "ok$" || echo 0)
-FAILED=$(echo "$TEST_OUTPUT" | grep -c "FAILED" || echo 0)
+PASSED=$(echo "$TEST_OUTPUT" | grep -c "ok$" || true)
+FAILED=$(echo "$TEST_OUTPUT" | grep -c "FAILED" || true)
+PASSED=${PASSED:-0}
+FAILED=${FAILED:-0}
 
 echo "Tests Passed: $PASSED"
 echo "Tests Failed: $FAILED"
