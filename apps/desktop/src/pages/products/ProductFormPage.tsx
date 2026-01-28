@@ -281,6 +281,8 @@ export const ProductFormPage: FC = () => {
                           <SelectItem value="BOX">Caixa (cx)</SelectItem>
                           <SelectItem value="PACK">Pacote (pct)</SelectItem>
                           <SelectItem value="DOZEN">Dúzia (dz)</SelectItem>
+                          <SelectItem value="KIT">Kit (kit)</SelectItem>
+                          <SelectItem value="PAIR">Par (par)</SelectItem>
                         </SelectContent>
                       </Select>
                     )}

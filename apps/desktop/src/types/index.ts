@@ -25,7 +25,9 @@ export type ProductUnit =
   | 'CENTIMETER'
   | 'PACK'
   | 'BOX'
-  | 'DOZEN';
+  | 'DOZEN'
+  | 'KIT'
+  | 'PAIR';
 
 export type EmployeeRole =
   | 'ADMIN'

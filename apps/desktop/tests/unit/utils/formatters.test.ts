@@ -118,6 +118,14 @@ describe('Formatters', () => {
     it('should format PACK', () => {
       expect(formatQuantity(3, 'PACK')).toBe('3 pct');
     });
+
+    it('should format KIT', () => {
+      expect(formatQuantity(2, 'KIT')).toBe('2 kit');
+    });
+
+    it('should format PAIR', () => {
+      expect(formatQuantity(4, 'PAIR')).toBe('4 par');
+    });
   });
 
   describe('getUnitLabel', () => {

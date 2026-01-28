@@ -10,7 +10,7 @@ Package de banco de dados do sistema Mercearias.
 
 ## Estrutura
 
-```text
+````text
 packages/database/
 ├── prisma/
 │   ├── schema.prisma    # Schema do banco
@@ -66,9 +66,9 @@ pnpm db:validate
 
 ## Enums
 
-| Enum                | Valores                                                          |
-| ------------------- | ---------------------------------------------------------------- |
-| `ProductUnit`       | UNIT, KILOGRAM, GRAM, LITER, MILLILITER, METER, BOX, PACK, DOZEN |
+| Enum                | Valores                                                                         |
+| ------------------- | ------------------------------------------------------------------------------- |
+| `ProductUnit`       | UNIT, KILOGRAM, GRAM, LITER, MILLILITER, METER, CENTIMETER, BOX, PACK, DOZEN, KIT, PAIR |
 | `LotStatus`         | AVAILABLE, EXPIRED, DEPLETED, BLOCKED                            |
 | `EmployeeRole`      | ADMIN, MANAGER, CASHIER, VIEWER                                  |
 | `PaymentMethod`     | CASH, PIX, CREDIT, DEBIT, OTHER                                  |
@@ -96,3 +96,4 @@ O seed cria:
 - **Timestamps:** `createdAt` + `updatedAt` em todas as entidades
 - **Soft Delete:** `isActive Boolean @default(true)` onde aplicável
 - **Índices:** Em campos de busca frequente (barcode, name, createdAt)
+````
