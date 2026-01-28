@@ -74,3 +74,7 @@ export {
 
 // Sync
 export * from './useSync';
+
+// Windows Printers
+export { useWindowsPrinters, formatPrinterStatus } from './useWindowsPrinters';
+export type { PrinterInfo } from './useWindowsPrinters';

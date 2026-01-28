@@ -32,6 +32,10 @@ import { invoke, seedDatabase, setSetting, syncBackupToCloud } from '@/lib/tauri
 import { createLogger } from '@/lib/logger';
 import { useSettingsStore, useLicenseStore } from '@/stores';
 import {
+  useWindowsPrinters,
+  formatPrinterStatus,
+} from '@/hooks/useWindowsPrinters';
+import {
   Bell,
   Building2,
   Database,
@@ -146,6 +150,15 @@ export const SettingsPage: FC = () => {
   const [isCloudLoginOpen, setIsCloudLoginOpen] = useState(false);
   const [isSyncingCloud, setIsSyncingCloud] = useState(false);
 
+  // Hook de impressoras Windows (API nativa)
+  const {
+    printers: windowsPrinters,
+    suggestedPrinter,
+    isLoading: isLoadingWindowsPrinters,
+    refresh: refreshWindowsPrinters,
+    // checkPrinterReady disponível para uso futuro
+  } = useWindowsPrinters();
+
   const fetchPorts = useCallback(async () => {
     setIsLoadingPorts(true);
     try {
@@ -159,6 +172,18 @@ export const SettingsPage: FC = () => {
       setIsLoadingPorts(false);
     }
   }, []);
+
+  // Auto-seleciona a impressora sugerida se não houver configuração
+  useEffect(() => {
+    if (suggestedPrinter && !printerPort) {
+      console.log('[SettingsPage] Auto-selecting suggested printer:', suggestedPrinter);
+      setPrinterPort(suggestedPrinter);
+      toast({
+        title: '🖨️ Impressora Detectada',
+        description: `"${suggestedPrinter}" foi selecionada automaticamente.`,
+      });
+    }
+  }, [suggestedPrinter, printerPort, toast]);
 
   useEffect(() => {
     fetchPorts();
@@ -909,24 +934,71 @@ export const SettingsPage: FC = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="printerPort">Porta de Conexão</Label>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="printerPort">Porta de Conexão</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        fetchPorts();
+                        refreshWindowsPrinters();
+                      }}
+                      disabled={isLoadingPorts || isLoadingWindowsPrinters}
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 ${
+                          isLoadingPorts || isLoadingWindowsPrinters ? 'animate-spin' : ''
+                        }`}
+                      />
+                    </Button>
+                  </div>
                   <Select value={printerPort} onValueChange={setPrinterPort}>
                     <SelectTrigger id="printerPort">
                       <SelectValue
                         placeholder={
-                          isLoadingPorts ? 'Carregando portas...' : 'Selecione a impressora...'
+                          isLoadingWindowsPrinters
+                            ? 'Detectando impressoras...'
+                            : 'Selecione a impressora...'
                         }
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      {/* Impressoras detectadas pelo Windows - PRIMEIRA OPÇÃO */}
-                      {availablePorts.length > 0 && (
+                      {/* Impressoras Windows detectadas via API nativa */}
+                      {windowsPrinters.length > 0 && (
+                        <>
+                          <SelectItem value="---windows" disabled>
+                            ── Impressoras Windows (API Nativa) ──
+                          </SelectItem>
+                          {windowsPrinters.map((p) => {
+                            const status = formatPrinterStatus(p.status);
+                            const badges = [];
+                            if (p.isDefault) badges.push('⭐ Padrão');
+                            if (p.isThermal) badges.push('🧾 Térmica');
+
+                            return (
+                              <SelectItem key={`win:${p.name}`} value={p.name}>
+                                <div className="flex items-center gap-2">
+                                  <span className="mr-1">{status.icon}</span>
+                                  <span>{p.name}</span>
+                                  {badges.length > 0 && (
+                                    <span className="text-xs text-muted-foreground">
+                                      ({badges.join(' • ')})
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
+                        </>
+                      )}
+
+                      {/* Fallback: impressoras via list_hardware_ports */}
+                      {availablePorts.length > 0 && windowsPrinters.length === 0 && (
                         <>
                           <SelectItem value="---detected" disabled>
-                            ── Impressoras Instaladas (Recomendado) ──
+                            ── Impressoras Instaladas ──
                           </SelectItem>
                           {availablePorts.map((p) => {
-                            // Extrai o nome amigável da impressora
                             const displayName = p.startsWith('\\\\localhost\\')
                               ? p.replace('\\\\localhost\\', '')
                               : p;
@@ -938,6 +1010,15 @@ export const SettingsPage: FC = () => {
                           })}
                         </>
                       )}
+
+                      {/* Mensagem se nenhuma impressora detectada */}
+                      {windowsPrinters.length === 0 &&
+                        availablePorts.length === 0 &&
+                        !isLoadingWindowsPrinters && (
+                          <SelectItem value="---none" disabled>
+                            ⚠️ Nenhuma impressora detectada
+                          </SelectItem>
+                        )}
 
                       {/* Linux USB automático */}
                       <SelectItem value="---linux" disabled>
@@ -960,9 +1041,49 @@ export const SettingsPage: FC = () => {
                       <SelectItem value="LPT1">LPT1</SelectItem>
                     </SelectContent>
                   </Select>
+
+                  {/* Info da impressora selecionada */}
+                  {printerPort && windowsPrinters.find((p) => p.name === printerPort) && (
+                    <div className="mt-2 p-2 bg-muted rounded-md text-xs">
+                      {(() => {
+                        const selectedPrinter = windowsPrinters.find(
+                          (p) => p.name === printerPort
+                        )!;
+                        const status = formatPrinterStatus(selectedPrinter.status);
+                        return (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`font-medium ${
+                                  status.color === 'green'
+                                    ? 'text-green-600'
+                                    : status.color === 'red'
+                                    ? 'text-red-600'
+                                    : 'text-yellow-600'
+                                }`}
+                              >
+                                {status.icon} {status.text}
+                              </span>
+                            </div>
+                            {selectedPrinter.driverName && (
+                              <div className="text-muted-foreground">
+                                Driver: {selectedPrinter.driverName}
+                              </div>
+                            )}
+                            {selectedPrinter.portName && (
+                              <div className="text-muted-foreground">
+                                Porta: {selectedPrinter.portName}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
                   <p className="text-xs text-muted-foreground mt-1">
-                    <strong>Windows:</strong> Selecione a impressora instalada da lista acima. Se
-                    não aparecer, verifique se o driver está instalado no Painel de Controle.
+                    <strong>Windows:</strong> As impressoras são detectadas automaticamente via API
+                    nativa. Impressoras térmicas são identificadas pelo nome do driver.
                   </p>
                 </div>
                 <div>

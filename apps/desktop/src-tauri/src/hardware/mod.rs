@@ -23,12 +23,19 @@ pub mod printer;
 pub mod scale;
 pub mod scanner;
 
+// Windows-specific native printer API
+#[cfg(target_os = "windows")]
+pub mod windows_printer;
+
 pub use device::*;
 pub use drawer::*;
 pub use manager::*;
 pub use printer::*;
 pub use scale::*;
 pub use scanner::*;
+
+#[cfg(target_os = "windows")]
+pub use windows_printer::*;
 
 use thiserror::Error;
 
