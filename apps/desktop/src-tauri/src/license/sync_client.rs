@@ -254,7 +254,7 @@ impl SyncClient {
             403 => "Hardware não autorizado para esta licença.".to_string(),
             404 => "Licença não encontrada no servidor.".to_string(),
             429 => "Muitas requisições. Aguarde alguns minutos e tente novamente.".to_string(),
-            500..=599 => format!("Erro no servidor de licenças. Tente novamente mais tarde."),
+            500..=599 => "Erro no servidor de licenças. Tente novamente mais tarde.".to_string(),
             _ => format!("Erro do servidor ({}): {}", status_code, error_text),
         }
     }

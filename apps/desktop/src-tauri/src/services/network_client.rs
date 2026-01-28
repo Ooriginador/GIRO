@@ -318,7 +318,7 @@ impl NetworkClient {
                     format!(
                         "Não foi possível conectar ao Master ({}). Verifique: 1) O Master está online? 2) A porta {} está liberada no Firewall?", 
                         addr,
-                        addr.split(':').last().unwrap_or("3847")
+                        addr.split(':').next_back().unwrap_or("3847")
                     )
                 } else {
                     format!("Não foi possível conectar ao Master ({})", addr)

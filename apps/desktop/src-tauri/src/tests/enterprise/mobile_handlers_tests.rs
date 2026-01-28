@@ -55,7 +55,7 @@ async fn create_test_product(pool: &Pool<Sqlite>) -> String {
     let id = test_uuid();
     sqlx::query(
         r#"
-        INSERT INTO Product (id, code, name, unit, salePrice, costPrice, isActive, createdAt, updatedAt)
+        INSERT INTO products (id, internal_code, name, unit, sale_price, cost_price, is_active, created_at, updated_at)
         VALUES (?, 'PROD-001', 'Produto Teste', 'UN', 10.00, 8.00, 1, datetime('now'), datetime('now'))
         "#,
     )

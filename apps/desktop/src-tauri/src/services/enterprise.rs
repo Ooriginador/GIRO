@@ -292,7 +292,7 @@ mod tests {
             .unwrap();
 
         let items = vec![ApproveItemInput {
-            item_id: item_id,
+            item_id,
             approved_qty: 10.0,
         }];
 

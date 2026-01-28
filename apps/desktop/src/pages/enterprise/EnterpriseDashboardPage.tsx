@@ -7,7 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useEnterpriseDashboard, usePendingRequests, useContracts } from '@/hooks/enterprise';
+import {
+  useEnterpriseDashboard,
+  usePendingRequests,
+  useContracts,
+  useContractsConsumptionSummary,
+} from '@/hooks/enterprise';
 import { cn } from '@/lib/utils';
 import {
   AlertTriangle,
@@ -292,50 +297,29 @@ export const EnterpriseDashboardPage: FC = () => {
   const navigate = useNavigate();
 
   // Real hooks with Tauri invoke (React Query)
-  // TODO: Create a proper global dashboard hook. Using individual hooks for now to compose.
+  const {
+    data: dashboard,
+    isLoading: isLoadingDashboard,
+    refetch: refetchDashboard,
+  } = useEnterpriseDashboard();
   const {
     data: contracts,
     isLoading: isLoadingContracts,
     refetch: refetchContracts,
   } = useContracts();
   const {
-    data: requests,
+    data: pendingRequests,
     isLoading: isLoadingRequests,
     refetch: refetchRequests,
   } = usePendingRequests();
-  // We need stock transfers hook here too for KPIs
+  const {
+    data: consumptionSummary,
+    isLoading: isLoadingConsumption,
+    refetch: refetchConsumption,
+  } = useContractsConsumptionSummary(5);
 
-  // Calculate KPIs locally until backend aggregator is ready
-  const activeContracts = contracts?.filter((c) => c.status === 'ACTIVE').length || 0;
-  const pendingRequests = requests?.length || 0;
-  // const inTransitTransfers = ...
-
-  const kpis: EnterpriseKPIs = {
-    activeContracts,
-    pendingRequests,
-    inTransitTransfers: 0, // Placeholder
-    lowStockAlerts: 0, // Placeholder
-  };
-
-  const recentRequests: RecentRequest[] =
-    requests?.slice(0, 5).map((r) => ({
-      id: r.id,
-      code: r.requestNumber,
-      status: r.status as any,
-      requesterName: 'Unknown', // Need join
-      contractName: 'Unknown', // Need join
-      requestedAt: r.createdAt || new Date().toISOString(), // Fallback
-      priority: r.priority as any,
-    })) || [];
-
-  const consumptionData: ContractConsumption[] = []; // Placeholder
-
-  const isLoading = isLoadingContracts || isLoadingRequests;
-
-  const handleRefresh = () => {
-    refetchContracts();
-    refetchRequests();
-  };
+  const isLoading =
+    isLoadingDashboard || isLoadingContracts || isLoadingRequests || isLoadingConsumption;
 
   // Transform pending requests to recent requests format
   const recentRequests: RecentRequest[] = (pendingRequests || []).slice(0, 5).map((r) => ({
@@ -347,12 +331,12 @@ export const EnterpriseDashboardPage: FC = () => {
     createdAt: r.createdAt,
   }));
 
-  // Calculate consumption data from contracts
-  const consumptionData: ContractConsumption[] = (contracts || []).slice(0, 4).map((c, i) => ({
-    contractId: c.id,
-    contractName: `${c.code} - ${c.name}`,
-    totalValue: c.budget || 0,
-    percentage: Math.min(100, Math.max(0, (4 - i) * 25)), // Placeholder until real consumption data
+  // Consumption data from real API
+  const consumptionData: ContractConsumption[] = (consumptionSummary || []).map((c) => ({
+    contractId: c.contractId,
+    contractName: `${c.contractCode} - ${c.contractName}`,
+    totalValue: c.totalConsumption,
+    percentage: c.percentage,
   }));
 
   // KPIs from real dashboard data
@@ -361,19 +345,25 @@ export const EnterpriseDashboardPage: FC = () => {
         activeContracts: dashboard.activeContracts,
         pendingRequests: dashboard.pendingRequests,
         inTransitTransfers: dashboard.inTransitTransfers,
-        lowStockAlerts: dashboard.lowStockAlerts,
+        lowStockItems: dashboard.lowStockItems,
+        monthlyConsumption: dashboard.monthlyConsumption,
+        consumptionTrend: dashboard.consumptionTrend,
       }
     : {
         activeContracts: 0,
         pendingRequests: 0,
         inTransitTransfers: 0,
-        lowStockAlerts: 0,
+        lowStockItems: 0,
+        monthlyConsumption: 0,
+        consumptionTrend: 0,
       };
 
   const handleRefresh = useCallback(() => {
     refetchDashboard();
+    refetchContracts();
     refetchRequests();
-  }, [refetchDashboard, refetchRequests]);
+    refetchConsumption();
+  }, [refetchDashboard, refetchContracts, refetchRequests, refetchConsumption]);
 
   return (
     <div className="space-y-6" data-testid="enterprise-dashboard">
@@ -416,8 +406,8 @@ export const EnterpriseDashboardPage: FC = () => {
           loading={isLoading}
         />
         <KPICard
-          title="Alertas de Estoque"
-          value={kpis.lowStockAlerts}
+          title="Estoque Baixo"
+          value={kpis.lowStockItems}
           icon={AlertTriangle}
           iconColor="bg-red-600"
           href="/enterprise/alerts"
@@ -425,10 +415,39 @@ export const EnterpriseDashboardPage: FC = () => {
         />
       </div>
 
+      {/* Consumption Summary */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Consumo do Mês</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                kpis.monthlyConsumption
+              )}
+            </div>
+            <p
+              className={cn(
+                'text-sm mt-1',
+                kpis.consumptionTrend > 0
+                  ? 'text-red-600'
+                  : kpis.consumptionTrend < 0
+                  ? 'text-green-600'
+                  : 'text-muted-foreground'
+              )}
+            >
+              {kpis.consumptionTrend > 0 ? '↑' : kpis.consumptionTrend < 0 ? '↓' : '→'}{' '}
+              {Math.abs(kpis.consumptionTrend).toFixed(1)}% vs mês anterior
+            </p>
+          </CardContent>
+        </Card>
+        <ConsumptionChartWidget data={consumptionData} loading={isLoadingConsumption} />
+      </div>
+
       {/* Widgets Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
         <RecentRequestsWidget requests={recentRequests} loading={isLoadingRequests} />
-        <ConsumptionChartWidget data={consumptionData} loading={isLoadingContracts} />
       </div>
 
       {/* Quick Actions */}

@@ -2164,6 +2164,108 @@ export async function getSalesReport(startDate: string, endDate: string): Promis
   return tauriInvoke<SalesReport>('get_sales_report', { startDate, endDate });
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// KARDEX - RELATÓRIO DE MOVIMENTAÇÃO
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface KardexEntry {
+  date: string;
+  documentType: string;
+  documentCode: string;
+  description: string;
+  locationName: string;
+  qtyIn: number;
+  qtyOut: number;
+  balance: number;
+  unitCost: number;
+  totalCost: number;
+}
+
+export interface KardexReport {
+  productId: string;
+  productName: string;
+  productCode: string;
+  startDate: string;
+  endDate: string;
+  openingBalance: number;
+  totalIn: number;
+  totalOut: number;
+  closingBalance: number;
+  entries: KardexEntry[];
+}
+
+export async function getProductKardex(
+  productId: string,
+  startDate: string,
+  endDate: string,
+  locationId?: string
+): Promise<KardexReport> {
+  return tauriInvoke<KardexReport>('get_product_kardex', {
+    productId,
+    startDate,
+    endDate,
+    locationId,
+  });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// CONTRACTS CONSUMPTION SUMMARY (Dashboard)
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface ContractConsumptionSummary {
+  contractId: string;
+  contractCode: string;
+  contractName: string;
+  totalConsumption: number;
+  budget: number;
+  percentage: number;
+}
+
+export async function getContractsConsumptionSummary(
+  limit?: number
+): Promise<ContractConsumptionSummary[]> {
+  return tauriInvoke<ContractConsumptionSummary[]>('get_contracts_consumption_summary', { limit });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// LOW STOCK ALERTS
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface LowStockAlert {
+  productId: string;
+  productName: string;
+  internalCode: string;
+  categoryName: string | null;
+  locationId: string;
+  locationName: string;
+  currentQty: number;
+  reservedQty: number;
+  availableQty: number;
+  minStock: number;
+  deficit: number;
+  criticality: 'CRITICAL' | 'WARNING' | 'LOW';
+  suggestedAction: string;
+}
+
+export interface LowStockAlertsCount {
+  total: number;
+  critical: number;
+  warning: number;
+  low: number;
+}
+
+export async function getLowStockAlerts(params?: {
+  locationId?: string;
+  categoryId?: string;
+  criticality?: 'CRITICAL' | 'WARNING' | 'LOW';
+}): Promise<LowStockAlert[]> {
+  return tauriInvoke<LowStockAlert[]>('get_low_stock_alerts', params ?? {});
+}
+
+export async function getLowStockAlertsCount(): Promise<LowStockAlertsCount> {
+  return tauriInvoke<LowStockAlertsCount>('get_low_stock_alerts_count');
+}
+
 export type ConnectionDiagnostic = {
   success: boolean;
   status_code: number;

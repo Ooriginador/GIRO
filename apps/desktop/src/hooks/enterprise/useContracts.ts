@@ -51,6 +51,17 @@ export function useEnterpriseDashboard() {
 }
 
 /**
+ * Hook para consumo agregado por contrato (Dashboard Chart)
+ */
+export function useContractsConsumptionSummary(limit: number = 5) {
+  return useQuery({
+    queryKey: ['enterprise', 'consumption-summary', limit] as const,
+    queryFn: () => tauri.getContractsConsumptionSummary(limit),
+    staleTime: 1000 * 60 * 2, // 2 minutos
+  });
+}
+
+/**
  * Hook para dashboard de um contrato específico
  */
 export function useContractDashboard(id?: string) {
@@ -110,5 +121,36 @@ export function useDeleteContract() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: contractKeys.lists() });
     },
+  });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// LOW STOCK ALERTS HOOKS
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Hook para alertas de estoque baixo
+ */
+export function useLowStockAlerts(params?: {
+  locationId?: string;
+  categoryId?: string;
+  criticality?: 'CRITICAL' | 'WARNING' | 'LOW';
+}) {
+  return useQuery({
+    queryKey: ['enterprise', 'low-stock-alerts', params] as const,
+    queryFn: () => tauri.getLowStockAlerts(params),
+    staleTime: 1000 * 60 * 2, // 2 minutos
+  });
+}
+
+/**
+ * Hook para contagem de alertas de estoque baixo (para badges)
+ */
+export function useLowStockAlertsCount() {
+  return useQuery({
+    queryKey: ['enterprise', 'low-stock-alerts-count'] as const,
+    queryFn: () => tauri.getLowStockAlertsCount(),
+    staleTime: 1000 * 60 * 1, // 1 minuto - atualiza mais frequentemente
+    refetchInterval: 1000 * 60 * 5, // Auto-refetch a cada 5 minutos
   });
 }

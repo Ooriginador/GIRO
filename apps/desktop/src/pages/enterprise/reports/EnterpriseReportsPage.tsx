@@ -18,7 +18,16 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import { AlertTriangle, Package, DollarSign, Warehouse, Loader2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  Package,
+  DollarSign,
+  Warehouse,
+  Loader2,
+  FileText,
+  ArrowRight,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -133,6 +142,44 @@ export function EnterpriseReportsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Quick Links to Specific Reports ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Relatórios de Compliance</CardTitle>
+          <CardDescription>Relatórios detalhados para auditoria e rastreabilidade</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <Link
+              to="/enterprise/reports/kardex"
+              className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Kardex - Movimentação</p>
+                  <p className="text-sm text-muted-foreground">Histórico completo por produto</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+            <Link
+              to="/enterprise/reports/consumption"
+              className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Package className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Consumo por Contrato</p>
+                  <p className="text-sm text-muted-foreground">Apropriação de materiais por obra</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ── Charts ── */}
       <Tabs defaultValue="stock" className="space-y-4">

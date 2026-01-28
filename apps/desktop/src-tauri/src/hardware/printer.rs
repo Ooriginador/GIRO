@@ -1303,7 +1303,7 @@ mod tests {
         });
         // Look for ESC 'E' 1 (Bold On) -> [0x1B, 0x45, 0x01]
         // Note: style() first resets, so we check if it contains the bold command closer to end
-        assert!(printer.buffer.windows(3).any(|w| w == &[0x1B, 0x45, 0x01]));
+        assert!(printer.buffer.windows(3).any(|w| w == [0x1B, 0x45, 0x01]));
     }
 
     #[test]

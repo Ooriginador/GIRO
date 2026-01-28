@@ -75,7 +75,6 @@ impl ProductUnit {
 /// Produto do catálogo
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
-#[sqlx(rename_all = "camelCase")]
 pub struct Product {
     pub id: String,
     pub barcode: Option<String>,
