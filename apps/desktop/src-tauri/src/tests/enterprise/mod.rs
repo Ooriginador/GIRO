@@ -6,6 +6,7 @@ pub mod activity_tests;
 pub mod contract_tests;
 pub mod material_request_tests;
 pub mod mobile_handlers_tests;
+pub mod reports_tests;
 pub mod stock_location_tests;
 pub mod stock_transfer_tests;
 

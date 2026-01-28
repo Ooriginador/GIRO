@@ -270,7 +270,7 @@ pub async fn test_master_connection(ip: String, port: u16, secret: String) -> Ap
         }
     });
 
-    if let Err(e) = write.send(Message::Text(auth_msg.to_string().into())).await {
+    if let Err(e) = write.send(Message::Text(auth_msg.to_string())).await {
         tracing::warn!("❌ Falha ao enviar auth: {}", e);
         return Ok(false);
     }

@@ -2,7 +2,7 @@
  * @file EnterpriseDashboardPage.test.tsx - Testes para Dashboard Enterprise
  */
 
-import { useContractDashboard, usePendingRequests, useContracts } from '@/hooks/enterprise';
+import { useEnterpriseDashboard, usePendingRequests, useContracts } from '@/hooks/enterprise';
 import { EnterpriseDashboardPage } from '@/pages/enterprise/EnterpriseDashboardPage';
 import { createQueryWrapper } from '@/test/queryWrapper';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -11,7 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock hooks
 vi.mock('@/hooks/enterprise', () => ({
-  useContractDashboard: vi.fn(),
+  useEnterpriseDashboard: vi.fn(),
   usePendingRequests: vi.fn(),
   useContracts: vi.fn(),
 }));
@@ -35,7 +35,9 @@ const mockDashboardData = {
   activeContracts: 8,
   pendingRequests: 2,
   inTransitTransfers: 5,
-  lowStockAlerts: 1,
+  lowStockItems: 1,
+  monthlyConsumption: 0,
+  consumptionTrend: 0,
 };
 
 const mockRecentRequests = [
@@ -76,7 +78,7 @@ describe('EnterpriseDashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.mocked(useContractDashboard).mockReturnValue({
+    vi.mocked(useEnterpriseDashboard).mockReturnValue({
       data: mockDashboardData,
       isLoading: false,
       refetch: vi.fn(),
@@ -91,11 +93,12 @@ describe('EnterpriseDashboardPage', () => {
     vi.mocked(useContracts).mockReturnValue({
       data: mockContracts,
       isLoading: false,
+      refetch: vi.fn(),
     } as any);
   });
 
   it('should render loading state', () => {
-    vi.mocked(useContractDashboard).mockReturnValue({
+    vi.mocked(useEnterpriseDashboard).mockReturnValue({
       data: undefined,
       isLoading: true,
       refetch: vi.fn(),
@@ -148,7 +151,7 @@ describe('EnterpriseDashboardPage', () => {
     const refetchDashboardSpy = vi.fn();
     const refetchRequestsSpy = vi.fn();
 
-    vi.mocked(useContractDashboard).mockReturnValue({
+    vi.mocked(useEnterpriseDashboard).mockReturnValue({
       data: mockDashboardData,
       isLoading: false,
       refetch: refetchDashboardSpy,

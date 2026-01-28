@@ -8,6 +8,8 @@ export {
   useContracts,
   useContract,
   useContractDashboard,
+  useEnterpriseDashboard,
+  useContractsConsumptionSummary,
   useCreateContract,
   useUpdateContract,
   useDeleteContract,

@@ -546,7 +546,7 @@ impl ServiceOrderRepository {
             .fetch_optional(&mut **tx)
             .await?
             .ok_or_else(|| AppError::NotFound {
-                entity: "Product".into(),
+                entity: "products".into(),
                 id: product_id.clone(),
             })?;
 
@@ -908,7 +908,7 @@ impl ServiceOrderRepository {
             .fetch_optional(&mut *tx)
             .await?
             .ok_or_else(|| AppError::NotFound {
-                entity: "Product".into(),
+                entity: "products".into(),
                 id: product_id.clone(),
             })?;
 
@@ -1970,7 +1970,7 @@ mod tests {
         sqlx::query("INSERT INTO categories (id, name, created_at, updated_at) VALUES ('cat1', 'Test Cat', datetime('now'), datetime('now'))")
             .execute(&pool).await.unwrap();
 
-        sqlx::query("INSERT INTO products (id, name, unit, sale_price, cost_price, current_stock, category_id, is_active, created_at, updated_at) VALUES ('p1', 'Oil Filter', 'UN', 50.0, 30.0, 10.0, 'cat1', 1, datetime('now'), datetime('now'))")
+        sqlx::query("INSERT INTO products (id, internal_code, name, unit, sale_price, cost_price, current_stock, category_id, is_active, created_at, updated_at) VALUES ('p1', 'P001', 'Oil Filter', 'UN', 50.0, 30.0, 10.0, 'cat1', 1, datetime('now'), datetime('now'))")
              .execute(&pool).await.unwrap();
 
         // Customers & Vehicles

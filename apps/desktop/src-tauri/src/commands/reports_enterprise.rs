@@ -70,9 +70,99 @@ pub struct PendingByContract {
     pub total_value: f64,
 }
 
+/// Consumo agregado por contrato para dashboard
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractConsumptionSummary {
+    pub contract_id: String,
+    pub contract_code: String,
+    pub contract_name: String,
+    pub total_consumption: f64,
+    pub budget: f64,
+    pub percentage: f64,
+}
+
+/// Alerta de estoque baixo
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct LowStockAlert {
+    pub product_id: String,
+    pub product_name: String,
+    pub internal_code: String,
+    pub category_name: Option<String>,
+    pub location_id: String,
+    pub location_name: String,
+    pub current_qty: f64,
+    pub reserved_qty: f64,
+    pub available_qty: f64,
+    pub min_stock: f64,
+    pub deficit: f64,
+    pub criticality: String, // "CRITICAL", "WARNING", "LOW"
+    pub suggested_action: String,
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // RELATÓRIO DE CONSUMO POR CONTRATO
 // ═══════════════════════════════════════════════════════════════════════════════
+
+/// Retorna consumo agregado de todos os contratos ativos (para dashboard)
+#[tauri::command]
+#[specta::specta]
+pub async fn get_contracts_consumption_summary(
+    limit: Option<i32>,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<ContractConsumptionSummary>> {
+    state.session.require_authenticated()?;
+    let pool = state.db_pool.as_ref();
+    let limit = limit.unwrap_or(5);
+
+    // Get current month start
+    let rows = sqlx::query(
+        r#"
+        SELECT 
+            c.id as contract_id,
+            c.code as contract_code,
+            c.name as contract_name,
+            c.budget,
+            COALESCE(SUM(mc.quantity * mc.unit_cost), 0.0) as total_consumption
+        FROM contracts c
+        LEFT JOIN work_fronts wf ON wf.contract_id = c.id
+        LEFT JOIN activities a ON a.work_front_id = wf.id
+        LEFT JOIN material_consumptions mc ON mc.activity_id = a.id
+            AND mc.consumed_at >= date('now', 'start of month')
+        WHERE c.status = 'ACTIVE'
+        GROUP BY c.id, c.code, c.name, c.budget
+        ORDER BY total_consumption DESC
+        LIMIT ?
+        "#,
+    )
+    .bind(limit)
+    .fetch_all(pool)
+    .await?;
+
+    let result: Vec<ContractConsumptionSummary> = rows
+        .iter()
+        .map(|row| {
+            let total_consumption: f64 = row.try_get("total_consumption").unwrap_or(0.0);
+            let budget: f64 = row.try_get("budget").unwrap_or(0.0);
+            let percentage = if budget > 0.0 {
+                (total_consumption / budget) * 100.0
+            } else {
+                0.0
+            };
+            ContractConsumptionSummary {
+                contract_id: row.try_get("contract_id").unwrap_or_default(),
+                contract_code: row.try_get("contract_code").unwrap_or_default(),
+                contract_name: row.try_get("contract_name").unwrap_or_default(),
+                total_consumption,
+                budget,
+                percentage,
+            }
+        })
+        .collect();
+
+    Ok(result)
+}
 
 /// Retorna relatório de consumo agregado por contrato
 #[tauri::command]
@@ -1274,4 +1364,159 @@ fn escape_xml(s: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&apos;")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ALERTAS DE ESTOQUE BAIXO
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Retorna alertas de estoque baixo por local para o módulo Enterprise
+/// Considera stock_balances vs products.min_stock
+#[tauri::command]
+#[specta::specta]
+pub async fn get_low_stock_alerts(
+    location_id: Option<String>,
+    category_id: Option<String>,
+    criticality: Option<String>,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<LowStockAlert>> {
+    state.session.require_authenticated()?;
+    let pool = state.db_pool.as_ref();
+
+    let rows = sqlx::query(
+        r#"
+        SELECT 
+            p.id as product_id,
+            p.name as product_name,
+            COALESCE(p.internal_code, '') as internal_code,
+            cat.name as category_name,
+            sl.id as location_id,
+            sl.name as location_name,
+            COALESCE(sb.quantity, 0.0) as current_qty,
+            COALESCE(sb.reserved_qty, 0.0) as reserved_qty,
+            COALESCE(p.min_stock, 0.0) as min_stock
+        FROM products p
+        JOIN stock_balances sb ON sb.product_id = p.id
+        JOIN stock_locations sl ON sl.id = sb.location_id
+        LEFT JOIN categories cat ON cat.id = p.category_id
+        WHERE p.is_active = 1
+          AND COALESCE(p.min_stock, 0.0) > 0
+          AND (sb.quantity - COALESCE(sb.reserved_qty, 0.0)) < COALESCE(p.min_stock, 0.0)
+          AND (? IS NULL OR sl.id = ?)
+          AND (? IS NULL OR p.category_id = ?)
+        ORDER BY 
+            (COALESCE(p.min_stock, 0.0) - (sb.quantity - COALESCE(sb.reserved_qty, 0.0))) DESC
+        "#,
+    )
+    .bind(&location_id)
+    .bind(&location_id)
+    .bind(&category_id)
+    .bind(&category_id)
+    .fetch_all(pool)
+    .await?;
+
+    let mut alerts: Vec<LowStockAlert> = rows
+        .iter()
+        .map(|row| {
+            let current_qty: f64 = row.try_get("current_qty").unwrap_or(0.0);
+            let reserved_qty: f64 = row.try_get("reserved_qty").unwrap_or(0.0);
+            let min_stock: f64 = row.try_get("min_stock").unwrap_or(0.0);
+            let available_qty = current_qty - reserved_qty;
+            let deficit = min_stock - available_qty;
+
+            // Determine criticality based on percentage of min_stock
+            let ratio = if min_stock > 0.0 {
+                available_qty / min_stock
+            } else {
+                1.0
+            };
+            let criticality = if ratio <= 0.25 {
+                "CRITICAL".to_string()
+            } else if ratio <= 0.5 {
+                "WARNING".to_string()
+            } else {
+                "LOW".to_string()
+            };
+
+            // Suggest action based on context
+            let suggested_action = if available_qty <= 0.0 {
+                "Criar Pedido de Compra Urgente".to_string()
+            } else if deficit > 0.0 {
+                "Solicitar Transferência ou Compra".to_string()
+            } else {
+                "Monitorar".to_string()
+            };
+
+            LowStockAlert {
+                product_id: row.try_get("product_id").unwrap_or_default(),
+                product_name: row.try_get("product_name").unwrap_or_default(),
+                internal_code: row.try_get("internal_code").unwrap_or_default(),
+                category_name: row
+                    .try_get::<Option<String>, _>("category_name")
+                    .ok()
+                    .flatten(),
+                location_id: row.try_get("location_id").unwrap_or_default(),
+                location_name: row.try_get("location_name").unwrap_or_default(),
+                current_qty,
+                reserved_qty,
+                available_qty,
+                min_stock,
+                deficit,
+                criticality,
+                suggested_action,
+            }
+        })
+        .collect();
+
+    // Filter by criticality if specified
+    if let Some(ref crit) = criticality {
+        alerts.retain(|a| a.criticality == *crit);
+    }
+
+    Ok(alerts)
+}
+
+/// Retorna contagem de alertas por criticidade (para badge no dashboard)
+#[tauri::command]
+#[specta::specta]
+pub async fn get_low_stock_alerts_count(
+    state: State<'_, AppState>,
+) -> AppResult<LowStockAlertsCount> {
+    state.session.require_authenticated()?;
+    let pool = state.db_pool.as_ref();
+
+    let row = sqlx::query(
+        r#"
+        SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN ((sb.quantity - COALESCE(sb.reserved_qty, 0.0)) / COALESCE(p.min_stock, 1.0)) <= 0.25 THEN 1 ELSE 0 END) as critical,
+            SUM(CASE WHEN ((sb.quantity - COALESCE(sb.reserved_qty, 0.0)) / COALESCE(p.min_stock, 1.0)) > 0.25 
+                      AND ((sb.quantity - COALESCE(sb.reserved_qty, 0.0)) / COALESCE(p.min_stock, 1.0)) <= 0.5 THEN 1 ELSE 0 END) as warning,
+            SUM(CASE WHEN ((sb.quantity - COALESCE(sb.reserved_qty, 0.0)) / COALESCE(p.min_stock, 1.0)) > 0.5 THEN 1 ELSE 0 END) as low
+        FROM products p
+        JOIN stock_balances sb ON sb.product_id = p.id
+        WHERE p.is_active = 1
+          AND COALESCE(p.min_stock, 0.0) > 0
+          AND (sb.quantity - COALESCE(sb.reserved_qty, 0.0)) < COALESCE(p.min_stock, 0.0)
+        "#,
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(LowStockAlertsCount {
+        total: row.try_get::<i32, _>("total").unwrap_or(0),
+        critical: row.try_get::<i32, _>("critical").unwrap_or(0),
+        warning: row.try_get::<i32, _>("warning").unwrap_or(0),
+        low: row.try_get::<i32, _>("low").unwrap_or(0),
+    })
+}
+
+/// Contagem de alertas por criticidade
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct LowStockAlertsCount {
+    pub total: i32,
+    pub critical: i32,
+    pub warning: i32,
+    pub low: i32,
 }

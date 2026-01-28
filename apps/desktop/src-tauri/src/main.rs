@@ -162,6 +162,7 @@ async fn main() {
             commands::get_motoparts_dashboard_stats,
             commands::get_service_order_stats,
             commands::get_top_products_motoparts,
+            commands::get_product_kardex,
             // Alerts
             commands::get_alerts,
             commands::get_unread_alerts,
@@ -343,11 +344,15 @@ async fn main() {
             commands::receive_stock_transfer,
             commands::cancel_stock_transfer,
             // Enterprise Module - Reports
+            commands::get_contracts_consumption_summary,
             commands::report_consumption_by_contract,
             commands::report_consumption_by_activity,
             commands::report_consumption_by_cost_center,
             commands::report_stock_position,
             commands::report_pending_requests,
+            // Enterprise Module - Low Stock Alerts
+            commands::get_low_stock_alerts,
+            commands::get_low_stock_alerts_count,
             // Enterprise Module - Inventory
             commands::inventory_enterprise::create_inventory_count,
             commands::inventory_enterprise::get_inventory_counts_paginated,
@@ -764,6 +769,7 @@ async fn main() {
             commands::get_motoparts_dashboard_stats,
             commands::get_service_order_stats,
             commands::get_top_products_motoparts,
+            commands::get_product_kardex,
             // Configurações
             commands::get_all_settings,
             commands::get_settings_by_group,
@@ -1015,11 +1021,15 @@ async fn main() {
             commands::receive_stock_transfer,
             commands::cancel_stock_transfer,
             // Enterprise Module - Reports
+            commands::get_contracts_consumption_summary,
             commands::report_consumption_by_contract,
             commands::report_consumption_by_activity,
             commands::report_consumption_by_cost_center,
             commands::report_stock_position,
             commands::report_pending_requests,
+            // Enterprise Module - Low Stock Alerts
+            commands::get_low_stock_alerts,
+            commands::get_low_stock_alerts_count,
             // Enterprise Module - Inventory
             commands::inventory_enterprise::create_inventory_count,
             commands::inventory_enterprise::get_inventory_counts_paginated,

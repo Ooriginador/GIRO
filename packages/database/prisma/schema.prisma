@@ -95,6 +95,9 @@ model Product {
   partBrand       String? // Marca da peça (Fram, NGK, etc)
   application     String? // Aplicação textual (ex: "CG/Titan/Fan 2016-2024")
 
+  // Metadados
+  notes String? // Notas internas, observações técnicas
+
   // Relações
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)

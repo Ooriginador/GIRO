@@ -10,6 +10,9 @@ use sqlx::Row;
 use std::collections::HashMap;
 use tauri::State;
 
+// Type alias para reduzir complexidade de tipo
+type KardexRowData = (String, String, String, String, String, f64, f64, f64, f64);
+
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StockReport {
@@ -409,4 +412,258 @@ pub async fn get_employee_performance(
     }
 
     Ok(ranking)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KARDEX - RELATÓRIO DE MOVIMENTAÇÃO (COMPLIANCE)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Representa uma movimentação no Kardex
+#[derive(Debug, Clone, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct KardexEntry {
+    pub date: String,
+    pub document_type: String, // REQUEST, TRANSFER_OUT, TRANSFER_IN, ADJUSTMENT, SALE
+    pub document_code: String,
+    pub description: String,
+    pub location_name: String,
+    pub qty_in: f64,
+    pub qty_out: f64,
+    pub balance: f64,
+    pub unit_cost: f64,
+    pub total_cost: f64,
+}
+
+/// Relatório Kardex completo de um produto
+#[derive(Debug, Clone, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct KardexReport {
+    pub product_id: String,
+    pub product_name: String,
+    pub product_code: String,
+    pub start_date: String,
+    pub end_date: String,
+    pub opening_balance: f64,
+    pub total_in: f64,
+    pub total_out: f64,
+    pub closing_balance: f64,
+    pub entries: Vec<KardexEntry>,
+}
+
+/// Obtém relatório Kardex de um produto
+#[tauri::command]
+#[specta::specta]
+pub async fn get_product_kardex(
+    product_id: String,
+    start_date: String,
+    end_date: String,
+    location_id: Option<String>,
+    state: State<'_, AppState>,
+) -> AppResult<KardexReport> {
+    let info = state.session.require_authenticated()?;
+    crate::require_permission!(state.pool(), &info.employee_id, Permission::ViewReports);
+
+    // Get product info
+    let product: (String, String) =
+        sqlx::query_as("SELECT name, internal_code FROM products WHERE id = ?")
+            .bind(&product_id)
+            .fetch_one(state.pool())
+            .await
+            .map_err(|_| crate::error::AppError::NotFound {
+                entity: "Product".into(),
+                id: product_id.clone(),
+            })?;
+
+    let mut entries: Vec<KardexEntry> = Vec::new();
+
+    // 1. Material Consumptions (OUT via Requests)
+    let consumption_query = if location_id.is_some() {
+        r#"
+        SELECT mc.consumed_at as date, 'REQUEST' as doc_type,
+               mr.request_number as doc_code,
+               COALESCE(a.name, 'Consumo') as description,
+               COALESCE(sl.name, 'N/A') as location_name,
+               0.0 as qty_in, mc.quantity as qty_out,
+               mc.unit_cost, mc.total_cost
+        FROM material_consumptions mc
+        LEFT JOIN material_requests mr ON mc.request_id = mr.id
+        LEFT JOIN activities a ON mc.activity_id = a.id
+        LEFT JOIN stock_locations sl ON mr.source_location_id = sl.id
+        WHERE mc.product_id = ? AND mc.consumed_at BETWEEN ? AND ?
+          AND mr.source_location_id = ?
+        ORDER BY mc.consumed_at
+        "#
+    } else {
+        r#"
+        SELECT mc.consumed_at as date, 'REQUEST' as doc_type,
+               mr.request_number as doc_code,
+               COALESCE(a.name, 'Consumo') as description,
+               COALESCE(sl.name, 'N/A') as location_name,
+               0.0 as qty_in, mc.quantity as qty_out,
+               mc.unit_cost, mc.total_cost
+        FROM material_consumptions mc
+        LEFT JOIN material_requests mr ON mc.request_id = mr.id
+        LEFT JOIN activities a ON mc.activity_id = a.id
+        LEFT JOIN stock_locations sl ON mr.source_location_id = sl.id
+        WHERE mc.product_id = ? AND mc.consumed_at BETWEEN ? AND ?
+        ORDER BY mc.consumed_at
+        "#
+    };
+
+    let consumption_rows: Vec<KardexRowData> = if let Some(loc_id) = location_id.as_ref() {
+        sqlx::query_as(consumption_query)
+            .bind(&product_id)
+            .bind(&start_date)
+            .bind(&end_date)
+            .bind(loc_id)
+            .fetch_all(state.pool())
+            .await?
+    } else {
+        sqlx::query_as(consumption_query)
+            .bind(&product_id)
+            .bind(&start_date)
+            .bind(&end_date)
+            .fetch_all(state.pool())
+            .await?
+    };
+
+    for row in consumption_rows {
+        entries.push(KardexEntry {
+            date: row.0,
+            document_type: row.1,
+            document_code: row.2,
+            description: row.3,
+            location_name: row.4,
+            qty_in: row.5,
+            qty_out: row.6,
+            balance: 0.0, // Will calculate later
+            unit_cost: row.7,
+            total_cost: row.8,
+        });
+    }
+
+    // 2. Stock Transfers (IN and OUT)
+    let transfer_rows: Vec<KardexRowData> = sqlx::query_as(
+        r#"
+        SELECT 
+            COALESCE(st.shipped_at, st.received_at, st.created_at) as date,
+            CASE 
+                WHEN st.destination_location_id = ? THEN 'TRANSFER_IN'
+                ELSE 'TRANSFER_OUT'
+            END as doc_type,
+            st.transfer_number as doc_code,
+            'Transferência' as description,
+            CASE 
+                WHEN st.destination_location_id = ? THEN COALESCE(src.name, 'Origem')
+                ELSE COALESCE(dst.name, 'Destino')
+            END as location_name,
+            CASE WHEN st.destination_location_id = ? THEN sti.received_qty ELSE 0.0 END as qty_in,
+            CASE WHEN st.source_location_id = ? THEN sti.shipped_qty ELSE 0.0 END as qty_out,
+            COALESCE(sti.unit_price, 0.0) as unit_cost,
+            COALESCE(sti.unit_price, 0.0) * COALESCE(sti.shipped_qty, sti.received_qty, 0.0) as total_cost
+        FROM stock_transfer_items sti
+        JOIN stock_transfers st ON sti.transfer_id = st.id
+        LEFT JOIN stock_locations src ON st.source_location_id = src.id
+        LEFT JOIN stock_locations dst ON st.destination_location_id = dst.id
+        WHERE sti.product_id = ?
+          AND st.status IN ('SHIPPED', 'RECEIVED', 'COMPLETED')
+          AND COALESCE(st.shipped_at, st.received_at, st.created_at) BETWEEN ? AND ?
+        ORDER BY date
+        "#,
+    )
+    .bind(location_id.as_deref().unwrap_or(""))
+    .bind(location_id.as_deref().unwrap_or(""))
+    .bind(location_id.as_deref().unwrap_or(""))
+    .bind(location_id.as_deref().unwrap_or(""))
+    .bind(&product_id)
+    .bind(&start_date)
+    .bind(&end_date)
+    .fetch_all(state.pool())
+    .await?;
+
+    for row in transfer_rows {
+        if row.5 > 0.0 || row.6 > 0.0 {
+            entries.push(KardexEntry {
+                date: row.0,
+                document_type: row.1,
+                document_code: row.2,
+                description: row.3,
+                location_name: row.4,
+                qty_in: row.5,
+                qty_out: row.6,
+                balance: 0.0,
+                unit_cost: row.7,
+                total_cost: row.8,
+            });
+        }
+    }
+
+    // 3. Stock Movements (Adjustments)
+    let adjustment_rows: Vec<(String, String, String, f64, f64)> = sqlx::query_as(
+        r#"
+        SELECT created_at as date, 
+               movement_type as doc_type,
+               COALESCE(notes, 'Ajuste de estoque') as description,
+               CASE WHEN quantity > 0 THEN quantity ELSE 0.0 END as qty_in,
+               CASE WHEN quantity < 0 THEN ABS(quantity) ELSE 0.0 END as qty_out
+        FROM stock_movements
+        WHERE product_id = ? AND created_at BETWEEN ? AND ?
+        ORDER BY created_at
+        "#,
+    )
+    .bind(&product_id)
+    .bind(&start_date)
+    .bind(&end_date)
+    .fetch_all(state.pool())
+    .await?;
+
+    for row in adjustment_rows {
+        entries.push(KardexEntry {
+            date: row.0.clone(),
+            document_type: "ADJUSTMENT".to_string(),
+            document_code: format!("ADJ-{}", &row.0[0..10]),
+            description: row.2,
+            location_name: "Estoque Principal".to_string(),
+            qty_in: row.3,
+            qty_out: row.4,
+            balance: 0.0,
+            unit_cost: 0.0,
+            total_cost: 0.0,
+        });
+    }
+
+    // Sort by date
+    entries.sort_by(|a, b| a.date.cmp(&b.date));
+
+    // Calculate running balance
+    let (opening_balance,): (f64,) = sqlx::query_as(
+        "SELECT COALESCE(SUM(quantity), 0.0) FROM stock_balances WHERE product_id = ?",
+    )
+    .bind(&product_id)
+    .fetch_one(state.pool())
+    .await?;
+
+    // Approximate opening by reversing entries (simplified)
+    let total_in: f64 = entries.iter().map(|e| e.qty_in).sum();
+    let total_out: f64 = entries.iter().map(|e| e.qty_out).sum();
+    let calculated_opening = opening_balance - total_in + total_out;
+
+    let mut running = calculated_opening;
+    for entry in &mut entries {
+        running = running + entry.qty_in - entry.qty_out;
+        entry.balance = running;
+    }
+
+    Ok(KardexReport {
+        product_id: product_id.clone(),
+        product_name: product.0,
+        product_code: product.1,
+        start_date,
+        end_date,
+        opening_balance: calculated_opening,
+        total_in,
+        total_out,
+        closing_balance: running,
+        entries,
+    })
 }

@@ -22,4 +22,7 @@ export { LocationStockPage } from './LocationStockPage';
 export { ActivitiesPage } from './ActivitiesPage';
 export { InventoryPage } from './InventoryPage';
 export { InventoryDetailPage } from './InventoryDetailPage';
+export { LowStockAlertsPage } from './LowStockAlertsPage';
 export { EnterpriseReportsPage } from './reports/EnterpriseReportsPage';
+export { KardexReportPage } from './reports/KardexReportPage';
+export { ConsumptionReportPage } from './reports/ConsumptionReportPage';
