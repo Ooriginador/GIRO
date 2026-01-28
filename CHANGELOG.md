@@ -1,5 +1,13 @@
 # GIRO - Changelog
 
+## [2.4.5] - 2026-01-28
+
+### Atualizado
+
+- Versão geral do sistema para 2.4.5.
+
+---
+
 ## [2.1.6] - 2026-01-27
 
 ### Corrigido

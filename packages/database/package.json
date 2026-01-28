@@ -1,6 +1,6 @@
 {
   "name": "@mercearias/database",
-  "version": "2.2.0",
+  "version": "2.4.5",
   "description": "Database schema, migrations e types para o sistema GIRO",
   "private": true,
   "type": "module",
