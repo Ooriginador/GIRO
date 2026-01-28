@@ -4,7 +4,7 @@
 
 import { SettingsPage } from '@/pages/settings/SettingsPage';
 import { useSettingsStore, useLicenseStore } from '@/stores';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -178,15 +178,14 @@ describe('SettingsPage', () => {
     await screen.findByText(/modo de operação/i);
 
     const selects = screen.getAllByTestId('mock-select');
-    // Filter for scanner mode select
-    const targetSelect = selects.find(
-      (select) =>
-        select.textContent &&
-        (select.textContent.includes('HID') || select.textContent.includes('Serial'))
-    );
+    // Find the scanner mode select (the one with 'hid' as default value)
+    const targetSelect = selects.find((select) => (select as HTMLSelectElement).value === 'hid') as
+      | HTMLSelectElement
+      | undefined;
 
     if (targetSelect) {
-      await user.selectOptions(targetSelect, 'serial');
+      // Use fireEvent.change for mocked selects
+      fireEvent.change(targetSelect, { target: { value: 'serial' } });
     }
 
     const activateBtn = screen.getByText(/iniciar leitor serial/i);

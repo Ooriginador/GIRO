@@ -456,6 +456,64 @@ impl ThermalPrinter {
         Ok(())
     }
 
+    /// Busca o nome da impressora configurada em uma porta específica (LPT1, COM1, USB001, etc.)
+    #[cfg(target_os = "windows")]
+    fn find_printer_by_port(port_name: &str) -> Option<String> {
+        #[cfg(target_os = "windows")]
+        use std::os::windows::process::CommandExt;
+        use std::process::Command;
+
+        // PowerShell: busca impressora pela porta
+        let ps_command = format!(
+            "Get-Printer | Where-Object {{ $_.PortName -eq '{}' }} | Select-Object -ExpandProperty Name",
+            port_name
+        );
+
+        let mut cmd = Command::new("powershell");
+        #[cfg(target_os = "windows")]
+        {
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+
+        if let Ok(output) = cmd.args(["-NoProfile", "-Command", &ps_command]).output() {
+            if let Ok(stdout) = String::from_utf8(output.stdout) {
+                let name = stdout.trim();
+                if !name.is_empty() {
+                    tracing::info!("Impressora encontrada na porta {}: {}", port_name, name);
+                    return Some(name.to_string());
+                }
+            }
+        }
+
+        // Fallback: WMIC
+        if let Ok(output) = Command::new("wmic")
+            .args([
+                "printer",
+                "where",
+                &format!("PortName='{}'", port_name),
+                "get",
+                "Name",
+            ])
+            .output()
+        {
+            if let Ok(stdout) = String::from_utf8(output.stdout) {
+                for line in stdout.lines().skip(1) {
+                    let name = line.trim();
+                    if !name.is_empty() && name != "Name" {
+                        tracing::info!(
+                            "Impressora encontrada (WMIC) na porta {}: {}",
+                            port_name,
+                            name
+                        );
+                        return Some(name.to_string());
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
     /// Envia dados RAW para impressora via Windows Print Spooler
     /// Usa o comando `print` ou escreve em arquivo temporário e envia via spooler
     #[cfg(target_os = "windows")]
@@ -576,17 +634,44 @@ impl ThermalPrinter {
                 ));
             }
 
+            let upper = port.to_uppercase();
+
             // Estratégia de conexão para Windows (USB/RAW):
-            // 1. Se for caminho UNC (\\...), usa Windows Spooler API
-            // 2. Tenta o caminho exato fornecido (ex: LPT1)
-            // 3. Tenta namespace de dispositivo local (ex: USB001 -> \\.\USB001)
-            // 4. Tenta compartilhamento local (ex: Elgin -> \\localhost\Elgin)
+            // 1. Se for porta física (LPT1, COM1, USB001), busca a impressora nessa porta
+            // 2. Se for caminho UNC (\\...) ou nome de impressora, usa spooler diretamente
+
+            // Se for porta física, tenta descobrir a impressora configurada nela
+            if upper.starts_with("LPT") || upper.starts_with("USB") {
+                tracing::info!("Buscando impressora na porta física: {}", port);
+
+                if let Some(printer_name) = Self::find_printer_by_port(port) {
+                    tracing::info!("Impressora '{}' encontrada na porta {}", printer_name, port);
+                    return self.print_windows_spooler(&printer_name);
+                }
+
+                // Não encontrou impressora na porta, tenta com o nome do modelo configurado
+                let model_name = format!("{:?}", self.config.model);
+                tracing::info!(
+                    "Impressora não encontrada na porta {}, tentando modelo: {}",
+                    port,
+                    model_name
+                );
+
+                // Tenta buscar pelo modelo configurado
+                if model_name.to_lowercase().contains("c3tech") {
+                    if let Some(printer) = Self::find_printer_by_port("LPT1") {
+                        return self.print_windows_spooler(&printer);
+                    }
+                    // Tenta nome comum
+                    return self.print_windows_spooler("C3Tech IT-100");
+                }
+            }
 
             // Se for caminho UNC ou nome de impressora, usa o spooler do Windows
             if port.contains("\\")
-                || !port.to_uppercase().starts_with("LPT")
-                    && !port.to_uppercase().starts_with("COM")
-                    && !port.to_uppercase().starts_with("USB")
+                || !upper.starts_with("LPT")
+                    && !upper.starts_with("COM")
+                    && !upper.starts_with("USB")
             {
                 // Extrai o nome da impressora do caminho UNC
                 let printer_name = if port.starts_with("\\\\localhost\\") {
@@ -604,24 +689,14 @@ impl ThermalPrinter {
                 return self.print_windows_spooler(printer_name);
             }
 
-            let mut paths_to_try = Vec::new();
-
-            // Caminho original
-            paths_to_try.push(port.to_string());
-
-            let upper = port.to_uppercase();
-
-            // Para portas físicas/virtuais (USBxxx, LPTx, COMx), tenta path de dispositivo
-            if upper.starts_with("USB") || upper.starts_with("LPT") || upper.starts_with("COM") {
-                paths_to_try.push(format!("\\\\.\\{}", port));
-            }
-
-            let mut last_error = String::new();
-
-            for path in &paths_to_try {
-                // Tenta abrir para escrita
-                // Usamos OpenOptions para criar um handle de escrita Raw
-                match OpenOptions::new().write(true).create(false).open(path) {
+            // Para COM (serial), tenta abrir diretamente
+            if upper.starts_with("COM") {
+                let device_path = format!("\\\\.\\{}", port);
+                match OpenOptions::new()
+                    .write(true)
+                    .create(false)
+                    .open(&device_path)
+                {
                     Ok(mut dev) => {
                         dev.write_all(&self.buffer)
                             .map_err(HardwareError::IoError)?;
@@ -629,25 +704,18 @@ impl ThermalPrinter {
                         return Ok(());
                     }
                     Err(e) => {
-                        let err_msg = e.to_string();
-                        tracing::debug!("Tentativa de conexão falhou: '{}': {}", path, err_msg);
-                        last_error = format!("(Caminho: {}) {}", path, err_msg);
+                        return Err(HardwareError::ConnectionFailed(format!(
+                            "Falha ao abrir porta serial '{}': {}. \
+                            DICA: Verifique se a porta está correta e não está em uso.",
+                            port, e
+                        )));
                     }
                 }
             }
 
-            // Última tentativa: usar spooler do Windows
-            tracing::info!("Tentando via Windows Spooler como última opção: {}", port);
-            if let Err(spooler_err) = self.print_windows_spooler(port) {
-                return Err(HardwareError::ConnectionFailed(format!(
-                    "Falha ao conectar na impressora Windows '{}'. \
-                    Erro direto: {}. Erro spooler: {}. \
-                    DICA: Verifique se a impressora está compartilhada e use o nome exato.",
-                    port, last_error, spooler_err
-                )));
-            }
-
-            Ok(())
+            // Fallback: tenta usar spooler com o valor da porta como nome
+            tracing::info!("Tentando via Windows Spooler como fallback: {}", port);
+            self.print_windows_spooler(port)
         }
 
         #[cfg(not(any(target_os = "linux", target_os = "windows")))]
