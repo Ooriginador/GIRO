@@ -75,7 +75,7 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "https://jhonslife.github.io/GIRO/latest.json"
+        "https://Ooriginador.github.io/GIRO/latest.json"
       ],
       "dialog": false,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ2RTJGRTNGNzgyNDdCM0UKUldRK2V5UjRQLzdpMXUrYXgrekpWVW04M0lXTWNaVDRGOE5IR0g5aUVjcWlFWElGWGthb2xUWHgK"
