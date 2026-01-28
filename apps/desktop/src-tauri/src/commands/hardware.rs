@@ -94,7 +94,7 @@ pub fn list_hardware_ports() -> Vec<String> {
 
     #[cfg(target_os = "windows")]
     {
-        use crate::utils::windows::{run_powershell, run_wmic};
+        use crate::utils::windows::{run_powershell, run_reg, run_wmic};
 
         tracing::info!("Enumerating Windows printers...");
 
@@ -147,7 +147,45 @@ pub fn list_hardware_ports() -> Vec<String> {
             }
         }
 
-        // Método 3: Verificar portas USB virtuais comuns criadas por drivers de impressora
+        // Método 3: Registro do Windows (mais confiável)
+        // As impressoras ficam em HKLM\SYSTEM\CurrentControlSet\Control\Print\Printers
+        match run_reg([
+            "query",
+            r"HKLM\SYSTEM\CurrentControlSet\Control\Print\Printers",
+            "/s",
+            "/f",
+            "Name",
+            "/d",
+        ]) {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                tracing::debug!("Registry printers stdout: {}", stdout);
+                // O output do reg query lista subkeys
+                for line in stdout.lines() {
+                    if line.contains("HKEY_LOCAL_MACHINE") && line.contains("Printers\\") {
+                        // Extrai o nome da impressora do caminho
+                        if let Some(name) = line.split("Printers\\").nth(1) {
+                            let name = name.trim();
+                            if !name.is_empty()
+                                && !name.contains('\\')
+                                && !name.starts_with("Security")
+                            {
+                                let unc_path = format!("\\\\localhost\\{}", name);
+                                if !ports.contains(&unc_path) {
+                                    tracing::info!("Found Windows printer (Registry): {}", unc_path);
+                                    ports.push(unc_path);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::error!("Failed to query registry for printers: {}", e);
+            }
+        }
+
+        // Método 4: Verificar portas USB virtuais comuns criadas por drivers de impressora
         // Muitas impressoras térmicas USB criam portas virtuais USB001, USB002, etc.
         for i in 1..=10 {
             let usb_port = format!("USB{:03}", i);
