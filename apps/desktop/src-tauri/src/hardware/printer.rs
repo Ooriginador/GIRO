@@ -819,28 +819,26 @@ if ($result) {{ exit 0 }} else {{ exit 1 }}
                 }
 
                 // Não encontrou impressora na porta via WMI/PowerShell
-                // Tenta enviar diretamente para a porta física (LPT1, etc)
-                tracing::info!(
-                    "Impressora não encontrada via spooler na porta {}, tentando acesso direto",
+                tracing::warn!(
+                    "Nenhuma impressora encontrada na porta física {}. Verifique se a impressora está instalada no Windows.",
                     port
                 );
 
-                // Para LPT, tenta copy /b diretamente para a porta
+                // Para LPT em PCs modernos, provavelmente não existe porta física
                 if upper.starts_with("LPT") {
-                    return self.print_windows_copy_fallback(port);
+                    return Err(HardwareError::DeviceNotFound(format!(
+                        "Porta {} não encontrada. PCs modernos geralmente não têm porta paralela. \
+                        Selecione a impressora pelo nome na lista de 'Impressoras Instaladas' nas configurações.",
+                        port
+                    )));
                 }
 
-                // Para USB, tenta buscar pelo modelo configurado
-                let model_name = format!("{:?}", self.config.model);
-                tracing::info!(
-                    "Porta USB {} sem impressora mapeada, tentando modelo: {}",
-                    port,
-                    model_name
-                );
-
-                // Tenta buscar pelo modelo configurado
-                // (Removido fallback forçado para C3Tech/LPT1 em favor de detecção via Spooler)
-                let _ = model_name;
+                // Para USB sem mapeamento, retorna erro mais claro
+                return Err(HardwareError::DeviceNotFound(format!(
+                    "Nenhuma impressora configurada na porta {}. \
+                    Selecione a impressora pelo nome na lista de 'Impressoras Instaladas' nas configurações.",
+                    port
+                )));
             }
 
             // Se for caminho UNC ou nome de impressora, usa o spooler do Windows
