@@ -1092,7 +1092,7 @@ fn generate_hardware_id() -> String {
 fn get_bios_serial() -> String {
     #[cfg(target_os = "windows")]
     {
-        use giro_lib::utils::windows::{run_wmic, run_powershell};
+        use giro_lib::utils::windows::{run_powershell, run_wmic};
 
         // Try WMIC first (faster, but deprecated in Windows 11)
         let wmic_result = run_wmic(["bios", "get", "serialnumber"]);
@@ -1110,7 +1110,9 @@ fn get_bios_serial() -> String {
         }
 
         // PowerShell fallback for Windows 11
-        let ps_result = run_powershell("Get-CimInstance -ClassName Win32_BIOS | Select-Object -ExpandProperty SerialNumber");
+        let ps_result = run_powershell(
+            "Get-CimInstance -ClassName Win32_BIOS | Select-Object -ExpandProperty SerialNumber",
+        );
 
         if let Ok(out) = ps_result {
             if let Ok(stdout) = String::from_utf8(out.stdout) {
@@ -1142,7 +1144,7 @@ fn get_cpu_id() -> String {
 
     #[cfg(target_os = "windows")]
     {
-        use giro_lib::utils::windows::{run_wmic, run_powershell};
+        use giro_lib::utils::windows::{run_powershell, run_wmic};
 
         // Try WMIC first (faster, but deprecated in Windows 11)
         let wmic_cmd = run_wmic(["cpu", "get", "ProcessorId"]);
@@ -1207,7 +1209,7 @@ fn get_motherboard_serial() -> String {
 
     #[cfg(target_os = "windows")]
     {
-        use giro_lib::utils::windows::{run_wmic, run_powershell};
+        use giro_lib::utils::windows::{run_powershell, run_wmic};
 
         // 1. WMIC
         let wmic_cmd = run_wmic(["baseboard", "get", "serialnumber"]);
