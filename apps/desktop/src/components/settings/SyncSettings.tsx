@@ -80,6 +80,7 @@ export function SyncSettings() {
     'category',
     'supplier',
     'customer',
+    'employee',
     'setting',
   ]);
 
