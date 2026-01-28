@@ -689,15 +689,16 @@ pub async fn auto_detect_printer_async(
 ) -> AppResult<PrinterAutoDetectInfo> {
     state.session.require_authenticated()?;
 
-    let mut config: Option<PrinterConfig> = None;
-    let mut candidates = Vec::new();
     let mut logs = Vec::new();
 
     #[cfg(target_os = "windows")]
-    {
+    let (config, candidates) = {
         use crate::utils::windows::run_powershell;
 
         logs.push("Iniciando busca de impressoras via PowerShell...".to_string());
+
+        let mut found_candidates: Vec<String> = Vec::new();
+        let mut detected_config: Option<PrinterConfig> = None;
 
         // Busca todas as impressoras
         match run_powershell(
@@ -722,7 +723,7 @@ pub async fn auto_detect_printer_async(
                         if let Some(name) = parts.first() {
                             let printer_name = name.to_string();
                             logs.push(format!("Candidato encontrado: {}", printer_name));
-                            candidates.push(printer_name);
+                            found_candidates.push(printer_name);
                         }
                     }
                 }
@@ -731,7 +732,7 @@ pub async fn auto_detect_printer_async(
         }
 
         // Se encontrou candidatos, pega o primeiro
-        if let Some(best_match) = candidates.first() {
+        if let Some(best_match) = found_candidates.first() {
             logs.push(format!("Selecionando melhor candidato: {}", best_match));
 
             // Tenta determinar o modelo
@@ -747,7 +748,7 @@ pub async fn auto_detect_printer_async(
                 crate::hardware::printer::PrinterModel::Generic
             };
 
-            config = Some(PrinterConfig {
+            detected_config = Some(PrinterConfig {
                 enabled: true,
                 model,
                 connection: crate::hardware::printer::PrinterConnection::Usb, // Windows Spooler usa "USB" ou direto
@@ -757,12 +758,15 @@ pub async fn auto_detect_printer_async(
         } else {
             logs.push("Nenhuma impressora térmica detectada.".to_string());
         }
-    }
+
+        (detected_config, found_candidates)
+    };
 
     #[cfg(not(target_os = "windows"))]
-    {
+    let (config, candidates) = {
         logs.push("Auto-detecção disponível apenas para Windows no momento.".to_string());
-    }
+        (None, Vec::new())
+    };
 
     Ok(PrinterAutoDetectInfo {
         config,
