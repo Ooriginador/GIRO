@@ -416,6 +416,11 @@ describe('ProductsPage', () => {
       await user.click(screen.getAllByRole('menuitem', { name: /^Excluir$/i })[0]);
       await user.click(screen.getByRole('button', { name: /Excluir Permanentemente/i }));
 
+      // Aguardar o erro ser processado
+      await waitFor(() => {
+        expect(mockMutate).toHaveBeenCalledWith('1');
+      });
+
       await waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
           expect.objectContaining({
