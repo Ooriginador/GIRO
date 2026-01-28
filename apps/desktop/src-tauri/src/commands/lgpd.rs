@@ -4,9 +4,10 @@ use crate::error::AppResult;
 use crate::repositories::{CustomerRepository, EmployeeRepository};
 use crate::AppState;
 use serde::Serialize;
+use sqlx::SqlitePool;
 use tauri::State;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct HardDeleteResult {
     pub success: bool,
     pub deleted_records: u32,
@@ -47,7 +48,14 @@ pub async fn lgpd_hard_delete_customer(
     state: State<'_, AppState>,
 ) -> AppResult<HardDeleteResult> {
     let pool = state.pool();
+    lgpd_hard_delete_customer_impl(&customer_id, pool).await
+}
 
+/// Implementação interna do hard delete de cliente (testável)
+pub async fn lgpd_hard_delete_customer_impl(
+    customer_id: &str,
+    pool: &SqlitePool,
+) -> AppResult<HardDeleteResult> {
     // Habilitar foreign keys
     sqlx::query("PRAGMA foreign_keys = ON")
         .execute(pool)
@@ -89,7 +97,7 @@ pub async fn lgpd_hard_delete_customer(
 
     // 4. Deletar cliente permanentemente
     let customer_deleted = sqlx::query("DELETE FROM customers WHERE id = ?")
-        .bind(&customer_id)
+        .bind(customer_id)
         .execute(&mut *tx)
         .await?;
     deleted_records += customer_deleted.rows_affected() as u32;
@@ -117,7 +125,14 @@ pub async fn lgpd_hard_delete_employee(
     state: State<'_, AppState>,
 ) -> AppResult<HardDeleteResult> {
     let pool = state.pool();
+    lgpd_hard_delete_employee_impl(&employee_id, pool).await
+}
 
+/// Implementação interna do hard delete de funcionário (testável)
+pub async fn lgpd_hard_delete_employee_impl(
+    employee_id: &str,
+    pool: &SqlitePool,
+) -> AppResult<HardDeleteResult> {
     // Habilitar foreign keys
     sqlx::query("PRAGMA foreign_keys = ON")
         .execute(pool)

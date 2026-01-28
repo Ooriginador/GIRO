@@ -631,7 +631,7 @@ impl<'a> ProductRepository<'a> {
 
         sqlx::query(
             "UPDATE products SET 
-                name = ?, barcode = ?, description = ?, unit = ?, is_weighted = ?, 
+                name = ?, barcode = ?, description = ?, notes = ?, unit = ?, is_weighted = ?, 
                 sale_price = ?, cost_price = ?, current_stock = ?, min_stock = ?, max_stock = ?, is_active = ?, category_id = ?, 
                 oem_code = ?, aftermarket_code = ?, part_brand = ?, \"application\" = ?,
                 updated_at = (datetime('now')) WHERE id = ?"
@@ -639,6 +639,7 @@ impl<'a> ProductRepository<'a> {
         .bind(&name)
         .bind(&barcode)
         .bind(&description)
+        .bind(&notes)
         .bind(&unit)
         .bind(is_weighted)
         .bind(sale_price)
