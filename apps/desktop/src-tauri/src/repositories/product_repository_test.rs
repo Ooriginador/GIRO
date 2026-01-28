@@ -52,7 +52,11 @@ mod tests {
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
             max_stock: None,
-            notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+            notes: None,
+            oem_code: None,
+            aftermarket_code: None,
+            part_brand: None,
+            application: None,
         };
 
         let result = repo.create(input).await;
@@ -86,7 +90,11 @@ mod tests {
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
             max_stock: None,
-            notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+            notes: None,
+            oem_code: None,
+            aftermarket_code: None,
+            part_brand: None,
+            application: None,
         };
         repo.create(input1).await.unwrap();
 
@@ -104,7 +112,11 @@ mod tests {
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
             max_stock: None,
-            notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+            notes: None,
+            oem_code: None,
+            aftermarket_code: None,
+            part_brand: None,
+            application: None,
         };
 
         let result = repo.create(input2).await;
@@ -129,7 +141,11 @@ mod tests {
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
             max_stock: None,
-            notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+            notes: None,
+            oem_code: None,
+            aftermarket_code: None,
+            part_brand: None,
+            application: None,
         };
         repo.create(input).await.unwrap();
 
@@ -159,7 +175,11 @@ mod tests {
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
             max_stock: None,
-            notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+            notes: None,
+            oem_code: None,
+            aftermarket_code: None,
+            part_brand: None,
+            application: None,
         };
         let created = repo.create(input).await.unwrap();
 
@@ -191,7 +211,11 @@ mod tests {
                 unit: Some(crate::models::ProductUnit::Unit),
                 is_weighted: Some(false),
                 max_stock: None,
-                notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+                notes: None,
+                oem_code: None,
+                aftermarket_code: None,
+                part_brand: None,
+                application: None,
             };
             repo.create(input).await.unwrap();
         }
@@ -221,7 +245,11 @@ mod tests {
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
             max_stock: None,
-            notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+            notes: None,
+            oem_code: None,
+            aftermarket_code: None,
+            part_brand: None,
+            application: None,
         };
         let product = repo.create(input).await.unwrap();
 
@@ -257,7 +285,11 @@ mod tests {
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
             max_stock: None,
-            notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+            notes: None,
+            oem_code: None,
+            aftermarket_code: None,
+            part_brand: None,
+            application: None,
         };
         let product = repo.create(input).await.unwrap();
 
@@ -308,7 +340,11 @@ mod tests {
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
             max_stock: None,
-            notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+            notes: None,
+            oem_code: None,
+            aftermarket_code: None,
+            part_brand: None,
+            application: None,
         };
         let product = repo.create(input).await.unwrap();
 
@@ -341,7 +377,11 @@ mod tests {
             unit: Some(crate::models::ProductUnit::Unit),
             is_weighted: Some(false),
             max_stock: None,
-            notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+            notes: None,
+            oem_code: None,
+            aftermarket_code: None,
+            part_brand: None,
+            application: None,
         };
         let product = repo.create(input).await.unwrap();
 
@@ -386,7 +426,11 @@ mod tests {
             unit: None,
             is_weighted: None,
             max_stock: None,
-            notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+            notes: None,
+            oem_code: None,
+            aftermarket_code: None,
+            part_brand: None,
+            application: None,
         };
         repo.create(p1).await.unwrap();
 
@@ -404,7 +448,11 @@ mod tests {
             unit: None,
             is_weighted: None,
             max_stock: None,
-            notes: None, oem_code: None, aftermarket_code: None, part_brand: None, application: None,
+            notes: None,
+            oem_code: None,
+            aftermarket_code: None,
+            part_brand: None,
+            application: None,
         };
         repo.create(p2).await.unwrap();
 

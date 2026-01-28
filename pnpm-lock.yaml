@@ -109,16 +109,16 @@ importers:
         specifier: ^2.9.6
         version: 2.9.6
       '@tauri-apps/plugin-dialog':
-        specifier: 2.4.2
-        version: 2.4.2
+        specifier: 2.6.0
+        version: 2.6.0
       '@tauri-apps/plugin-fs':
-        specifier: ^2.0.3
+        specifier: ^2.4.5
         version: 2.4.5
       '@tauri-apps/plugin-process':
-        specifier: ^2.0.0
+        specifier: ^2.3.1
         version: 2.3.1
       '@tauri-apps/plugin-updater':
-        specifier: ^2.0.0
+        specifier: ^2.9.0
         version: 2.9.0
       class-variance-authority:
         specifier: ^0.7.0
@@ -1562,8 +1562,8 @@ packages:
     engines: {node: '>= 10'}
     hasBin: true
 
-  '@tauri-apps/plugin-dialog@2.4.2':
-    resolution: {integrity: sha512-lNIn5CZuw8WZOn8zHzmFmDSzg5zfohWoa3mdULP0YFh/VogVdMVWZPcWSHlydsiJhRQYaTNSYKN7RmZKE2lCYQ==}
+  '@tauri-apps/plugin-dialog@2.6.0':
+    resolution: {integrity: sha512-q4Uq3eY87TdcYzXACiYSPhmpBA76shgmQswGkSVio4C82Sz2W4iehe9TnKYwbq7weHiL88Yw19XZm7v28+Micg==}
 
   '@tauri-apps/plugin-fs@2.4.5':
     resolution: {integrity: sha512-dVxWWGE6VrOxC7/jlhyE+ON/Cc2REJlM35R3PJX3UvFw2XwYhLGQVAIyrehenDdKjotipjYEVc4YjOl3qq90fA==}
@@ -2097,8 +2097,8 @@ packages:
     resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
     engines: {node: '>=18'}
 
-  chromedriver@144.0.0:
-    resolution: {integrity: sha512-/tJRUsIroqvqlOMstecDXYIJpq0r441tIOnk951rAbT7OCMRZB98StG+NWp0m31TIKwuizOZobr/PP7ekVaSig==}
+  chromedriver@144.0.1:
+    resolution: {integrity: sha512-8zrTQnW6oxo77MWxGtWBpA3qhjnU+CbUrCrJoyi83/puBUZAXaWZ9zPxVhWl/5K6I6tPIZHvw1kcMDQwfgFbAg==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4509,7 +4509,7 @@ snapshots:
     dependencies:
       '@axe-core/webdriverjs': 4.11.0(selenium-webdriver@4.35.0)
       axe-core: 4.11.1
-      chromedriver: 144.0.0
+      chromedriver: 144.0.1
       colors: 1.4.0
       commander: 9.5.0
       dotenv: 17.2.3
@@ -5666,7 +5666,7 @@ snapshots:
       '@tauri-apps/cli-win32-ia32-msvc': 2.9.6
       '@tauri-apps/cli-win32-x64-msvc': 2.9.6
 
-  '@tauri-apps/plugin-dialog@2.4.2':
+  '@tauri-apps/plugin-dialog@2.6.0':
     dependencies:
       '@tauri-apps/api': 2.9.1
 
@@ -6328,7 +6328,7 @@ snapshots:
 
   chownr@3.0.0: {}
 
-  chromedriver@144.0.0:
+  chromedriver@144.0.1:
     dependencies:
       '@testim/chrome-version': 1.1.4
       axios: 1.13.3

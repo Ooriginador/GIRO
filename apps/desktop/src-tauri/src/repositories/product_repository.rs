@@ -473,7 +473,6 @@ impl<'a> ProductRepository<'a> {
         .bind(min_stock)
         .bind(max_stock)
         .bind(&data.category_id)
-        
         // Motopeças
         .bind(&data.oem_code)
         .bind(&data.aftermarket_code)
@@ -581,7 +580,7 @@ impl<'a> ProductRepository<'a> {
         let max_stock = data.max_stock.or(existing.max_stock);
         let is_active = data.is_active.unwrap_or(existing.is_active);
         let category_id = data.category_id.unwrap_or(existing.category_id);
-        
+
         // Motopeças
         let oem_code = data.oem_code.or(existing.oem_code);
         let aftermarket_code = data.aftermarket_code.or(existing.aftermarket_code);
@@ -671,7 +670,7 @@ impl<'a> ProductRepository<'a> {
 
         // Sincronização em tempo real (broadcast)
         // ... omitted
-        
+
         Ok(product)
     }
 

@@ -565,10 +565,10 @@ impl<'a> EmployeeRepository<'a> {
         // Encrypt CPF before saving if not already encrypted
         if let Some(cpf) = &employee.cpf {
             if !cpf.starts_with("enc:") {
-                 employee.cpf = pii::encrypt_optional(employee.cpf)?;
+                employee.cpf = pii::encrypt_optional(employee.cpf)?;
             }
         }
-        
+
         sqlx::query(
             r#"
             INSERT INTO employees (
