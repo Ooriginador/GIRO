@@ -74,16 +74,19 @@ pub fn list_serial_ports() -> Vec<String> {
 #[specta::specta]
 pub fn list_hardware_ports() -> Vec<String> {
     let mut ports = hardware::list_serial_ports();
+    tracing::debug!("Serial ports found: {:?}", ports);
 
     #[cfg(target_os = "linux")]
     {
         for i in 0..10 {
             let path = format!("/dev/usb/lp{}", i);
             if std::path::Path::new(&path).exists() {
+                tracing::debug!("Found Linux USB printer: {}", path);
                 ports.push(path);
             }
             let path_lp = format!("/dev/lp{}", i);
             if std::path::Path::new(&path_lp).exists() {
+                tracing::debug!("Found Linux LP printer: {}", path_lp);
                 ports.push(path_lp);
             }
         }
@@ -93,32 +96,54 @@ pub fn list_hardware_ports() -> Vec<String> {
     {
         use crate::utils::windows::{run_powershell, run_wmic};
 
+        tracing::info!("Enumerating Windows printers...");
+
         // Método 1: PowerShell Get-Printer (Windows 8+)
-        if let Ok(output) = run_powershell("Get-Printer | Select-Object -ExpandProperty Name") {
-            if let Ok(stdout) = String::from_utf8(output.stdout) {
+        match run_powershell("Get-Printer | Select-Object -ExpandProperty Name") {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                tracing::debug!("PowerShell Get-Printer stdout: {}", stdout);
+                if !stderr.is_empty() {
+                    tracing::warn!("PowerShell Get-Printer stderr: {}", stderr);
+                }
                 for line in stdout.lines() {
                     let name = line.trim();
                     if !name.is_empty() {
-                        // Formata como caminho UNC local
-                        ports.push(format!("\\\\localhost\\{}", name));
+                        let unc_path = format!("\\\\localhost\\{}", name);
+                        tracing::info!("Found Windows printer: {}", unc_path);
+                        ports.push(unc_path);
                     }
                 }
+            }
+            Err(e) => {
+                tracing::error!("Failed to run PowerShell Get-Printer: {}", e);
             }
         }
 
         // Método 2: WMIC (compatibilidade com Windows mais antigos)
-        if let Ok(output) = run_wmic(["printer", "get", "name"]) {
-            if let Ok(stdout) = String::from_utf8(output.stdout) {
+        match run_wmic(["printer", "get", "name"]) {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                tracing::debug!("WMIC printer stdout: {}", stdout);
+                if !stderr.is_empty() {
+                    tracing::warn!("WMIC printer stderr: {}", stderr);
+                }
                 for line in stdout.lines().skip(1) {
                     // Skip header
                     let name = line.trim();
                     if !name.is_empty() && name != "Name" {
                         let unc_path = format!("\\\\localhost\\{}", name);
                         if !ports.contains(&unc_path) {
+                            tracing::info!("Found Windows printer (WMIC): {}", unc_path);
                             ports.push(unc_path);
                         }
                     }
                 }
+            }
+            Err(e) => {
+                tracing::error!("Failed to run WMIC printer: {}", e);
             }
         }
 
@@ -133,6 +158,8 @@ pub fn list_hardware_ports() -> Vec<String> {
         for i in 1..=3 {
             ports.push(format!("LPT{}", i));
         }
+
+        tracing::info!("Total ports after Windows enumeration: {}", ports.len());
     }
 
     ports.sort();
@@ -150,8 +177,9 @@ pub fn list_hardware_ports() -> Vec<String> {
         }
     }
 
-    // Return prioritized first
-    [prioritized_ports, other_ports].concat()
+    let result = [prioritized_ports, other_ports].concat();
+    tracing::info!("Returning {} hardware ports", result.len());
+    result
 }
 
 /// Verifica se uma porta existe
