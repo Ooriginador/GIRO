@@ -47,7 +47,20 @@ pub async fn lgpd_hard_delete_customer(
     state: State<'_, AppState>,
 ) -> AppResult<HardDeleteResult> {
     let pool = state.pool();
-    let mut tx = pool.begin().await?;
+
+    // Habilitar foreign keys
+    sqlx::query("PRAGMA foreign_keys = ON")
+        .execute(pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Erro ao habilitar foreign keys: {}", e);
+            crate::error::AppError::Database(format!("Falha ao habilitar foreign keys: {}", e))
+        })?;
+
+    let mut tx = pool.begin().await.map_err(|e| {
+        tracing::error!("Erro ao iniciar transação: {}", e);
+        crate::error::AppError::Database(format!("Falha ao iniciar transação: {}", e))
+    })?;
 
     let mut deleted_records = 0;
     let mut anonymized_records = 0;
@@ -104,7 +117,20 @@ pub async fn lgpd_hard_delete_employee(
     state: State<'_, AppState>,
 ) -> AppResult<HardDeleteResult> {
     let pool = state.pool();
-    let mut tx = pool.begin().await?;
+
+    // Habilitar foreign keys
+    sqlx::query("PRAGMA foreign_keys = ON")
+        .execute(pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Erro ao habilitar foreign keys: {}", e);
+            crate::error::AppError::Database(format!("Falha ao habilitar foreign keys: {}", e))
+        })?;
+
+    let mut tx = pool.begin().await.map_err(|e| {
+        tracing::error!("Erro ao iniciar transação: {}", e);
+        crate::error::AppError::Database(format!("Falha ao iniciar transação: {}", e))
+    })?;
 
     let mut deleted_records = 0;
     let mut anonymized_records = 0;
@@ -113,16 +139,40 @@ pub async fn lgpd_hard_delete_employee(
     let sales_updated = sqlx::query("UPDATE sales SET employee_id = NULL WHERE employee_id = ?")
         .bind(&employee_id)
         .execute(&mut *tx)
-        .await?;
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                "Erro ao anonimizar vendas do funcionário {}: {}",
+                employee_id,
+                e
+            );
+            crate::error::AppError::Database(format!("Falha ao anonimizar vendas: {}", e))
+        })?;
     anonymized_records += sales_updated.rows_affected() as u32;
+    tracing::debug!("Anonimizadas {} vendas", sales_updated.rows_affected());
 
     // 2. Anonimizar em sessões de caixa
     let cash_updated =
         sqlx::query("UPDATE cash_sessions SET employee_id = NULL WHERE employee_id = ?")
             .bind(&employee_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| {
+                tracing::error!(
+                    "Erro ao anonimizar sessões de caixa do funcionário {}: {}",
+                    employee_id,
+                    e
+                );
+                crate::error::AppError::Database(format!(
+                    "Falha ao anonimizar sessões de caixa: {}",
+                    e
+                ))
+            })?;
     anonymized_records += cash_updated.rows_affected() as u32;
+    tracing::debug!(
+        "Anonimizadas {} sessões de caixa",
+        cash_updated.rows_affected()
+    );
 
     // 3. Anonimizar em logs de auditoria
     let audit_updated = sqlx::query(
@@ -130,17 +180,47 @@ pub async fn lgpd_hard_delete_employee(
     )
     .bind(&employee_id)
     .execute(&mut *tx)
-    .await?;
+    .await
+    .map_err(|e| {
+        tracing::error!(
+            "Erro ao anonimizar logs de auditoria do funcionário {}: {}",
+            employee_id,
+            e
+        );
+        crate::error::AppError::Database(format!("Falha ao anonimizar logs de auditoria: {}", e))
+    })?;
     anonymized_records += audit_updated.rows_affected() as u32;
+    tracing::debug!(
+        "Anonimizados {} logs de auditoria",
+        audit_updated.rows_affected()
+    );
 
     // 4. Deletar funcionário permanentemente
     let employee_deleted = sqlx::query("DELETE FROM employees WHERE id = ?")
         .bind(&employee_id)
         .execute(&mut *tx)
-        .await?;
+        .await
+        .map_err(|e| {
+            tracing::error!("Erro ao deletar funcionário {}: {}", employee_id, e);
+            crate::error::AppError::Database(format!(
+                "Falha ao deletar funcionário: {}. Verifique se há dependências não resolvidas.",
+                e
+            ))
+        })?;
     deleted_records += employee_deleted.rows_affected() as u32;
+    tracing::debug!(
+        "Deletado funcionário ({})",
+        employee_deleted.rows_affected()
+    );
 
-    tx.commit().await?;
+    tx.commit().await.map_err(|e| {
+        tracing::error!(
+            "Erro ao commitar transação de exclusão do funcionário {}: {}",
+            employee_id,
+            e
+        );
+        crate::error::AppError::Database(format!("Falha ao finalizar exclusão: {}", e))
+    })?;
 
     tracing::info!(
         "LGPD: Hard delete de funcionário {} - {} registros deletados, {} anonimizados",
@@ -336,3 +416,7 @@ pub async fn lgpd_export_employee_data(
         sales_history,
     })
 }
+
+#[cfg(test)]
+#[path = "lgpd_tests.rs"]
+mod tests;

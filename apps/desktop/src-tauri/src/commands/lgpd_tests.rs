@@ -1,0 +1,331 @@
+//! Testes de regressão para LGPD Hard Delete
+//!
+//! Este módulo testa a funcionalidade de exclusão permanente de dados
+//! garantindo que:
+//! 1. Dados são anonimizados corretamente antes da exclusão
+//! 2. Foreign key constraints são respeitadas
+//! 3. Erros são tratados adequadamente
+//! 4. Nenhum dado órfão é deixado
+
+#[cfg(test)]
+mod lgpd_hard_delete_tests {
+    use crate::commands::lgpd::{lgpd_hard_delete_employee, HardDeleteResult};
+    use crate::AppState;
+    use sqlx::SqlitePool;
+    use uuid::Uuid;
+
+    async fn setup_test_db() -> SqlitePool {
+        let pool = SqlitePool::connect(":memory:").await.unwrap();
+
+        // Criar schema básico (simplificado para testes)
+        sqlx::query(
+            r#"
+            CREATE TABLE employees (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                pin TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'CASHIER',
+                is_active BOOLEAN NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE cash_sessions (
+                id TEXT PRIMARY KEY,
+                employee_id TEXT,
+                opening_balance REAL NOT NULL,
+                status TEXT NOT NULL,
+                opened_at TEXT NOT NULL,
+                FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE RESTRICT
+            );
+
+            CREATE TABLE sales (
+                id TEXT PRIMARY KEY,
+                employee_id TEXT,
+                cash_session_id TEXT,
+                total REAL NOT NULL,
+                payment_method TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE RESTRICT,
+                FOREIGN KEY (cash_session_id) REFERENCES cash_sessions(id)
+            );
+
+            CREATE TABLE audit_logs (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                user_name TEXT,
+                action TEXT NOT NULL,
+                entity TEXT NOT NULL,
+                entity_id TEXT,
+                created_at TEXT NOT NULL
+            );
+            "#,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Habilitar foreign keys
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        pool
+    }
+
+    #[tokio::test]
+    async fn test_employee_hard_delete_with_related_data() {
+        let pool = setup_test_db().await;
+        let employee_id = Uuid::new_v4().to_string();
+
+        // Criar funcionário
+        sqlx::query("INSERT INTO employees (id, name, pin, role) VALUES (?, ?, ?, ?)")
+            .bind(&employee_id)
+            .bind("Test Employee")
+            .bind("1234")
+            .bind("CASHIER")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        // Criar sessão de caixa
+        let session_id = Uuid::new_v4().to_string();
+        sqlx::query(
+            "INSERT INTO cash_sessions (id, employee_id, opening_balance, status, opened_at) VALUES (?, ?, ?, ?, datetime('now'))",
+        )
+        .bind(&session_id)
+        .bind(&employee_id)
+        .bind(100.0)
+        .bind("CLOSED")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Criar venda
+        let sale_id = Uuid::new_v4().to_string();
+        sqlx::query(
+            "INSERT INTO sales (id, employee_id, cash_session_id, total, payment_method, status, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))",
+        )
+        .bind(&sale_id)
+        .bind(&employee_id)
+        .bind(&session_id)
+        .bind(50.0)
+        .bind("CASH")
+        .bind("COMPLETED")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Criar log de auditoria
+        sqlx::query(
+            "INSERT INTO audit_logs (id, user_id, user_name, action, entity, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))",
+        )
+        .bind(Uuid::new_v4().to_string())
+        .bind(&employee_id)
+        .bind("Test Employee")
+        .bind("CREATE")
+        .bind("sale")
+        .bind(&sale_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Executar hard delete (simulado sem Tauri State)
+        // Como não temos AppState em teste, fazemos manualmente
+        let mut tx = pool.begin().await.unwrap();
+
+        // Anonimizar vendas
+        let sales_updated =
+            sqlx::query("UPDATE sales SET employee_id = NULL WHERE employee_id = ?")
+                .bind(&employee_id)
+                .execute(&mut *tx)
+                .await
+                .unwrap();
+
+        // Anonimizar sessões
+        let sessions_updated =
+            sqlx::query("UPDATE cash_sessions SET employee_id = NULL WHERE employee_id = ?")
+                .bind(&employee_id)
+                .execute(&mut *tx)
+                .await
+                .unwrap();
+
+        // Anonimizar logs
+        let logs_updated = sqlx::query(
+            "UPDATE audit_logs SET user_id = 'ANONYMIZED', user_name = 'ANONYMIZED' WHERE user_id = ?",
+        )
+        .bind(&employee_id)
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+
+        // Deletar funcionário
+        let employee_deleted = sqlx::query("DELETE FROM employees WHERE id = ?")
+            .bind(&employee_id)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+
+        tx.commit().await.unwrap();
+
+        // Verificações
+        assert_eq!(
+            sales_updated.rows_affected(),
+            1,
+            "Deveria ter anonimizado 1 venda"
+        );
+        assert_eq!(
+            sessions_updated.rows_affected(),
+            1,
+            "Deveria ter anonimizado 1 sessão"
+        );
+        assert_eq!(
+            logs_updated.rows_affected(),
+            1,
+            "Deveria ter anonimizado 1 log"
+        );
+        assert_eq!(
+            employee_deleted.rows_affected(),
+            1,
+            "Deveria ter deletado 1 funcionário"
+        );
+
+        // Verificar que dados foram anonimizados
+        let sale_check: Option<String> =
+            sqlx::query_scalar("SELECT employee_id FROM sales WHERE id = ?")
+                .bind(&sale_id)
+                .fetch_optional(&pool)
+                .await
+                .unwrap();
+        assert!(sale_check.is_none(), "employee_id da venda deve ser NULL");
+
+        let session_check: Option<String> =
+            sqlx::query_scalar("SELECT employee_id FROM cash_sessions WHERE id = ?")
+                .bind(&session_id)
+                .fetch_optional(&pool)
+                .await
+                .unwrap();
+        assert!(
+            session_check.is_none(),
+            "employee_id da sessão deve ser NULL"
+        );
+
+        let log_check: String =
+            sqlx::query_scalar("SELECT user_id FROM audit_logs WHERE entity_id = ?")
+                .bind(&sale_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(
+            log_check, "ANONYMIZED",
+            "user_id do log deve ser ANONYMIZED"
+        );
+
+        // Verificar que funcionário foi deletado
+        let employee_check: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM employees WHERE id = ?")
+            .bind(&employee_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(employee_check, 0, "Funcionário deve ter sido deletado");
+    }
+
+    #[tokio::test]
+    async fn test_employee_hard_delete_should_fail_without_anonymization() {
+        let pool = setup_test_db().await;
+        let employee_id = Uuid::new_v4().to_string();
+
+        // Criar funcionário
+        sqlx::query("INSERT INTO employees (id, name, pin, role) VALUES (?, ?, ?, ?)")
+            .bind(&employee_id)
+            .bind("Test Employee")
+            .bind("1234")
+            .bind("CASHIER")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        // Criar venda (RESTRICT constraint)
+        sqlx::query(
+            "INSERT INTO sales (id, employee_id, cash_session_id, total, payment_method, status, created_at) 
+             VALUES (?, ?, NULL, ?, ?, ?, datetime('now'))",
+        )
+        .bind(Uuid::new_v4().to_string())
+        .bind(&employee_id)
+        .bind(50.0)
+        .bind("CASH")
+        .bind("COMPLETED")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Tentar deletar SEM anonimizar - deve falhar
+        let result = sqlx::query("DELETE FROM employees WHERE id = ?")
+            .bind(&employee_id)
+            .execute(&pool)
+            .await;
+
+        assert!(result.is_err(), "Deve falhar por foreign key constraint");
+    }
+
+    #[tokio::test]
+    async fn test_employee_hard_delete_without_related_data() {
+        let pool = setup_test_db().await;
+        let employee_id = Uuid::new_v4().to_string();
+
+        // Criar funcionário sem dados relacionados
+        sqlx::query("INSERT INTO employees (id, name, pin, role) VALUES (?, ?, ?, ?)")
+            .bind(&employee_id)
+            .bind("Test Employee")
+            .bind("1234")
+            .bind("CASHIER")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        // Executar deleção
+        let mut tx = pool.begin().await.unwrap();
+
+        // Mesmo sem dados relacionados, executamos as queries
+        sqlx::query("UPDATE sales SET employee_id = NULL WHERE employee_id = ?")
+            .bind(&employee_id)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+
+        sqlx::query("UPDATE cash_sessions SET employee_id = NULL WHERE employee_id = ?")
+            .bind(&employee_id)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+
+        sqlx::query("UPDATE audit_logs SET user_id = 'ANONYMIZED', user_name = 'ANONYMIZED' WHERE user_id = ?")
+            .bind(&employee_id)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+
+        let deleted = sqlx::query("DELETE FROM employees WHERE id = ?")
+            .bind(&employee_id)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+
+        tx.commit().await.unwrap();
+
+        assert_eq!(
+            deleted.rows_affected(),
+            1,
+            "Deve deletar funcionário sem dados relacionados"
+        );
+
+        // Verificar deleção
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM employees WHERE id = ?")
+            .bind(&employee_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+}

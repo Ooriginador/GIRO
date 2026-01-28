@@ -79,7 +79,15 @@ export function LicenseSettings() {
   };
 
   const handleSync = async () => {
-    if (!storeKey) return;
+    if (!storeKey) {
+      toast({
+        title: 'Licença não configurada',
+        description: 'Ative uma licença antes de sincronizar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSyncing(true);
     try {
       const result = await validateLicense(storeKey);
@@ -91,9 +99,21 @@ export function LicenseSettings() {
         description: 'Dados atualizados com sucesso.',
       });
     } catch (error) {
+      const errorMessage = typeof error === 'string' ? error : 'Falha ao sincronizar com servidor.';
+      
+      // Mensagens mais amigáveis para erros comuns
+      let userMessage = errorMessage;
+      if (errorMessage.includes('não encontrada no servidor')) {
+        userMessage = 'Licença não encontrada no servidor. Verifique se a chave está correta ou entre em contato com o suporte.';
+      } else if (errorMessage.includes('Hardware não autorizado')) {
+        userMessage = 'Este computador não está autorizado para usar esta licença. Ative novamente ou contate o suporte.';
+      } else if (errorMessage.includes('expirada')) {
+        userMessage = 'Sua licença expirou. Renove sua assinatura para continuar usando o sistema.';
+      }
+
       toast({
         title: 'Erro na Sincronização',
-        description: typeof error === 'string' ? error : 'Falha ao sincronizar com servidor.',
+        description: userMessage,
         variant: 'destructive',
       });
     } finally {
