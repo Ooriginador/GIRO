@@ -31,16 +31,15 @@ async fn verify_firewall_rules() {
 
 #[cfg(target_os = "windows")]
 fn check_rule_exists(rule_name: &str) -> bool {
-    use std::process::Command;
-    let output = Command::new("netsh")
-        .args(&[
-            "advfirewall",
-            "firewall",
-            "show",
-            "rule",
-            &format!("name=\"{}\"", rule_name),
-        ])
-        .output();
+    use crate::utils::windows::run_netsh;
+
+    let output = run_netsh([
+        "advfirewall",
+        "firewall",
+        "show",
+        "rule",
+        &format!("name=\"{}\"", rule_name),
+    ]);
 
     match output {
         Ok(out) => {

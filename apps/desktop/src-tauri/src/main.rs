@@ -1092,10 +1092,10 @@ fn generate_hardware_id() -> String {
 fn get_bios_serial() -> String {
     #[cfg(target_os = "windows")]
     {
+        use giro_lib::utils::windows::{run_wmic, run_powershell};
+
         // Try WMIC first (faster, but deprecated in Windows 11)
-        let wmic_result = std::process::Command::new("wmic")
-            .args(["bios", "get", "serialnumber"])
-            .output();
+        let wmic_result = run_wmic(["bios", "get", "serialnumber"]);
 
         if let Ok(out) = wmic_result {
             if let Ok(stdout) = String::from_utf8(out.stdout) {
@@ -1110,9 +1110,7 @@ fn get_bios_serial() -> String {
         }
 
         // PowerShell fallback for Windows 11
-        let ps_result = std::process::Command::new("powershell")
-            .args(["-NoProfile", "-Command", "Get-CimInstance -ClassName Win32_BIOS | Select-Object -ExpandProperty SerialNumber"])
-            .output();
+        let ps_result = run_powershell("Get-CimInstance -ClassName Win32_BIOS | Select-Object -ExpandProperty SerialNumber");
 
         if let Ok(out) = ps_result {
             if let Ok(stdout) = String::from_utf8(out.stdout) {
@@ -1144,10 +1142,10 @@ fn get_cpu_id() -> String {
 
     #[cfg(target_os = "windows")]
     {
+        use giro_lib::utils::windows::{run_wmic, run_powershell};
+
         // Try WMIC first (faster, but deprecated in Windows 11)
-        let wmic_cmd = std::process::Command::new("wmic")
-            .args(["cpu", "get", "ProcessorId"])
-            .output();
+        let wmic_cmd = run_wmic(["cpu", "get", "ProcessorId"]);
 
         if let Ok(output) = wmic_cmd {
             if let Ok(stdout) = String::from_utf8(output.stdout) {
@@ -1162,9 +1160,7 @@ fn get_cpu_id() -> String {
         }
 
         // PowerShell fallback for Windows 11
-        let ps_cmd = std::process::Command::new("powershell")
-            .args(["-NoProfile", "-Command", "Get-CimInstance -ClassName Win32_Processor | Select-Object -ExpandProperty ProcessorId"])
-            .output();
+        let ps_cmd = run_powershell("Get-CimInstance -ClassName Win32_Processor | Select-Object -ExpandProperty ProcessorId");
 
         if let Ok(output) = ps_cmd {
             if let Ok(stdout) = String::from_utf8(output.stdout) {
@@ -1211,10 +1207,10 @@ fn get_motherboard_serial() -> String {
 
     #[cfg(target_os = "windows")]
     {
+        use giro_lib::utils::windows::{run_wmic, run_powershell};
+
         // 1. WMIC
-        let wmic_cmd = std::process::Command::new("wmic")
-            .args(["baseboard", "get", "serialnumber"])
-            .output();
+        let wmic_cmd = run_wmic(["baseboard", "get", "serialnumber"]);
 
         if let Ok(output) = wmic_cmd {
             if let Ok(stdout) = String::from_utf8(output.stdout) {
@@ -1229,9 +1225,7 @@ fn get_motherboard_serial() -> String {
         }
 
         // 2. PowerShell fallback (Windows 11)
-        let ps_cmd = std::process::Command::new("powershell")
-            .args(["-NoProfile", "-Command", "Get-CimInstance -ClassName Win32_BaseBoard | Select-Object -ExpandProperty SerialNumber"])
-            .output();
+        let ps_cmd = run_powershell("Get-CimInstance -ClassName Win32_BaseBoard | Select-Object -ExpandProperty SerialNumber");
 
         if let Ok(output) = ps_cmd {
             if let Ok(stdout) = String::from_utf8(output.stdout) {
@@ -1268,10 +1262,10 @@ fn get_motherboard_serial() -> String {
 fn get_primary_mac_address() -> String {
     #[cfg(target_os = "windows")]
     {
+        use giro_lib::utils::windows::run_getmac;
+
         // Use getmac on Windows for reliable physical MAC
-        let output = std::process::Command::new("getmac")
-            .args(["/FO", "CSV", "/NH", "/V"])
-            .output();
+        let output = run_getmac(["/FO", "CSV", "/NH", "/V"]);
 
         if let Ok(out) = output {
             if let Ok(stdout) = String::from_utf8(out.stdout) {
@@ -1323,7 +1317,7 @@ fn get_primary_mac_address() -> String {
 /// Check if WebView2 runtime is available on Windows
 #[cfg(target_os = "windows")]
 fn check_webview2_availability() -> Result<String, String> {
-    use std::process::Command;
+    use giro_lib::utils::windows::run_reg;
 
     // Method 1: Check via Tauri's built-in detection
     if let Ok(version) = tauri::webview_version() {
@@ -1331,14 +1325,12 @@ fn check_webview2_availability() -> Result<String, String> {
     }
 
     // Method 2: Check registry for WebView2 installation
-    let reg_check = Command::new("reg")
-        .args([
-            "query",
-            r"HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
-            "/v",
-            "pv",
-        ])
-        .output();
+    let reg_check = run_reg([
+        "query",
+        r"HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
+        "/v",
+        "pv",
+    ]);
 
     if let Ok(output) = reg_check {
         if output.status.success() {
@@ -1350,14 +1342,12 @@ fn check_webview2_availability() -> Result<String, String> {
     }
 
     // Method 3: Check for user-level installation
-    let user_reg_check = Command::new("reg")
-        .args([
-            "query",
-            r"HKCU\SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
-            "/v",
-            "pv",
-        ])
-        .output();
+    let user_reg_check = run_reg([
+        "query",
+        r"HKCU\SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
+        "/v",
+        "pv",
+    ]);
 
     if let Ok(output) = user_reg_check {
         if output.status.success() {

@@ -485,17 +485,15 @@ impl ThermalPrinter {
             }
         }
 
-        // Fallback: WMIC
-        if let Ok(output) = Command::new("wmic")
-            .args([
-                "printer",
-                "where",
-                &format!("PortName='{}'", port_name),
-                "get",
-                "Name",
-            ])
-            .output()
-        {
+        // Fallback: WMIC (também com CREATE_NO_WINDOW)
+        use crate::utils::windows::run_wmic;
+        if let Ok(output) = run_wmic([
+            "printer",
+            "where",
+            &format!("PortName='{}'", port_name),
+            "get",
+            "Name",
+        ]) {
             if let Ok(stdout) = String::from_utf8(output.stdout) {
                 for line in stdout.lines().skip(1) {
                     let name = line.trim();
@@ -515,7 +513,7 @@ impl ThermalPrinter {
     }
 
     /// Envia dados RAW para impressora via Windows Print Spooler
-    /// Usa o comando `print` ou escreve em arquivo temporário e envia via spooler
+    /// Usa PowerShell com .NET para enviar dados RAW diretamente via WritePrinter API
     #[cfg(target_os = "windows")]
     fn print_windows_spooler(&self, printer_name: &str) -> HardwareResult<()> {
         use std::io::Write;
@@ -534,22 +532,99 @@ impl ThermalPrinter {
         file.flush().map_err(|e| HardwareError::IoError(e))?;
         drop(file);
 
-        // Método 1: Usar comando COPY /B para enviar dados RAW
-        // copy /b arquivo.bin \\localhost\NomeImpressora
-        let unc_path = if printer_name.starts_with("\\\\") {
-            printer_name.to_string()
-        } else {
-            format!("\\\\localhost\\{}", printer_name)
-        };
+        let temp_path = temp_file.to_string_lossy().to_string();
 
-        let mut cmd = Command::new("cmd");
+        // Método 1: PowerShell usando .NET para impressão RAW (mais confiável)
+        // Este método usa a API nativa do Windows para enviar dados RAW
+        let ps_script = format!(
+            r#"
+Add-Type -TypeDefinition @'
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+
+public class RawPrinter {{
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    public class DOCINFOA {{
+        [MarshalAs(UnmanagedType.LPStr)] public string pDocName;
+        [MarshalAs(UnmanagedType.LPStr)] public string pOutputFile;
+        [MarshalAs(UnmanagedType.LPStr)] public string pDataType;
+    }}
+    
+    [DllImport("winspool.Drv", EntryPoint = "OpenPrinterA", SetLastError = true, CharSet = CharSet.Ansi)]
+    public static extern bool OpenPrinter([MarshalAs(UnmanagedType.LPStr)] string szPrinter, out IntPtr hPrinter, IntPtr pd);
+    
+    [DllImport("winspool.Drv", EntryPoint = "ClosePrinter", SetLastError = true)]
+    public static extern bool ClosePrinter(IntPtr hPrinter);
+    
+    [DllImport("winspool.Drv", EntryPoint = "StartDocPrinterA", SetLastError = true, CharSet = CharSet.Ansi)]
+    public static extern bool StartDocPrinter(IntPtr hPrinter, Int32 level, [In, MarshalAs(UnmanagedType.LPStruct)] DOCINFOA di);
+    
+    [DllImport("winspool.Drv", EntryPoint = "EndDocPrinter", SetLastError = true)]
+    public static extern bool EndDocPrinter(IntPtr hPrinter);
+    
+    [DllImport("winspool.Drv", EntryPoint = "StartPagePrinter", SetLastError = true)]
+    public static extern bool StartPagePrinter(IntPtr hPrinter);
+    
+    [DllImport("winspool.Drv", EntryPoint = "EndPagePrinter", SetLastError = true)]
+    public static extern bool EndPagePrinter(IntPtr hPrinter);
+    
+    [DllImport("winspool.Drv", EntryPoint = "WritePrinter", SetLastError = true)]
+    public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten);
+
+    public static bool SendBytesToPrinter(string printerName, byte[] bytes) {{
+        IntPtr hPrinter = IntPtr.Zero;
+        DOCINFOA di = new DOCINFOA();
+        di.pDocName = "GIRO RAW Document";
+        di.pDataType = "RAW";
+        
+        if (!OpenPrinter(printerName.Normalize(), out hPrinter, IntPtr.Zero)) {{
+            return false;
+        }}
+        
+        if (!StartDocPrinter(hPrinter, 1, di)) {{
+            ClosePrinter(hPrinter);
+            return false;
+        }}
+        
+        if (!StartPagePrinter(hPrinter)) {{
+            EndDocPrinter(hPrinter);
+            ClosePrinter(hPrinter);
+            return false;
+        }}
+        
+        IntPtr pUnmanagedBytes = Marshal.AllocCoTaskMem(bytes.Length);
+        Marshal.Copy(bytes, 0, pUnmanagedBytes, bytes.Length);
+        
+        int dwWritten;
+        bool success = WritePrinter(hPrinter, pUnmanagedBytes, bytes.Length, out dwWritten);
+        
+        Marshal.FreeCoTaskMem(pUnmanagedBytes);
+        EndPagePrinter(hPrinter);
+        EndDocPrinter(hPrinter);
+        ClosePrinter(hPrinter);
+        
+        return success && dwWritten == bytes.Length;
+    }}
+}}
+'@ -Language CSharp -ErrorAction Stop
+
+$bytes = [System.IO.File]::ReadAllBytes("{temp_path}")
+$result = [RawPrinter]::SendBytesToPrinter("{printer_name}", $bytes)
+if ($result) {{ exit 0 }} else {{ exit 1 }}
+"#,
+            temp_path = temp_path.replace("\\", "\\\\"),
+            printer_name = printer_name.replace("\"", "\\\"")
+        );
+
+        let mut cmd = Command::new("powershell");
         #[cfg(target_os = "windows")]
         {
-            // CREATE_NO_WINDOW evita janelas de prompt piscando no startup
-            cmd.creation_flags(0x08000000);
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
         }
+
         let result = cmd
-            .args(["/C", "copy", "/b", &temp_file.to_string_lossy(), &unc_path])
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_script])
             .output();
 
         // Limpa arquivo temporário
@@ -559,9 +634,67 @@ impl ThermalPrinter {
             Ok(output) => {
                 if output.status.success() {
                     tracing::info!(
-                        "Impressão via spooler Windows bem-sucedida: {}",
+                        "Impressão RAW via WritePrinter bem-sucedida: {}",
                         printer_name
                     );
+                    Ok(())
+                } else {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    
+                    // Fallback: tentar método copy /b
+                    tracing::warn!("WritePrinter falhou, tentando copy /b: {} {}", stdout, stderr);
+                    self.print_windows_copy_fallback(printer_name)
+                }
+            }
+            Err(e) => {
+                tracing::warn!("PowerShell falhou, tentando copy /b: {}", e);
+                self.print_windows_copy_fallback(printer_name)
+            }
+        }
+    }
+
+    /// Fallback: usa copy /b para enviar dados RAW
+    #[cfg(target_os = "windows")]
+    fn print_windows_copy_fallback(&self, printer_name: &str) -> HardwareResult<()> {
+        use std::io::Write;
+        #[cfg(target_os = "windows")]
+        use std::os::windows::process::CommandExt;
+        use std::process::Command;
+
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join(format!("giro_print_fb_{}.bin", std::process::id()));
+
+        let mut file = std::fs::File::create(&temp_file).map_err(|e| HardwareError::IoError(e))?;
+        file.write_all(&self.buffer)
+            .map_err(|e| HardwareError::IoError(e))?;
+        file.flush().map_err(|e| HardwareError::IoError(e))?;
+        drop(file);
+
+        // Formata o caminho UNC
+        let unc_path = if printer_name.starts_with("\\\\") {
+            printer_name.to_string()
+        } else {
+            format!("\\\\localhost\\{}", printer_name)
+        };
+
+        let mut cmd = Command::new("cmd");
+        #[cfg(target_os = "windows")]
+        {
+            cmd.creation_flags(0x08000000);
+        }
+
+        // Usa aspas ao redor do caminho para lidar com espaços
+        let result = cmd
+            .args(["/C", "copy", "/b", &temp_file.to_string_lossy(), &format!("\"{}\"", unc_path)])
+            .output();
+
+        let _ = std::fs::remove_file(&temp_file);
+
+        match result {
+            Ok(output) => {
+                if output.status.success() {
+                    tracing::info!("Impressão via copy /b bem-sucedida: {}", printer_name);
                     Ok(())
                 } else {
                     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -573,7 +706,7 @@ impl ThermalPrinter {
                 }
             }
             Err(e) => Err(HardwareError::CommunicationError(format!(
-                "Erro ao executar comando de impressão: {}",
+                "Erro ao executar copy: {}",
                 e
             ))),
         }
