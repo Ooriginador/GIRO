@@ -1,6 +1,6 @@
 [package]
 name = "giro-desktop"
-version = "2.4.8"
+version = "2.4.9"
 description = "GIRO - Sistema de Gestao Comercial para Varejo"
 authors = ["Arkheion"]
 license = "Proprietary"
@@ -43,6 +43,7 @@ rust_decimal = { version = "1.34", features = ["serde"] }
 
 # Hardware
 serialport = "4.6"
+scopeguard = "1.2"
 
 # WebSocket (para scanner mobile)
 tokio-tungstenite = "0.24"
@@ -117,6 +118,14 @@ calamine = "0.30.1"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
+
+# Windows-specific dependencies for native printer API
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+  "Win32_Graphics_Printing",
+  "Win32_Foundation",
+  "Win32_Security",
+] }
 
 [features]
 default = ["custom-protocol"]

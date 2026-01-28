@@ -94,107 +94,91 @@ pub fn list_hardware_ports() -> Vec<String> {
 
     #[cfg(target_os = "windows")]
     {
-        use crate::utils::windows::{run_powershell, run_reg, run_wmic};
+        use crate::hardware::windows_printer;
 
-        tracing::info!("Enumerating Windows printers...");
+        tracing::info!("Enumerating Windows printers using native API...");
 
-        // Método 1: PowerShell Get-Printer (Windows 8+)
-        match run_powershell("Get-Printer | Select-Object -ExpandProperty Name") {
-            Ok(output) => {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                tracing::debug!("PowerShell Get-Printer stdout: {}", stdout);
-                if !stderr.is_empty() {
-                    tracing::warn!("PowerShell Get-Printer stderr: {}", stderr);
+        // MÉTODO PRINCIPAL: API Nativa do Windows (EnumPrintersW)
+        let printers = windows_printer::enumerate_printers();
+
+        if !printers.is_empty() {
+            tracing::info!("Native API found {} printers", printers.len());
+
+            for printer in &printers {
+                // Usa o nome da impressora diretamente (mais confiável)
+                let printer_path = printer.name.clone();
+
+                if !ports.contains(&printer_path) {
+                    let marker = if printer.is_thermal {
+                        "🖨️ TÉRMICA"
+                    } else {
+                        "📄"
+                    };
+                    let default_marker = if printer.is_default { " ⭐" } else { "" };
+
+                    tracing::info!(
+                        "{} Impressora: {} (porta: {}, status: {}){}",
+                        marker,
+                        printer.name,
+                        printer.port_name,
+                        printer.status_text,
+                        default_marker
+                    );
+
+                    ports.push(printer_path);
                 }
-                for line in stdout.lines() {
-                    let name = line.trim();
-                    if !name.is_empty() {
-                        let unc_path = format!("\\\\localhost\\{}", name);
-                        tracing::info!("Found Windows printer: {}", unc_path);
-                        ports.push(unc_path);
+            }
+        } else {
+            tracing::warn!("Native API returned no printers, trying fallback methods...");
+
+            // FALLBACK: PowerShell/WMIC se a API nativa falhar
+            use crate::utils::windows::{run_powershell, run_wmic};
+
+            // Método Fallback 1: PowerShell Get-Printer
+            match run_powershell("Get-Printer | Select-Object -ExpandProperty Name") {
+                Ok(output) => {
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    for line in stdout.lines() {
+                        let name = line.trim();
+                        if !name.is_empty() && !ports.contains(&name.to_string()) {
+                            tracing::info!("Fallback: Found printer via PowerShell: {}", name);
+                            ports.push(name.to_string());
+                        }
                     }
                 }
-            }
-            Err(e) => {
-                tracing::error!("Failed to run PowerShell Get-Printer: {}", e);
-            }
-        }
-
-        // Método 2: WMIC (compatibilidade com Windows mais antigos)
-        match run_wmic(["printer", "get", "name"]) {
-            Ok(output) => {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                tracing::debug!("WMIC printer stdout: {}", stdout);
-                if !stderr.is_empty() {
-                    tracing::warn!("WMIC printer stderr: {}", stderr);
+                Err(e) => {
+                    tracing::error!("PowerShell fallback failed: {}", e);
                 }
+            }
+
+            // Método Fallback 2: WMIC
+            if let Ok(output) = run_wmic(["printer", "get", "name"]) {
+                let stdout = String::from_utf8_lossy(&output.stdout);
                 for line in stdout.lines().skip(1) {
-                    // Skip header
                     let name = line.trim();
-                    if !name.is_empty() && name != "Name" {
-                        let unc_path = format!("\\\\localhost\\{}", name);
-                        if !ports.contains(&unc_path) {
-                            tracing::info!("Found Windows printer (WMIC): {}", unc_path);
-                            ports.push(unc_path);
-                        }
+                    if !name.is_empty() && name != "Name" && !ports.contains(&name.to_string()) {
+                        tracing::info!("Fallback: Found printer via WMIC: {}", name);
+                        ports.push(name.to_string());
                     }
                 }
             }
-            Err(e) => {
-                tracing::error!("Failed to run WMIC printer: {}", e);
+        }
+
+        // Adiciona opção especial para impressora padrão do Windows
+        if let Some(default) = windows_printer::get_default_printer() {
+            let default_option = format!("__DEFAULT__:{}", default);
+            if !ports.contains(&default_option) {
+                // Insere no início como opção especial
+                ports.insert(0, default_option);
             }
         }
 
-        // Método 3: Registro do Windows (mais confiável)
-        // As impressoras ficam em HKLM\SYSTEM\CurrentControlSet\Control\Print\Printers
-        match run_reg([
-            "query",
-            r"HKLM\SYSTEM\CurrentControlSet\Control\Print\Printers",
-            "/s",
-            "/f",
-            "Name",
-            "/d",
-        ]) {
-            Ok(output) => {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                tracing::debug!("Registry printers stdout: {}", stdout);
-                // O output do reg query lista subkeys
-                for line in stdout.lines() {
-                    if line.contains("HKEY_LOCAL_MACHINE") && line.contains("Printers\\") {
-                        // Extrai o nome da impressora do caminho
-                        if let Some(name) = line.split("Printers\\").nth(1) {
-                            let name = name.trim();
-                            if !name.is_empty()
-                                && !name.contains('\\')
-                                && !name.starts_with("Security")
-                            {
-                                let unc_path = format!("\\\\localhost\\{}", name);
-                                if !ports.contains(&unc_path) {
-                                    tracing::info!("Found Windows printer (Registry): {}", unc_path);
-                                    ports.push(unc_path);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                tracing::error!("Failed to query registry for printers: {}", e);
-            }
-        }
-
-        // Método 4: Verificar portas USB virtuais comuns criadas por drivers de impressora
-        // Muitas impressoras térmicas USB criam portas virtuais USB001, USB002, etc.
-        for i in 1..=10 {
+        // Adiciona portas USB virtuais comuns (USB001, USB002, etc.)
+        for i in 1..=5 {
             let usb_port = format!("USB{:03}", i);
-            ports.push(usb_port);
-        }
-
-        // Adiciona opções comuns de LPT
-        for i in 1..=3 {
-            ports.push(format!("LPT{}", i));
+            if !ports.contains(&usb_port) {
+                ports.push(usb_port);
+            }
         }
 
         tracing::info!("Total ports after Windows enumeration: {}", ports.len());
@@ -218,6 +202,131 @@ pub fn list_hardware_ports() -> Vec<String> {
     let result = [prioritized_ports, other_ports].concat();
     tracing::info!("Returning {} hardware ports", result.len());
     result
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// COMANDOS AVANÇADOS DE IMPRESSORA WINDOWS
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Informações detalhadas de uma impressora Windows
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PrinterInfo {
+    pub name: String,
+    pub port_name: String,
+    pub driver_name: String,
+    pub status: u32,
+    pub is_default: bool,
+    pub is_thermal: bool,
+    pub status_text: String,
+    pub location: String,
+    pub comment: String,
+}
+
+/// Lista impressoras Windows com informações detalhadas (API nativa)
+#[tauri::command]
+#[specta::specta]
+pub fn list_windows_printers() -> Vec<PrinterInfo> {
+    #[cfg(target_os = "windows")]
+    {
+        use crate::hardware::windows_printer;
+
+        let printers = windows_printer::enumerate_printers();
+        printers
+            .into_iter()
+            .map(|p| PrinterInfo {
+                name: p.name,
+                port_name: p.port_name,
+                driver_name: p.driver_name,
+                status: p.status,
+                is_default: p.is_default,
+                is_thermal: p.is_thermal,
+                status_text: p.status_text,
+                location: p.location,
+                comment: p.comment,
+            })
+            .collect()
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Vec::new()
+    }
+}
+
+/// Obtém a impressora padrão do Windows
+#[tauri::command]
+#[specta::specta]
+pub fn get_default_printer() -> Option<String> {
+    #[cfg(target_os = "windows")]
+    {
+        use crate::hardware::windows_printer;
+        windows_printer::get_default_printer()
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        None
+    }
+}
+
+/// Sugere a melhor impressora para usar (térmica > padrão > primeira disponível)
+#[tauri::command]
+#[specta::specta]
+pub fn suggest_best_printer() -> Option<String> {
+    #[cfg(target_os = "windows")]
+    {
+        use crate::hardware::windows_printer;
+        windows_printer::suggest_printer()
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        None
+    }
+}
+
+/// Verifica se uma impressora está pronta para uso
+#[tauri::command]
+#[specta::specta]
+pub fn is_printer_ready(printer_name: String) -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        use crate::hardware::windows_printer;
+        windows_printer::is_printer_ready(&printer_name)
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // No Linux, assumimos que está pronta se a porta existir
+        hardware::port_exists(&printer_name)
+    }
+}
+
+/// Obtém informações detalhadas de uma impressora específica
+#[tauri::command]
+#[specta::specta]
+pub fn get_printer_info(#[allow(unused)] printer_name: String) -> Option<PrinterInfo> {
+    #[cfg(target_os = "windows")]
+    {
+        use crate::hardware::windows_printer;
+        windows_printer::get_printer_info(&printer_name).map(|p| PrinterInfo {
+            name: p.name,
+            port_name: p.port_name,
+            driver_name: p.driver_name,
+            status: p.status,
+            is_default: p.is_default,
+            is_thermal: p.is_thermal,
+            status_text: p.status_text,
+            location: p.location,
+            comment: p.comment,
+        })
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        None
+    }
 }
 
 /// Verifica se uma porta existe
