@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT \n                id as \"id!\", code as \"code!\", name as \"name!\", \n                description as \"description?\",\n                default_price as \"default_price!\",\n                estimated_time as \"estimated_time?: i32\",\n                default_warranty_days as \"default_warranty_days!: i32\",\n                is_active as \"is_active!: bool\",\n                created_at as \"created_at!\", updated_at as \"updated_at!\"\n            FROM services WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "code!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "description?",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "default_price!",
+        "ordinal": 4,
+        "type_info": "Float"
+      },
+      {
+        "name": "estimated_time?: i32",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "default_warranty_days!: i32",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_active!: bool",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at!",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "26ac04b1478388d74ab675e2b3571b1c61ca6b4286d9b9d21f994de9228666dc"
+}

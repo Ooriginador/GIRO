@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                vy.id as \"year_id!\",\n                vb.id as \"brand_id!\",\n                vb.name as \"brand_name!\",\n                vm.id as \"model_id!\",\n                vm.name as \"model_name!\",\n                vy.year as \"year!: i32\",\n                vy.year_label as \"year_label!\",\n                vm.category,\n                vm.engine_size\n            FROM vehicle_years vy\n            INNER JOIN vehicle_models vm ON vm.id = vy.model_id\n            INNER JOIN vehicle_brands vb ON vb.id = vm.brand_id\n            WHERE vy.is_active = 1\n              AND vm.is_active = 1\n              AND vb.is_active = 1\n              AND (\n                LOWER(vb.name) LIKE ?\n                OR LOWER(vm.name) LIKE ?\n                OR CAST(vy.year AS TEXT) LIKE ?\n                OR LOWER(vb.name || ' ' || vm.name) LIKE ?\n              )\n            ORDER BY vb.name, vm.name, vy.year DESC\n            LIMIT ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "year_id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "brand_id!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "brand_name!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "model_id!",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "model_name!",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "year!: i32",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "year_label!",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "category",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "engine_size",
+        "ordinal": 8,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "586dc9426f147e21dc531ab27dce3b073d094296561c0e2bf2b994ad46a32076"
+}

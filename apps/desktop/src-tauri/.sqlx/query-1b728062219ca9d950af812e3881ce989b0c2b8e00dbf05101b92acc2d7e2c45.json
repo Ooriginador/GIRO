@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                COALESCE(SUM(total), 0) as service_total\n            FROM order_services\n            WHERE order_id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "service_total",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1b728062219ca9d950af812e3881ce989b0c2b8e00dbf05101b92acc2d7e2c45"
+}

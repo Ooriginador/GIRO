@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                wc.id,\n                c.name as customer_name,\n                p.name as \"product_name?: String\",\n                wc.source_type,\n                CASE \n                    WHEN wc.source_type = 'SALE' THEN 'Venda #' || CAST((SELECT daily_number FROM sales WHERE id IN (SELECT sale_id FROM sale_items WHERE id = wc.sale_item_id)) AS TEXT)\n                    WHEN wc.source_type = 'SERVICE_ORDER' THEN 'OS #' || CAST((SELECT order_number FROM service_orders WHERE id IN (SELECT order_id FROM order_products WHERE id = wc.order_item_id)) AS TEXT)\n                END as \"source_number?: String\",\n                wc.status,\n                wc.description,\n                wc.created_at as \"created_at!: String\"\n            FROM warranty_claims wc\n            INNER JOIN customers c ON c.id = wc.customer_id\n            LEFT JOIN products p ON p.id = wc.product_id\n            WHERE wc.status NOT IN ('CLOSED', 'DENIED')\n            ORDER BY wc.created_at DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "customer_name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "product_name?: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "source_type",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "source_number?: String",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!: String",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3a64bcaeb3f767a3bf4a0fc1e6fc542f898350527d93cd4e47a8a2565b370cd7"
+}

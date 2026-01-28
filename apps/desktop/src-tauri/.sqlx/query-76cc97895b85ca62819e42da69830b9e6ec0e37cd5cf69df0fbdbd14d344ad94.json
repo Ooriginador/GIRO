@@ -1,0 +1,128 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                cv.id as \"id!\",\n                cv.customer_id as \"customer_id!\",\n                cv.vehicle_year_id as \"vehicle_year_id!\",\n                cv.plate as \"plate?\",\n                cv.chassis as \"chassis?\",\n                cv.renavam as \"renavam?\",\n                cv.color as \"color?\",\n                cv.current_km as \"current_km?: i32\",\n                cv.nickname as \"nickname?\",\n                cv.is_active as \"is_active!: bool\",\n                cv.notes as \"notes?\",\n                cv.created_at as \"created_at!\",\n                cv.updated_at as \"updated_at!\",\n                vb.name as \"brand_name!\",\n                vm.name as \"model_name!\",\n                vy.year as \"year!: i32\",\n                vy.year_label as \"year_label!\",\n                vm.category as \"category?\",\n                vm.engine_size as \"engine_size?: i32\"\n            FROM customer_vehicles cv\n            INNER JOIN vehicle_years vy ON vy.id = cv.vehicle_year_id\n            INNER JOIN vehicle_models vm ON vm.id = vy.model_id\n            INNER JOIN vehicle_brands vb ON vb.id = vm.brand_id\n            WHERE cv.customer_id = ? AND cv.is_active = 1\n            ORDER BY cv.created_at DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "customer_id!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "vehicle_year_id!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "plate?",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "chassis?",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "renavam?",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "color?",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "current_km?: i32",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "nickname?",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_active!: bool",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "notes?",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at!",
+        "ordinal": 12,
+        "type_info": "Text"
+      },
+      {
+        "name": "brand_name!",
+        "ordinal": 13,
+        "type_info": "Text"
+      },
+      {
+        "name": "model_name!",
+        "ordinal": 14,
+        "type_info": "Text"
+      },
+      {
+        "name": "year!: i32",
+        "ordinal": 15,
+        "type_info": "Integer"
+      },
+      {
+        "name": "year_label!",
+        "ordinal": 16,
+        "type_info": "Text"
+      },
+      {
+        "name": "category?",
+        "ordinal": 17,
+        "type_info": "Text"
+      },
+      {
+        "name": "engine_size?: i32",
+        "ordinal": 18,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "76cc97895b85ca62819e42da69830b9e6ec0e37cd5cf69df0fbdbd14d344ad94"
+}

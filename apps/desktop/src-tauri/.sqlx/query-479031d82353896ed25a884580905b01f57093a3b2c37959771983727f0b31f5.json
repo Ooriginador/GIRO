@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE services SET\n                code = COALESCE(?, code),\n                name = COALESCE(?, name),\n                description = COALESCE(?, description),\n                default_price = COALESCE(?, default_price),\n                estimated_time = COALESCE(?, estimated_time),\n                default_warranty_days = COALESCE(?, default_warranty_days),\n                is_active = COALESCE(?, is_active),\n                updated_at = ?\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "479031d82353896ed25a884580905b01f57093a3b2c37959771983727f0b31f5"
+}

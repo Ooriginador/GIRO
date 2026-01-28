@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                id as \"id!\",\n                brand_id as \"brand_id!\",\n                name as \"name!\",\n                category,\n                engine_size,\n                is_active as \"is_active!: i32\",\n                created_at as \"created_at!\",\n                updated_at as \"updated_at!\"\n            FROM vehicle_models\n            WHERE brand_id = ? AND is_active = 1\n            ORDER BY name ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "brand_id!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "category",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "engine_size",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_active!: i32",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at!",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b4b92a39722b8843a14b74eff05b19fa4d5d9c3fac43bd4c2ccfef5123b9090c"
+}

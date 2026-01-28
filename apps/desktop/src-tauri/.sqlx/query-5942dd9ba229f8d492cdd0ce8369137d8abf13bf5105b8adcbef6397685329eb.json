@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE product_lots SET current_quantity = current_quantity - ?, updated_at = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "5942dd9ba229f8d492cdd0ce8369137d8abf13bf5105b8adcbef6397685329eb"
+}
