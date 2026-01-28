@@ -456,6 +456,71 @@ impl ThermalPrinter {
         Ok(())
     }
 
+    /// Envia dados RAW para impressora via Windows Print Spooler
+    /// Usa o comando `print` ou escreve em arquivo temporário e envia via spooler
+    #[cfg(target_os = "windows")]
+    fn print_windows_spooler(&self, printer_name: &str) -> HardwareResult<()> {
+        use std::io::Write;
+        #[cfg(target_os = "windows")]
+        use std::os::windows::process::CommandExt;
+        use std::process::Command;
+
+        // Cria arquivo temporário com os dados ESC/POS
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join(format!("giro_print_{}.bin", std::process::id()));
+
+        // Escreve os dados binários no arquivo temporário
+        let mut file = std::fs::File::create(&temp_file).map_err(|e| HardwareError::IoError(e))?;
+        file.write_all(&self.buffer)
+            .map_err(|e| HardwareError::IoError(e))?;
+        file.flush().map_err(|e| HardwareError::IoError(e))?;
+        drop(file);
+
+        // Método 1: Usar comando COPY /B para enviar dados RAW
+        // copy /b arquivo.bin \\localhost\NomeImpressora
+        let unc_path = if printer_name.starts_with("\\\\") {
+            printer_name.to_string()
+        } else {
+            format!("\\\\localhost\\{}", printer_name)
+        };
+
+        let mut cmd = Command::new("cmd");
+        #[cfg(target_os = "windows")]
+        {
+            // CREATE_NO_WINDOW evita janelas de prompt piscando no startup
+            cmd.creation_flags(0x08000000);
+        }
+        let result = cmd
+            .args(["/C", "copy", "/b", &temp_file.to_string_lossy(), &unc_path])
+            .output();
+
+        // Limpa arquivo temporário
+        let _ = std::fs::remove_file(&temp_file);
+
+        match result {
+            Ok(output) => {
+                if output.status.success() {
+                    tracing::info!(
+                        "Impressão via spooler Windows bem-sucedida: {}",
+                        printer_name
+                    );
+                    Ok(())
+                } else {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    Err(HardwareError::CommunicationError(format!(
+                        "Falha ao enviar para impressora '{}': {} {}",
+                        printer_name, stdout, stderr
+                    )))
+                }
+            }
+            Err(e) => Err(HardwareError::CommunicationError(format!(
+                "Erro ao executar comando de impressão: {}",
+                e
+            ))),
+        }
+    }
+
     /// Envia para a impressora via dispositivo USB (raw)
     ///
     /// Observação: isso funciona tipicamente em Linux via `/dev/usb/lp0`.
@@ -512,28 +577,43 @@ impl ThermalPrinter {
             }
 
             // Estratégia de conexão para Windows (USB/RAW):
-            // 1. Tenta o caminho exato fornecido (ex: LPT1, \\Servidor\Impressora)
-            // 2. Tenta namespace de dispositivo local (ex: USB001 -> \\.\USB001)
-            // 3. Tenta compartilhamento local (ex: Elgin -> \\localhost\Elgin)
+            // 1. Se for caminho UNC (\\...), usa Windows Spooler API
+            // 2. Tenta o caminho exato fornecido (ex: LPT1)
+            // 3. Tenta namespace de dispositivo local (ex: USB001 -> \\.\USB001)
+            // 4. Tenta compartilhamento local (ex: Elgin -> \\localhost\Elgin)
+
+            // Se for caminho UNC ou nome de impressora, usa o spooler do Windows
+            if port.contains("\\")
+                || !port.to_uppercase().starts_with("LPT")
+                    && !port.to_uppercase().starts_with("COM")
+                    && !port.to_uppercase().starts_with("USB")
+            {
+                // Extrai o nome da impressora do caminho UNC
+                let printer_name = if port.starts_with("\\\\localhost\\") {
+                    port.strip_prefix("\\\\localhost\\").unwrap_or(port)
+                } else if port.starts_with("\\\\127.0.0.1\\") {
+                    port.strip_prefix("\\\\127.0.0.1\\").unwrap_or(port)
+                } else if port.starts_with("\\\\") {
+                    // Caminho de rede: \\servidor\impressora
+                    port
+                } else {
+                    // Nome simples da impressora
+                    port
+                };
+
+                return self.print_windows_spooler(printer_name);
+            }
 
             let mut paths_to_try = Vec::new();
 
             // Caminho original
             paths_to_try.push(port.to_string());
 
-            if !port.contains("\\") {
-                let upper = port.to_uppercase();
+            let upper = port.to_uppercase();
 
-                // Para portas físicas/virtuais (USBxxx, LPTx, COMx), tenta path de dispositivo
-                if upper.starts_with("USB") || upper.starts_with("LPT") || upper.starts_with("COM")
-                {
-                    paths_to_try.push(format!("\\\\.\\{}", port));
-                } else {
-                    // Para nomes simples, assume que pode ser um compartilhamento local
-                    // IMPORTANTE: A impressora DEVE estar compartilhada no Windows com este nome
-                    paths_to_try.push(format!("\\\\localhost\\{}", port));
-                    paths_to_try.push(format!("\\\\127.0.0.1\\{}", port));
-                }
+            // Para portas físicas/virtuais (USBxxx, LPTx, COMx), tenta path de dispositivo
+            if upper.starts_with("USB") || upper.starts_with("LPT") || upper.starts_with("COM") {
+                paths_to_try.push(format!("\\\\.\\{}", port));
             }
 
             let mut last_error = String::new();
@@ -550,21 +630,24 @@ impl ThermalPrinter {
                     }
                     Err(e) => {
                         let err_msg = e.to_string();
-                        // Ignora erros comuns de "caminho não encontrado" para não poluir,
-                        // a menos que seja o último
                         tracing::debug!("Tentativa de conexão falhou: '{}': {}", path, err_msg);
                         last_error = format!("(Caminho: {}) {}", path, err_msg);
                     }
                 }
             }
 
-            Err(HardwareError::ConnectionFailed(format!(
-                "Falha ao conectar na impressora Windows '{}'. Tentativas falharam. \
-                Último erro: {}. \
-                DICA: Se for impressora USB, COMPARTILHE a impressora no Windows com um nome simples (ex: 'caixa') \
-                e use esse nome na configuração. Ou use o driver 'Generic / Text Only'.",
-                port, last_error
-            )))
+            // Última tentativa: usar spooler do Windows
+            tracing::info!("Tentando via Windows Spooler como última opção: {}", port);
+            if let Err(spooler_err) = self.print_windows_spooler(port) {
+                return Err(HardwareError::ConnectionFailed(format!(
+                    "Falha ao conectar na impressora Windows '{}'. \
+                    Erro direto: {}. Erro spooler: {}. \
+                    DICA: Verifique se a impressora está compartilhada e use o nome exato.",
+                    port, last_error, spooler_err
+                )));
+            }
+
+            Ok(())
         }
 
         #[cfg(not(any(target_os = "linux", target_os = "windows")))]
