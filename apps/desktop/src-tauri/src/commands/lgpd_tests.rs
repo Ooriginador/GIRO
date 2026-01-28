@@ -9,8 +9,7 @@
 
 #[cfg(test)]
 mod lgpd_hard_delete_tests {
-    use crate::commands::lgpd::{lgpd_hard_delete_employee, HardDeleteResult};
-    use crate::AppState;
+    use crate::commands::lgpd::lgpd_hard_delete_employee_impl;
     use sqlx::SqlitePool;
     use uuid::Uuid;
 
@@ -131,84 +130,44 @@ mod lgpd_hard_delete_tests {
         .await
         .unwrap();
 
-        // Executar hard delete (simulado sem Tauri State)
-        // Como não temos AppState em teste, fazemos manualmente
-        let mut tx = pool.begin().await.unwrap();
-
-        // Anonimizar vendas
-        let sales_updated =
-            sqlx::query("UPDATE sales SET employee_id = NULL WHERE employee_id = ?")
-                .bind(&employee_id)
-                .execute(&mut *tx)
-                .await
-                .unwrap();
-
-        // Anonimizar sessões
-        let sessions_updated =
-            sqlx::query("UPDATE cash_sessions SET employee_id = NULL WHERE employee_id = ?")
-                .bind(&employee_id)
-                .execute(&mut *tx)
-                .await
-                .unwrap();
-
-        // Anonimizar logs
-        let logs_updated = sqlx::query(
-            "UPDATE audit_logs SET user_id = 'ANONYMIZED', user_name = 'ANONYMIZED' WHERE user_id = ?",
-        )
-        .bind(&employee_id)
-        .execute(&mut *tx)
-        .await
-        .unwrap();
-
-        // Deletar funcionário
-        let employee_deleted = sqlx::query("DELETE FROM employees WHERE id = ?")
-            .bind(&employee_id)
-            .execute(&mut *tx)
+        // Executar hard delete usando a função real
+        let result = lgpd_hard_delete_employee_impl(&employee_id, &pool)
             .await
-            .unwrap();
+            .expect("Hard delete deve funcionar");
 
-        tx.commit().await.unwrap();
-
-        // Verificações
-        assert_eq!(
-            sales_updated.rows_affected(),
-            1,
-            "Deveria ter anonimizado 1 venda"
-        );
-        assert_eq!(
-            sessions_updated.rows_affected(),
-            1,
-            "Deveria ter anonimizado 1 sessão"
-        );
-        assert_eq!(
-            logs_updated.rows_affected(),
-            1,
-            "Deveria ter anonimizado 1 log"
-        );
-        assert_eq!(
-            employee_deleted.rows_affected(),
-            1,
-            "Deveria ter deletado 1 funcionário"
+        // Verificações do resultado
+        assert!(result.success, "Deve retornar success=true");
+        assert_eq!(result.deleted_records, 1, "Deve ter deletado 1 registro");
+        assert!(
+            result.anonymized_records >= 3,
+            "Deve ter anonimizado pelo menos 3 registros (venda, sessão, log)"
         );
 
         // Verificar que dados foram anonimizados
-        let sale_check: Option<String> =
+        // Nota: query_scalar com fetch_optional retorna Option<Option<String>>
+        // Se a row existe e employee_id é NULL, retorna Some(None)
+        let sale_check: Option<Option<String>> =
             sqlx::query_scalar("SELECT employee_id FROM sales WHERE id = ?")
                 .bind(&sale_id)
                 .fetch_optional(&pool)
                 .await
                 .unwrap();
-        assert!(sale_check.is_none(), "employee_id da venda deve ser NULL");
+        assert!(
+            sale_check == Some(None),
+            "employee_id da venda deve ser NULL, got: {:?}",
+            sale_check
+        );
 
-        let session_check: Option<String> =
+        let session_check: Option<Option<String>> =
             sqlx::query_scalar("SELECT employee_id FROM cash_sessions WHERE id = ?")
                 .bind(&session_id)
                 .fetch_optional(&pool)
                 .await
                 .unwrap();
         assert!(
-            session_check.is_none(),
-            "employee_id da sessão deve ser NULL"
+            session_check == Some(None),
+            "employee_id da sessão deve ser NULL, got: {:?}",
+            session_check
         );
 
         let log_check: String =
@@ -284,40 +243,19 @@ mod lgpd_hard_delete_tests {
             .await
             .unwrap();
 
-        // Executar deleção
-        let mut tx = pool.begin().await.unwrap();
-
-        // Mesmo sem dados relacionados, executamos as queries
-        sqlx::query("UPDATE sales SET employee_id = NULL WHERE employee_id = ?")
-            .bind(&employee_id)
-            .execute(&mut *tx)
+        // Executar deleção usando a função real
+        let result = lgpd_hard_delete_employee_impl(&employee_id, &pool)
             .await
-            .unwrap();
+            .expect("Hard delete deve funcionar");
 
-        sqlx::query("UPDATE cash_sessions SET employee_id = NULL WHERE employee_id = ?")
-            .bind(&employee_id)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
-
-        sqlx::query("UPDATE audit_logs SET user_id = 'ANONYMIZED', user_name = 'ANONYMIZED' WHERE user_id = ?")
-            .bind(&employee_id)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
-
-        let deleted = sqlx::query("DELETE FROM employees WHERE id = ?")
-            .bind(&employee_id)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
-
-        tx.commit().await.unwrap();
-
+        assert!(result.success, "Deve retornar success=true");
         assert_eq!(
-            deleted.rows_affected(),
-            1,
+            result.deleted_records, 1,
             "Deve deletar funcionário sem dados relacionados"
+        );
+        assert_eq!(
+            result.anonymized_records, 0,
+            "Não deve ter anonimizado nenhum registro"
         );
 
         // Verificar deleção
