@@ -28,7 +28,7 @@ Antes de criar um bug report:
 
 **Template de Bug Report**:
 
-````markdown
+`````markdown
 ## Descrição
 
 Descrição clara do bug
@@ -83,7 +83,7 @@ Screenshots, exemplos, etc.
 
 ```bash
 # Clone o repositório
-git clone git@github.com:jhonslife/GIRO.git
+git clone git@github.com:Ooriginador/GIRO.git
 cd GIRO
 
 # Instale dependências
@@ -280,9 +280,9 @@ pnpm expo start --clear
 ```text
 ## 📞 Dúvidas?
 
-- 💬 Abra uma [Discussion](https://github.com/jhonslife/GIRO/discussions)
+- 💬 Abra uma [Discussion](https://github.com/Ooriginador/GIRO/discussions)
 - 📧 Email: dev@arkheion.com
-- 🐛 [Issues](https://github.com/jhonslife/GIRO/issues)
+- 🐛 [Issues](https://github.com/Ooriginador/GIRO/issues)
 
 ---
 
@@ -300,6 +300,8 @@ Recomendações rápidas:
 # Varredura rápida
 scripts/run-partB-secrets.sh
 ````
+`````
+
 ````
 
 - Instale os hooks de pré-commit (gitleaks + checks básicos):
@@ -314,3 +316,4 @@ scripts/setup-pre-commit.sh
 - Não compartilhe relatórios contendo segredos em canais públicos. Notifique imediatamente SRE/Infra e os donos das credenciais para revogação e rotação.
 
 Adicionalmente, o repositório contém uma configuração mínima de `pre-commit` (`.pre-commit-config.yaml`) e uma configuração de regras para `gitleaks` (`.gitleaks.toml`). Use `scripts/setup-pre-commit.sh` para configurar o ambiente local.
+````
