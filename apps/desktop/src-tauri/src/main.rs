@@ -670,6 +670,7 @@ async fn main() {
                 }
 
                 // 2. Verificar Auto-start de Rede (Master/Satellite)
+                // Usa funções internas que não requerem autenticação
                 let settings_repo = giro_lib::repositories::SettingsRepository::new(state.pool());
                 let role = settings_repo.get_value("network.role").await.ok().flatten().unwrap_or_else(|| "STANDALONE".to_string());
 
@@ -683,16 +684,19 @@ async fn main() {
                             port: server_port,
                             max_connections: 10,
                         };
-                        // Chamamos o comando diretamente (usando clones para evitar o erro de move)
-                        if let Err(e) = commands::start_mobile_server(config, state.clone(), mobile_state.clone()).await {
-                            tracing::error!("Erro no auto-start do Master: {:?}", e);
+                        // Usar função interna (sem require_authenticated)
+                        match giro_lib::commands::mobile::start_mobile_server_internal(config, &state, &mobile_state).await {
+                            Ok(_) => tracing::info!("✅ Servidor Master iniciado na porta {}", server_port),
+                            Err(e) => tracing::warn!("⚠️ Auto-start Master falhou (tentará após login): {:?}", e),
                         }
                     },
                     "SATELLITE" => {
                         tracing::info!("Auto-start: Este terminal está configurado como SATELLITE. Iniciando busca pelo Master...");
                         let terminal_name = settings_repo.get_value("terminal.name").await.ok().flatten().unwrap_or_else(|| "Satellite Terminal".into());
-                        if let Err(e) = commands::network::start_network_client(terminal_name, handle.clone(), state.clone(), network_state.clone()).await {
-                            tracing::error!("Erro no auto-start do Satellite: {:?}", e);
+                        // Usar função interna (sem require_authenticated)
+                        match giro_lib::commands::network::start_network_client_internal(terminal_name, handle.clone(), state.pool(), &network_state).await {
+                            Ok(_) => tracing::info!("✅ Cliente Satellite iniciado"),
+                            Err(e) => tracing::warn!("⚠️ Auto-start Satellite falhou (tentará após login): {:?}", e),
                         }
                     },
                     _ => tracing::info!("Auto-start: Modo STANDALONE (Nenhum serviço de rede iniciado)"),

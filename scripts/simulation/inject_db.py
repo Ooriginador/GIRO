@@ -96,8 +96,8 @@ for i in range(max_retries):
                 # 2. Configure SETTINGS based on Mode
                 # print(f"   ⚙️  Configuring Mode: {mode}")
 
-                # FIX: Must be snake_case for Serde (master, satellite, standalone)
-                ops_mode = "master" if mode == "MASTER" else "satellite"
+                # FIX: O código Rust espera network.role = "MASTER" ou "SATELLITE" (maiúsculas!)
+                role_value = "MASTER" if mode == "MASTER" else "SATELLITE"
 
                 settings = [
                     (
@@ -107,12 +107,18 @@ for i in range(max_retries):
                         "STRING",
                         "general",
                     ),
-                    ("setting-mode", "operation_mode", ops_mode, "STRING", "network"),
+                    ("setting-role", "network.role", role_value, "STRING", "network"),
                 ]
 
                 if mode == "MASTER":
                     settings.append(
-                        ("setting-port", "server_port", "3000", "NUMBER", "network")
+                        (
+                            "setting-port",
+                            "network.server_port",
+                            "3847",
+                            "NUMBER",
+                            "network",
+                        )
                     )
                     settings.append(
                         (
@@ -123,6 +129,16 @@ for i in range(max_retries):
                             "network",
                         )
                     )
+                    # Terminal name para identificar no mDNS
+                    settings.append(
+                        (
+                            "setting-terminal-name",
+                            "terminal.name",
+                            "Master Server",
+                            "STRING",
+                            "network",
+                        )
+                    )
                 else:
                     settings.append(
                         (
@@ -130,6 +146,17 @@ for i in range(max_retries):
                             "auto_discovery",
                             "true",
                             "BOOLEAN",
+                            "network",
+                        )
+                    )
+                    # Terminal name único para cada Satellite
+                    terminal_name = os.environ.get("GIRO_TERMINAL_NAME", "Satellite")
+                    settings.append(
+                        (
+                            "setting-terminal-name",
+                            "terminal.name",
+                            terminal_name,
+                            "STRING",
                             "network",
                         )
                     )

@@ -44,7 +44,7 @@ pub struct NetworkState {
     pub client: Option<Arc<NetworkClient>>,
 }
 
-/// Inicia o cliente de rede (modo satélite)
+/// Inicia o cliente de rede (modo satélite) - requer autenticação
 #[tauri::command]
 #[specta::specta]
 pub async fn start_network_client(
@@ -54,6 +54,16 @@ pub async fn start_network_client(
     network_state: State<'_, RwLock<NetworkState>>,
 ) -> AppResult<()> {
     app_state.session.require_authenticated()?;
+    start_network_client_internal(terminal_name, app_handle, app_state.pool(), &network_state).await
+}
+
+/// Versão interna sem verificação de autenticação (para auto-start no setup)
+pub async fn start_network_client_internal(
+    terminal_name: String,
+    app_handle: tauri::AppHandle,
+    pool: &sqlx::SqlitePool,
+    network_state: &RwLock<NetworkState>,
+) -> AppResult<()> {
     let mut state = network_state.write().await;
 
     if state.client.is_some() {
@@ -62,7 +72,7 @@ pub async fn start_network_client(
         ));
     }
 
-    let client = NetworkClient::new(app_state.pool().clone(), terminal_name, app_handle);
+    let client = NetworkClient::new(pool.clone(), terminal_name, app_handle);
 
     // Iniciar
     client.start();

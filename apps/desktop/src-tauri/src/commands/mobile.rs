@@ -116,7 +116,7 @@ pub async fn get_connected_devices(
     }
 }
 
-/// Inicia o servidor mobile
+/// Inicia o servidor mobile (requer autenticação)
 #[tauri::command]
 #[specta::specta]
 pub async fn start_mobile_server(
@@ -125,6 +125,15 @@ pub async fn start_mobile_server(
     mobile_state: State<'_, RwLock<MobileServerState>>,
 ) -> AppResult<()> {
     app_state.session.require_authenticated()?;
+    start_mobile_server_internal(config, &app_state, &mobile_state).await
+}
+
+/// Versão interna sem verificação de autenticação (para auto-start no setup)
+pub async fn start_mobile_server_internal(
+    config: StartServerConfig,
+    app_state: &AppState,
+    mobile_state: &RwLock<MobileServerState>,
+) -> AppResult<()> {
     let mut state = mobile_state.write().await;
 
     if state.is_running {
