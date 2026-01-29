@@ -47,7 +47,11 @@ mod tests {
         };
 
         let result = repo.create(input).await;
-        assert!(result.is_ok());
+        assert!(
+            result.is_ok(),
+            "Failed to create customer: {:?}",
+            result.err()
+        );
         let customer = result.unwrap();
         assert_eq!(customer.name, "João Silva");
         assert_eq!(customer.cpf.unwrap(), "12345678900");

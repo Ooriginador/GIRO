@@ -1,5 +1,0 @@
-./apps/desktop/.env.example
-./apps/desktop/src-tauri/.env
-./apps/desktop/.env.local
-./packages/database/.env.example
-./packages/database/.env
