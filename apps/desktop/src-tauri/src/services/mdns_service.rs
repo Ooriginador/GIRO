@@ -1,17 +1,33 @@
 //! Serviço mDNS para descoberta do Desktop
 //!
-//! Anuncia o GIRO Desktop na rede local para que o Mobile possa encontrá-lo.
+//! Anuncia o GIRO Desktop na rede local para que o Mobile e outros PCs possam encontrá-lo.
+//! Inclui resiliência, health checks e auto-restart em caso de falha.
 
 use mdns_sd::{ServiceDaemon, ServiceInfo};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use std::time::{Duration, Instant};
+use tokio::sync::{broadcast, RwLock};
+use tokio::time::interval;
 
 /// Tipo de serviço mDNS
 const SERVICE_TYPE: &str = "_giro._tcp.local.";
 
 /// Porta padrão do WebSocket
 const DEFAULT_PORT: u16 = 3847;
+
+/// Intervalo de health check (segundos)
+const HEALTH_CHECK_INTERVAL_SECS: u64 = 30;
+
+/// Máximo de falhas antes de desistir
+const MAX_CONSECUTIVE_FAILURES: u32 = 5;
+
+/// Delay inicial de retry (ms)
+const INITIAL_RETRY_DELAY_MS: u64 = 1000;
+
+/// Delay máximo de retry (ms)
+const MAX_RETRY_DELAY_MS: u64 = 60000;
 
 /// Obtém o hostname da máquina de forma cross-platform
 fn get_hostname() -> String {
@@ -63,6 +79,10 @@ pub struct MdnsConfig {
     pub version: String,
     /// Nome da loja (opcional)
     pub store_name: Option<String>,
+    /// Habilitar auto-restart em caso de falha
+    pub auto_restart: bool,
+    /// Intervalo de health check (segundos)
+    pub health_check_interval_secs: u64,
 }
 
 impl Default for MdnsConfig {
@@ -72,8 +92,48 @@ impl Default for MdnsConfig {
             port: DEFAULT_PORT,
             version: env!("CARGO_PKG_VERSION").into(),
             store_name: None,
+            auto_restart: true,
+            health_check_interval_secs: HEALTH_CHECK_INTERVAL_SECS,
         }
     }
+}
+
+/// Evento do serviço mDNS
+#[derive(Debug, Clone)]
+pub enum MdnsEvent {
+    /// Serviço iniciado
+    Started,
+    /// Serviço parado
+    Stopped,
+    /// Falha detectada
+    Failed(String),
+    /// Tentando reconectar
+    Reconnecting { attempt: u32, delay_ms: u64 },
+    /// Reconectado com sucesso
+    Reconnected,
+    /// Health check OK
+    HealthCheckOk,
+    /// Health check falhou
+    HealthCheckFailed(String),
+}
+
+/// Estatísticas do serviço mDNS
+#[derive(Debug, Clone, Default)]
+pub struct MdnsStats {
+    /// Total de starts
+    pub total_starts: u64,
+    /// Total de restarts automáticos
+    pub auto_restarts: u64,
+    /// Total de falhas
+    pub total_failures: u64,
+    /// Falhas consecutivas atuais
+    pub consecutive_failures: u32,
+    /// Último erro
+    pub last_error: Option<String>,
+    /// Tempo rodando (segundos)
+    pub uptime_secs: u64,
+    /// Último health check bem sucedido
+    pub last_health_check: Option<String>,
 }
 
 /// Estado do serviço mDNS
@@ -81,21 +141,53 @@ pub struct MdnsService {
     config: RwLock<MdnsConfig>,
     daemon: RwLock<Option<ServiceDaemon>>,
     is_running: RwLock<bool>,
+    /// Estatísticas
+    stats: RwLock<MdnsStats>,
+    /// Contador de starts
+    start_count: AtomicU64,
+    /// Contador de restarts automáticos
+    restart_count: AtomicU64,
+    /// Falhas consecutivas
+    consecutive_failures: AtomicU32,
+    /// Timestamp de início
+    started_at: RwLock<Option<Instant>>,
+    /// Canal de eventos
+    event_tx: broadcast::Sender<MdnsEvent>,
+    /// Flag para parar health check
+    shutdown_flag: RwLock<bool>,
 }
 
 impl MdnsService {
     /// Cria novo serviço mDNS
     pub fn new(config: MdnsConfig) -> Arc<Self> {
+        let (event_tx, _) = broadcast::channel(64);
         Arc::new(Self {
             config: RwLock::new(config),
             daemon: RwLock::new(None),
             is_running: RwLock::new(false),
+            stats: RwLock::new(MdnsStats::default()),
+            start_count: AtomicU64::new(0),
+            restart_count: AtomicU64::new(0),
+            consecutive_failures: AtomicU32::new(0),
+            started_at: RwLock::new(None),
+            event_tx,
+            shutdown_flag: RwLock::new(false),
         })
     }
 
     /// Cria com configuração padrão
     pub fn with_defaults() -> Arc<Self> {
         Self::new(MdnsConfig::default())
+    }
+
+    /// Subscreve para eventos do mDNS
+    pub fn subscribe(&self) -> broadcast::Receiver<MdnsEvent> {
+        self.event_tx.subscribe()
+    }
+
+    /// Emite evento
+    fn emit_event(&self, event: MdnsEvent) {
+        let _ = self.event_tx.send(event);
     }
 
     /// Inicia o broadcasting mDNS
@@ -169,11 +261,26 @@ impl MdnsService {
             *is_running = true;
         }
 
+        // Atualizar estatísticas
+        self.start_count.fetch_add(1, Ordering::SeqCst);
+        self.consecutive_failures.store(0, Ordering::SeqCst);
+        {
+            let mut started_at = self.started_at.write().await;
+            *started_at = Some(Instant::now());
+        }
+
+        self.emit_event(MdnsEvent::Started);
         Ok(())
     }
 
     /// Para o broadcasting mDNS
     pub async fn stop(&self) -> Result<(), MdnsError> {
+        // Sinalizar shutdown para health check
+        {
+            let mut shutdown = self.shutdown_flag.write().await;
+            *shutdown = true;
+        }
+
         let mut daemon_lock = self.daemon.write().await;
 
         if let Some(daemon) = daemon_lock.take() {
@@ -189,6 +296,12 @@ impl MdnsService {
             *is_running = false;
         }
 
+        {
+            let mut started_at = self.started_at.write().await;
+            *started_at = None;
+        }
+
+        self.emit_event(MdnsEvent::Stopped);
         Ok(())
     }
 
@@ -211,8 +324,167 @@ impl MdnsService {
     /// Reinicia o serviço com nova configuração
     pub async fn restart(&self) -> Result<(), MdnsError> {
         self.stop().await?;
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        tokio::time::sleep(Duration::from_millis(100)).await;
         self.start().await
+    }
+
+    /// Obtém estatísticas do serviço
+    pub async fn get_stats(&self) -> MdnsStats {
+        let mut stats = self.stats.read().await.clone();
+        stats.total_starts = self.start_count.load(Ordering::SeqCst);
+        stats.auto_restarts = self.restart_count.load(Ordering::SeqCst);
+        stats.consecutive_failures = self.consecutive_failures.load(Ordering::SeqCst);
+
+        // Calcular uptime
+        if let Some(started_at) = *self.started_at.read().await {
+            stats.uptime_secs = started_at.elapsed().as_secs();
+        }
+
+        stats
+    }
+
+    /// Inicia com auto-recovery (recomendado para produção)
+    pub async fn start_with_recovery(self: &Arc<Self>) -> Result<(), MdnsError> {
+        // Resetar shutdown flag
+        {
+            let mut shutdown = self.shutdown_flag.write().await;
+            *shutdown = false;
+        }
+
+        // Tentar iniciar
+        self.start().await?;
+
+        // Iniciar health check em background
+        let service = Arc::clone(self);
+        tokio::spawn(async move {
+            service.health_check_loop().await;
+        });
+
+        Ok(())
+    }
+
+    /// Loop de health check e auto-recovery
+    async fn health_check_loop(self: &Arc<Self>) {
+        let config = self.config.read().await.clone();
+        let interval_secs = config.health_check_interval_secs;
+
+        let mut check_interval = interval(Duration::from_secs(interval_secs));
+
+        loop {
+            check_interval.tick().await;
+
+            // Verificar se deve parar
+            {
+                let shutdown = self.shutdown_flag.read().await;
+                if *shutdown {
+                    tracing::debug!("mDNS health check loop encerrado");
+                    break;
+                }
+            }
+
+            // Executar health check
+            if let Err(e) = self.perform_health_check().await {
+                tracing::warn!("⚠️ mDNS health check falhou: {}", e);
+                self.emit_event(MdnsEvent::HealthCheckFailed(e.to_string()));
+
+                // Tentar auto-recovery se configurado
+                let config = self.config.read().await.clone();
+                if config.auto_restart {
+                    self.attempt_recovery().await;
+                }
+            } else {
+                self.emit_event(MdnsEvent::HealthCheckOk);
+            }
+        }
+    }
+
+    /// Executa health check
+    async fn perform_health_check(&self) -> Result<(), MdnsError> {
+        // Verificar se o daemon ainda existe
+        let daemon = self.daemon.read().await;
+        if daemon.is_none() {
+            return Err(MdnsError::HealthCheck("Daemon não está rodando".into()));
+        }
+
+        // Verificar se conseguimos obter o IP local
+        if get_local_ip().is_none() {
+            return Err(MdnsError::HealthCheck(
+                "Não foi possível detectar IP local".into(),
+            ));
+        }
+
+        // Atualizar timestamp do último health check
+        {
+            let mut stats = self.stats.write().await;
+            stats.last_health_check = Some(chrono::Utc::now().to_rfc3339());
+        }
+
+        Ok(())
+    }
+
+    /// Tenta recuperar o serviço após falha
+    async fn attempt_recovery(&self) {
+        let failures = self.consecutive_failures.fetch_add(1, Ordering::SeqCst) + 1;
+
+        if failures > MAX_CONSECUTIVE_FAILURES {
+            tracing::error!(
+                "❌ mDNS atingiu máximo de falhas consecutivas ({}). Desistindo.",
+                MAX_CONSECUTIVE_FAILURES
+            );
+            self.emit_event(MdnsEvent::Failed(format!(
+                "Máximo de {} tentativas atingido",
+                MAX_CONSECUTIVE_FAILURES
+            )));
+            return;
+        }
+
+        // Calcular delay exponencial
+        let delay_ms = std::cmp::min(
+            INITIAL_RETRY_DELAY_MS * 2u64.pow(failures - 1),
+            MAX_RETRY_DELAY_MS,
+        );
+
+        tracing::info!(
+            "🔄 Tentando recuperar mDNS (tentativa {}/{}, delay {}ms)",
+            failures,
+            MAX_CONSECUTIVE_FAILURES,
+            delay_ms
+        );
+
+        self.emit_event(MdnsEvent::Reconnecting {
+            attempt: failures,
+            delay_ms,
+        });
+
+        // Aguardar delay
+        tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+
+        // Tentar restart
+        match self.restart().await {
+            Ok(()) => {
+                tracing::info!("✅ mDNS recuperado com sucesso");
+                self.consecutive_failures.store(0, Ordering::SeqCst);
+                self.restart_count.fetch_add(1, Ordering::SeqCst);
+                self.emit_event(MdnsEvent::Reconnected);
+            }
+            Err(e) => {
+                tracing::warn!("⚠️ Falha ao recuperar mDNS: {}", e);
+                // O próximo ciclo de health check tentará novamente
+                let mut stats = self.stats.write().await;
+                stats.last_error = Some(e.to_string());
+                stats.total_failures += 1;
+            }
+        }
+    }
+
+    /// Força um health check manual
+    pub async fn check_health(&self) -> Result<(), MdnsError> {
+        self.perform_health_check().await
+    }
+
+    /// Reseta contadores de falha
+    pub fn reset_failure_counters(&self) {
+        self.consecutive_failures.store(0, Ordering::SeqCst);
     }
 }
 
@@ -230,6 +502,9 @@ pub enum MdnsError {
 
     #[error("Failed to shutdown: {0}")]
     Shutdown(String),
+
+    #[error("Health check failed: {0}")]
+    HealthCheck(String),
 }
 
 /// Obtém o IP local da máquina

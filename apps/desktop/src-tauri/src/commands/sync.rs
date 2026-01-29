@@ -1,15 +1,45 @@
 //! Sync Commands
 //!
 //! Tauri commands for multi-PC data synchronization
+//!
+//! ## Funcionalidades:
+//! - Sync com Cloud (License Server)
+//! - Sync com LAN (Master/Satellite)
+//! - Sync Orchestrator (combina ambos)
 
 use crate::license::{SyncClient, SyncEntityType, SyncItemStatus, SyncOperation, SyncPullItem};
 use crate::repositories::{
     CategoryRepository, CustomerRepository, ProductRepository, SettingsRepository,
     SupplierRepository, SyncCursorRepository, SyncPendingRepository,
 };
+use crate::services::sync_orchestrator::{
+    SyncOperationResult, SyncOrchestrator, SyncOrchestratorConfig, SyncOrchestratorStats,
+    SyncStatus,
+};
 use crate::AppState;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tauri::State;
+use tokio::sync::RwLock;
+
+// ════════════════════════════════════════════════════════════════════════════
+// ESTADO DO SYNC ORCHESTRATOR
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Estado do Sync Orchestrator (managed by Tauri)
+pub struct SyncOrchestratorState {
+    pub orchestrator: Option<Arc<SyncOrchestrator>>,
+}
+
+impl Default for SyncOrchestratorState {
+    fn default() -> Self {
+        Self { orchestrator: None }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TIPOS ORIGINAIS
+// ════════════════════════════════════════════════════════════════════════════
 
 /// Sync push payload from frontend
 #[derive(Debug, Clone, Deserialize, specta::Type)]
@@ -522,4 +552,211 @@ async fn get_license_key(state: &AppState) -> Result<String, String> {
         .and_then(|k| k.as_str())
         .map(|s| s.to_string())
         .ok_or("Chave de licença não encontrada".to_string())
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SYNC ORCHESTRATOR COMMANDS
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Configuração do Sync Orchestrator para frontend
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncOrchestratorConfigDto {
+    /// Intervalo de auto-sync (segundos)
+    pub auto_sync_interval_secs: u64,
+    /// Habilitar sync cloud
+    pub cloud_enabled: bool,
+    /// Habilitar sync LAN
+    pub lan_enabled: bool,
+    /// Cloud tem prioridade
+    pub cloud_priority: bool,
+}
+
+impl Default for SyncOrchestratorConfigDto {
+    fn default() -> Self {
+        Self {
+            auto_sync_interval_secs: 300,
+            cloud_enabled: true,
+            lan_enabled: true,
+            cloud_priority: true,
+        }
+    }
+}
+
+/// Inicializa o Sync Orchestrator
+#[tauri::command]
+#[specta::specta]
+pub async fn init_sync_orchestrator(
+    config: Option<SyncOrchestratorConfigDto>,
+    app_state: State<'_, AppState>,
+    sync_state: State<'_, RwLock<SyncOrchestratorState>>,
+) -> Result<(), String> {
+    app_state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
+
+    let cfg = config.unwrap_or_default();
+
+    let orchestrator_config = SyncOrchestratorConfig {
+        auto_sync_interval_secs: cfg.auto_sync_interval_secs,
+        cloud_enabled: cfg.cloud_enabled,
+        lan_enabled: cfg.lan_enabled,
+        cloud_priority: cfg.cloud_priority,
+        ..Default::default()
+    };
+
+    let orchestrator = SyncOrchestrator::new(app_state.pool().clone(), orchestrator_config);
+
+    // Configurar cliente cloud
+    if let Ok(license_key) = get_license_key(&app_state).await {
+        let hardware_id = app_state.hardware_id.clone();
+        let sync_client = Arc::new(SyncClient::new(app_state.license_client.config().clone()));
+        orchestrator
+            .set_cloud_client(sync_client, license_key, hardware_id)
+            .await;
+    }
+
+    let mut state = sync_state.write().await;
+    state.orchestrator = Some(orchestrator);
+
+    tracing::info!("✅ Sync Orchestrator inicializado");
+    Ok(())
+}
+
+/// Obtém status do Sync Orchestrator
+#[tauri::command]
+#[specta::specta]
+pub async fn get_sync_orchestrator_status(
+    sync_state: State<'_, RwLock<SyncOrchestratorState>>,
+) -> Result<SyncStatus, String> {
+    let state = sync_state.read().await;
+
+    if let Some(ref orchestrator) = state.orchestrator {
+        Ok(orchestrator.get_status().await)
+    } else {
+        Ok(SyncStatus::Idle)
+    }
+}
+
+/// Obtém estatísticas do Sync Orchestrator
+#[tauri::command]
+#[specta::specta]
+pub async fn get_sync_orchestrator_stats(
+    sync_state: State<'_, RwLock<SyncOrchestratorState>>,
+) -> Result<SyncOrchestratorStats, String> {
+    let state = sync_state.read().await;
+
+    if let Some(ref orchestrator) = state.orchestrator {
+        Ok(orchestrator.get_stats().await)
+    } else {
+        Ok(SyncOrchestratorStats::default())
+    }
+}
+
+/// Executa sync completo via orchestrator (Cloud + LAN)
+#[tauri::command]
+#[specta::specta]
+pub async fn sync_orchestrator_full(
+    app_state: State<'_, AppState>,
+    sync_state: State<'_, RwLock<SyncOrchestratorState>>,
+) -> Result<Vec<SyncOperationResult>, String> {
+    app_state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
+
+    let state = sync_state.read().await;
+
+    if let Some(ref orchestrator) = state.orchestrator {
+        orchestrator.sync_all().await
+    } else {
+        Err("Sync Orchestrator não inicializado".to_string())
+    }
+}
+
+/// Sync apenas com cloud via orchestrator
+#[tauri::command]
+#[specta::specta]
+pub async fn sync_orchestrator_cloud(
+    app_state: State<'_, AppState>,
+    sync_state: State<'_, RwLock<SyncOrchestratorState>>,
+) -> Result<SyncOperationResult, String> {
+    app_state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
+
+    let state = sync_state.read().await;
+
+    if let Some(ref orchestrator) = state.orchestrator {
+        orchestrator.sync_cloud().await
+    } else {
+        Err("Sync Orchestrator não inicializado".to_string())
+    }
+}
+
+/// Sync apenas com LAN via orchestrator
+#[tauri::command]
+#[specta::specta]
+pub async fn sync_orchestrator_lan(
+    app_state: State<'_, AppState>,
+    sync_state: State<'_, RwLock<SyncOrchestratorState>>,
+) -> Result<SyncOperationResult, String> {
+    app_state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
+
+    let state = sync_state.read().await;
+
+    if let Some(ref orchestrator) = state.orchestrator {
+        orchestrator.sync_lan().await
+    } else {
+        Err("Sync Orchestrator não inicializado".to_string())
+    }
+}
+
+/// Inicia auto-sync em background
+#[tauri::command]
+#[specta::specta]
+pub async fn start_auto_sync(
+    app_state: State<'_, AppState>,
+    sync_state: State<'_, RwLock<SyncOrchestratorState>>,
+) -> Result<(), String> {
+    app_state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
+
+    let state = sync_state.read().await;
+
+    if let Some(ref orchestrator) = state.orchestrator {
+        orchestrator.start_auto_sync().await;
+        Ok(())
+    } else {
+        Err("Sync Orchestrator não inicializado".to_string())
+    }
+}
+
+/// Para auto-sync
+#[tauri::command]
+#[specta::specta]
+pub async fn stop_auto_sync(
+    app_state: State<'_, AppState>,
+    sync_state: State<'_, RwLock<SyncOrchestratorState>>,
+) -> Result<(), String> {
+    app_state
+        .session
+        .require_authenticated()
+        .map_err(|e| e.to_string())?;
+
+    let state = sync_state.read().await;
+
+    if let Some(ref orchestrator) = state.orchestrator {
+        orchestrator.stop_auto_sync().await;
+        Ok(())
+    } else {
+        Err("Sync Orchestrator não inicializado".to_string())
+    }
 }

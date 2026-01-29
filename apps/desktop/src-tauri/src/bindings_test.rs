@@ -192,6 +192,8 @@ mod tests {
             commands::list_serial_ports,
             commands::list_hardware_ports,
             commands::list_windows_printers,
+            commands::detect_printers_full,
+            commands::refresh_printers,
             commands::get_default_printer,
             commands::suggest_best_printer,
             commands::is_printer_ready,

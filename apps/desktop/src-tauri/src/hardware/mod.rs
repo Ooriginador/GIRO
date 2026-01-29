@@ -11,6 +11,7 @@
 //! O módulo é organizado em:
 //! - `manager.rs` - Gerenciador centralizado com autoconfig e health checks
 //! - `printer.rs` - Interface ESC/POS para impressoras térmicas
+//! - `printer_detector.rs` - Detector robusto de impressoras (Windows)
 //! - `scale.rs` - Protocolos Toledo, Filizola, Elgin, Urano
 //! - `scanner.rs` - WebSocket para scanner mobile
 //! - `drawer.rs` - Controle de gaveta via impressora
@@ -27,6 +28,10 @@ pub mod scanner;
 #[cfg(target_os = "windows")]
 pub mod windows_printer;
 
+// Novo detector robusto de impressoras
+#[cfg(target_os = "windows")]
+pub mod printer_detector;
+
 pub use device::*;
 pub use drawer::*;
 pub use manager::*;
@@ -36,6 +41,12 @@ pub use scanner::*;
 
 #[cfg(target_os = "windows")]
 pub use windows_printer::*;
+
+#[cfg(target_os = "windows")]
+pub use printer_detector::{
+    DetectionResult, DetectionSource, PrinterConnectionType, PrinterDetector,
+    PrinterInfo as DetectorPrinterInfo,
+};
 
 use thiserror::Error;
 
