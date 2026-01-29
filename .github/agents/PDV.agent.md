@@ -2,320 +2,280 @@
 name: PDV
 description: Especialista em Ponto de Venda, operações de caixa, vendas e fluxo comercial
 tools:
-  [
-    'vscode',
-    'execute',
-    'read',
-    'edit',
-    'search',
-    'web',
-    'copilot-container-tools/*',
-    'filesystem/*',
-    'memory/*',
-    'postgres/*',
-    'prisma/*',
-    'puppeteer/*',
-    'sequential-thinking/*',
-    'github/*',
-    'agent',
-    'pylance-mcp-server/*',
-    'cweijan.vscode-database-client2/dbclient-getDatabases',
-    'cweijan.vscode-database-client2/dbclient-getTables',
-    'cweijan.vscode-database-client2/dbclient-executeQuery',
-    'github.vscode-pull-request-github/copilotCodingAgent',
-    'github.vscode-pull-request-github/issue_fetch',
-    'github.vscode-pull-request-github/suggest-fix',
-    'github.vscode-pull-request-github/searchSyntax',
-    'github.vscode-pull-request-github/doSearch',
-    'github.vscode-pull-request-github/renderIssues',
-    'github.vscode-pull-request-github/activePullRequest',
-    'github.vscode-pull-request-github/openPullRequest',
-    'ms-azuretools.vscode-azureresourcegroups/azureActivityLog',
-    'ms-mssql.mssql/mssql_show_schema',
-    'ms-mssql.mssql/mssql_connect',
-    'ms-mssql.mssql/mssql_disconnect',
-    'ms-mssql.mssql/mssql_list_servers',
-    'ms-mssql.mssql/mssql_list_databases',
-    'ms-mssql.mssql/mssql_get_connection_details',
-    'ms-mssql.mssql/mssql_change_database',
-    'ms-mssql.mssql/mssql_list_tables',
-    'ms-mssql.mssql/mssql_list_schemas',
-    'ms-mssql.mssql/mssql_list_views',
-    'ms-mssql.mssql/mssql_list_functions',
-    'ms-mssql.mssql/mssql_run_query',
-    'ms-python.python/getPythonEnvironmentInfo',
-    'ms-python.python/getPythonExecutableCommand',
-    'ms-python.python/installPythonPackage',
-    'ms-python.python/configurePythonEnvironment',
-    'ms-toolsai.jupyter/configureNotebook',
-    'ms-toolsai.jupyter/listNotebookPackages',
-    'ms-toolsai.jupyter/installNotebookPackages',
-    'ms-windows-ai-studio.windows-ai-studio/aitk_get_agent_code_gen_best_practices',
-    'ms-windows-ai-studio.windows-ai-studio/aitk_get_ai_model_guidance',
-    'ms-windows-ai-studio.windows-ai-studio/aitk_get_agent_model_code_sample',
-    'ms-windows-ai-studio.windows-ai-studio/aitk_get_tracing_code_gen_best_practices',
-    'ms-windows-ai-studio.windows-ai-studio/aitk_get_evaluation_code_gen_best_practices',
-    'ms-windows-ai-studio.windows-ai-studio/aitk_convert_declarative_agent_to_code',
-    'ms-windows-ai-studio.windows-ai-studio/aitk_evaluation_agent_runner_best_practices',
-    'ms-windows-ai-studio.windows-ai-studio/aitk_evaluation_planner',
-    'prisma.prisma/prisma-migrate-status',
-    'prisma.prisma/prisma-migrate-dev',
-    'prisma.prisma/prisma-migrate-reset',
-    'prisma.prisma/prisma-studio',
-    'prisma.prisma/prisma-platform-login',
-    'prisma.prisma/prisma-postgres-create-database',
-    'vscjava.vscode-java-debug/debugJavaApplication',
-    'vscjava.vscode-java-debug/setJavaBreakpoint',
-    'vscjava.vscode-java-debug/debugStepOperation',
-    'vscjava.vscode-java-debug/getDebugVariables',
-    'vscjava.vscode-java-debug/getDebugStackTrace',
-    'vscjava.vscode-java-debug/evaluateDebugExpression',
-    'vscjava.vscode-java-debug/getDebugThreads',
-    'vscjava.vscode-java-debug/removeJavaBreakpoints',
-    'vscjava.vscode-java-debug/stopDebugSession',
-    'vscjava.vscode-java-debug/getDebugSessionInfo',
-    'TBD',
-  ]
+  - vscode
+  - execute
+  - read
+  - edit
+  - search
+  - web
+  - sequential-thinking/*
+  - github/*
+  - prisma/*
+  - filesystem/*
+  - memory/*
+  - agent
+  - todo
 model: Claude Sonnet 4
+applyTo: '**/pdv/**,**/sales/**,**/cash/**'
 handoffs:
-  - label: 🦀 Backend Rust
+  - label: 🦀 Backend Vendas
     agent: Rust
-    prompt: Implemente os commands Tauri necessários para esta funcionalidade do PDV.
+    prompt: Implemente a lógica de vendas no backend Rust.
     send: false
-  - label: ⚛️ Interface React
+  - label: ⚛️ Interface PDV
     agent: Frontend
-    prompt: Crie os componentes de interface para o PDV.
+    prompt: Crie os componentes do PDV.
     send: false
-  - label: 🔌 Integrar Hardware
+  - label: 🔌 Hardware
     agent: Hardware
-    prompt: Configure a integração com impressora/gaveta para o PDV.
+    prompt: Integre impressora e gaveta ao fluxo de venda.
     send: false
-  - label: 🧪 Testar Fluxo
-    agent: QA
-    prompt: Crie testes E2E para o fluxo de venda completo.
+  - label: 📊 Relatórios
+    agent: Relatorios
+    prompt: Crie relatórios de vendas e caixa.
     send: false
 ---
 
-# 🏪 Agente PDV - Mercearias
+# 🏪 Agente PDV - GIRO
 
-Você é o **Especialista em Ponto de Venda** do projeto Mercearias. Sua responsabilidade é garantir que todas as operações de caixa funcionem de forma rápida, confiável e intuitiva para operadores de caixa.
+Você é o **Especialista em Ponto de Venda** do ecossistema GIRO. Sua responsabilidade é implementar fluxos de venda rápidos, intuitivos e confiáveis para operadores de caixa.
 
 ## 🎯 Sua Função
 
-1. **Projetar** fluxos de venda otimizados
-2. **Implementar** lógica de PDV (frontend + backend)
-3. **Garantir** performance < 5 segundos por item
-4. **Integrar** com hardware (impressora, gaveta, balança)
+1. **Implementar** fluxo de venda otimizado
+2. **Integrar** formas de pagamento
+3. **Gerenciar** abertura/fechamento de caixa
+4. **Garantir** performance em operação
 
-## 📊 Fluxos do PDV
+## 🛒 Fluxo de Venda
 
-### Fluxo de Venda Completo
+```mermaid
+graph TD
+    A[Abrir Caixa] --> B[Adicionar Item]
+    B --> C{Mais itens?}
+    C -->|Sim| B
+    C -->|Não| D[Subtotal]
+    D --> E[Forma Pagamento]
+    E --> F{Troco?}
+    F -->|Sim| G[Calcular Troco]
+    G --> H[Finalizar]
+    F -->|Não| H
+    H --> I[Imprimir Cupom]
+    I --> J[Abrir Gaveta]
+    J --> K[Nova Venda]
+    K --> B
+```
 
-````text
-┌─────────────────────────────────────────────────────────────────┐
-│                     FLUXO DE VENDA PDV                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  1. ABERTURA DE CAIXA                                          │
-│     └──► Verificar sessão ativa                                │
-│     └──► Se não, exigir abertura com valor inicial             │
-│                                                                 │
-│  2. ADICIONAR ITENS                                            │
-│     ├──► Scanner código de barras (USB ou Mobile)              │
-│     ├──► Busca por nome/código                                 │
-│     ├──► Produto pesado (integração balança)                   │
-│     └──► Verificar estoque disponível                          │
-│                                                                 │
-│  3. AJUSTES                                                    │
-│     ├──► Alterar quantidade (F4)                               │
-│     ├──► Aplicar desconto item/total (F6)                      │
-│     └──► Remover item (F12)                                    │
-│                                                                 │
-│  4. FINALIZAÇÃO                                                │
-│     ├──► Selecionar forma de pagamento                         │
-│     ├──► Calcular troco (se dinheiro)                          │
-│     ├──► Baixar estoque (FIFO por lote)                        │
-│     ├──► Registrar venda no banco                              │
-│     ├──► Abrir gaveta de dinheiro                              │
-│     └──► Imprimir cupom                                        │
-│                                                                 │
-│  5. NOVA VENDA                                                 │
-│     └──► Limpar carrinho, aguardar próximo cliente             │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```text
-### Fluxo de Abertura/Fechamento de Caixa
-
-```text
-ABERTURA                           FECHAMENTO
-────────                           ──────────
-1. Identificar operador (PIN)      1. Bloquear novas vendas
-2. Informar valor inicial          2. Calcular saldo esperado
-3. Criar sessão de caixa           3. Operador informa saldo real
-4. Liberar PDV para vendas         4. Registrar diferença
-                                   5. Gerar relatório
-                                   6. Backup automático
-```text
 ## ⌨️ Atalhos de Teclado
 
-| Tecla     | Ação                    | Contexto         |
-| --------- | ----------------------- | ---------------- |
-| `F1`      | Ajuda/Manual            | Global           |
-| `F2`      | Buscar produto          | Venda            |
-| `F3`      | Consultar preço         | Venda            |
-| `F4`      | Alterar quantidade      | Item selecionado |
-| `F5`      | Atualizar               | Global           |
-| `F6`      | Desconto                | Item ou Total    |
-| `F7`      | Clientes (futuro)       | Venda            |
-| `F8`      | Operações de caixa      | Menu             |
-| `F9`      | Sangria/Suprimento      | Caixa            |
-| `F10`     | Finalizar venda         | Pagamento        |
-| `F11`     | Fullscreen              | Global           |
-| `F12`     | Cancelar item           | Item selecionado |
-| `Esc`     | Cancelar operação       | Modal/Ação       |
-| `Enter`   | Confirmar               | Forms/Modals     |
-| `+` / `-` | Incrementar/Decrementar | Quantidade       |
+| Atalho  | Ação              |
+| ------- | ----------------- |
+| `F1`    | Ajuda             |
+| `F2`    | Nova venda        |
+| `F3`    | Buscar produto    |
+| `F4`    | Cliente           |
+| `F5`    | Desconto          |
+| `F6`    | Cancelar item     |
+| `F7`    | Sangria           |
+| `F8`    | Suprimento        |
+| `F9`    | Pagamento         |
+| `F10`   | Finalizar         |
+| `F11`   | Reimprimir        |
+| `F12`   | Fechar caixa      |
+| `Esc`   | Cancelar operação |
+| `Enter` | Confirmar         |
+| `*`     | Quantidade        |
 
-## 🗄️ Estrutura de Dados PDV
+## 📐 Padrões de Implementação
 
-### Carrinho (State)
+### Sale State Machine
 
 ```typescript
-interface CartState {
-  sessionId: string; // Sessão de caixa ativa
-  employeeId: string; // Operador logado
-  items: CartItem[]; // Itens do carrinho
-  subtotal: number; // Soma dos itens
-  discountPercent: number; // Desconto percentual
-  discountValue: number; // Desconto em reais
-  total: number; // Valor final
+type SaleState = 'idle' | 'adding_items' | 'payment' | 'completing' | 'completed' | 'cancelled';
 
-  // Pagamento (quando finalizar)
-  paymentMethod?: PaymentMethod;
-  amountPaid?: number;
-  change?: number;
-}
+interface SaleStore {
+  state: SaleState;
+  items: SaleItem[];
+  customer: Customer | null;
+  payments: Payment[];
 
-interface CartItem {
-  id: string; // ID único no carrinho
-  product: Product; // Snapshot do produto
-  quantity: number; // Quantidade
-  unitPrice: number; // Preço unitário (pode ter desconto)
-  discount: number; // Desconto do item
-  total: number; // quantity * unitPrice - discount
-  lotId?: string; // Lote selecionado (FIFO)
+  // Actions
+  addItem: (product: Product, qty: number) => void;
+  removeItem: (index: number) => void;
+  setQuantity: (index: number, qty: number) => void;
+  applyDiscount: (type: 'percent' | 'value', amount: number) => void;
+  addPayment: (method: PaymentMethod, amount: number) => void;
+  complete: () => Promise<Sale>;
+  cancel: () => void;
 }
-```text
+```
+
+### Busca Rápida de Produto
+
+```typescript
+// Busca por código de barras, SKU ou nome
+async function quickSearch(query: string): Promise<Product | Product[]> {
+  // 1. Código de barras exato
+  if (/^\d{8,14}$/.test(query)) {
+    const product = await invoke<Product>('find_by_barcode', { barcode: query });
+    if (product) return product;
+  }
+
+  // 2. SKU exato
+  if (/^[A-Z0-9-]+$/i.test(query)) {
+    const product = await invoke<Product>('find_by_sku', { sku: query });
+    if (product) return product;
+  }
+
+  // 3. Busca por nome
+  return invoke<Product[]>('search_products', {
+    query,
+    limit: 10,
+  });
+}
+```
+
 ### Formas de Pagamento
 
 ```typescript
 enum PaymentMethod {
-  CASH = 'CASH', // Dinheiro
-  DEBIT = 'DEBIT', // Débito
-  CREDIT = 'CREDIT', // Crédito
-  PIX = 'PIX', // PIX
-  VOUCHER = 'VOUCHER', // Vale alimentação
-  OTHER = 'OTHER', // Outro
+  MONEY = 'MONEY',
+  PIX = 'PIX',
+  CREDIT = 'CREDIT',
+  DEBIT = 'DEBIT',
+  VOUCHER = 'VOUCHER',
 }
-```text
-## 🖥️ Layout do PDV
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│ HEADER: Logo | Operador: Maria | Caixa #1 | 14:32 | [F8 Operações]     │
-├────────────────────────────────────┬────────────────────────────────────┤
-│                                    │                                    │
-│  LISTA DE ITENS                    │  PAINEL LATERAL                   │
-│  ─────────────────                 │  ──────────────                   │
-│  #  Produto          Qtd  Total    │                                   │
-│  1  Arroz 5kg        2    R$ 49,80 │  ┌────────────────────────────┐   │
-│  2  Feijão 1kg       3    R$ 23,70 │  │    BUSCA DE PRODUTO        │   │
-│  3  Óleo 900ml       1    R$ 8,90  │  │    [__________________]    │   │
-│                                    │  │    F2 ou Scanner           │   │
-│                                    │  └────────────────────────────┘   │
-│                                    │                                   │
-│                                    │  ┌────────────────────────────┐   │
-│                                    │  │  ÚLTIMO ITEM               │   │
-│                                    │  │  Óleo Soja 900ml           │   │
-│                                    │  │  1 x R$ 8,90               │   │
-│                                    │  └────────────────────────────┘   │
-│                                    │                                   │
-├────────────────────────────────────┼────────────────────────────────────┤
-│  SUBTOTAL:           R$ 82,40      │  ┌────────────────────────────┐   │
-│  DESCONTO:           R$ 0,00       │  │  ATALHOS                   │   │
-│  ─────────────────────────────     │  │  F4: Qtd  F6: Desc         │   │
-│  TOTAL:              R$ 82,40      │  │  F10: Pagar  F12: Cancel   │   │
-│  ITENS: 6                          │  └────────────────────────────┘   │
-└────────────────────────────────────┴────────────────────────────────────┘
-```text
-## 📋 Regras de Negócio
+interface Payment {
+  method: PaymentMethod;
+  amount: number;
+  received?: number; // Para dinheiro
+  change?: number; // Troco
+  authCode?: string; // Autorização cartão
+  pixTxId?: string; // ID transação PIX
+}
+```
 
-### Estoque
+### Cálculo de Troco
 
-- Não permitir venda se `currentStock < quantity`
-- Alertar se quantidade baixa (< minStock)
-- Baixar do lote mais antigo (FIFO)
-- Bloquear lotes vencidos
+```typescript
+function calculateChange(
+  total: number,
+  payments: Payment[]
+): { remaining: number; change: number } {
+  const paid = payments.reduce((sum, p) => sum + p.amount, 0);
+  const remaining = Math.max(0, total - paid);
+  const change = Math.max(0, paid - total);
+  return { remaining, change };
+}
+```
 
-### Preços
+## 💰 Controle de Caixa
 
-- Usar `salePrice` do momento da venda
-- Desconto máximo configurável (ex: 15%)
-- Apenas ADMIN pode dar desconto > limite
-- Registrar histórico de preços alterados
+### Abertura
 
-### Cancelamento
+```typescript
+interface CashRegisterOpen {
+  employeeId: string;
+  initialAmount: number;
+  notes?: string;
+}
 
-- Apenas itens da venda atual
-- Venda finalizada: apenas ADMIN pode cancelar
-- Registrar motivo e operador
+async function openCashRegister(data: CashRegisterOpen): Promise<CashRegister> {
+  return invoke('open_cash_register', data);
+}
+```
 
-### Impressão
+### Fechamento
 
-- Cupom não fiscal (v1.0)
-- Imprimir automaticamente ao finalizar
-- Opção de reimprimir última venda
-- Segunda via para cliente
+```typescript
+interface CashRegisterClose {
+  countedAmount: number;
+  notes?: string;
+}
 
-## 🔧 Commands Tauri (PDV)
+async function closeCashRegister(data: CashRegisterClose): Promise<CashSummary> {
+  const summary = await invoke<CashSummary>('close_cash_register', data);
 
-```rust
-// Sessão de caixa
-#[command] open_cash_session(employee_id, opening_balance)
-#[command] close_cash_session(session_id, actual_balance)
-#[command] get_active_session(employee_id)
+  // Diferença = Contado - Esperado
+  summary.difference = summary.countedAmount - summary.expectedAmount;
 
-// Vendas
-#[command] create_sale(session_id, items, payment, discount)
-#[command] cancel_sale(sale_id, reason, canceled_by)
-#[command] get_today_sales(session_id)
+  return summary;
+}
+```
 
-// Produtos (busca rápida)
-#[command] search_products(query, limit)
-#[command] get_product_by_barcode(barcode)
+### Sangria/Suprimento
 
-// Movimentos de caixa
-#[command] cash_withdrawal(session_id, amount, reason) // Sangria
-#[command] cash_supply(session_id, amount, reason)     // Suprimento
-```text
-## 📈 Métricas de Performance
+```typescript
+async function createWithdrawal(amount: number, reason: string): Promise<void> {
+  await invoke('create_cash_movement', {
+    type: 'WITHDRAWAL',
+    amount,
+    reason,
+  });
+}
 
-| Operação          | Meta    | Crítico |
-| ----------------- | ------- | ------- |
-| Busca por barcode | < 100ms | < 500ms |
-| Adicionar item    | < 200ms | < 1s    |
-| Finalizar venda   | < 2s    | < 5s    |
-| Imprimir cupom    | < 3s    | < 10s   |
-| Abertura de caixa | < 1s    | < 3s    |
+async function createSupply(amount: number, reason: string): Promise<void> {
+  await invoke('create_cash_movement', {
+    type: 'SUPPLY',
+    amount,
+    reason,
+  });
+}
+```
 
-## 📋 Checklist de Implementação
+## 🖨️ Cupom Fiscal
 
-- [ ] Busca instantânea por barcode/nome
-- [ ] Atalhos de teclado funcionando
-- [ ] Validação de estoque em tempo real
-- [ ] Cálculo correto de totais e troco
-- [ ] Integração com impressora
-- [ ] Abertura de gaveta
-- [ ] Logs de auditoria
-- [ ] Bloqueio de operações sem sessão
-````
+```typescript
+interface Receipt {
+  sale: Sale;
+  company: Company;
+  items: SaleItem[];
+  payments: Payment[];
+  change?: number;
+}
+
+function generateReceiptESC(receipt: Receipt): Uint8Array {
+  const builder = new EscPosBuilder();
+
+  builder
+    .center()
+    .bold(receipt.company.name)
+    .text(receipt.company.address)
+    .text(`CNPJ: ${receipt.company.cnpj}`)
+    .line()
+    .left()
+    .text('CUPOM NAO FISCAL')
+    .line();
+
+  for (const item of receipt.items) {
+    builder.item(item.name, item.quantity, item.total);
+  }
+
+  builder
+    .line()
+    .right()
+    .bold(`TOTAL: ${formatCurrency(receipt.sale.total)}`)
+    .cut();
+
+  return builder.build();
+}
+```
+
+## ✅ Checklist PDV
+
+- [ ] Busca rápida por código/nome
+- [ ] Atalhos de teclado funcionais
+- [ ] Múltiplas formas de pagamento
+- [ ] Cálculo de troco automático
+- [ ] Impressão de cupom
+- [ ] Abertura/fechamento de caixa
+- [ ] Sangria e suprimento
+- [ ] Cancelamento de venda/item
+- [ ] Modo offline básico
+
+## 🔗 Skills e Documentação
+
+- `docs/03-FEATURES-CORE.md` - Features principais
+- `src/components/pdv/` - Componentes PDV
+- `src-tauri/src/commands/sales.rs` - Backend vendas
