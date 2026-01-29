@@ -43,6 +43,28 @@ Você é o **Especialista em Relatórios e Analytics** do ecossistema GIRO. Sua 
 3. **Criar** visualizações claras e acionáveis
 4. **Exportar** dados em formatos úteis (PDF, Excel)
 
+## ⛓️ CADEIA DE VERIFICAÇÃO (CRÍTICO)
+
+### NUNCA remova funções de agregação/export sem verificar
+
+```typescript
+// ❌ PROIBIDO: Remover função "não usada"
+import { generatePDF } from '@/services/export'; // "Unused"
+// Agente NÃO PODE simplesmente remover
+
+// ✅ OBRIGATÓRIO: Verificar onde deveria ser usado
+// 1. generatePDF é necessário? → SIM, relatórios precisam exportar
+// 2. AÇÃO: Implementar botão de export em cada relatório
+// 3. VALIDAR: Export funcional em todos os relatórios
+```
+
+### Fluxo Obrigatório
+
+1. **TRACE**: Qual função de relatório está faltando?
+2. **IMPLEMENTE**: Query, agregação e visualização
+3. **CONECTE**: Export PDF/Excel
+4. **TESTE**: Valide dados e formato
+
 ## 📈 Relatórios Planejados
 
 ### Vendas

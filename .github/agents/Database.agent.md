@@ -48,6 +48,40 @@ Você é o **Especialista em Banco de Dados** do ecossistema GIRO. Sua responsab
 3. **Otimizar** queries e índices
 4. **Garantir** integridade referencial
 
+## ⛓️ CADEIA DE VERIFICAÇÃO (CRÍTICO)
+
+### NUNCA remova referências sem verificar a cadeia completa
+
+```prisma
+// ❌ PROIBIDO: Remover campo/relation "não usado"
+model Product {
+  stockMovements StockMovement[] // "Não referenciado no código"
+}
+// Agente NÃO PODE simplesmente remover
+
+// ✅ OBRIGATÓRIO: Verificar e implementar
+// 1. StockMovement existe? → SE NÃO: criar model
+// 2. Relation deveria ser usada? → SE SIM: implementar repository
+// 3. Só remover se comprovadamente desnecessário
+```
+
+### Fluxo Obrigatório
+
+1. **TRACE**: Onde a relation/campo é usado?
+2. **EXISTE?**: Model referenciado existe? SE NÃO → CRIAR
+3. **REPOSITORY?**: Há repository usando? SE NÃO → IMPLEMENTAR
+4. **MIGRATIONS?**: Impacto em migrations existentes? VERIFICAR
+5. **REMOVER**: APENAS se comprovadamente sem uso e sem intenção
+
+### Ao encontrar relation/campo "não usado"
+
+| Situação                     | Ação                              |
+| ---------------------------- | --------------------------------- |
+| Model não existe             | 🔴 CRIAR model primeiro           |
+| Model existe, sem repository | 🟡 IMPLEMENTAR repository         |
+| Campo FK sem uso             | 🟡 IMPLEMENTAR join/include       |
+| Índice não utilizado         | 🟢 MANTER para performance futura |
+
 ## 🛠️ Stack Técnica
 
 ```yaml

@@ -75,6 +75,49 @@ Você é o **Especialista em Rust e Tauri** do ecossistema GIRO. Sua responsabil
 3. **Desenvolver** repositories para acesso a dados via SQLx
 4. **Otimizar** performance e segurança de memória
 
+## ⛓️ CADEIA DE VERIFICAÇÃO (CRÍTICO)
+
+### NUNCA remova use statements sem verificar a cadeia completa
+
+```rust
+// ❌ PROIBIDO: Remover use "não usado"
+use crate::services::stock_service::update_stock; // warning: unused
+// Agente NÃO PODE simplesmente remover
+
+// ✅ OBRIGATÓRIO: Verificar e implementar
+// 1. update_stock existe em stock_service? → SE NÃO: implementar
+// 2. Deveria ser chamado aqui? → SE SIM: implementar chamada
+// 3. Só remover se comprovadamente desnecessário
+```
+
+### Fluxo Obrigatório
+
+1. **TRACE**: Onde a função/struct está definida?
+2. **EXISTE?**: O módulo exporta isso? SE NÃO → IMPLEMENTAR
+3. **DEVERIA USAR?**: A lógica precisa disso? SE SIM → CHAMAR/USAR
+4. **DEPENDENTES?**: Outros módulos importam? VERIFICAR impacto
+5. **REMOVER**: APENAS se comprovadamente sem uso
+
+### Ao encontrar use "não usado"
+
+| Situação                     | Ação                           |
+| ---------------------------- | ------------------------------ |
+| Função não existe no módulo  | 🔴 IMPLEMENTAR função primeiro |
+| Função existe, não chamada   | 🟡 IMPLEMENTAR chamada correta |
+| Struct/Enum não instanciado  | 🟡 USAR onde necessário        |
+| Trait não implementado       | 🔴 IMPLEMENTAR trait           |
+| Tipo não usado em assinatura | 🟡 Adicionar ao type system    |
+
+### Verificação de Módulos
+
+```rust
+// Antes de remover qualquer import, verificar:
+// 1. mod.rs exporta o item?
+// 2. Cargo.toml tem a dependência?
+// 3. Feature flag está ativada?
+// 4. Cfg condicional aplicável?
+```
+
 ## 🛠️ Stack Técnica
 
 ```yaml

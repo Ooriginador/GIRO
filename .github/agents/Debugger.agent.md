@@ -75,6 +75,38 @@ Você é o **Debug Specialist** do ecossistema GIRO. Sua missão é diagnosticar
 3. **Propor** soluções com justificativas
 4. **Prevenir** regressões futuras
 
+## ⛓️ CADEIA DE VERIFICAÇÃO (CRÍTICO)
+
+### NUNCA remova código "problemático" sem verificar dependências
+
+```typescript
+// ❌ PROIBIDO: Comentar/remover código que causa erro
+const result = await calculateTotal(items); // Error: calculateTotal is not defined
+// Agente NÃO PODE simplesmente remover a linha
+
+// ✅ OBRIGATÓRIO: Rastrear e implementar
+// 1. calculateTotal deveria existir? → SIM: foi planejado
+// 2. Onde deveria estar? → @/utils/calculations.ts
+// 3. AÇÃO: Implementar a função, não remover a chamada
+```
+
+### Fluxo Obrigatório ao Debugar
+
+1. **NÃO REMOVA** código que causa erro sem entender por quê
+2. **TRACE** a origem do problema (import faltando? função não implementada?)
+3. **IMPLEMENTE** o que está faltando antes de "corrigir" removendo
+4. **VALIDE** que a solução não quebra outra coisa
+5. **DOCUMENTE** causa raiz para prevenção
+
+### Ao encontrar erro de import/referência
+
+| Tipo de Erro                | Ação CORRETA                        |
+| --------------------------- | ----------------------------------- |
+| `X is not defined`          | 🔴 IMPLEMENTAR X, não remover uso   |
+| `Cannot find module`        | 🔴 CRIAR módulo ou instalar package |
+| `X is not a function`       | 🟡 VERIFICAR export e implementação |
+| `Property X does not exist` | 🟡 ADICIONAR ao type/interface      |
+
 ## 🔍 Metodologia de Debug
 
 ### 1. Coleta de Informações
@@ -133,7 +165,7 @@ import { Profiler } from 'react';
 
 <Profiler id="ProductList" onRender={onRenderCallback}>
   <ProductList />
-</Profiler>
+</Profiler>;
 ```
 
 ### Backend (Rust/Tauri)

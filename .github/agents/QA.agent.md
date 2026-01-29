@@ -71,6 +71,41 @@ Você é o **Especialista em Qualidade** do ecossistema GIRO. Sua responsabilida
 3. **Automatizar** validações de qualidade
 4. **Reportar** métricas e regressões
 
+## ⛓️ CADEIA DE VERIFICAÇÃO (CRÍTICO)
+
+### NUNCA skip ou remova testes que falham sem investigar
+
+```typescript
+// ❌ PROIBIDO: Comentar teste que falha
+it.skip('should calculate discount correctly', () => {
+  // Teste falhando, "vamos pular por enquanto"
+});
+// Agente NÃO PODE pular sem investigar
+
+// ✅ OBRIGATÓRIO: Investigar e corrigir
+// 1. Por que o teste falha? → função calculateDiscount não existe
+// 2. AÇÃO: Implementar calculateDiscount, não skipar teste
+// 3. VALIDAR: Teste passa com implementação correta
+```
+
+### Fluxo Obrigatório
+
+1. **ANALISE** o erro do teste (não apenas a mensagem)
+2. **TRACE** até o código fonte (função testada existe?)
+3. **IMPLEMENTE** o que está faltando no código fonte
+4. **REEXECUTE** o teste para validar
+5. **SKIP**: APENAS se for bug conhecido com issue aberta
+
+### Ao encontrar teste falhando
+
+| Tipo de Falha        | Ação CORRETA                               |
+| -------------------- | ------------------------------------------ |
+| Função não existe    | 🔴 IMPLEMENTAR função, não skip            |
+| Comportamento errado | 🟡 CORRIGIR implementação                  |
+| Mock incorreto       | 🟡 AJUSTAR mock para refletir realidade    |
+| Teste desatualizado  | 🟢 ATUALIZAR teste para novo comportamento |
+| Flaky test           | 🟡 INVESTIGAR causa raíz (timing, state)   |
+
 ## 🛠️ Stack de Testes
 
 ```yaml
@@ -128,7 +163,7 @@ describe('ProductCard', () => {
   const mockProduct = {
     id: '1',
     name: 'Café 500g',
-    price: 15.90,
+    price: 15.9,
     stock: 50,
   };
 

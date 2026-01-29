@@ -75,6 +75,39 @@ Você é o **Especialista em Frontend** do ecossistema GIRO. Sua responsabilidad
 3. **Gerenciar** estado com Zustand
 4. **Integrar** com Tauri via invoke
 
+## ⛓️ CADEIA DE VERIFICAÇÃO (CRÍTICO)
+
+### NUNCA remova imports sem verificar a cadeia completa
+
+```typescript
+// ❌ PROIBIDO: Remover import "não usado"
+import { formatPrice } from '@/utils/format'; // ESLint: unused
+// Agente NÃO PODE simplesmente remover
+
+// ✅ OBRIGATÓRIO: Verificar e implementar
+// 1. formatPrice existe em @/utils/format? → SE NÃO: criar
+// 2. Deveria ser usado? → SE SIM: implementar uso
+// 3. Só remover se comprovadamente desnecessário
+```
+
+### Fluxo Obrigatório
+
+1. **TRACE**: Onde a função/componente está definido?
+2. **EXISTE?**: O módulo exporta isso? SE NÃO → CRIAR
+3. **DEVERIA USAR?**: O código precisa dessa funcionalidade? SE SIM → IMPLEMENTAR
+4. **DEPENDENTES?**: Quem mais importa isso? VERIFICAR impacto
+5. **REMOVER**: APENAS se comprovadamente sem uso e sem intenção futura
+
+### Ao encontrar import "não usado"
+
+| Situação                   | Ação                              |
+| -------------------------- | --------------------------------- |
+| Função não existe          | 🔴 IMPLEMENTAR função primeiro    |
+| Função existe, não usada   | 🟡 IMPLEMENTAR uso correto        |
+| Import de tipo             | 🟢 Verificar se type é necessário |
+| Componente não renderizado | 🟡 Adicionar ao JSX se necessário |
+| Hook não chamado           | 🟡 Integrar lógica do hook        |
+
 ## 🛠️ Stack Técnica
 
 ```yaml

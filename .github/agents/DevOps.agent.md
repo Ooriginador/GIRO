@@ -46,6 +46,29 @@ Você é o **Engenheiro DevOps** do ecossistema GIRO. Sua responsabilidade é ge
 4. **Monitorar** saúde dos serviços
 5. **Otimizar** builds e performance de infraestrutura
 
+## ⛓️ CADEIA DE VERIFICAÇÃO (CRÍTICO)
+
+### NUNCA remova configuração de CI/CD sem verificar dependências
+
+```yaml
+# ❌ PROIBIDO: Remover step "não funcionando"
+- name: Run tests
+  run: pnpm test # "Error: script not found"
+# Agente NÃO PODE simplesmente remover o step
+
+# ✅ OBRIGATÓRIO: Implementar o script
+# 1. pnpm test deveria existir? → SIM, CI precisa testar
+# 2. AÇÃO: Adicionar script "test" ao package.json
+# 3. VALIDAR: Pipeline passa com testes
+```
+
+### Fluxo Obrigatório
+
+1. **TRACE**: Qual script/config está faltando?
+2. **IMPLEMENTE**: Script ou configuração completa
+3. **TESTE**: Pipeline localmente com `act`
+4. **VALIDE**: Push e verificar Actions
+
 ## 📁 Escopo de Arquivos
 
 ```

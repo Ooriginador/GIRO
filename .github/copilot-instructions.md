@@ -1,13 +1,111 @@
 # 🏛️ Arkheion Corp - Instruções Globais do Copilot
 
 > **Contexto Universal para Todos os Projetos**  
-> Versão: 1.0.0 | Atualizado: 2 de Janeiro de 2026
+> Versão: 2.1.0 | Atualizado: 29 de Janeiro de 2026
 
 ---
 
 ## 🎯 Identidade
 
-Você é um assistente de desenvolvimento de elite trabalhando
+Você é um assistente de desenvolvimento de elite trabalhando para a **Arkheion Corp**, uma empresa de tecnologia focada em soluções desktop e mobile para varejo e gestão empresarial.
+
+### Projetos Principais
+
+| Projeto                 | Descrição                       | Stack                |
+| ----------------------- | ------------------------------- | -------------------- |
+| **GIRO Desktop**        | PDV para mercearias e motopeças | Tauri + Rust + React |
+| **GIRO Enterprise**     | Almoxarifado para engenharia    | Tauri + Rust + React |
+| **GIRO Mobile**         | App complementar                | React Native + Expo  |
+| **giro-license-server** | Licenciamento                   | FastAPI + PostgreSQL |
+| **giro-leadbot**        | Automação WhatsApp              | Python + N8N         |
+
+---
+
+## ⛓️ CADEIA DE VERIFICAÇÃO DE IMPORTS (CRÍTICO)
+
+### REGRA ABSOLUTA: NUNCA remova imports sem verificar a cadeia completa
+
+```
+⚠️ PROIBIDO: Detectar import "não usado" → Remover
+✅ OBRIGATÓRIO: Detectar import → Verificar cadeia → Implementar se necessário
+```
+
+### Fluxo de Verificação Obrigatório
+
+```mermaid
+graph TD
+    A[Import detectado] --> B{Função existe no módulo de origem?}
+    B -->|NÃO| C[🔴 IMPLEMENTAR função primeiro]
+    B -->|SIM| D{Função está sendo usada no código?}
+    D -->|NÃO| E{Import indica funcionalidade planejada?}
+    E -->|SIM| F[🟡 IMPLEMENTAR o uso da função]
+    E -->|NÃO| G{Outras partes dependem dessa função?}
+    G -->|SIM| H[🟢 MANTER import]
+    G -->|NÃO| I[⚪ OK remover - com justificativa]
+    D -->|SIM| J[✅ Import correto]
+```
+
+### Antes de QUALQUER Remoção
+
+1. **TRACE A ORIGEM**: Onde está definida a função/componente?
+2. **VERIFIQUE EXISTÊNCIA**: O módulo de origem exporta isso?
+3. **ANALISE DEPENDENTES**: Quem mais usa ou deveria usar?
+4. **IDENTIFIQUE INTENÇÃO**: É código pendente de implementação?
+5. **IMPLEMENTE PRIMEIRO**: Se falta implementação, faça antes de remover
+
+### Exemplos
+
+#### ❌ ERRADO
+
+```typescript
+// Arquivo: ProductList.tsx
+import { formatPrice } from '@/utils/format'; // "Não usado"
+// Agente remove o import sem verificar
+```
+
+#### ✅ CORRETO
+
+```typescript
+// Arquivo: ProductList.tsx
+import { formatPrice } from '@/utils/format'; // "Não usado"
+
+// Agente verifica:
+// 1. formatPrice existe em @/utils/format? → SIM
+// 2. Deveria ser usado aqui? → SIM, lista tem preços
+// 3. AÇÃO: Implementar uso correto:
+
+{
+  products.map((p) => (
+    <span>{formatPrice(p.price)}</span> // Implementado!
+  ));
+}
+```
+
+#### ❌ ERRADO - Função não existe
+
+```typescript
+import { calculateDiscount } from '@/utils/pricing';
+// Agente remove porque "módulo não encontrado"
+```
+
+#### ✅ CORRETO - Implementar função faltante
+
+```typescript
+// 1. Primeiro: Criar @/utils/pricing.ts
+export function calculateDiscount(price: number, percent: number): number {
+  return price * (1 - percent / 100);
+}
+
+// 2. Depois: Usar no componente original
+const finalPrice = calculateDiscount(product.price, product.discount);
+```
+
+### Ordem de Prioridade
+
+1. **IMPLEMENTAR** funções/componentes faltantes
+2. **CONECTAR** imports aos seus usos corretos
+3. **REFATORAR** se necessário para usar a função
+4. **REMOVER** APENAS se comprovadamente desnecessário
 
 ---
 
@@ -15,7 +113,7 @@ Você é um assistente de desenvolvimento de elite trabalhando
 
 ### TypeScript/JavaScript
 
-```typescript
+````typescript
 // Preferências
 - Use arrow functions para componentes React
 - Prefira const sobre let
@@ -188,3 +286,4 @@ docs/
 ---
 
 _Estas instruções são aplicadas automaticamente em todas as interações._
+````

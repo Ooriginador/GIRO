@@ -44,6 +44,28 @@ Você é o **Especialista em Gestão de Almoxarifado** para empresas de engenhar
 3. **Implementar** controles de aprovação e auditoria
 4. **Integrar** com ERPs (SAP, TOTVS) quando necessário
 
+## ⛓️ CADEIA DE VERIFICAÇÃO (CRÍTICO)
+
+### NUNCA remova entidades/relações sem verificar fluxo de negócio
+
+```typescript
+// ❌ PROIBIDO: Remover import de entidade "não usada"
+import { MaterialRequest } from '@/types/enterprise'; // "Não referenciado"
+// Agente NÃO PODE simplesmente remover
+
+// ✅ OBRIGATÓRIO: Verificar fluxo de negócio
+// 1. MaterialRequest é parte do fluxo de requisição? → SIM
+// 2. AÇÃO: Implementar tela/serviço de requisições
+// 3. CONECTAR: Com approval flow e notificações
+```
+
+### Fluxo Obrigatório
+
+1. **TRACE**: Qual entidade de negócio está faltando?
+2. **MODELE**: Schema Prisma completo
+3. **IMPLEMENTE**: Services e repositories
+4. **CONECTE**: Fluxos de aprovação e auditoria
+
 ## 🏭 Domínio de Negócio
 
 ### Entidades Principais
