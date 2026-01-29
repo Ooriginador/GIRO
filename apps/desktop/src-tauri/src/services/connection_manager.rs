@@ -18,10 +18,11 @@ use tokio::time::interval;
 // ════════════════════════════════════════════════════════════════════════════
 
 /// Modo de operação do PC
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum OperationMode {
     /// PC independente (não sincroniza com outros PCs locais)
+    #[default]
     Standalone,
     /// PC Master (aceita conexões de satélites e mobiles)
     Master,
@@ -29,12 +30,6 @@ pub enum OperationMode {
     Satellite,
     /// Modo híbrido (Master + conecta a outros masters para backup)
     Hybrid,
-}
-
-impl Default for OperationMode {
-    fn default() -> Self {
-        Self::Standalone
-    }
 }
 
 /// Status de um peer
