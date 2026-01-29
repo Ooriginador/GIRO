@@ -258,7 +258,7 @@ pub fn enumerate_printers() -> Vec<WindowsPrinterInfo> {
             &mut count,
         );
 
-        if !result.as_bool() {
+        if result.is_err() {
             let error = GetLastError();
             tracing::error!("Erro ao enumerar impressoras: {:?}", error);
             return printers;
