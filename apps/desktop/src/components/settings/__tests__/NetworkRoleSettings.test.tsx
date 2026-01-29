@@ -21,6 +21,49 @@ vi.mock('@/hooks/use-toast', () => ({
   }),
 }));
 
+// Mock useMultiPc hook (used by NetworkStatusPanel and PeersList)
+vi.mock('@/hooks/useMultiPc', () => ({
+  useMultiPc: () => ({
+    status: null,
+    peers: [],
+    stats: null,
+    config: null,
+    isLoading: false,
+    isError: false,
+    error: null,
+    isRunning: false,
+    mode: 'standalone',
+    connectedToMaster: false,
+    peerCount: 0,
+    onlinePeers: 0,
+    startManager: { mutateAsync: vi.fn(), isPending: false },
+    stopManager: { mutateAsync: vi.fn(), isPending: false },
+    addPeer: { mutateAsync: vi.fn(), isPending: false },
+    removePeer: { mutateAsync: vi.fn(), isPending: false },
+    connectMaster: { mutateAsync: vi.fn(), isPending: false },
+    disconnectMaster: { mutateAsync: vi.fn(), isPending: false },
+    refreshDiscovery: { mutateAsync: vi.fn(), isPending: false },
+    saveConfig: { mutateAsync: vi.fn(), isPending: false },
+    refreshAll: vi.fn(),
+    queries: {
+      status: { data: null, isLoading: false, isError: false, isFetching: false },
+      peers: { data: [], isLoading: false, isError: false, isFetching: false },
+      stats: { data: null, isLoading: false, isError: false, isFetching: false },
+      config: { data: null, isLoading: false, isError: false, isFetching: false },
+    },
+  }),
+  useMultiPcStatus: () => ({ data: null, isLoading: false, isError: false, isFetching: false }),
+  useNetworkPeers: () => ({ data: [], isLoading: false, isError: false, isFetching: false }),
+  useConnectionStats: () => ({ data: null, isLoading: false, isError: false, isFetching: false }),
+  useNetworkModeConfig: () => ({ data: null, isLoading: false, isError: false, isFetching: false }),
+  MULTI_PC_QUERY_KEYS: {
+    status: ['multiPc', 'status'],
+    peers: ['multiPc', 'peers'],
+    stats: ['multiPc', 'stats'],
+    config: ['multiPc', 'config'],
+  },
+}));
+
 import { invoke, getSetting, setSetting } from '@/lib/tauri';
 
 describe('NetworkRoleSettings', () => {
@@ -96,12 +139,20 @@ describe('NetworkRoleSettings', () => {
 
     render(<NetworkRoleSettings />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Caixa Único')).toBeInTheDocument();
-    });
+    // First wait for Caixa Principal (which is the current role MASTER)
+    await waitFor(
+      () => {
+        expect(screen.getByText('Caixa Principal')).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
 
-    // Clicar em Caixa Único
-    fireEvent.click(screen.getByText('Caixa Único'));
+    // Now check that Caixa Único is also visible - use getAllByText since there might be multiple
+    const caixaUnicoElements = screen.getAllByText('Caixa Único');
+    expect(caixaUnicoElements.length).toBeGreaterThan(0);
+
+    // Clicar no primeiro elemento Caixa Único (o botão de seleção)
+    fireEvent.click(caixaUnicoElements[0]);
 
     await waitFor(() => {
       expect(screen.queryByText('Configurações do Caixa')).not.toBeInTheDocument();

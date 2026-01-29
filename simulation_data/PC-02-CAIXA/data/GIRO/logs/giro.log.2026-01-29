@@ -1,0 +1,14 @@
+[2m2026-01-29T23:43:22.784574Z[0m [32m INFO[0m [2mgiro_desktop[0m[2m:[0m ====================================================
+[2m2026-01-29T23:43:22.784612Z[0m [32m INFO[0m [2mgiro_desktop[0m[2m:[0m 🚀 Iniciando GIRO Desktop v2.4.15
+[2m2026-01-29T23:43:22.784630Z[0m [32m INFO[0m [2mgiro_desktop[0m[2m:[0m 📂 Logs salvos em: "/home/jhonslife/CICLOGIRO/GIRO/scripts/simulation/../../simulation_data/PC-02-CAIXA/data/GIRO/logs"
+[2m2026-01-29T23:43:22.784647Z[0m [32m INFO[0m [2mgiro_desktop[0m[2m:[0m ====================================================
+[2m2026-01-29T23:43:22.784669Z[0m [32m INFO[0m [2mgiro_desktop[0m[2m:[0m DATABASE VERIFICATION PATH: "/home/jhonslife/CICLOGIRO/GIRO/scripts/simulation/../../simulation_data/PC-02-CAIXA/data/GIRO/giro.db"
+[2m2026-01-29T23:43:22.784734Z[0m [32m INFO[0m [2mgiro_desktop[0m[2m:[0m ✅ Write permission verified in AppData
+[2m2026-01-29T23:43:22.881399Z[0m [33m WARN[0m [2mgiro_desktop[0m[2m:[0m ============================================
+[2m2026-01-29T23:43:22.881436Z[0m [33m WARN[0m [2mgiro_desktop[0m[2m:[0m 📂 DATABASE PATH: "/home/jhonslife/CICLOGIRO/GIRO/scripts/simulation/../../simulation_data/PC-02-CAIXA/data/GIRO/giro.db"
+[2m2026-01-29T23:43:22.881461Z[0m [33m WARN[0m [2mgiro_desktop[0m[2m:[0m ✅ DB FILE EXISTS on disk
+[2m2026-01-29T23:43:22.881472Z[0m [33m WARN[0m [2mgiro_desktop[0m[2m:[0m ============================================
+[2m2026-01-29T23:43:22.883516Z[0m [34mDEBUG[0m [2mgiro_desktop[0m[2m:[0m Raw Hardware Fingerprint source: CPU:AMD Ryzen 5 5600GT with Radeon G|MB:O.E.M.|MAC:enp42s0|BIOS:UNKNOWN-BIOS
+[2m2026-01-29T23:43:22.883615Z[0m [32m INFO[0m [2mgiro_desktop[0m[2m:[0m Hardware ID: b20a8cd43feab2aa986c571c77e4bc25c3744d0349bd5c09cfd191e5bb4a979b
+[2m2026-01-29T23:43:22.883637Z[0m [32m INFO[0m [2mgiro_lib::services::setup_checks[0m[2m:[0m Verificando ambiente Linux/macOS...
+[2m2026-01-29T23:43:22.883674Z[0m [32m INFO[0m [2mgiro_lib::services::setup_checks[0m[2m:[0m ✅ Porta 3847 está livre para uso (Teste de bind bem sucedido).
