@@ -108,3 +108,8 @@ docs/.vitepress/cache/
 
 # Snyk Security Extension - AI Rules (auto-generated)
 .agent/rules/snyk_rules.md
+
+# Binários compilados
+scripts/simulation/bin/
+*.bundle
+
