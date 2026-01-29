@@ -2038,7 +2038,7 @@ async deleteCloudBackupCmd(bearerToken: string, backupId: string) : Promise<Resu
 }
 },
 /**
- * Inicia o cliente de rede (modo satélite)
+ * Inicia o cliente de rede (modo satélite) - requer autenticação
  */
 async startNetworkClient(terminalName: string) : Promise<Result<null, AppError>> {
     try {
@@ -2296,7 +2296,7 @@ async saveNetworkModeConfig(config: NetworkModeConfig) : Promise<Result<null, Ap
 }
 },
 /**
- * Inicia o servidor mobile
+ * Inicia o servidor mobile (requer autenticação)
  */
 async startMobileServer(config: StartServerConfig) : Promise<Result<null, AppError>> {
     try {
