@@ -26,9 +26,11 @@ Os agentes seguem o formato atualizado do VS Code Copilot (v1.106+) com suporte 
 | 🗄️ **Database** | [Database.agent.md](Database.agent.md) | SQLite, Prisma, Migrations | SQLite, Prisma, SQLx |
 | 🔌 **Hardware** | [Hardware.agent.md](Hardware.agent.md) | Impressoras, Balanças, Scanner | ESC/POS, Serial, USB |
 | 📊 **Relatorios** | [Relatorios.agent.md](Relatorios.agent.md) | Analytics, Charts, Exports | React, Rust |
-| 📋 **Planejador** | [Planejador.agent.md](Planejador.agent.md) | Planning, Análise, Documentação | Read-only |
+| 📋 **Planejador** | [Planejador.agent.md](Planejador.agent.md) | Planning, Análise, Documentação | Analítico |
 | 🧪 **QA** | [QA.agent.md](QA.agent.md) | Testes, Qualidade, E2E | Vitest, Playwright |
 | 🐛 **Debugger** | [Debugger.agent.md](Debugger.agent.md) | Diagnóstico, Fix, Performance | Full-stack |
+| 🚀 **DevOps** | [DevOps.agent.md](DevOps.agent.md) | CI/CD, Docker, Deploy | GitHub Actions, Railway |
+| 🔒 **Security** | [Security.agent.md](Security.agent.md) | LGPD, Auditoria, Compliance | Full-stack |
 
 ---
 
