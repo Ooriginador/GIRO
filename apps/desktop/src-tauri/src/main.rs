@@ -7,6 +7,8 @@
 
 use giro_lib::commands::mobile::MobileServerState;
 use giro_lib::commands::network::NetworkState;
+use giro_lib::commands::network_diagnostics::MultiPcNetworkState;
+use giro_lib::commands::sync::SyncOrchestratorState;
 use giro_lib::{commands, nfce, AppState, DatabaseManager, HardwareState};
 #[cfg(debug_assertions)]
 use specta_typescript::Typescript;
@@ -208,6 +210,8 @@ async fn main() {
             commands::list_serial_ports,
             commands::list_hardware_ports,
             commands::list_windows_printers,
+            commands::detect_printers_full,
+            commands::refresh_printers,
             commands::get_default_printer,
             commands::suggest_best_printer,
             commands::is_printer_ready,
@@ -262,6 +266,24 @@ async fn main() {
             commands::network::force_network_sync,
             commands::network::scan_network_for_masters,
             commands::network::test_master_connection,
+            // Network Diagnostics (Multi-PC)
+            commands::network_diagnostics::run_network_diagnostics,
+            commands::network_diagnostics::get_last_diagnostics,
+            commands::network_diagnostics::test_network_connection,
+            commands::network_diagnostics::scan_network_subnet,
+            commands::network_diagnostics::get_system_network_info,
+            commands::network_diagnostics::get_multi_pc_status,
+            commands::network_diagnostics::start_connection_manager,
+            commands::network_diagnostics::stop_connection_manager,
+            commands::network_diagnostics::list_network_peers,
+            commands::network_diagnostics::add_network_peer,
+            commands::network_diagnostics::remove_network_peer,
+            commands::network_diagnostics::connect_to_master,
+            commands::network_diagnostics::disconnect_from_master,
+            commands::network_diagnostics::get_connection_stats,
+            commands::network_diagnostics::refresh_peer_discovery,
+            commands::network_diagnostics::get_network_mode_config,
+            commands::network_diagnostics::save_network_mode_config,
             // Mobile
             commands::start_mobile_server,
             commands::stop_mobile_server,
@@ -622,6 +644,8 @@ async fn main() {
         .manage(HardwareState::default())
         .manage(RwLock::new(MobileServerState::default()))
         .manage(RwLock::new(NetworkState::default()))
+        .manage(RwLock::new(SyncOrchestratorState::default()))
+        .manage(RwLock::new(MultiPcNetworkState::default()))
         .setup(|app| {
             let handle = app.handle().clone();
 
@@ -652,8 +676,11 @@ async fn main() {
                 match role.as_str() {
                     "MASTER" => {
                         tracing::info!("Auto-start: Este terminal está configurado como MASTER. Iniciando servidor...");
+                        let server_port = settings_repo.get_value("network.server_port").await.ok().flatten()
+                            .and_then(|s| s.parse::<u16>().ok())
+                            .unwrap_or(3847);
                         let config = giro_lib::commands::mobile::StartServerConfig {
-                            port: 3847,
+                            port: server_port,
                             max_connections: 10,
                         };
                         // Chamamos o comando diretamente (usando clones para evitar o erro de move)
@@ -861,6 +888,24 @@ async fn main() {
             commands::network::force_network_sync,
             commands::network::scan_network_for_masters,
             commands::network::test_master_connection,
+            // Rede Multi-PC (Diagnóstico e Gerenciamento)
+            commands::network_diagnostics::run_network_diagnostics,
+            commands::network_diagnostics::get_last_diagnostics,
+            commands::network_diagnostics::test_network_connection,
+            commands::network_diagnostics::scan_network_subnet,
+            commands::network_diagnostics::get_system_network_info,
+            commands::network_diagnostics::get_multi_pc_status,
+            commands::network_diagnostics::start_connection_manager,
+            commands::network_diagnostics::stop_connection_manager,
+            commands::network_diagnostics::list_network_peers,
+            commands::network_diagnostics::add_network_peer,
+            commands::network_diagnostics::remove_network_peer,
+            commands::network_diagnostics::connect_to_master,
+            commands::network_diagnostics::disconnect_from_master,
+            commands::network_diagnostics::get_connection_stats,
+            commands::network_diagnostics::refresh_peer_discovery,
+            commands::network_diagnostics::get_network_mode_config,
+            commands::network_diagnostics::save_network_mode_config,
             // Histórico de Preços
             commands::get_price_history_by_product,
             commands::get_recent_price_history,
@@ -1057,12 +1102,21 @@ async fn main() {
             commands::get_mobile_location,
             commands::sync_mobile_counts,
             commands::check_mobile_sync_status,
-            // Multi-PC Sync
+            // Multi-PC Sync (Legacy)
             commands::get_sync_status,
             commands::sync_push,
             commands::sync_pull,
             commands::sync_reset,
             commands::sync_full,
+            // Sync Orchestrator (New)
+            commands::init_sync_orchestrator,
+            commands::get_sync_orchestrator_status,
+            commands::get_sync_orchestrator_stats,
+            commands::sync_orchestrator_full,
+            commands::sync_orchestrator_cloud,
+            commands::sync_orchestrator_lan,
+            commands::start_auto_sync,
+            commands::stop_auto_sync,
         ])
         .run(tauri::generate_context!())
         .expect("Erro ao executar aplicação Tauri");

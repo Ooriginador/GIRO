@@ -16,6 +16,8 @@ use crate::hardware::{
     scanner::{MobileDevice, MobileScannerConfig, ScannerServerState},
     HardwareError,
 };
+#[cfg(target_os = "windows")]
+use crate::hardware::{DetectionResult as DetectorResult, PrinterDetector};
 use crate::services::mobile_server::MobileServer;
 use crate::AppState;
 use qrcode::render::svg;
@@ -70,6 +72,8 @@ pub fn list_serial_ports() -> Vec<String> {
 }
 
 /// Lista todas as portas de hardware relevantes (Serial + USB Printer no Linux + Impressoras Windows)
+///
+/// NOVO: Usa o PrinterDetector robusto com multi-estratégias de detecção
 #[tauri::command]
 #[specta::specta]
 pub fn list_hardware_ports() -> Vec<String> {
@@ -94,18 +98,25 @@ pub fn list_hardware_ports() -> Vec<String> {
 
     #[cfg(target_os = "windows")]
     {
-        use crate::hardware::windows_printer;
+        tracing::info!("🔍 Usando PrinterDetector robusto para detecção de impressoras...");
 
-        tracing::info!("Enumerating Windows printers using native API...");
+        // USA O NOVO DETECTOR ROBUSTO COM MULTI-ESTRATÉGIAS
+        let detector = PrinterDetector::global();
+        let detection_result = detector.detect();
 
-        // MÉTODO PRINCIPAL: API Nativa do Windows (EnumPrintersW)
-        let printers = windows_printer::enumerate_printers();
+        tracing::info!(
+            "📊 Detecção completa: {} impressoras, {} estratégias usadas, cache: {}",
+            detection_result.printers.len(),
+            detection_result.strategies_used.len(),
+            if detection_result.from_cache {
+                "SIM"
+            } else {
+                "NÃO"
+            }
+        );
 
-        if !printers.is_empty() {
-            tracing::info!("Native API found {} printers", printers.len());
-
-            for printer in &printers {
-                // Usa o nome da impressora diretamente (mais confiável)
+        if !detection_result.printers.is_empty() {
+            for printer in &detection_result.printers {
                 let printer_path = printer.name.clone();
 
                 if !ports.contains(&printer_path) {
@@ -115,73 +126,49 @@ pub fn list_hardware_ports() -> Vec<String> {
                         "📄"
                     };
                     let default_marker = if printer.is_default { " ⭐" } else { "" };
+                    let source = format!("({:?})", printer.detection_source);
 
                     tracing::info!(
-                        "{} Impressora: {} (porta: {}, status: {}){}",
+                        "{} Impressora: {} (porta: {}, status: {}, tipo: {:?}){}  {}",
                         marker,
                         printer.name,
                         printer.port_name,
                         printer.status_text,
-                        default_marker
+                        printer.connection_type,
+                        default_marker,
+                        source
                     );
 
                     ports.push(printer_path);
                 }
             }
         } else {
-            tracing::warn!("Native API returned no printers, trying fallback methods...");
-
-            // FALLBACK: PowerShell/WMIC se a API nativa falhar
-            use crate::utils::windows::{run_powershell, run_wmic};
-
-            // Método Fallback 1: PowerShell Get-Printer
-            match run_powershell("Get-Printer | Select-Object -ExpandProperty Name") {
-                Ok(output) => {
-                    let stdout = String::from_utf8_lossy(&output.stdout);
-                    for line in stdout.lines() {
-                        let name = line.trim();
-                        if !name.is_empty() && !ports.contains(&name.to_string()) {
-                            tracing::info!("Fallback: Found printer via PowerShell: {}", name);
-                            ports.push(name.to_string());
-                        }
-                    }
-                }
-                Err(e) => {
-                    tracing::error!("PowerShell fallback failed: {}", e);
-                }
-            }
-
-            // Método Fallback 2: WMIC
-            if let Ok(output) = run_wmic(["printer", "get", "name"]) {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                for line in stdout.lines().skip(1) {
-                    let name = line.trim();
-                    if !name.is_empty() && name != "Name" && !ports.contains(&name.to_string()) {
-                        tracing::info!("Fallback: Found printer via WMIC: {}", name);
-                        ports.push(name.to_string());
-                    }
-                }
-            }
+            tracing::warn!(
+                "⚠️ Nenhuma impressora detectada! Estratégias tentadas: {:?}, Erros: {:?}",
+                detection_result.strategies_used,
+                detection_result.errors
+            );
         }
 
         // Adiciona opção especial para impressora padrão do Windows
-        if let Some(default) = windows_printer::get_default_printer() {
-            let default_option = format!("__DEFAULT__:{}", default);
+        if let Some(best) = detector.suggest_best_printer() {
+            let default_option = format!("__DEFAULT__:{}", best.name);
             if !ports.contains(&default_option) {
-                // Insere no início como opção especial
+                tracing::info!(
+                    "⭐ Melhor impressora sugerida: {} (térmica: {})",
+                    best.name,
+                    best.is_thermal
+                );
                 ports.insert(0, default_option);
             }
         }
 
-        // Adiciona portas USB virtuais comuns (USB001, USB002, etc.)
-        for i in 1..=5 {
-            let usb_port = format!("USB{:03}", i);
-            if !ports.contains(&usb_port) {
-                ports.push(usb_port);
-            }
+        // Log de erros se houver
+        for error in &detection_result.errors {
+            tracing::warn!("⚠️ Erro durante detecção: {}", error);
         }
 
-        tracing::info!("Total ports after Windows enumeration: {}", ports.len());
+        tracing::info!("✅ Total ports após detecção Windows: {}", ports.len());
     }
 
     ports.sort();
@@ -221,18 +208,35 @@ pub struct PrinterInfo {
     pub status_text: String,
     pub location: String,
     pub comment: String,
+    /// Novo: tipo de conexão (USB, Serial, Network, etc.)
+    pub connection_type: String,
+    /// Novo: fonte de detecção (NativeAPI, Registry, PowerShell)
+    pub detection_source: String,
 }
 
-/// Lista impressoras Windows com informações detalhadas (API nativa)
+/// Resultado completo da detecção de impressoras
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PrinterDetectionResultDto {
+    pub printers: Vec<PrinterInfo>,
+    pub strategies_used: Vec<String>,
+    pub errors: Vec<String>,
+    pub from_cache: bool,
+    pub detected_at: f64,
+    pub total_time_ms: u64,
+}
+
+/// Lista impressoras Windows com informações detalhadas (NOVO: usa PrinterDetector robusto)
 #[tauri::command]
 #[specta::specta]
 pub fn list_windows_printers() -> Vec<PrinterInfo> {
     #[cfg(target_os = "windows")]
     {
-        use crate::hardware::windows_printer;
+        let detector = PrinterDetector::global();
+        let result = detector.detect();
 
-        let printers = windows_printer::enumerate_printers();
-        printers
+        result
+            .printers
             .into_iter()
             .map(|p| PrinterInfo {
                 name: p.name,
@@ -244,6 +248,8 @@ pub fn list_windows_printers() -> Vec<PrinterInfo> {
                 status_text: p.status_text,
                 location: p.location,
                 comment: p.comment,
+                connection_type: format!("{:?}", p.connection_type),
+                detection_source: format!("{:?}", p.detection_source),
             })
             .collect()
     }
@@ -254,14 +260,124 @@ pub fn list_windows_printers() -> Vec<PrinterInfo> {
     }
 }
 
+/// Detecção completa de impressoras com diagnóstico (NOVO comando)
+#[tauri::command]
+#[specta::specta]
+pub fn detect_printers_full() -> PrinterDetectionResultDto {
+    #[cfg(target_os = "windows")]
+    {
+        let detector = PrinterDetector::global();
+        let result = detector.detect();
+
+        PrinterDetectionResultDto {
+            printers: result
+                .printers
+                .into_iter()
+                .map(|p| PrinterInfo {
+                    name: p.name,
+                    port_name: p.port_name,
+                    driver_name: p.driver_name,
+                    status: p.status,
+                    is_default: p.is_default,
+                    is_thermal: p.is_thermal,
+                    status_text: p.status_text,
+                    location: p.location,
+                    comment: p.comment,
+                    connection_type: format!("{:?}", p.connection_type),
+                    detection_source: format!("{:?}", p.detection_source),
+                })
+                .collect(),
+            strategies_used: result
+                .strategies_used
+                .into_iter()
+                .map(|s| format!("{:?}", s))
+                .collect(),
+            errors: result.errors,
+            from_cache: result.from_cache,
+            detected_at: result.detected_at,
+            total_time_ms: result.total_time_ms,
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        PrinterDetectionResultDto {
+            printers: Vec::new(),
+            strategies_used: Vec::new(),
+            errors: vec!["Detecção de impressoras Windows não disponível neste SO".to_string()],
+            from_cache: false,
+            detected_at: 0.0,
+            total_time_ms: 0,
+        }
+    }
+}
+
+/// Força re-detecção de impressoras limpando o cache
+#[tauri::command]
+#[specta::specta]
+pub fn refresh_printers() -> PrinterDetectionResultDto {
+    #[cfg(target_os = "windows")]
+    {
+        let detector = PrinterDetector::global();
+        detector.invalidate_cache();
+        let result = detector.detect();
+
+        PrinterDetectionResultDto {
+            printers: result
+                .printers
+                .into_iter()
+                .map(|p| PrinterInfo {
+                    name: p.name,
+                    port_name: p.port_name,
+                    driver_name: p.driver_name,
+                    status: p.status,
+                    is_default: p.is_default,
+                    is_thermal: p.is_thermal,
+                    status_text: p.status_text,
+                    location: p.location,
+                    comment: p.comment,
+                    connection_type: format!("{:?}", p.connection_type),
+                    detection_source: format!("{:?}", p.detection_source),
+                })
+                .collect(),
+            strategies_used: result
+                .strategies_used
+                .into_iter()
+                .map(|s| format!("{:?}", s))
+                .collect(),
+            errors: result.errors,
+            from_cache: result.from_cache,
+            detected_at: result.detected_at,
+            total_time_ms: result.total_time_ms,
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        PrinterDetectionResultDto {
+            printers: Vec::new(),
+            strategies_used: Vec::new(),
+            errors: vec!["Refresh não disponível neste SO".to_string()],
+            from_cache: false,
+            detected_at: 0.0,
+            total_time_ms: 0,
+        }
+    }
+}
+
 /// Obtém a impressora padrão do Windows
 #[tauri::command]
 #[specta::specta]
 pub fn get_default_printer() -> Option<String> {
     #[cfg(target_os = "windows")]
     {
-        use crate::hardware::windows_printer;
-        windows_printer::get_default_printer()
+        let detector = PrinterDetector::global();
+        let result = detector.detect();
+        result
+            .printers
+            .into_iter()
+            .find(|p| p.is_default)
+            .map(|p| p.name)
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -276,8 +392,8 @@ pub fn get_default_printer() -> Option<String> {
 pub fn suggest_best_printer() -> Option<String> {
     #[cfg(target_os = "windows")]
     {
-        use crate::hardware::windows_printer;
-        windows_printer::suggest_printer()
+        let detector = PrinterDetector::global();
+        detector.suggest_best_printer().map(|p| p.name)
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -292,8 +408,8 @@ pub fn suggest_best_printer() -> Option<String> {
 pub fn is_printer_ready(printer_name: String) -> bool {
     #[cfg(target_os = "windows")]
     {
-        use crate::hardware::windows_printer;
-        windows_printer::is_printer_ready(&printer_name)
+        let detector = PrinterDetector::global();
+        detector.is_printer_ready(&printer_name)
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -309,18 +425,25 @@ pub fn is_printer_ready(printer_name: String) -> bool {
 pub fn get_printer_info(#[allow(unused)] printer_name: String) -> Option<PrinterInfo> {
     #[cfg(target_os = "windows")]
     {
-        use crate::hardware::windows_printer;
-        windows_printer::get_printer_info(&printer_name).map(|p| PrinterInfo {
-            name: p.name,
-            port_name: p.port_name,
-            driver_name: p.driver_name,
-            status: p.status,
-            is_default: p.is_default,
-            is_thermal: p.is_thermal,
-            status_text: p.status_text,
-            location: p.location,
-            comment: p.comment,
-        })
+        let detector = PrinterDetector::global();
+        let result = detector.detect();
+        result
+            .printers
+            .into_iter()
+            .find(|p| p.name.eq_ignore_ascii_case(&printer_name))
+            .map(|p| PrinterInfo {
+                name: p.name,
+                port_name: p.port_name,
+                driver_name: p.driver_name,
+                status: p.status,
+                is_default: p.is_default,
+                is_thermal: p.is_thermal,
+                status_text: p.status_text,
+                location: p.location,
+                comment: p.comment,
+                connection_type: format!("{:?}", p.connection_type),
+                detection_source: format!("{:?}", p.detection_source),
+            })
     }
 
     #[cfg(not(target_os = "windows"))]

@@ -6,6 +6,22 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2.4.12] - 2026-01-29
+
+### Adicionado
+
+- **PrinterDetector Robusto**: Sistema de detecção de impressoras multi-estratégia (Local, Network, Registry, PowerShell)
+- **Cache de Impressoras**: Implementação de cache (TTL 30s) para evitar travamentos na interface
+- **Diagnóstico Completo**: Novo comando `detect_printers_full` retornando detalhes de detecção e diagnóstico
+- **Detecção de Tipo de Conexão**: Identificação automática de USB, Serial, Rede, Shared e Virtual
+- **Heurística Avançada**: Melhor detecção de impressoras térmicas baseada em drivers e portas
+
+### Corrigido
+
+- **Default Printer Bug**: Correção na detecção da impressora padrão do Windows quando driver não reporta corretamente
+- **Virtual Ports**: Melhor filtragem de impressoras virtuais (PDF, XPS)
+- **Performance**: Otimização na enumeração de impressoras (flags otimizadas e cache)
+
 ## [2.4.9] - 2026-01-28
 
 ### Adicionado

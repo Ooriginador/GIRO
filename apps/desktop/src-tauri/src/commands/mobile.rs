@@ -186,6 +186,8 @@ pub async fn start_mobile_server(
         port: config.port,
         version: env!("CARGO_PKG_VERSION").to_string(),
         store_name: None,
+        auto_restart: true,
+        health_check_interval_secs: 30,
     };
     let mdns = MdnsService::new(mdns_config);
     if let Err(e) = mdns.start().await {

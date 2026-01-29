@@ -31,10 +31,18 @@ pub async fn giro_invoke(
         }
 
         "license.activate" => {
-            // expect payload.licenseKey
-            let license_key = payload
-                .as_ref()
-                .and_then(|p| p.get("licenseKey"))
+            if payload.is_none() {
+                return Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    "missing payload".to_string(),
+                ));
+            }
+            let val = payload.unwrap();
+            let p_ref = val.get("payload").unwrap_or(&val);
+
+            let license_key = p_ref
+                .get("licenseKey")
+                .or_else(|| p_ref.get("key"))
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
 
@@ -72,9 +80,18 @@ pub async fn giro_invoke(
         }
         // Direct / legacy aliases (no namespace)
         "activate_license" => {
-            let license_key = payload
-                .as_ref()
-                .and_then(|p| p.get("licenseKey"))
+            if payload.is_none() {
+                return Ok(InvokeResult::err(
+                    Some("invalid_payload".to_string()),
+                    "missing payload".to_string(),
+                ));
+            }
+            let val = payload.unwrap();
+            let p_ref = val.get("payload").unwrap_or(&val);
+
+            let license_key = p_ref
+                .get("licenseKey")
+                .or_else(|| p_ref.get("key"))
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
 
@@ -83,7 +100,7 @@ pub async fn giro_invoke(
                 None => {
                     return Ok(InvokeResult::err(
                         Some("invalid_payload".to_string()),
-                        "missing licenseKey".to_string(),
+                        "missing licenseKey or key".to_string(),
                     ))
                 }
             };
@@ -95,20 +112,17 @@ pub async fn giro_invoke(
         }
 
         "recover_license_from_login" => {
-            let p_res = if let Some(val) = payload.as_ref() {
-                // Try direct, then nested
-                serde_json::from_value::<crate::commands::license::LoginPayload>(val.clone())
-                    .or_else(|_| {
-                        val.get("payload")
-                            .map(|v| serde_json::from_value(v.clone()))
-                            .unwrap_or(serde_json::from_value(val.clone()))
-                    })
-            } else {
+            if payload.is_none() {
                 return Ok(InvokeResult::err(
-                    Some("missing_payload".to_string()),
-                    "Missing payload".to_string(),
+                    Some("invalid_payload".to_string()),
+                    "missing payload".to_string(),
                 ));
-            };
+            }
+            let val = payload.unwrap();
+            // Handle potentially nested payload
+            let inner = val.get("payload").unwrap_or(&val);
+            let p_res: Result<crate::commands::license::LoginPayload, _> =
+                serde_json::from_value(inner.clone());
 
             match p_res {
                 Ok(data) => {
@@ -121,7 +135,7 @@ pub async fn giro_invoke(
                 }
                 Err(e) => Ok(InvokeResult::err(
                     Some("invalid_payload".to_string()),
-                    format!("Invalid payload: {}. Received: {:?}", e, payload),
+                    format!("Invalid payload: {}. Received: {:?}", e, val),
                 )),
             }
         }
@@ -181,8 +195,10 @@ pub async fn giro_invoke(
                 ));
             }
             let val = payload.unwrap();
+            // Extract "config" field if present, otherwise try to deserialize the whole payload
+            let config_val = val.get("config").cloned().unwrap_or(val);
             let input: Result<crate::commands::mobile::StartServerConfig, _> =
-                serde_json::from_value(val);
+                serde_json::from_value(config_val);
 
             match input {
                 Ok(config) => {
@@ -287,12 +303,9 @@ pub async fn giro_invoke(
                 ));
             }
             let val = payload.unwrap();
-            let config = val
-                .get("config")
-                .cloned()
-                .unwrap_or_else(|| serde_json::json!({}));
+            let config = val.get("config").unwrap_or(&val);
             let input: Result<crate::hardware::printer::PrinterConfig, _> =
-                serde_json::from_value(config);
+                serde_json::from_value(config.clone());
             match input {
                 Ok(cfg) => {
                     match crate::commands::hardware::configure_printer(cfg, app_state, hw_state)
