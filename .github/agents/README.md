@@ -10,6 +10,7 @@
 Este diretório contém **agentes especializados** criados exclusivamente para o desenvolvimento do projeto **Mercearias** - Sistema de Gestão para Pequenos Varejos.
 
 Os agentes seguem o formato atualizado do VS Code Copilot (v1.106+) com suporte a:
+
 - **Handoffs**: Transições guiadas entre agentes
 - **Tools**: Ferramentas específicas por contexto
 - **Models**: Modelos de IA otimizados por tarefa
@@ -18,25 +19,25 @@ Os agentes seguem o formato atualizado do VS Code Copilot (v1.106+) com suporte 
 
 ## 🤖 Agentes Disponíveis
 
-| Agente | Arquivo | Especialidade | Stack |
-|--------|---------|---------------|-------|
-| 🦀 **Rust** | [Rust.agent.md](Rust.agent.md) | Backend Tauri, SQLx, Hardware | Rust, Tauri 2.0 |
-| ⚛️ **Frontend** | [Frontend.agent.md](Frontend.agent.md) | UI/UX, React, TailwindCSS | React 18, TypeScript |
-| 🏪 **PDV** | [PDV.agent.md](PDV.agent.md) | Ponto de Venda, Caixa, Vendas | Full-stack |
-| 🗄️ **Database** | [Database.agent.md](Database.agent.md) | SQLite, Prisma, Migrations | SQLite, Prisma, SQLx |
-| 🔌 **Hardware** | [Hardware.agent.md](Hardware.agent.md) | Impressoras, Balanças, Scanner | ESC/POS, Serial, USB |
-| 📊 **Relatorios** | [Relatorios.agent.md](Relatorios.agent.md) | Analytics, Charts, Exports | React, Rust |
-| 📋 **Planejador** | [Planejador.agent.md](Planejador.agent.md) | Planning, Análise, Documentação | Analítico |
-| 🧪 **QA** | [QA.agent.md](QA.agent.md) | Testes, Qualidade, E2E | Vitest, Playwright |
-| 🐛 **Debugger** | [Debugger.agent.md](Debugger.agent.md) | Diagnóstico, Fix, Performance | Full-stack |
-| 🚀 **DevOps** | [DevOps.agent.md](DevOps.agent.md) | CI/CD, Docker, Deploy | GitHub Actions, Railway |
-| 🔒 **Security** | [Security.agent.md](Security.agent.md) | LGPD, Auditoria, Compliance | Full-stack |
+| Agente            | Arquivo                                    | Especialidade                   | Stack                   |
+| ----------------- | ------------------------------------------ | ------------------------------- | ----------------------- |
+| 🦀 **Rust**       | [Rust.agent.md](Rust.agent.md)             | Backend Tauri, SQLx, Hardware   | Rust, Tauri 2.0         |
+| ⚛️ **Frontend**   | [Frontend.agent.md](Frontend.agent.md)     | UI/UX, React, TailwindCSS       | React 18, TypeScript    |
+| 🏪 **PDV**        | [PDV.agent.md](PDV.agent.md)               | Ponto de Venda, Caixa, Vendas   | Full-stack              |
+| 🗄️ **Database**   | [Database.agent.md](Database.agent.md)     | SQLite, Prisma, Migrations      | SQLite, Prisma, SQLx    |
+| 🔌 **Hardware**   | [Hardware.agent.md](Hardware.agent.md)     | Impressoras, Balanças, Scanner  | ESC/POS, Serial, USB    |
+| 📊 **Relatorios** | [Relatorios.agent.md](Relatorios.agent.md) | Analytics, Charts, Exports      | React, Rust             |
+| 📋 **Planejador** | [Planejador.agent.md](Planejador.agent.md) | Planning, Análise, Documentação | Analítico               |
+| 🧪 **QA**         | [QA.agent.md](QA.agent.md)                 | Testes, Qualidade, E2E          | Vitest, Playwright      |
+| 🐛 **Debugger**   | [Debugger.agent.md](Debugger.agent.md)     | Diagnóstico, Fix, Performance   | Full-stack              |
+| 🚀 **DevOps**     | [DevOps.agent.md](DevOps.agent.md)         | CI/CD, Docker, Deploy           | GitHub Actions, Railway |
+| 🔒 **Security**   | [Security.agent.md](Security.agent.md)     | LGPD, Auditoria, Compliance     | Full-stack              |
 
 ---
 
 ## 🏗️ Stack do Projeto
 
-```yaml
+````yaml
 Frontend:
   Framework: React 18.3+ com TypeScript
   Build: Vite 5.0+
@@ -201,3 +202,4 @@ handoffs:
 ---
 
 _Última atualização: 7 de Janeiro de 2026_
+````

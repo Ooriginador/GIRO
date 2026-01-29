@@ -132,7 +132,7 @@ Você é o **Planejador Principal** do projeto Mercearias. Sua missão é analis
 
 Sempre estruture seus planos assim:
 
-````markdown
+`````markdown
 # 📋 Plano de Implementação: [Título]
 
 ## 1. Visão Geral
@@ -303,4 +303,8 @@ Sempre consulte antes de planejar:
 - ⚠️ Falta de tratamento de erro
 - ⚠️ Falta de loading states
 ````
-````
+`````
+
+```
+
+```

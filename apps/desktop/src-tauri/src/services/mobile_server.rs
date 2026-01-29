@@ -79,6 +79,27 @@ pub struct MobileServer {
 }
 
 impl MobileServer {
+    /// Gera um JWT_SECRET seguro automaticamente
+    fn generate_jwt_secret() -> String {
+        use rand::Rng;
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let random_part: u64 = rand::rng().random();
+        format!("giro_desktop_{}_{:x}", timestamp, random_part)
+    }
+
+    /// Obtém JWT_SECRET do ambiente ou gera um automaticamente
+    fn get_or_generate_jwt_secret() -> String {
+        std::env::var("JWT_SECRET").unwrap_or_else(|_| {
+            let secret = Self::generate_jwt_secret();
+            tracing::info!("JWT_SECRET não definido, usando secret gerado automaticamente");
+            secret
+        })
+    }
+
     /// Cria novo servidor
     pub fn new(
         pool: SqlitePool,
@@ -91,9 +112,7 @@ impl MobileServer {
         Self {
             config,
             pool: pool.clone(),
-            session_manager: SessionManager::new(std::env::var("JWT_SECRET").expect(
-                "Environment variable JWT_SECRET is required. Set JWT_SECRET in the environment.",
-            )),
+            session_manager: SessionManager::new(Self::get_or_generate_jwt_secret()),
             connections: Arc::new(RwLock::new(HashMap::new())),
             shutdown_tx: RwLock::new(None),
             system_handler: Arc::new(SystemHandler::new(
