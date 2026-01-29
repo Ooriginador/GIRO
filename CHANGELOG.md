@@ -1,5 +1,38 @@
 # GIRO - Changelog
 
+Todas as alterações notáveis deste projeto são documentadas neste arquivo.
+
+O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
+
+---
+
+## [2.4.9] - 2026-01-28
+
+### Adicionado
+
+- **Windows Printer Detection**: Implementação nativa usando Windows API (EnumPrintersW, GetDefaultPrinterW)
+- **Native Print Spooler**: Suporte direto ao Print Spooler do Windows sem dependências externas
+- **Auto-Printer Selection**: Seleção automática da impressora padrão ou melhor térmica disponível
+- **Printer Status Check**: Verificação de status da impressora (pronta, offline, sem papel, etc.)
+- **Security Layer**: CODEOWNERS, LICENSE proprietária, scripts de verificação de segurança
+- **Repository Protection**: Branch protection configurada via API para todos os repositórios
+
+### Corrigido
+
+- **Platform Detection**: Hook useWindowsPrinters agora detecta plataforma antes de invocar comandos Windows
+- **Connection Mapping**: Impressoras Windows corretamente mapeadas para conexão USB
+- **Accessibility**: Adicionado aria-label no botão de refresh de impressoras
+- **Repository URLs**: Migração completa de jhonslife → Ooriginador em todos os arquivos
+
+### Documentação
+
+- Criado `docs/PRINTER-DETECTION-FLOW.md` com arquitetura completa
+- Criado `.github/REPOSITORY_SECURITY.md` com procedimentos de segurança
+- Criado `MAKE-PUBLIC-GUIDE.md` para guia de release público
+- Criado `scripts/check-security.sh` para verificação pré-commit
+
+---
+
 ## [2.4.5] - 2026-01-28
 
 ### Atualizado
@@ -19,20 +52,40 @@
 
 ---
 
-## [1.1.6] - 2026-01-23
+## [2.0.0] - 2026-01-26
+
+### Adicionado
+
+- **PDV Search**: Sistema de busca robusto com debounce (300ms)
+- **Barcode Detection**: Detecção automática de códigos de barras (EAN-8, UPC-12, EAN-13, GTIN-14)
+- **Zero Cache**: Remoção total de cache nas queries de produtos para dados sempre frescos
+- **Keyboard Navigation**: Navegação aprimorada por teclado com scroll automático
+- **UX Enhancements**: Feedback visual rico, badges informativos e indicadores de resultados
 
 ### Corrigido
 
-- **Dashboard API Types**: Adicionado campo `role` à interface `LoginResponse`.
-- **Website API**: Corrigida porta padrão de 8000 para 3000.
-- **Type Safety**: Removido cast `any` no Dashboard `getLicenses`.
-- **Sync Diretórios**: Sincronizado `GIRO/giro-license-server` com `giro-license-server` root.
+- **Rust Clippy**: Corrigidos 6 warnings de Clippy no código Rust
+  - `useless_format` em reports_enterprise.rs
+  - `should_implement_trait` em enterprise.rs (renomeado `from_str` → `parse_status`)
+  - `needless_borrows_for_generic_args` em activity_repository.rs e contract_repository.rs
+- **bcrypt**: Adicionada dependência bcrypt faltante
+- **PII Encryption**: Corrigido uso de `OsRng` e importado trait `Aead`
+- **Customer Repository**: Adicionada anotação de tipo explícita
+- **React Hooks**: Corrigido warning de `exhaustive-deps` em ProductsPage.tsx
 
----
+### Melhorado
 
-Todas as alteracoes notaveis deste projeto serao documentadas neste arquivo.
+- **Performance**: Redução de ~80% nas queries ao backend com debounce
+- **Code Quality**: Redução de 13 para 10 warnings no ESLint
+- **Type Safety**: Melhor inferência de tipos no TypeScript
+- **Clean State**: Limpeza completa de estado na busca do PDV
+- **Test Quality**: Removido código não utilizado nos testes E2E
 
-O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
+### Refatorado
+
+- Renomeado `ContractStatus::from_str` para `ContractStatus::parse_status`
+- Otimizado uso de `useMemo` em ProductsPage.tsx
+- Removidos imports e funções não utilizadas em testes E2E
 
 ---
 

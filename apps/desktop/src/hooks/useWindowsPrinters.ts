@@ -9,7 +9,6 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
-import { platform } from '@tauri-apps/api/os';
 import { useState, useCallback, useEffect } from 'react';
 
 /**
@@ -48,20 +47,23 @@ export function useWindowsPrinters() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
-    platform()
-      .then((value) => {
-        if (!isMounted) return;
-        setIsWindows(value.toLowerCase().startsWith('win'));
-      })
-      .catch(() => {
-        if (!isMounted) return;
+    // Detecta se está rodando no Windows através do userAgent do navegador
+    const detectPlatform = async () => {
+      try {
+        // Em Tauri 2.x, usamos window.__TAURI_INTERNALS__ ou navigator
+        const userAgent = navigator.userAgent.toLowerCase();
+        setIsWindows(
+          userAgent.includes('windows') ||
+            userAgent.includes('win32') ||
+            userAgent.includes('win64')
+        );
+      } catch (error) {
+        console.warn('Erro ao detectar plataforma:', error);
         setIsWindows(false);
-      });
-
-    return () => {
-      isMounted = false;
+      }
     };
+
+    detectPlatform();
   }, []);
 
   /**

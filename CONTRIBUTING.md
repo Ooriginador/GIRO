@@ -97,6 +97,101 @@ pnpm prisma db push
 # Execute em modo dev
 cd ../../apps/desktop
 pnpm tauri dev
+```
+
+## 📝 Padrão de Commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+tipo(escopo): descrição curta
+
+[corpo opcional]
+
+[rodapé opcional]
+```
+
+### Tipos Permitidos
+
+- `feat`: Nova funcionalidade
+- `fix`: Correção de bug
+- `docs`: Documentação
+- `style`: Formatação (sem mudança de código)
+- `refactor`: Refatoração
+- `perf`: Melhoria de performance
+- `test`: Testes
+- `chore`: Manutenção (build, deps, etc)
+
+### Exemplos
+
+```bash
+# Feature
+git commit -m "feat(pdv): adiciona busca por código de barras"
+
+# Fix
+git commit -m "fix(reports): corrige cálculo de totais no kardex"
+
+# Breaking change
+git commit -m "feat(api)!: altera estrutura de resposta do endpoint /sales
+
+BREAKING CHANGE: campo 'total' agora retorna string formatada"
+```
+
+## ✅ Checklist Pré-Commit
+
+Antes de fazer commit, verifique:
+
+### 1. Compilação
+
+```bash
+# TypeScript
+cd apps/desktop
+pnpm run type-check
+
+# Rust
+cd src-tauri
+cargo check
+```
+
+### 2. Lint
+
+```bash
+# Frontend
+pnpm run lint
+
+# Backend
+cd src-tauri
+cargo clippy -- -D warnings
+```
+
+### 3. Testes
+
+```bash
+# Unit tests (Rust)
+cd src-tauri
+cargo test
+
+# E2E tests (opcional antes de PR)
+cd ../..
+pnpm test:e2e
+```
+
+### 4. Formatação
+
+```bash
+# TypeScript/JavaScript
+pnpm run format
+
+# Rust
+cd src-tauri
+cargo fmt
+```
+
+### 5. Build (opcional)
+
+```bash
+# Build de desenvolvimento
+pnpm tauri build --debug
 ```text
 ### Mobile
 
