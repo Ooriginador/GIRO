@@ -40,14 +40,12 @@ use std::time::{Duration, Instant};
 use windows::core::{PCWSTR, PWSTR};
 use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Graphics::Printing::{
-    ClosePrinter, EndDocPrinter, EndPagePrinter, EnumPrintersW, GetDefaultPrinterW,
-    OpenPrinterW, StartDocPrinterW, StartPagePrinter, WritePrinter, DOC_INFO_1W,
-    PRINTER_ENUM_CONNECTIONS, PRINTER_ENUM_LOCAL, PRINTER_ENUM_NETWORK, PRINTER_HANDLE,
-    PRINTER_INFO_2W,
+    ClosePrinter, EndDocPrinter, EndPagePrinter, EnumPrintersW, GetDefaultPrinterW, OpenPrinterW,
+    StartDocPrinterW, StartPagePrinter, WritePrinter, DOC_INFO_1W, PRINTER_ENUM_CONNECTIONS,
+    PRINTER_ENUM_LOCAL, PRINTER_ENUM_NETWORK, PRINTER_HANDLE, PRINTER_INFO_2W,
 };
 use windows::Win32::System::Registry::{
-    RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, HKEY,
-    HKEY_LOCAL_MACHINE, KEY_READ,
+    RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ,
 };
 
 // ════════════════════════════════════════════════════════════════════════════

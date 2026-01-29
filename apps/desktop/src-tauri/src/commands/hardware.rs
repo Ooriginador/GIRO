@@ -8,6 +8,8 @@
 
 use crate::error::AppResult;
 use crate::hardware::device::HardwareDevice;
+#[cfg(target_os = "windows")]
+use crate::hardware::PrinterDetector;
 use crate::hardware::{
     self,
     drawer::{CashDrawer, DrawerConfig},
@@ -16,8 +18,6 @@ use crate::hardware::{
     scanner::{MobileDevice, MobileScannerConfig, ScannerServerState},
     HardwareError,
 };
-#[cfg(target_os = "windows")]
-use crate::hardware::PrinterDetector;
 use crate::services::mobile_server::MobileServer;
 use crate::AppState;
 use qrcode::render::svg;
