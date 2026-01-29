@@ -1,6 +1,6 @@
 [package]
 name = "giro-desktop"
-version = "2.4.13"
+version = "2.4.14"
 description = "GIRO - Sistema de Gestao Comercial para Varejo"
 authors = ["Arkheion"]
 license = "Proprietary"
@@ -127,6 +127,7 @@ windows = { version = "0.62", features = [
   "Win32_Foundation",
   "Win32_Security",
   "Win32_System_Registry",
+  "Win32_System", 
 ] }
 scopeguard = "1.2"
 
