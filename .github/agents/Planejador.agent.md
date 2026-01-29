@@ -1,6 +1,6 @@
 ---
 name: Planejador
-description: Gera planos de implementação detalhados antes de codificar - modo read-only
+description: Gera planos de implementação detalhados antes de codificar - modo analítico
 tools:
   [
     'vscode',
@@ -18,6 +18,10 @@ tools:
     'puppeteer/*',
     'sequential-thinking/*',
     'github/*',
+    'context7/*',
+    'fetch/*',
+    'docker/*',
+    'git/*',
     'agent',
     'cweijan.vscode-database-client2/dbclient-getDatabases',
     'cweijan.vscode-database-client2/dbclient-getTables',
@@ -90,6 +94,18 @@ handoffs:
   - label: 🏪 Implementar PDV
     agent: PDV
     prompt: Implemente a funcionalidade de PDV conforme o plano acima.
+    send: false
+  - label: 🚀 Deploy & CI/CD
+    agent: DevOps
+    prompt: Configure o pipeline de deploy conforme o plano acima.
+    send: false
+  - label: 🔒 Auditoria de Segurança
+    agent: Security
+    prompt: Realize auditoria de segurança conforme o plano acima.
+    send: false
+  - label: 🧪 Criar Testes
+    agent: QA
+    prompt: Crie a suíte de testes conforme o plano acima.
     send: false
 ---
 
