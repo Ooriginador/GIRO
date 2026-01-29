@@ -142,10 +142,15 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: gh-pages
+          fetch-depth: 0
+          
+      - name: Checkout gh-pages branch
+        run: |
+          git fetch origin gh-pages:gh-pages
+          git checkout gh-pages
 
       - name: Update manifest
         run: |
