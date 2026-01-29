@@ -1,7 +1,0 @@
-
-> @giro/desktop@1.0.0 test:coverage /home/jhonslife/GIRO/apps/desktop
-> vitest run --coverage --exclude tests/e2e
-
- MISSING DEPENDENCY  Cannot find dependency '@vitest/coverage-istanbul'
-
- ELIFECYCLE  Command failed with exit code 1.

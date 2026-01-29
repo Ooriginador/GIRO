@@ -1,4 +1,0 @@
-
- RUN  v2.1.9 /home/jhonslife/GIRO/apps/desktop
-      Coverage enabled with v8
-
