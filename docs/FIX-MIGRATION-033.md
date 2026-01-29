@@ -2,17 +2,21 @@
 
 ## Problema
 
-Erro ao iniciar o GIRO:
+**Erro 1 (Checksum inválido):**
 
 ```
-panicked at src\main.rs:533:13:
-Falha ao conectar com banco de dados: Erro de banco de dados:
 migration 33 was previously applied but has been modified
+```
+
+**Erro 2 (Após deletar migration 33):**
+
+```
+duplicate column name: sync_version
 ```
 
 ## Causa
 
-A migration 033 foi modificada após já ter sido aplicada em alguns bancos de dados. O SQLx detecta isso pelo checksum e rejeita a inicialização.
+A migration 033 foi modificada após já ter sido aplicada. Quando você deleta e tenta reaplicar, as colunas `sync_version` já existem, causando erro de duplicação.
 
 ## Soluções Disponíveis
 
@@ -39,11 +43,14 @@ O script:
    - **Windows**: `%APPDATA%\com.arkheion.giro\giro.db`
    - **Linux**: `~/.local/share/com.arkheion.giro/giro.db`
 3. Vá em **Execute SQL**
-4. Cole e execute:
-   ```sql
-   DELETE FROM _sqlx_migrations WHERE version = 33;
+4. Cole APENAS esta linha (corrige o checksum sem reexecutar):
    ```
-5. Clique em **Write Changes**
+   UPDATE _sqlx_migrations
+   SET checksum = X'd5f0f92353daf02ea5062e5e348972a723a9b3858b01da9f03a86730ffc0955e'
+   WHERE version = 33;
+   ```
+   ⚠️ **IMPORTANTE**: Isso corrige o checksum sem tentar recriar as colunas que já existem!
+5. Clique em **Write Changes** (ícone de disco na toolbar ou Ctrl+S)
 6. Feche o DB Browser
 7. Abra o GIRO normalmente
 
