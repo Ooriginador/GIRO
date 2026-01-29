@@ -16,6 +16,7 @@ import type {
   OperationMode,
   PeerInfo,
 } from '@/lib/bindings';
+import { getErrorMessage } from '@/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
@@ -43,7 +44,7 @@ export function useMultiPcStatus(enabled = true) {
     queryFn: async (): Promise<MultiPcNetworkStatus> => {
       const result = await commands.getMultiPcStatus();
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao obter status Multi-PC');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao obter status Multi-PC');
       }
       return result.data;
     },
@@ -63,7 +64,7 @@ export function useNetworkPeers(enabled = true) {
     queryFn: async (): Promise<PeerInfo[]> => {
       const result = await commands.listNetworkPeers();
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao listar peers');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao listar peers');
       }
       return result.data;
     },
@@ -82,7 +83,7 @@ export function useConnectionStats(enabled = true) {
     queryFn: async (): Promise<ConnectionStats> => {
       const result = await commands.getConnectionStats();
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao obter estatísticas');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao obter estatísticas');
       }
       return result.data;
     },
@@ -101,7 +102,7 @@ export function useNetworkModeConfig(enabled = true) {
     queryFn: async (): Promise<NetworkModeConfig> => {
       const result = await commands.getNetworkModeConfig();
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao obter configuração');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao obter configuração');
       }
       return result.data;
     },
@@ -124,7 +125,7 @@ export function useStartConnectionManager() {
     mutationFn: async (config: NetworkModeConfig) => {
       const result = await commands.startConnectionManager(config);
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao iniciar Connection Manager');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao iniciar Connection Manager');
       }
       return result.data;
     },
@@ -145,7 +146,7 @@ export function useStopConnectionManager() {
     mutationFn: async () => {
       const result = await commands.stopConnectionManager();
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao parar Connection Manager');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao parar Connection Manager');
       }
       return result.data;
     },
@@ -165,7 +166,7 @@ export function useAddNetworkPeer() {
     mutationFn: async ({ ip, port, name }: { ip: string; port?: number; name?: string }) => {
       const result = await commands.addNetworkPeer(ip, port ?? null, name ?? null);
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao adicionar peer');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao adicionar peer');
       }
       return result.data;
     },
@@ -186,7 +187,7 @@ export function useRemoveNetworkPeer() {
     mutationFn: async (peerId: string) => {
       const result = await commands.removeNetworkPeer(peerId);
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao remover peer');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao remover peer');
       }
       return result.data;
     },
@@ -207,7 +208,7 @@ export function useConnectToMaster() {
     mutationFn: async ({ ip, port }: { ip: string; port?: number }) => {
       const result = await commands.connectToMaster(ip, port ?? null);
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao conectar ao Master');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao conectar ao Master');
       }
       return result.data;
     },
@@ -227,7 +228,7 @@ export function useDisconnectFromMaster() {
     mutationFn: async () => {
       const result = await commands.disconnectFromMaster();
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao desconectar do Master');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao desconectar do Master');
       }
       return result.data;
     },
@@ -247,7 +248,7 @@ export function useRefreshPeerDiscovery() {
     mutationFn: async () => {
       const result = await commands.refreshPeerDiscovery();
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao atualizar discovery');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao atualizar discovery');
       }
       return result.data;
     },
@@ -268,7 +269,7 @@ export function useSaveNetworkModeConfig() {
     mutationFn: async (config: NetworkModeConfig) => {
       const result = await commands.saveNetworkModeConfig(config);
       if (result.status === 'error') {
-        throw new Error(result.error.message || 'Erro ao salvar configuração');
+        throw new Error(getErrorMessage(result.error) || 'Erro ao salvar configuração');
       }
       return result.data;
     },
@@ -309,16 +310,12 @@ export function useMultiPc() {
     queryClient.invalidateQueries({ queryKey: ['multiPc'] });
   }, [queryClient]);
 
-  const isLoading =
-    status.isLoading || peers.isLoading || stats.isLoading || config.isLoading;
+  const isLoading = status.isLoading || peers.isLoading || stats.isLoading || config.isLoading;
 
   const isError = status.isError || peers.isError || stats.isError || config.isError;
 
   const error =
-    status.error?.message ||
-    peers.error?.message ||
-    stats.error?.message ||
-    config.error?.message;
+    status.error?.message || peers.error?.message || stats.error?.message || config.error?.message;
 
   return {
     // Data
@@ -332,7 +329,7 @@ export function useMultiPc() {
     isError,
     error,
     isRunning: status.data?.isRunning ?? false,
-    mode: status.data?.mode ?? ('Standalone' as OperationMode),
+    mode: status.data?.mode ?? ('standalone' as OperationMode),
     connectedToMaster: status.data?.connectedToMaster ?? false,
     peerCount: peers.data?.length ?? 0,
     onlinePeers: stats.data?.onlinePeers ?? 0,
@@ -359,10 +356,4 @@ export function useMultiPc() {
 // RE-EXPORTS
 // ────────────────────────────────────────────────────────────────────────────
 
-export type {
-  ConnectionStats,
-  MultiPcNetworkStatus,
-  NetworkModeConfig,
-  OperationMode,
-  PeerInfo,
-};
+export type { ConnectionStats, MultiPcNetworkStatus, NetworkModeConfig, OperationMode, PeerInfo };

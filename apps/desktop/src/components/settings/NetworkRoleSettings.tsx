@@ -26,7 +26,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { useMultiPc } from '@/hooks/useMultiPc';
 import { invoke, setSetting, getSetting } from '@/lib/tauri';
 import {
   CheckCircle2,
@@ -40,10 +39,7 @@ import {
   Loader2,
   RefreshCw,
   Save,
-  Server,
   Settings2,
-  Wifi,
-  WifiOff,
 } from 'lucide-react';
 import { useCallback, useEffect, useState, type FC } from 'react';
 
@@ -123,9 +119,12 @@ export const NetworkRoleSettings: FC = () => {
   const [masterPort, setMasterPort] = useState('3847');
   const [serverPort, setServerPort] = useState('3847');
 
-  // Status
-  const [networkStatus, setNetworkStatus] = useState<NetworkStatus | null>(null);
-  const [serverStatus, setServerStatus] = useState<MobileServerStatus | null>(null);
+  // Status (reserved for future status display)
+  // Using underscore prefix to indicate intentionally unused
+  const [_networkStatus, setNetworkStatus] = useState<NetworkStatus | null>(null);
+  const [_serverStatus, setServerStatus] = useState<MobileServerStatus | null>(null);
+  void _networkStatus; // Silence TS6133
+  void _serverStatus; // Silence TS6133
 
   // UI States
   const [showPassword, setShowPassword] = useState(false);

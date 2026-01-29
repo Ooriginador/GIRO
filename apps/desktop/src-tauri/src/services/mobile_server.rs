@@ -469,14 +469,28 @@ async fn process_request(
                     if let Some(data) = &response.data {
                         let mut conns = connections.write().await;
                         if let Some(conn) = conns.get_mut(connection_id) {
+                            // Buscar employee.id ou employeeId (compatibilidade)
                             conn.employee_id = data
-                                .get("employeeId")
+                                .get("employee")
+                                .and_then(|e| e.get("id"))
                                 .and_then(|v| v.as_str())
-                                .map(|s| s.to_string());
+                                .map(|s| s.to_string())
+                                .or_else(|| {
+                                    data.get("employeeId")
+                                        .and_then(|v| v.as_str())
+                                        .map(|s| s.to_string())
+                                });
+                            // Buscar employee.role ou role
                             conn.employee_role = data
-                                .get("role")
+                                .get("employee")
+                                .and_then(|e| e.get("role"))
                                 .and_then(|v| v.as_str())
-                                .map(|s| s.to_string());
+                                .map(|s| s.to_string())
+                                .or_else(|| {
+                                    data.get("role")
+                                        .and_then(|v| v.as_str())
+                                        .map(|s| s.to_string())
+                                });
                             conn.token = data
                                 .get("token")
                                 .and_then(|v| v.as_str())
@@ -506,14 +520,28 @@ async fn process_request(
                     if let Some(data) = &response.data {
                         let mut conns = connections.write().await;
                         if let Some(conn) = conns.get_mut(connection_id) {
+                            // Buscar employee.id ou employeeId (compatibilidade)
                             conn.employee_id = data
-                                .get("employeeId")
+                                .get("employee")
+                                .and_then(|e| e.get("id"))
                                 .and_then(|v| v.as_str())
-                                .map(|s| s.to_string());
+                                .map(|s| s.to_string())
+                                .or_else(|| {
+                                    data.get("employeeId")
+                                        .and_then(|v| v.as_str())
+                                        .map(|s| s.to_string())
+                                });
+                            // Buscar employee.role ou role
                             conn.employee_role = data
-                                .get("role")
+                                .get("employee")
+                                .and_then(|e| e.get("role"))
                                 .and_then(|v| v.as_str())
-                                .map(|s| s.to_string());
+                                .map(|s| s.to_string())
+                                .or_else(|| {
+                                    data.get("role")
+                                        .and_then(|v| v.as_str())
+                                        .map(|s| s.to_string())
+                                });
                             conn.token = data
                                 .get("token")
                                 .and_then(|v| v.as_str())

@@ -17,12 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMultiPc, type PeerInfo } from '@/hooks/useMultiPc';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -57,8 +52,8 @@ interface PeersListProps {
 // ────────────────────────────────────────────────────────────────────────────
 
 const PeerStatusBadge: FC<{ peer: PeerInfo }> = ({ peer }) => {
-  const isOnline = peer.status === 'Online';
-  const isConnecting = peer.status === 'Connecting';
+  const isOnline = peer.status === 'online' || peer.status === 'connected';
+  const isConnecting = peer.status === 'testing' || peer.status === 'discovered';
 
   if (isConnecting) {
     return (
@@ -89,8 +84,8 @@ const PeerCard: FC<{
   isRemoving?: boolean;
   compact?: boolean;
 }> = ({ peer, onRemove, isRemoving, compact }) => {
-  const isOnline = peer.status === 'Online';
-  const isMaster = peer.role === 'Master';
+  const isOnline = peer.status === 'online' || peer.status === 'connected';
+  const isMaster = peer.isMaster;
 
   const formatLastSeen = (lastSeen: string | null): string => {
     if (!lastSeen) return 'Nunca';
@@ -110,14 +105,20 @@ const PeerCard: FC<{
       <div
         className={cn(
           'flex items-center justify-between rounded-lg border p-3',
-          isOnline ? 'border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20' : ''
+          isOnline
+            ? 'border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20'
+            : ''
         )}
       >
         <div className="flex items-center gap-3">
           {isMaster ? (
-            <Server className={cn('h-5 w-5', isOnline ? 'text-amber-500' : 'text-muted-foreground')} />
+            <Server
+              className={cn('h-5 w-5', isOnline ? 'text-amber-500' : 'text-muted-foreground')}
+            />
           ) : (
-            <Laptop className={cn('h-5 w-5', isOnline ? 'text-blue-500' : 'text-muted-foreground')} />
+            <Laptop
+              className={cn('h-5 w-5', isOnline ? 'text-blue-500' : 'text-muted-foreground')}
+            />
           )}
           <div>
             <div className="flex items-center gap-2">
@@ -148,9 +149,13 @@ const PeerCard: FC<{
               )}
             >
               {isMaster ? (
-                <Server className={cn('h-5 w-5', isOnline ? 'text-amber-600' : 'text-muted-foreground')} />
+                <Server
+                  className={cn('h-5 w-5', isOnline ? 'text-amber-600' : 'text-muted-foreground')}
+                />
               ) : (
-                <Laptop className={cn('h-5 w-5', isOnline ? 'text-blue-600' : 'text-muted-foreground')} />
+                <Laptop
+                  className={cn('h-5 w-5', isOnline ? 'text-blue-600' : 'text-muted-foreground')}
+                />
               )}
             </div>
             <div className="space-y-1">
@@ -167,12 +172,8 @@ const PeerCard: FC<{
                   <Wifi className="h-3 w-3" />
                   {peer.ip}:{peer.port}
                 </div>
-                {peer.version && (
-                  <div className="text-xs">GIRO v{peer.version}</div>
-                )}
-                {peer.storeName && (
-                  <div className="text-xs">{peer.storeName}</div>
-                )}
+                {peer.version && <div className="text-xs">GIRO v{peer.version}</div>}
+                {peer.storeName && <div className="text-xs">{peer.storeName}</div>}
               </div>
             </div>
           </div>
@@ -395,18 +396,11 @@ export const PeersList: FC<PeersListProps> = ({
           </div>
           <div className="flex items-center gap-2">
             {showRefreshButton && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-              >
+              <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
                 <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
               </Button>
             )}
-            {showAddButton && (
-              <AddPeerDialog onAdd={handleAddPeer} isAdding={addPeer.isPending} />
-            )}
+            {showAddButton && <AddPeerDialog onAdd={handleAddPeer} isAdding={addPeer.isPending} />}
           </div>
         </div>
       </CardHeader>

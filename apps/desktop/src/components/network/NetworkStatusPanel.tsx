@@ -52,12 +52,14 @@ interface NetworkStatusPanelProps {
 
 const getModeLabel = (mode: OperationMode): string => {
   switch (mode) {
-    case 'Standalone':
+    case 'standalone':
       return 'Caixa Único';
-    case 'Master':
+    case 'master':
       return 'Principal';
-    case 'Satellite':
+    case 'satellite':
       return 'Auxiliar';
+    case 'hybrid':
+      return 'Híbrido';
     default:
       return mode;
   }
@@ -65,12 +67,14 @@ const getModeLabel = (mode: OperationMode): string => {
 
 const getModeIcon = (mode: OperationMode) => {
   switch (mode) {
-    case 'Standalone':
+    case 'standalone':
       return <Laptop className="h-5 w-5" />;
-    case 'Master':
+    case 'master':
       return <Crown className="h-5 w-5 text-amber-500" />;
-    case 'Satellite':
+    case 'satellite':
       return <Link2 className="h-5 w-5 text-blue-500" />;
+    case 'hybrid':
+      return <Crown className="h-5 w-5 text-purple-500" />;
     default:
       return <Monitor className="h-5 w-5" />;
   }
@@ -78,12 +82,14 @@ const getModeIcon = (mode: OperationMode) => {
 
 const getModeColor = (mode: OperationMode): string => {
   switch (mode) {
-    case 'Standalone':
+    case 'standalone':
       return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
-    case 'Master':
+    case 'master':
       return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-    case 'Satellite':
+    case 'satellite':
       return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+    case 'hybrid':
+      return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
     default:
       return 'bg-slate-100 text-slate-700';
   }
@@ -111,7 +117,6 @@ const StatCard: FC<{
 );
 
 // Reserved for future use - connection quality indicator
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ConnectionQuality: FC<{ latencyMs?: number }> = ({ latencyMs }) => {
   if (!latencyMs) {
     return (
@@ -139,6 +144,8 @@ const ConnectionQuality: FC<{ latencyMs?: number }> = ({ latencyMs }) => {
     </div>
   );
 };
+// Export to prevent unused error - component reserved for future use
+export { ConnectionQuality };
 
 // ────────────────────────────────────────────────────────────────────────────
 // LOADING SKELETON
@@ -288,9 +295,7 @@ export const NetworkStatusPanel: FC<NetworkStatusPanelProps> = ({
               </Badge>
             </div>
             <span className="text-xs text-muted-foreground">
-              {isRunning
-                ? `${onlinePeers} de ${peerCount} online`
-                : 'Rede desligada'}
+              {isRunning ? `${onlinePeers} de ${peerCount} online` : 'Rede desligada'}
             </span>
           </div>
         </div>
@@ -330,10 +335,7 @@ export const NetworkStatusPanel: FC<NetworkStatusPanelProps> = ({
           </div>
           <Badge
             variant={isRunning ? 'default' : 'secondary'}
-            className={cn(
-              'gap-1 px-3 py-1',
-              isRunning ? 'bg-green-600 hover:bg-green-700' : ''
-            )}
+            className={cn('gap-1 px-3 py-1', isRunning ? 'bg-green-600 hover:bg-green-700' : '')}
           >
             {isRunning ? (
               <>
@@ -354,20 +356,20 @@ export const NetworkStatusPanel: FC<NetworkStatusPanelProps> = ({
         {/* Mode and Status */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={cn('rounded-lg p-3', getModeColor(mode))}>
-              {getModeIcon(mode)}
-            </div>
+            <div className={cn('rounded-lg p-3', getModeColor(mode))}>{getModeIcon(mode)}</div>
             <div>
               <p className="font-semibold">{getModeLabel(mode)}</p>
               <p className="text-sm text-muted-foreground">
-                {mode === 'Master' && 'Outros caixas se conectam aqui'}
-                {mode === 'Satellite' && (connectedToMaster ? 'Conectado ao Principal' : 'Aguardando conexão')}
-                {mode === 'Standalone' && 'Operando de forma independente'}
+                {mode === 'master' && 'Outros caixas se conectam aqui'}
+                {mode === 'satellite' &&
+                  (connectedToMaster ? 'Conectado ao Principal' : 'Aguardando conexão')}
+                {mode === 'standalone' && 'Operando de forma independente'}
+                {mode === 'hybrid' && 'Master com backup distribuído'}
               </p>
             </div>
           </div>
 
-          {mode === 'Satellite' && (
+          {mode === 'satellite' && (
             <Badge variant={connectedToMaster ? 'default' : 'secondary'}>
               {connectedToMaster ? (
                 <>
@@ -440,10 +442,7 @@ export const NetworkStatusPanel: FC<NetworkStatusPanelProps> = ({
                 disabled={refreshDiscovery.isPending}
               >
                 <RefreshCw
-                  className={cn(
-                    'mr-2 h-4 w-4',
-                    refreshDiscovery.isPending && 'animate-spin'
-                  )}
+                  className={cn('mr-2 h-4 w-4', refreshDiscovery.isPending && 'animate-spin')}
                 />
                 Atualizar
               </Button>
