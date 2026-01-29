@@ -208,6 +208,7 @@ impl Default for ManagerState {
 pub struct ConnectionManager {
     config: RwLock<ConnectionManagerConfig>,
     state: RwLock<ManagerState>,
+    #[allow(dead_code)]
     pool: SqlitePool,
     diagnostics: Arc<NetworkDiagnosticsService>,
     mdns_service: RwLock<Option<Arc<MdnsService>>>,
@@ -624,6 +625,7 @@ impl ConnectionManager {
     }
 
     /// Registra erro
+    #[allow(dead_code)]
     async fn log_error(&self, message: &str) {
         let mut state = self.state.write().await;
         state
