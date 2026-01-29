@@ -573,6 +573,8 @@ mod tests {
             port: 3847,
             version: "1.0.0".into(),
             store_name: Some("Mercado Teste".into()),
+            auto_restart: true,
+            health_check_interval_secs: 30,
         };
 
         let service = MdnsService::new(config);
