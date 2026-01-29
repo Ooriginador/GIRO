@@ -28,10 +28,12 @@
 
 #![cfg(target_os = "windows")]
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
+use std::os::windows::process::CommandExt;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -181,9 +183,13 @@ pub struct DetectionResult {
     /// Warnings durante detecção
     pub warnings: Vec<String>,
     /// Tempo de detecção em ms
-    pub detection_time_ms: u64,
+    pub total_time_ms: u64,
     /// Fontes utilizadas
-    pub sources_used: Vec<DetectionSource>,
+    pub strategies_used: Vec<DetectionSource>,
+    /// Veio do cache?
+    pub from_cache: bool,
+    /// Data da detecção
+    pub detected_at: DateTime<Utc>,
 }
 
 /// Cache de impressoras
@@ -238,7 +244,9 @@ impl PrinterDetector {
                         "Usando cache de impressoras (age: {:?})",
                         last_update.elapsed()
                     );
-                    return result.clone();
+                    let mut res = result.clone();
+                    res.from_cache = true;
+                    return res;
                 }
             }
         }
@@ -419,8 +427,10 @@ impl PrinterDetector {
             suggested_printer: suggested,
             errors,
             warnings,
-            detection_time_ms: detection_time,
-            sources_used,
+            total_time_ms: detection_time,
+            strategies_used: sources_used,
+            from_cache: false,
+            detected_at: Utc::now(),
         }
     }
 
@@ -435,7 +445,7 @@ impl PrinterDetector {
             let level = 2u32; // PRINTER_INFO_2W tem mais detalhes
 
             let _ = EnumPrintersW(
-                windows::Win32::Graphics::Printing::PRINTER_ENUM_FLAGS(flags),
+                flags,
                 PCWSTR::null(),
                 level,
                 None,
@@ -453,7 +463,7 @@ impl PrinterDetector {
 
             // Chama novamente com buffer
             let result = EnumPrintersW(
-                windows::Win32::Graphics::Printing::PRINTER_ENUM_FLAGS(flags),
+                flags,
                 PCWSTR::null(),
                 level,
                 Some(&mut buffer),
