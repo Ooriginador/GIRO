@@ -223,7 +223,7 @@ pub struct PrinterDetectionResultDto {
     pub errors: Vec<String>,
     pub from_cache: bool,
     pub detected_at: f64,
-    pub total_time_ms: u64,
+    pub total_time_ms: u32,
 }
 
 /// Lista impressoras Windows com informações detalhadas (NOVO: usa PrinterDetector robusto)
@@ -295,7 +295,7 @@ pub fn detect_printers_full() -> PrinterDetectionResultDto {
             errors: result.errors,
             from_cache: result.from_cache,
             detected_at: result.detected_at.timestamp_millis() as f64,
-            total_time_ms: result.total_time_ms,
+            total_time_ms: result.total_time_ms as u32,
         }
     }
 
@@ -348,7 +348,7 @@ pub fn refresh_printers() -> PrinterDetectionResultDto {
             errors: result.errors,
             from_cache: result.from_cache,
             detected_at: result.detected_at.timestamp_millis() as f64,
-            total_time_ms: result.total_time_ms,
+            total_time_ms: result.total_time_ms as u32,
         }
     }
 

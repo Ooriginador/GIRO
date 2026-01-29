@@ -6,6 +6,8 @@
  * Linguagem simplificada, sem jargões técnicos
  */
 
+import { NetworkStatusPanel } from '@/components/network/NetworkStatusPanel';
+import { PeersList } from '@/components/network/PeersList';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
+import { useMultiPc } from '@/hooks/useMultiPc';
 import { invoke, setSetting, getSetting } from '@/lib/tauri';
 import {
   CheckCircle2,
@@ -613,93 +616,18 @@ export const NetworkRoleSettings: FC = () => {
               </div>
             )}
 
-            {/* Status do Caixa Principal */}
-            {currentRole === 'MASTER' && serverStatus && (
-              <div className="rounded-xl border bg-gradient-to-br from-green-50 to-emerald-50 p-4 dark:from-green-950/30 dark:to-emerald-950/30">
-                <h4 className="mb-4 font-medium flex items-center gap-2 text-green-800 dark:text-green-200">
-                  <Server className="h-4 w-4" />
-                  Status do Caixa Principal
-                </h4>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="text-center rounded-lg bg-white/50 p-3 dark:bg-black/20">
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                      <div
-                        className={`h-2.5 w-2.5 rounded-full ${
-                          serverStatus.isRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'
-                        }`}
-                      />
-                      <span className="text-lg font-semibold">
-                        {serverStatus.isRunning ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">Servidor</div>
-                  </div>
-                  <div className="text-center rounded-lg bg-white/50 p-3 dark:bg-black/20">
-                    <div className="text-2xl font-bold text-green-700 dark:text-green-300">
-                      {serverStatus.connectedDevices}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {serverStatus.connectedDevices === 1
-                        ? 'Caixa conectado'
-                        : 'Caixas conectados'}
-                    </div>
-                  </div>
-                  <div className="text-center rounded-lg bg-white/50 p-3 dark:bg-black/20">
-                    <div className="text-lg font-mono text-green-700 dark:text-green-300">
-                      {serverStatus.localIp || '—'}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Endereço IP</div>
-                  </div>
-                </div>
+            {/* Status do Caixa Principal - Multi-PC */}
+            {currentRole === 'MASTER' && (
+              <div className="space-y-4">
+                <NetworkStatusPanel showControls={false} />
+                <PeersList compact showAddButton={false} maxHeight="250px" />
               </div>
             )}
 
-            {/* Status do Caixa Auxiliar */}
-            {currentRole === 'SATELLITE' && networkStatus && (
-              <div
-                className={`rounded-xl border p-4 ${
-                  networkStatus.connectedMaster
-                    ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30'
-                    : 'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30'
-                }`}
-              >
-                <h4
-                  className={`mb-3 font-medium flex items-center gap-2 ${
-                    networkStatus.connectedMaster
-                      ? 'text-green-800 dark:text-green-200'
-                      : 'text-amber-800 dark:text-amber-200'
-                  }`}
-                >
-                  {networkStatus.connectedMaster ? (
-                    <Wifi className="h-4 w-4" />
-                  ) : (
-                    <WifiOff className="h-4 w-4" />
-                  )}
-                  Status da Conexão
-                </h4>
-                <div className="flex items-center gap-3 rounded-lg bg-white/50 p-3 dark:bg-black/20">
-                  <div
-                    className={`h-3 w-3 rounded-full ${
-                      networkStatus.connectedMaster
-                        ? 'bg-green-500'
-                        : networkStatus.isRunning
-                        ? 'bg-amber-500 animate-pulse'
-                        : 'bg-red-500'
-                    }`}
-                  />
-                  <span className="font-medium">
-                    {networkStatus.connectedMaster
-                      ? `✓ Conectado ao ${networkStatus.connectedMaster}`
-                      : networkStatus.isRunning
-                      ? '🔍 Buscando o Caixa Principal...'
-                      : '✕ Desconectado'}
-                  </span>
-                </div>
-                {!networkStatus.connectedMaster && networkStatus.isRunning && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Verifique se o Caixa Principal está ligado e conectado à mesma rede
-                  </p>
-                )}
+            {/* Status do Caixa Auxiliar - Multi-PC */}
+            {currentRole === 'SATELLITE' && (
+              <div className="space-y-4">
+                <NetworkStatusPanel showControls={true} />
               </div>
             )}
 
