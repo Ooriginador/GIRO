@@ -1,6 +1,6 @@
 [package]
 name = "giro-desktop"
-version = "2.4.12"
+version = "2.4.13"
 description = "GIRO - Sistema de Gestao Comercial para Varejo"
 authors = ["Arkheion"]
 license = "Proprietary"
