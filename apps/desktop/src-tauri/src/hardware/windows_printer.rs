@@ -17,11 +17,11 @@
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
 use windows::core::{PCWSTR, PWSTR};
-use windows::Win32::Foundation::{GetLastError, HANDLE};
+use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Graphics::Printing::{
-    ClosePrinter, EndDocPrinter, EndPagePrinter, EnumPrintersW, GetDefaultPrinterW, GetPrinterW,
-    OpenPrinterW, StartDocPrinterW, StartPagePrinter, WritePrinter, DOC_INFO_1W,
-    PRINTER_ACCESS_USE, PRINTER_ENUM_LOCAL, PRINTER_INFO_2W,
+    ClosePrinter, EndDocPrinter, EndPagePrinter, EnumPrintersW, GetDefaultPrinterW, OpenPrinterW,
+    StartDocPrinterW, StartPagePrinter, WritePrinter, DOC_INFO_1W, PRINTER_ENUM_LOCAL,
+    PRINTER_HANDLE, PRINTER_INFO_2W,
 };
 
 use serde::{Deserialize, Serialize};
@@ -188,7 +188,7 @@ pub fn get_default_printer() -> Option<String> {
     unsafe {
         // Primeiro, obtém o tamanho necessário
         let mut size: u32 = 0;
-        let _ = GetDefaultPrinterW(PWSTR::null(), &mut size);
+        let _ = GetDefaultPrinterW(None, &mut size);
 
         if size == 0 {
             tracing::debug!("Nenhuma impressora padrão configurada");
@@ -197,9 +197,9 @@ pub fn get_default_printer() -> Option<String> {
 
         // Aloca buffer e obtém o nome
         let mut buffer: Vec<u16> = vec![0u16; size as usize];
-        let result = GetDefaultPrinterW(PWSTR(buffer.as_mut_ptr()), &mut size);
+        let result = GetDefaultPrinterW(Some(PWSTR(buffer.as_mut_ptr())), &mut size);
 
-        if result.is_ok() {
+        if result.as_bool() {
             // Remove null terminator
             while buffer.last() == Some(&0) {
                 buffer.pop();
@@ -237,7 +237,6 @@ pub fn enumerate_printers() -> Vec<WindowsPrinterInfo> {
             PCWSTR::null(),
             level,
             None,
-            0,
             &mut bytes_needed,
             &mut count,
         );
@@ -255,12 +254,11 @@ pub fn enumerate_printers() -> Vec<WindowsPrinterInfo> {
             PCWSTR::null(),
             level,
             Some(&mut buffer),
-            bytes_needed,
             &mut bytes_needed,
             &mut count,
         );
 
-        if result.is_err() {
+        if !result.as_bool() {
             let error = GetLastError();
             tracing::error!("Erro ao enumerar impressoras: {:?}", error);
             return printers;
@@ -343,7 +341,7 @@ pub fn print_raw(printer_name: &str, data: &[u8], doc_name: Option<&str>) -> Res
 
     unsafe {
         // 1. Abre a impressora
-        let mut printer_handle = HANDLE::default();
+        let mut printer_handle = PRINTER_HANDLE::default();
 
         let result = OpenPrinterW(
             PCWSTR(printer_name_wide.as_ptr()),
@@ -379,7 +377,7 @@ pub fn print_raw(printer_name: &str, data: &[u8], doc_name: Option<&str>) -> Res
         }
 
         // 3. Inicia a página
-        if StartPagePrinter(printer_handle).is_err() {
+        if !StartPagePrinter(printer_handle).as_bool() {
             let error = GetLastError();
             let _ = EndDocPrinter(printer_handle);
             return Err(format!("Erro ao iniciar página: {:?}", error));
@@ -399,7 +397,7 @@ pub fn print_raw(printer_name: &str, data: &[u8], doc_name: Option<&str>) -> Res
         let _ = EndPagePrinter(printer_handle);
         let _ = EndDocPrinter(printer_handle);
 
-        if write_result.is_err() {
+        if !write_result.as_bool() {
             let error = GetLastError();
             return Err(format!("Erro ao escrever dados: {:?}", error));
         }
