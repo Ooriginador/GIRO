@@ -34,20 +34,20 @@ use std::collections::HashMap;
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
 use std::os::windows::process::CommandExt;
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
 use windows::core::{PCWSTR, PWSTR};
-use windows::Win32::Foundation::{GetLastError, ERROR_INSUFFICIENT_BUFFER, WIN32_ERROR};
+use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Graphics::Printing::{
-    ClosePrinter, EndDocPrinter, EndPagePrinter, EnumPrintersW, GetDefaultPrinterW, GetPrinterW,
+    ClosePrinter, EndDocPrinter, EndPagePrinter, EnumPrintersW, GetDefaultPrinterW,
     OpenPrinterW, StartDocPrinterW, StartPagePrinter, WritePrinter, DOC_INFO_1W,
     PRINTER_ENUM_CONNECTIONS, PRINTER_ENUM_LOCAL, PRINTER_ENUM_NETWORK, PRINTER_HANDLE,
-    PRINTER_INFO_2W, PRINTER_INFO_4W,
+    PRINTER_INFO_2W,
 };
 use windows::Win32::System::Registry::{
-    RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_CURRENT_USER,
-    HKEY_LOCAL_MACHINE, KEY_READ, REG_SZ,
+    RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, HKEY,
+    HKEY_LOCAL_MACHINE, KEY_READ,
 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -537,7 +537,7 @@ impl PrinterDetector {
             let result = RegOpenKeyExW(
                 HKEY_LOCAL_MACHINE,
                 PCWSTR(path.as_ptr()),
-                0,
+                Some(0),
                 KEY_READ,
                 &mut hkey,
             );
@@ -550,10 +550,10 @@ impl PrinterDetector {
                 while RegEnumKeyExW(
                     hkey,
                     index,
-                    PWSTR(name_buffer.as_mut_ptr()),
+                    Some(PWSTR(name_buffer.as_mut_ptr())),
                     &mut name_len,
                     None,
-                    PWSTR::null(),
+                    None,
                     None,
                     None,
                 )

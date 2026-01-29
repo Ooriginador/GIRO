@@ -17,7 +17,7 @@ use crate::hardware::{
     HardwareError,
 };
 #[cfg(target_os = "windows")]
-use crate::hardware::{DetectionResult as DetectorResult, PrinterDetector};
+use crate::hardware::PrinterDetector;
 use crate::services::mobile_server::MobileServer;
 use crate::AppState;
 use qrcode::render::svg;
@@ -294,7 +294,7 @@ pub fn detect_printers_full() -> PrinterDetectionResultDto {
                 .collect(),
             errors: result.errors,
             from_cache: result.from_cache,
-            detected_at: result.detected_at,
+            detected_at: result.detected_at.timestamp_millis() as f64,
             total_time_ms: result.total_time_ms,
         }
     }
@@ -347,7 +347,7 @@ pub fn refresh_printers() -> PrinterDetectionResultDto {
                 .collect(),
             errors: result.errors,
             from_cache: result.from_cache,
-            detected_at: result.detected_at,
+            detected_at: result.detected_at.timestamp_millis() as f64,
             total_time_ms: result.total_time_ms,
         }
     }
