@@ -355,8 +355,6 @@ impl SyncOrchestrator {
             .clone();
         drop(sync_client_guard);
 
-        let pushed: usize;
-        let pulled: usize;
         let mut conflicts = 0;
         let mut errors = Vec::new();
 
@@ -371,7 +369,7 @@ impl SyncOrchestrator {
             SyncEntityType::Setting,
         ];
 
-        pushed = match pending_repo.get_pending_as_sync_items(&all_types).await {
+        let pushed = match pending_repo.get_pending_as_sync_items(&all_types).await {
             Ok(items) if !items.is_empty() => {
                 match sync_client.push(&license_key, &hardware_id, items).await {
                     Ok(response) => {
@@ -401,7 +399,7 @@ impl SyncOrchestrator {
         };
 
         // 2. PULL - Receber alterações do servidor
-        pulled = match sync_client
+        let pulled = match sync_client
             .pull(&license_key, &hardware_id, all_types.clone(), 100)
             .await
         {
