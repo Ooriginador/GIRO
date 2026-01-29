@@ -278,7 +278,7 @@ pub async fn start_connection_manager(
     // Criar e iniciar manager
     let manager = ConnectionManager::new(app_state.pool().clone(), manager_config);
 
-    manager.start().await.map_err(|e| AppError::Network(e))?;
+    manager.start().await.map_err(AppError::Network)?;
 
     network_state.connection_manager = Some(manager);
 
@@ -385,7 +385,7 @@ pub async fn connect_to_master(
         manager
             .connect_to_master(&ip, port)
             .await
-            .map_err(|e| AppError::Network(e))?;
+            .map_err(AppError::Network)?;
         Ok(())
     } else {
         Err(AppError::Validation(

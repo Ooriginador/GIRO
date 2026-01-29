@@ -383,15 +383,9 @@ impl NetworkDiagnosticsService {
         }
 
         // Calcular status geral
-        let overall_status = if problems
-            .iter()
-            .any(|p| p.severity == ProblemSeverity::Critical)
-        {
-            DiagnosticStatus::Error
-        } else if problems
-            .iter()
-            .any(|p| p.severity == ProblemSeverity::Error)
-        {
+        let overall_status = if problems.iter().any(|p| {
+            p.severity == ProblemSeverity::Critical || p.severity == ProblemSeverity::Error
+        }) {
             DiagnosticStatus::Error
         } else if problems
             .iter()
@@ -745,7 +739,6 @@ impl NetworkDiagnosticsService {
 
             for i in chunk_start..=chunk_end {
                 let ip = format!("{}.{}", base_ip, i);
-                let port = port;
                 let timeout = Duration::from_millis(500);
 
                 handles.push(tokio::spawn(async move {
@@ -914,10 +907,7 @@ impl NetworkDiagnosticsService {
 
     /// Verifica disponibilidade mDNS
     async fn check_mdns_available(&self) -> bool {
-        match mdns_sd::ServiceDaemon::new() {
-            Ok(_) => true,
-            Err(_) => false,
-        }
+        mdns_sd::ServiceDaemon::new().is_ok()
     }
 }
 

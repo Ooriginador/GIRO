@@ -27,14 +27,9 @@ use tokio::sync::RwLock;
 // ════════════════════════════════════════════════════════════════════════════
 
 /// Estado do Sync Orchestrator (managed by Tauri)
+#[derive(Default)]
 pub struct SyncOrchestratorState {
     pub orchestrator: Option<Arc<SyncOrchestrator>>,
-}
-
-impl Default for SyncOrchestratorState {
-    fn default() -> Self {
-        Self { orchestrator: None }
-    }
 }
 
 // ════════════════════════════════════════════════════════════════════════════

@@ -355,8 +355,8 @@ impl SyncOrchestrator {
             .clone();
         drop(sync_client_guard);
 
-        let mut pushed = 0;
-        let mut pulled = 0;
+        let pushed: usize;
+        let pulled: usize;
         let mut conflicts = 0;
         let mut errors = Vec::new();
 
@@ -371,11 +371,11 @@ impl SyncOrchestrator {
             SyncEntityType::Setting,
         ];
 
-        match pending_repo.get_pending_as_sync_items(&all_types).await {
+        pushed = match pending_repo.get_pending_as_sync_items(&all_types).await {
             Ok(items) if !items.is_empty() => {
                 match sync_client.push(&license_key, &hardware_id, items).await {
                     Ok(response) => {
-                        pushed = response.processed;
+                        let count = response.processed;
                         for result in &response.results {
                             if result.status == SyncItemStatus::Ok {
                                 let _ = pending_repo
@@ -385,33 +385,38 @@ impl SyncOrchestrator {
                                 conflicts += 1;
                             }
                         }
+                        count
                     }
                     Err(e) => {
                         errors.push(format!("Push falhou: {}", e));
+                        0
                     }
                 }
             }
-            Ok(_) => {} // Nada pendente
+            Ok(_) => 0, // Nada pendente
             Err(e) => {
                 errors.push(format!("Erro ao obter pendências: {}", e));
+                0
             }
-        }
+        };
 
         // 2. PULL - Receber alterações do servidor
-        match sync_client
+        pulled = match sync_client
             .pull(&license_key, &hardware_id, all_types.clone(), 100)
             .await
         {
             Ok(response) => {
-                pulled = response.items.len();
+                let count = response.items.len();
                 if let Err(e) = self.apply_pulled_items(&response.items).await {
                     errors.push(format!("Erro ao aplicar items: {}", e));
                 }
+                count
             }
             Err(e) => {
                 errors.push(format!("Pull falhou: {}", e));
+                0
             }
-        }
+        };
 
         let result = SyncOperationResult {
             source: SyncSource::Cloud,
@@ -461,8 +466,8 @@ impl SyncOrchestrator {
         let mode = connection_manager.get_mode().await;
         let peers = connection_manager.get_peers().await;
 
-        let mut pushed = 0;
-        let mut pulled = 0;
+        let pushed = 0;
+        let pulled = 0;
         let mut errors = Vec::new();
 
         match mode {
