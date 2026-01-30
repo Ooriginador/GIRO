@@ -20,7 +20,7 @@ use windows::core::PCWSTR;
 use windows::Win32::Devices::DeviceAndDriverInstallation::{
     SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo, SetupDiGetClassDevsW,
     SetupDiGetDeviceInstanceIdW, SetupDiGetDeviceRegistryPropertyW, DIGCF_ALLCLASSES,
-    DIGCF_PRESENT, SPDRP_DEVICEDESC, SPDRP_FRIENDLYNAME, SPDRP_HARDWAREID, SPDRP_MFG,
+    DIGCF_PRESENT, HDEVINFO, SPDRP_DEVICEDESC, SPDRP_FRIENDLYNAME, SPDRP_HARDWAREID, SPDRP_MFG,
     SP_DEVINFO_DATA,
 };
 use windows::Win32::Foundation::GetLastError;
@@ -89,7 +89,7 @@ fn parse_vid_pid(hardware_id: &str) -> Option<(u16, u16)> {
 
 /// Obtém propriedade de string do dispositivo
 fn get_device_string_property(
-    dev_info: windows::Win32::Devices::DeviceAndDriverInstallation::HDEVINFO,
+    dev_info: HDEVINFO,
     dev_info_data: &mut SP_DEVINFO_DATA,
     property: u32,
 ) -> Option<String> {
@@ -129,7 +129,7 @@ fn get_device_string_property(
 
 /// Obtém Instance ID do dispositivo
 fn get_device_instance_id(
-    dev_info: windows::Win32::Devices::DeviceAndDriverInstallation::HDEVINFO,
+    dev_info: HDEVINFO,
     dev_info_data: &mut SP_DEVINFO_DATA,
 ) -> Option<String> {
     let mut buffer: [u16; 512] = [0; 512];

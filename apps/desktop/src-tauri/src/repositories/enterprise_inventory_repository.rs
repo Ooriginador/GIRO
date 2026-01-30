@@ -301,8 +301,8 @@ impl<'a> EnterpriseInventoryRepository<'a> {
                 sqlx::query(
                     r#"
                     INSERT INTO stock_movements (
-                        id, location_id, product_id, movement_type, quantity, 
-                        reference_type, reference_id, notes, user_id, created_at
+                        id, location_id, product_id, type, quantity, 
+                        reference_type, reference_id, reason, employee_id, created_at
                     ) VALUES (?, ?, ?, ?, ?, 'INVENTORY_COUNT', ?, ?, ?, ?)
                     "#,
                 )

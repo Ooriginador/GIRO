@@ -299,6 +299,45 @@ pub async fn deactivate_employee(id: String, state: State<'_, AppState>) -> AppR
     Ok(())
 }
 
+/// Comando de emergência para admin resetar PIN de funcionário
+/// Útil quando há problemas com HMAC key e usuários ficam bloqueados
+#[tauri::command]
+#[specta::specta]
+pub async fn force_reset_employee_pin(
+    employee_id: String,
+    new_pin: String,
+    state: State<'_, AppState>,
+) -> AppResult<()> {
+    // Verificar se usuário é admin
+    let current_user = state.session.require_authenticated()?;
+    let _employee = require_permission!(
+        state.pool(),
+        &current_user.employee_id,
+        Permission::UpdateEmployees
+    );
+
+    let repo = EmployeeRepository::new(state.pool());
+    repo.force_reset_pin(&employee_id, &new_pin).await?;
+
+    // Audit Log
+    let audit_service = AuditService::new(state.pool().clone());
+    audit_log!(
+        audit_service,
+        AuditAction::EmployeeUpdated,
+        &current_user.employee_id,
+        &current_user.employee_name,
+        "Employee",
+        &employee_id
+    );
+
+    tracing::warn!(
+        "Admin {} force reset PIN for employee {}",
+        current_user.employee_name,
+        employee_id
+    );
+    Ok(())
+}
+
 /// Reativa um funcionário desativado
 #[tauri::command]
 #[specta::specta]

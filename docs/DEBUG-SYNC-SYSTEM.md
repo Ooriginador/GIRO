@@ -46,32 +46,48 @@
 
 ## 📋 Matriz de Entidades (Atualizada)
 
-| Entidade | Push Server | Pull Delete     | Pull Upsert | Status          |
-| -------- | ----------- | --------------- | ----------- | --------------- |
-| Product  | ✅          | ✅              | ✅          | Completo        |
-| Category | ✅          | ✅              | ✅          | Completo        |
-| Supplier | ✅          | ✅              | ✅          | Completo        |
-| Customer | ✅          | ✅ (deactivate) | ✅          | Completo        |
-| Setting  | ✅          | ✅              | ✅          | Completo        |
-| Employee | ⛔          | ⛔              | ⛔          | Skip (security) |
+| Entidade | Push Server | Pull Delete     | Pull Upsert | Status       |
+| -------- | ----------- | --------------- | ----------- | ------------ |
+| Product  | ✅          | ✅              | ✅          | Completo     |
+| Category | ✅          | ✅              | ✅          | Completo     |
+| Supplier | ✅          | ✅              | ✅          | Completo     |
+| Customer | ✅          | ✅ (deactivate) | ✅          | Completo     |
+| Setting  | ✅          | ✅              | ✅          | Completo     |
+| Employee | ✅ (Master) | ⛔ (Satellite)  | ✅          | Master → Sat |
 
 ---
 
 ## 📝 Decisões Arquiteturais
 
-### Employee Sync Desabilitado (Intencional)
+### Employee Sync - Master Only (v2.5.0+)
 
-**Arquivo:** `GIRO/apps/desktop/src-tauri/src/commands/sync.rs:374-379`
+**Arquivo:** `GIRO/apps/desktop/src-tauri/migrations/035_add_employees_sync_triggers.sql`
 
-**Decisão:** Employees são ignorados por segurança (passwords, PINs).
+**Decisão:** Employees são sincronizados **unidirecionalmente** do Master para Satellites.
 
-```rust
-SyncEntityType::Employee => {
-    tracing::debug!("Sync: employee {} sync skipped for security", item.entity_id);
-}
+- ✅ **Master**: Pode criar/editar funcionários, mudanças são sincronizadas
+- ⛔ **Satellite**: Apenas recebe funcionários do Master, não pode enviar
+- 🔐 **Segurança**: PIN e password são hasheados, nunca plaintext
+
+**Triggers condicionais:**
+
+```sql
+-- Só adiciona à fila de sync se network.operation_mode = 'master'
+CREATE TRIGGER trigger_employees_sync_version_update
+AFTER UPDATE ON employees
+WHEN (SELECT value FROM settings WHERE key = 'network.operation_mode') = 'master'
+BEGIN
+    -- ... adiciona employee à sync_pending
+END;
 ```
 
-**Status:** ✅ Correto - decisão arquitetural válida.
+**Sincronização de chave HMAC:**
+
+- A chave HMAC do Master é salva em `security.master_hmac_key`
+- Satellites recebem essa chave via sync de settings
+- Isso garante que todos usem a mesma chave para validar PINs
+
+**Status:** ✅ Implementado na migration 035
 
 ---
 

@@ -42,12 +42,12 @@ use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Graphics::Printing::{
     ClosePrinter, EndDocPrinter, EndPagePrinter, EnumPrintersW, GetDefaultPrinterW,
     GetPrinterDriverW, OpenPrinterW, StartDocPrinterW, StartPagePrinter, WritePrinter, DOC_INFO_1W,
-    DRIVER_INFO_2W, PRINTER_DEFAULTS, PRINTER_ENUM_CONNECTIONS, PRINTER_ENUM_LOCAL,
+    DRIVER_INFO_2W, PRINTER_DEFAULTSW, PRINTER_ENUM_CONNECTIONS, PRINTER_ENUM_LOCAL,
     PRINTER_ENUM_NETWORK, PRINTER_ENUM_SHARED, PRINTER_HANDLE, PRINTER_INFO_2W,
 };
 use windows::Win32::System::Registry::{
     RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE,
-    KEY_READ, REG_SZ,
+    KEY_READ, REG_SZ, REG_VALUE_TYPE,
 };
 
 // Constantes de Attributes da PRINTER_INFO_2
@@ -748,7 +748,7 @@ impl PrinterDetector {
 
             ClosePrinter(handle).ok();
 
-            if result.is_err() {
+            if !result.as_bool() {
                 let error = GetLastError();
                 tracing::warn!(
                     "⚠️ [DRIVER_INFO] GetPrinterDriverW falhou para {}: {:?}",
@@ -1135,7 +1135,7 @@ fn string_to_wide(s: &str) -> Vec<u16> {
 fn read_registry_string(hkey: HKEY, value_name: &str) -> String {
     unsafe {
         let value_wide = string_to_wide(value_name);
-        let mut data_type: u32 = 0;
+        let mut data_type = REG_VALUE_TYPE::default();
         let mut data_size: u32 = 0;
 
         // Primeiro, obtém o tamanho necessário
@@ -1143,7 +1143,7 @@ fn read_registry_string(hkey: HKEY, value_name: &str) -> String {
             hkey,
             PCWSTR(value_wide.as_ptr()),
             None,
-            Some(&mut data_type),
+            Some(&mut data_type as *mut REG_VALUE_TYPE),
             None,
             Some(&mut data_size),
         );
@@ -1153,7 +1153,7 @@ fn read_registry_string(hkey: HKEY, value_name: &str) -> String {
         }
 
         // Verifica se é string (REG_SZ = 1)
-        if data_type != REG_SZ.0 {
+        if data_type != REG_SZ {
             return String::new();
         }
 
@@ -1163,7 +1163,7 @@ fn read_registry_string(hkey: HKEY, value_name: &str) -> String {
             hkey,
             PCWSTR(value_wide.as_ptr()),
             None,
-            Some(&mut data_type),
+            Some(&mut data_type as *mut REG_VALUE_TYPE),
             Some(buffer.as_mut_ptr()),
             Some(&mut data_size),
         );

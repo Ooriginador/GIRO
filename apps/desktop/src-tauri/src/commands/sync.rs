@@ -18,6 +18,9 @@ use crate::services::sync_orchestrator::{
 };
 use crate::AppState;
 use serde::{Deserialize, Serialize};
+
+/// Maximum items per sync push request (must match server limit)
+const MAX_SYNC_CHUNK_SIZE: usize = 100;
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::RwLock;
@@ -182,31 +185,45 @@ pub async fn sync_push(
         });
     }
 
+    // HIGH-003 FIX: Split items into chunks of 100 to respect server limit
     let sync_client = SyncClient::new(state.license_client.config().clone());
-    let response = sync_client.push(&license_key, hardware_id, items).await?;
 
-    // Remove successfully synced items from pending queue
-    for result in &response.results {
-        if result.status == SyncItemStatus::Ok {
-            if let Err(e) = pending_repo
-                .remove_synced(result.entity_type, &result.entity_id)
-                .await
-            {
-                tracing::warn!(
-                    "Failed to remove synced item from pending: {} - {}",
-                    result.entity_id,
-                    e
-                );
+    let mut all_results = vec![];
+    let mut total_processed = 0;
+    let mut last_server_time = chrono::Utc::now().to_rfc3339();
+
+    for chunk in items.chunks(MAX_SYNC_CHUNK_SIZE) {
+        let response = sync_client
+            .push(&license_key, hardware_id, chunk.to_vec())
+            .await?;
+
+        total_processed += response.processed;
+        last_server_time = response.server_time.to_rfc3339();
+
+        // Remove successfully synced items from pending queue
+        for result in &response.results {
+            if result.status == SyncItemStatus::Ok {
+                if let Err(e) = pending_repo
+                    .remove_synced(result.entity_type, &result.entity_id)
+                    .await
+                {
+                    tracing::warn!(
+                        "Failed to remove synced item from pending: {} - {}",
+                        result.entity_id,
+                        e
+                    );
+                }
             }
         }
+
+        all_results.extend(response.results);
     }
 
     // Convert to local type
     Ok(SyncPushResult {
-        completed: response.success,
-        processed: response.processed,
-        results: response
-            .results
+        completed: true,
+        processed: total_processed,
+        results: all_results
             .into_iter()
             .map(|r| SyncItemResultLocal {
                 entity_type: r.entity_type,
@@ -216,7 +233,7 @@ pub async fn sync_push(
                 message: r.message,
             })
             .collect(),
-        server_time: response.server_time.to_rfc3339(),
+        server_time: last_server_time,
     })
 }
 

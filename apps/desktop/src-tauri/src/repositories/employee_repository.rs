@@ -22,6 +22,50 @@ impl<'a> EmployeeRepository<'a> {
         Self { pool }
     }
 
+    /// Tenta autenticar com chaves HMAC armazenadas no banco (recovery)
+    async fn try_authenticate_with_stored_keys(&self, pin: &str) -> AppResult<Option<Employee>> {
+        // Busca chaves HMAC armazenadas no banco de configurações
+        let stored_keys = self.get_stored_hmac_keys().await?;
+
+        for key in stored_keys {
+            let pin_hash = hash_pin_with_key(pin, &key);
+            if let Some(emp) = self.find_by_pin(&pin_hash).await? {
+                // Encontrou com chave antiga - migra para chave atual
+                let new_pin_hash = hash_pin_with_current_key(pin);
+                self.migrate_employee_pin(&emp.id, &new_pin_hash).await?;
+                tracing::info!(
+                    "Recovered and migrated employee {} PIN with stored HMAC key",
+                    emp.id
+                );
+                return Ok(Some(emp));
+            }
+        }
+
+        Ok(None)
+    }
+
+    /// Busca chaves HMAC histórias armazenadas no banco
+    async fn get_stored_hmac_keys(&self) -> AppResult<Vec<String>> {
+        let result = sqlx::query_scalar::<_, String>(
+            "SELECT value FROM settings WHERE key LIKE 'pin_hmac_key_%' ORDER BY key DESC",
+        )
+        .fetch_all(self.pool)
+        .await?;
+        Ok(result)
+    }
+
+    /// Migra PIN de funcionário para novo hash
+    async fn migrate_employee_pin(&self, employee_id: &str, new_pin_hash: &str) -> AppResult<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        sqlx::query("UPDATE employees SET pin = ?, updated_at = ? WHERE id = ?")
+            .bind(new_pin_hash)
+            .bind(&now)
+            .bind(employee_id)
+            .execute(self.pool)
+            .await?;
+        Ok(())
+    }
+
     const COLS: &'static str =
         "id, name, cpf, phone, email, pin, password, role, commission_rate, is_active, created_at, updated_at";
 
@@ -328,6 +372,45 @@ impl<'a> EmployeeRepository<'a> {
             })
     }
 
+    /// Força reset do PIN de um funcionário (comando de emergência)
+    /// Usado quando há problemas com HMAC key e usuários ficam bloqueados
+    pub async fn force_reset_pin(&self, employee_id: &str, new_pin: &str) -> AppResult<()> {
+        // Validar PIN
+        if new_pin.len() < 4 || new_pin.len() > 6 {
+            return Err(crate::error::AppError::Validation(
+                "PIN deve ter entre 4 e 6 dígitos".into(),
+            ));
+        }
+        if !new_pin.chars().all(|c| c.is_ascii_digit()) {
+            return Err(crate::error::AppError::Validation(
+                "PIN deve conter apenas números".into(),
+            ));
+        }
+
+        // Hash com chave atual
+        let pin_hash = hash_pin_with_current_key(new_pin);
+        let now = chrono::Utc::now().to_rfc3339();
+
+        let result = sqlx::query(
+            "UPDATE employees SET pin = ?, updated_at = ? WHERE id = ? AND is_active = 1",
+        )
+        .bind(&pin_hash)
+        .bind(&now)
+        .bind(employee_id)
+        .execute(self.pool)
+        .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(crate::error::AppError::NotFound {
+                entity: "Employee".into(),
+                id: employee_id.into(),
+            });
+        }
+
+        tracing::info!("Admin force reset PIN for employee {}", employee_id);
+        Ok(())
+    }
+
     fn decrypt_employee(mut employee: Employee) -> Employee {
         employee.cpf = pii::decrypt_optional_lossy(employee.cpf);
         employee
@@ -373,12 +456,17 @@ impl<'a> EmployeeRepository<'a> {
 
     pub async fn authenticate_pin(&self, pin: &str) -> AppResult<Option<Employee>> {
         // Primeiro tente o hash atual (HMAC-SHA256)
-        let pin_hash = hash_pin(pin);
+        let pin_hash = hash_pin_with_current_key(pin);
         if let Some(emp) = self.find_by_pin(&pin_hash).await? {
             return Ok(Some(emp));
         }
 
-        // Fallback legacy: SHA256 sem HMAC (versões antigas do seed)
+        // Fallback 1: Tente com HMAC keys armazenadas no banco (migração/recovery)
+        if let Some(emp) = self.try_authenticate_with_stored_keys(pin).await? {
+            return Ok(Some(emp));
+        }
+
+        // Fallback 2: Legacy SHA256 sem HMAC (versões antigas do seed)
         use sha2::Sha256 as LegacySha256;
         let mut hasher = LegacySha256::new();
         hasher.update(pin.as_bytes());
@@ -386,18 +474,16 @@ impl<'a> EmployeeRepository<'a> {
 
         if let Some(emp) = self.find_by_pin(&legacy_hash).await? {
             // Re-hash o PIN usando o novo método e atualize o registro
-            let new_pin_hash = hash_pin(pin);
-            let now = chrono::Utc::now().to_rfc3339();
-            let _ = sqlx::query("UPDATE employees SET pin = ?, updated_at = ? WHERE id = ?")
-                .bind(&new_pin_hash)
-                .bind(&now)
-                .bind(&emp.id)
-                .execute(self.pool)
-                .await;
+            let new_pin_hash = hash_pin_with_current_key(pin);
+            self.migrate_employee_pin(&emp.id, &new_pin_hash).await?;
+            tracing::info!(
+                "Migrated employee {} from legacy SHA256 to HMAC-SHA256",
+                emp.id
+            );
             return Ok(Some(emp));
         }
 
-        // Tenta Argon2 (sincronizado do servidor)
+        // Fallback 3: Tenta Argon2 (sincronizado do servidor)
         let employees = self.find_all_active().await?;
         for emp in employees {
             if let Some(stored_hash) = &emp.password {
@@ -405,22 +491,16 @@ impl<'a> EmployeeRepository<'a> {
                     let argon2 = Argon2::default();
                     if argon2.verify_password(pin.as_bytes(), &parsed).is_ok() {
                         // Re-hash o PIN usando o novo método e atualize o registro
-                        let new_pin_hash = hash_pin(pin);
-                        let now = chrono::Utc::now().to_rfc3339();
-                        let _ = sqlx::query(
-                            "UPDATE employees SET pin = ?, updated_at = ? WHERE id = ?",
-                        )
-                        .bind(&new_pin_hash)
-                        .bind(&now)
-                        .bind(&emp.id)
-                        .execute(self.pool)
-                        .await;
+                        let new_pin_hash = hash_pin_with_current_key(pin);
+                        self.migrate_employee_pin(&emp.id, &new_pin_hash).await?;
+                        tracing::info!("Migrated employee {} from Argon2 to HMAC-SHA256", emp.id);
                         return Ok(Some(emp));
                     }
                 }
             }
         }
 
+        tracing::warn!("PIN authentication failed for all fallback methods");
         Ok(None)
     }
 
@@ -569,6 +649,13 @@ impl<'a> EmployeeRepository<'a> {
             }
         }
 
+        tracing::info!(
+            "Sync: upserting employee {} (has_pin: {}, has_password: {})",
+            employee.name,
+            !employee.pin.is_empty(),
+            employee.password.is_some()
+        );
+
         sqlx::query(
             r#"
             INSERT INTO employees (
@@ -588,20 +675,22 @@ impl<'a> EmployeeRepository<'a> {
                 updated_at = excluded.updated_at
             "#
         )
-        .bind(employee.id)
-        .bind(employee.name)
-        .bind(employee.cpf)
-        .bind(employee.phone)
-        .bind(employee.email)
-        .bind(employee.pin)
-        .bind(employee.password)
-        .bind(employee.role)
-        .bind(employee.commission_rate)
-        .bind(employee.is_active)
-        .bind(employee.created_at)
-        .bind(employee.updated_at)
+        .bind(&employee.id)
+        .bind(&employee.name)
+        .bind(&employee.cpf)
+        .bind(&employee.phone)
+        .bind(&employee.email)
+        .bind(&employee.pin)
+        .bind(&employee.password)
+        .bind(&employee.role)
+        .bind(&employee.commission_rate)
+        .bind(&employee.is_active)
+        .bind(&employee.created_at)
+        .bind(&employee.updated_at)
         .execute(self.pool)
         .await?;
+
+        tracing::info!("Sync: employee {} upserted successfully", employee.name);
 
         Ok(())
     }
@@ -611,12 +700,14 @@ impl<'a> EmployeeRepository<'a> {
 // HELPERS
 // ────────────────────────────────────────────────────────────────────────────
 
-/// Hash do PIN usando SHA256 (compatível com seed do Prisma)
-fn hash_pin(pin: &str) -> String {
-    // Deterministic HMAC-SHA256 using PIN_HMAC_KEY env var for lookup-friendly PIN hashing
-    type HmacSha256 = Hmac<Sha256>;
+/// Hash do PIN usando HMAC-SHA256 com chave atual
+fn hash_pin_with_current_key(pin: &str) -> String {
+    hash_pin_with_key(pin, &get_or_create_hmac_key())
+}
 
-    let key = get_or_create_hmac_key();
+/// Hash do PIN usando HMAC-SHA256 com chave específica
+fn hash_pin_with_key(pin: &str, key: &str) -> String {
+    type HmacSha256 = Hmac<Sha256>;
 
     let mut mac =
         HmacSha256::new_from_slice(key.as_bytes()).expect("HMAC can take key of any size");
@@ -626,8 +717,18 @@ fn hash_pin(pin: &str) -> String {
     hex::encode(bytes)
 }
 
+/// Legacy compatibility - same as hash_pin_with_current_key
+fn hash_pin(pin: &str) -> String {
+    hash_pin_with_current_key(pin)
+}
+
 /// Obtém ou cria a chave HMAC para hash de PIN
-/// Prioridade: 1) variável de ambiente, 2) arquivo de configuração, 3) gera nova chave
+/// Prioridade:
+/// 1) Variável de ambiente PIN_HMAC_KEY
+/// 2) Chave sincronizada do Master (setting security.master_hmac_key) - IMPORTANTE para multi-PC
+/// 3) Arquivo de configuração local
+/// 4) Backup no banco de dados local
+/// 5) Gera nova chave (apenas se for Master ou standalone)
 fn get_or_create_hmac_key() -> String {
     // 1. Tentar obter da variável de ambiente
     if let Ok(key) = std::env::var("PIN_HMAC_KEY") {
@@ -636,34 +737,168 @@ fn get_or_create_hmac_key() -> String {
         }
     }
 
-    // 2. Tentar ler do arquivo de configuração
+    // 2. Tentar obter chave sincronizada do Master (CRITICAL para multi-PC sync)
+    // Esta é a chave que garante que todos os PCs usem o mesmo hash de PIN
+    if let Ok(key) = get_master_hmac_key_from_settings() {
+        if !key.is_empty() {
+            tracing::info!("PIN_HMAC_KEY obtida da sincronização com Master");
+            // Salvar localmente para uso offline
+            let _ = save_hmac_key_to_file(&key);
+            return key;
+        }
+    }
+
+    // 3. Tentar ler do arquivo de configuração local
     let key_file = get_hmac_key_path();
     if let Ok(key) = std::fs::read_to_string(&key_file) {
         let key = key.trim().to_string();
         if !key.is_empty() {
             tracing::info!("PIN_HMAC_KEY carregada do arquivo de configuração");
+            // Salvar no banco como backup
+            store_hmac_key_in_db(&key);
+            // Se for Master, também salvar na setting sincronizável
+            save_master_hmac_key_if_master(&key);
             return key;
         }
     }
 
-    // 3. Gerar nova chave e salvar
-    tracing::warn!("PIN_HMAC_KEY não encontrada, gerando nova chave...");
+    // 4. Tentar ler do banco de dados local (backup)
+    if let Ok(key) = get_hmac_key_from_db() {
+        if !key.is_empty() {
+            tracing::info!("PIN_HMAC_KEY recuperada do banco de dados");
+            // Tentar restaurar no arquivo
+            let _ = save_hmac_key_to_file(&key);
+            return key;
+        }
+    }
+
+    // 5. Gerar nova chave e salvar em todos os locais
+    tracing::warn!("PIN_HMAC_KEY não encontrada em nenhum local, gerando nova chave...");
+    tracing::warn!("ATENÇÃO: PINs existentes podem ficar inválidos!");
     let new_key = generate_hmac_key();
 
-    // Tentar salvar no arquivo
-    if let Some(parent) = key_file.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    if let Err(e) = std::fs::write(&key_file, &new_key) {
-        tracing::error!(
-            "Falha ao salvar PIN_HMAC_KEY: {}. Os PINs podem ser invalidados!",
-            e
-        );
-    } else {
-        tracing::info!("PIN_HMAC_KEY gerada e salva em: {:?}", key_file);
+    // Salvar no arquivo
+    if let Err(e) = save_hmac_key_to_file(&new_key) {
+        tracing::error!("Falha ao salvar PIN_HMAC_KEY no arquivo: {}", e);
     }
 
+    // Salvar no banco como backup
+    store_hmac_key_in_db(&new_key);
+
+    // Se for Master, salvar na setting sincronizável para propagar aos Satellites
+    save_master_hmac_key_if_master(&new_key);
+
     new_key
+}
+
+/// Obtém a chave HMAC do Master das settings sincronizadas
+/// Esta chave é sincronizada do Master para os Satellites
+fn get_master_hmac_key_from_settings() -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let database_url =
+        std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite:giro.db".to_string());
+
+    // Usar runtime blocking para operação síncrona
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(async {
+        let pool = sqlx::SqlitePool::connect(&database_url).await?;
+        let result: Option<String> =
+            sqlx::query_scalar("SELECT value FROM settings WHERE key = 'security.master_hmac_key'")
+                .fetch_optional(&pool)
+                .await?;
+        result.ok_or_else(|| "No master HMAC key found in settings".into())
+    })
+}
+
+/// Salva a chave HMAC na setting sincronizável se este PC for Master
+/// A setting security.master_hmac_key será propagada para todos os Satellites via sync
+fn save_master_hmac_key_if_master(key: &str) {
+    let key = key.to_string();
+    tokio::spawn(async move {
+        let database_url = std::env::var("DATABASE_URL").unwrap_or("sqlite:giro.db".to_string());
+        if let Ok(pool) = sqlx::SqlitePool::connect(&database_url).await {
+            // Verificar se é Master
+            let mode: Option<String> = sqlx::query_scalar(
+                "SELECT value FROM settings WHERE key = 'network.operation_mode'",
+            )
+            .fetch_optional(&pool)
+            .await
+            .unwrap_or(None);
+
+            if mode.as_deref() == Some("master") {
+                let timestamp = chrono::Utc::now().to_rfc3339();
+                let _ = sqlx::query(
+                    r#"INSERT INTO settings (key, value, description, updated_at) 
+                       VALUES ('security.master_hmac_key', ?, 'HMAC key for PIN hashing (synced from Master)', ?)
+                       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at"#
+                )
+                .bind(&key)
+                .bind(&timestamp)
+                .execute(&pool)
+                .await;
+
+                tracing::info!("Master HMAC key salva na setting sincronizável");
+            }
+        }
+    });
+}
+
+/// Salva chave HMAC no arquivo
+fn save_hmac_key_to_file(key: &str) -> Result<(), std::io::Error> {
+    let key_file = get_hmac_key_path();
+    if let Some(parent) = key_file.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&key_file, key)?;
+    tracing::info!("PIN_HMAC_KEY salva em: {:?}", key_file);
+    Ok(())
+}
+
+/// Armazena chave HMAC no banco como backup
+fn store_hmac_key_in_db(key: &str) {
+    // Criar uma conexão temporária para salvar a chave
+    let key = key.to_string();
+    tokio::spawn(async move {
+        let database_url = std::env::var("DATABASE_URL").unwrap_or("sqlite:giro.db".to_string());
+        if let Ok(pool) = sqlx::SqlitePool::connect(&database_url).await {
+            let timestamp = chrono::Utc::now().to_rfc3339();
+            let key_name = format!("pin_hmac_key_{}", chrono::Utc::now().timestamp());
+            let _ = sqlx::query(
+                "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
+            )
+            .bind(&key_name)
+            .bind(&key)
+            .bind(&timestamp)
+            .execute(&pool)
+            .await;
+
+            // Manter apenas as 5 chaves mais recentes
+            let _ = sqlx::query(
+                    "DELETE FROM settings WHERE key LIKE 'pin_hmac_key_%' AND key NOT IN (
+                        SELECT key FROM settings WHERE key LIKE 'pin_hmac_key_%' ORDER BY key DESC LIMIT 5
+                    )"
+                ).execute(&pool).await;
+
+            tracing::info!("PIN_HMAC_KEY salva no banco como backup");
+        }
+    });
+}
+
+/// Recupera chave HMAC do banco de dados
+fn get_hmac_key_from_db() -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let database_url =
+        std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite:giro.db".to_string());
+
+    // Usar runtime blocking para operação síncrona
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(async {
+        let pool = sqlx::SqlitePool::connect(&database_url).await?;
+        let result: Option<String> = sqlx::query_scalar(
+            "SELECT value FROM settings WHERE key LIKE 'pin_hmac_key_%' ORDER BY key DESC LIMIT 1",
+        )
+        .fetch_optional(&pool)
+        .await?;
+        result.ok_or_else(|| "No HMAC key found in database".into())
+    })
 }
 
 /// Gera uma nova chave HMAC aleatória

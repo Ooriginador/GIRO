@@ -20,6 +20,14 @@ use sqlx::SqlitePool;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, RwLock};
+use tracing::{error, info, warn};
+
+// ════════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Maximum items per sync push request (must match server limit)
+const MAX_SYNC_CHUNK_SIZE: usize = 100;
 
 // ════════════════════════════════════════════════════════════════════════════
 // TIPOS E ESTRUTURAS
@@ -380,25 +388,70 @@ impl SyncOrchestrator {
 
         let pushed = match pending_repo.get_pending_as_sync_items(&all_types).await {
             Ok(items) if !items.is_empty() => {
-                match sync_client.push(&license_key, &hardware_id, items).await {
-                    Ok(response) => {
-                        let count = response.processed;
-                        for result in &response.results {
-                            if result.status == SyncItemStatus::Ok {
-                                let _ = pending_repo
-                                    .remove_synced(result.entity_type, &result.entity_id)
-                                    .await;
-                            } else if result.status == SyncItemStatus::Conflict {
-                                conflicts += 1;
+                // HIGH-003 FIX: Split items into chunks of 100 to respect server limit
+                let total_items = items.len();
+                let chunks_count = (total_items + MAX_SYNC_CHUNK_SIZE - 1) / MAX_SYNC_CHUNK_SIZE;
+
+                info!(
+                    "[SyncOrchestrator] Pushing {} items em {} chunks (max {} por chunk)",
+                    total_items, chunks_count, MAX_SYNC_CHUNK_SIZE
+                );
+
+                let mut total_pushed = 0;
+
+                for (chunk_idx, chunk) in items.chunks(MAX_SYNC_CHUNK_SIZE).enumerate() {
+                    info!(
+                        "[SyncOrchestrator] Enviando chunk {} de {} ({} items)",
+                        chunk_idx + 1,
+                        chunks_count,
+                        chunk.len()
+                    );
+
+                    match sync_client
+                        .push(&license_key, &hardware_id, chunk.to_vec())
+                        .await
+                    {
+                        Ok(response) => {
+                            total_pushed += response.processed;
+                            info!(
+                                "[SyncOrchestrator] Chunk {} processado: {} items",
+                                chunk_idx + 1,
+                                response.processed
+                            );
+
+                            for result in &response.results {
+                                if result.status == SyncItemStatus::Ok {
+                                    let _ = pending_repo
+                                        .remove_synced(result.entity_type, &result.entity_id)
+                                        .await;
+                                } else if result.status == SyncItemStatus::Conflict {
+                                    conflicts += 1;
+                                }
                             }
                         }
-                        count
-                    }
-                    Err(e) => {
-                        errors.push(format!("Push falhou: {}", e));
-                        0
+                        Err(e) => {
+                            error!(
+                                "[SyncOrchestrator] Chunk {} falhou: {} (chunk de {} items)",
+                                chunk_idx + 1,
+                                e,
+                                chunk.len()
+                            );
+                            errors.push(format!(
+                                "Push chunk {} falhou: {} (chunk de {} items)",
+                                chunk_idx + 1,
+                                e,
+                                chunk.len()
+                            ));
+                            // Continue with remaining chunks instead of failing completely
+                        }
                     }
                 }
+
+                info!(
+                    "[SyncOrchestrator] Push concluído: {} de {} items processados",
+                    total_pushed, total_items
+                );
+                total_pushed
             }
             Ok(_) => 0, // Nada pendente
             Err(e) => {
