@@ -6,6 +6,19 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2.4.25] - 2026-01-30
+
+### Corrigido
+
+- **Connection Manager**: Adicionado diagnóstico automático e botão de auto-restart quando o ConnectionManager não está rodando
+- **UX Multi-PC**: Mensagens de erro mais claras quando ConnectionManager falha ao iniciar
+- **Network Settings**: Try-catch no start do ConnectionManager com toast informativo para usuário
+
+### Adicionado
+
+- Função `diagnoseAndRestart()` no hook `useMultiPc` para corrigir problemas de inicialização automaticamente
+- Botão "Corrigir e Iniciar" no NetworkStatusPanel quando houver erro de conexão
+
 ## [2.4.24] - 2026-01-30
 
 ### Corrigido
