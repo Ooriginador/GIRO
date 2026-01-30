@@ -313,7 +313,7 @@ export const NetworkRoleSettings: FC = () => {
               autoDiscovery: true,
             },
           });
-          tracing.info('ConnectionManager iniciado com sucesso');
+          console.info('[NetworkRoleSettings] ConnectionManager iniciado com sucesso');
         } catch (startError) {
           console.error('Erro ao iniciar ConnectionManager:', startError);
           // Não bloquear o save - usuário pode reiniciar manualmente
