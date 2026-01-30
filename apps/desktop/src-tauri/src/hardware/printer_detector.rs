@@ -327,6 +327,27 @@ impl PrinterDetector {
         result
     }
 
+    /// Obtém informações detalhadas do driver de uma impressora específica
+    pub fn get_printer_driver(&self, printer_name: &str) -> Option<DriverInfo> {
+        self.get_driver_info(printer_name)
+    }
+
+    /// Obtém informações do driver para todas as impressoras térmicas detectadas
+    pub fn get_thermal_drivers(&self) -> Vec<(String, DriverInfo)> {
+        let detection = self.detect();
+        let mut result = Vec::new();
+
+        for printer in detection.printers {
+            if printer.is_thermal {
+                if let Some(driver_info) = self.get_driver_info(&printer.name) {
+                    result.push((printer.name, driver_info));
+                }
+            }
+        }
+
+        result
+    }
+
     /// Invalida o cache
     pub fn invalidate_cache(&self) {
         let mut cache = self.cache.write().unwrap();
@@ -1272,6 +1293,155 @@ fn status_to_text(status: u32) -> String {
     }
 }
 
+/// Detecta fabricante da impressora pelo caminho do driver
+fn detect_manufacturer_from_path(driver_path: &str, driver_name: &str) -> Option<String> {
+    let combined = format!("{} {}", driver_path, driver_name).to_lowercase();
+
+    // Mapeamento de keywords para fabricantes
+    let manufacturers = [
+        // Epson
+        (
+            &["epson", "tm-t", "tm-m", "tm-u", "epsn"][..],
+            "Epson",
+        ),
+        // Star Micronics
+        (
+            &["star", "tsp100", "tsp650", "starmicronics"][..],
+            "Star Micronics",
+        ),
+        // Bematech
+        (
+            &["bematech", "mp-4200", "mp-2800", "mp-100"][..],
+            "Bematech",
+        ),
+        // Elgin
+        (
+            &["elgin", "i7 ", "i9 ", "vox"][..],
+            "Elgin",
+        ),
+        // Daruma
+        (
+            &["daruma", "dr800", "dr700", "dr600"][..],
+            "Daruma",
+        ),
+        // Citizen
+        (
+            &["citizen", "ct-s", "cbm"][..],
+            "Citizen",
+        ),
+        // Bixolon
+        (
+            &["bixolon", "srp-", "lk-t"][..],
+            "Bixolon",
+        ),
+        // Xprinter
+        (
+            &["xprinter", "xp-58", "xp-80"][..],
+            "Xprinter",
+        ),
+        // C3Tech
+        (
+            &["c3tech", "pos-58", "pos-80"][..],
+            "C3Tech",
+        ),
+        // Sweda
+        (
+            &["sweda", "si-300", "si-250"][..],
+            "Sweda",
+        ),
+        // Gertec
+        (
+            &["gertec", "g250"][..],
+            "Gertec",
+        ),
+        // Tanca
+        (
+            &["tanca", "tp-620", "tp-450"][..],
+            "Tanca",
+        ),
+        // Control iD
+        (
+            &["controlid", "control id", "printid"][..],
+            "Control iD",
+        ),
+        // Rongta
+        (
+            &["rongta", "rp-80", "rp-58"][..],
+            "Rongta",
+        ),
+        // HPRT
+        (
+            &["hprt", "pos80", "tp805"][..],
+            "HPRT",
+        ),
+        // Zebra
+        (
+            &["zebra", "zd-", "zq-", "zm-"][..],
+            "Zebra",
+        ),
+        // Brother
+        (
+            &["brother", "ql-"][..],
+            "Brother",
+        ),
+        // Generic/Chinese
+        (
+            &["pos-", "pos_", "generic"][..],
+            "Generic POS",
+        ),
+    ];
+
+    for (keywords, manufacturer) in manufacturers {
+        if keywords.iter().any(|kw| combined.contains(kw)) {
+            return Some(manufacturer.to_string());
+        }
+    }
+
+    None
+}
+
+/// Verifica se o caminho do driver indica impressora térmica
+fn is_thermal_driver_path(driver_path: &str, driver_name: &str, config_file: &str) -> bool {
+    let combined = format!("{} {} {}", driver_path, driver_name, config_file).to_lowercase();
+
+    // Indicadores de driver de impressora térmica
+    let thermal_indicators = [
+        // Termos genéricos
+        "pos",
+        "thermal",
+        "receipt",
+        "escpos",
+        "esc/pos",
+        // Drivers específicos
+        "epson",
+        "tm-t",
+        "star",
+        "tsp",
+        "bematech",
+        "elgin",
+        "daruma",
+        "citizen",
+        "bixolon",
+        "xprinter",
+        "c3tech",
+        "tanca",
+        "sweda",
+        "gertec",
+        "controlid",
+        // Fabricantes genéricos POS
+        "seiko",
+        "fujitsu",
+        "ncr",
+        "ibm pos",
+        // Formatos de papel típicos
+        "80mm",
+        "58mm",
+        "48mm",
+    ];
+
+    thermal_indicators.iter().any(|ind| combined.contains(ind))
+}
+
 /// Detecta capacidades da impressora
 fn detect_capabilities(name: &str, driver: &str) -> PrinterCapabilities {
     let combined = format!("{} {}", name, driver).to_lowercase();
@@ -1298,7 +1468,8 @@ fn detect_capabilities(name: &str, driver: &str) -> PrinterCapabilities {
             || combined.contains("ct-s"),
         has_cash_drawer: is_thermal_printer(name, driver, ""),
         paper_width_mm: paper_width,
-        attributes: 0, // Será atualizado pelo caller
+        attributes: 0,    // Será atualizado pelo caller
+        driver_info: None, // Será preenchido depois se necessário
     }
 }
 
