@@ -133,3 +133,23 @@ jobs:
           releaseDraft: false
           prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
           includeUpdaterJson: true
+
+      - name: Sync Release to Public Repo
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: Ooriginador/giro-releases
+        run: |
+          # Ensure release exists in public repo
+          gh release create "$TAG" --repo "$REPO" --title "GIRO $TAG" --notes "See [CHANGELOG](https://github.com/Ooriginador/GIRO/blob/main/CHANGELOG.md) for details." || echo "Release $TAG may already exist in $REPO"
+
+          # Upload artifacts
+          # Use find to locate files gracefully handling both Windows (backslash/forward slash) and Linux paths if run in bash
+          if [ "${{ matrix.platform }}" = "windows-latest" ]; then
+             for file in $(find apps/desktop/src-tauri/target/release/bundle/nsis -name "*.exe"); do gh release upload "$TAG" "$file" --repo "$REPO" --clobber; done
+             for file in $(find apps/desktop/src-tauri/target/release/bundle/msi -name "*.msi"); do gh release upload "$TAG" "$file" --repo "$REPO" --clobber; done
+          else
+             for file in $(find apps/desktop/src-tauri/target/release/bundle/deb -name "*.deb"); do gh release upload "$TAG" "$file" --repo "$REPO" --clobber; done
+             for file in $(find apps/desktop/src-tauri/target/release/bundle/appimage -name "*.AppImage"); do gh release upload "$TAG" "$file" --repo "$REPO" --clobber; done
+          fi
