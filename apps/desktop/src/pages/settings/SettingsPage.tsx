@@ -13,6 +13,7 @@ import {
   BackupSettings,
   SyncSettings,
 } from '@/components/settings';
+import { PrinterDiagnostics } from '@/components/debug/PrinterDiagnostics';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1173,6 +1174,9 @@ export const SettingsPage: FC = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* DEBUG: Diagnóstico de Impressoras */}
+          <PrinterDiagnostics />
 
           {/* QR Test */}
           <Card>

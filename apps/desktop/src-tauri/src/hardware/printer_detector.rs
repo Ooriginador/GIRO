@@ -291,12 +291,17 @@ impl PrinterDetector {
         let mut warnings = Vec::new();
         let mut sources_used = Vec::new();
 
-        tracing::info!("🔍 Iniciando detecção robusta de impressoras...");
+        tracing::info!("🔍 [DETECTOR] Iniciando detecção robusta de impressoras...");
+        tracing::info!("🔍 [DETECTOR] Sistema: Windows (compilado com target_os = windows)");
 
         // 1. API Nativa - Impressoras Locais
+        tracing::info!("🔍 [DETECTOR] Estratégia 1: API Nativa (PRINTER_ENUM_LOCAL)...");
         match self.detect_via_native_api(PRINTER_ENUM_LOCAL) {
             Ok(found) => {
-                tracing::info!("  ✓ API Nativa (LOCAL): {} impressoras", found.len());
+                tracing::info!(
+                    "  ✓ [DETECTOR] API Nativa (LOCAL): {} impressoras",
+                    found.len()
+                );
                 for p in found {
                     printers.entry(p.name.clone()).or_insert(p);
                 }
@@ -436,11 +441,18 @@ impl PrinterDetector {
     fn detect_via_native_api(&self, flags: u32) -> Result<Vec<PrinterInfo>, String> {
         let mut printers = Vec::new();
 
+        tracing::info!(
+            "🔍 [NATIVE_API] Iniciando detecção via EnumPrintersW (flags: {:#X})...",
+            flags
+        );
+
         unsafe {
             // Primeiro, obtém tamanho necessário
             let mut bytes_needed: u32 = 0;
             let mut count: u32 = 0;
             let level = 2u32; // PRINTER_INFO_2W tem mais detalhes
+
+            tracing::debug!("🔍 [NATIVE_API] Primeira chamada para obter tamanho do buffer...");
 
             let _ = EnumPrintersW(
                 flags,
@@ -451,13 +463,25 @@ impl PrinterDetector {
                 &mut count,
             );
 
+            tracing::info!(
+                "🔍 [NATIVE_API] Primeira chamada retornou: bytes_needed={}, count={}",
+                bytes_needed,
+                count
+            );
+
             // Se não precisa de buffer, não há impressoras
             if bytes_needed == 0 {
+                tracing::warn!("⚠️ [NATIVE_API] Nenhuma impressora encontrada (bytes_needed = 0)");
                 return Ok(Vec::new());
             }
 
             // Aloca buffer
             let mut buffer: Vec<u8> = vec![0u8; bytes_needed as usize];
+
+            tracing::debug!(
+                "🔍 [NATIVE_API] Buffer alocado ({} bytes), segunda chamada...",
+                bytes_needed
+            );
 
             // Chama novamente com buffer
             let result = EnumPrintersW(
@@ -471,8 +495,15 @@ impl PrinterDetector {
 
             if result.is_err() {
                 let error = GetLastError();
-                return Err(format!("EnumPrintersW falhou: {:?}", error));
+                let err_msg = format!("EnumPrintersW falhou: {:?}", error);
+                tracing::error!("❌ [NATIVE_API] {}", err_msg);
+                return Err(err_msg);
             }
+
+            tracing::info!(
+                "✅ [NATIVE_API] EnumPrintersW sucesso! count={} impressoras",
+                count
+            );
 
             // Parse das estruturas
             let printer_infos = std::slice::from_raw_parts(

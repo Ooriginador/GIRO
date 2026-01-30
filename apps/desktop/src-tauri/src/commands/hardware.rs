@@ -71,6 +71,20 @@ pub fn list_serial_ports() -> Vec<String> {
     hardware::list_serial_ports()
 }
 
+/// Retorna informações sobre o sistema operacional (para debug)
+#[tauri::command]
+#[specta::specta]
+pub fn get_os_info() -> serde_json::Value {
+    serde_json::json!({
+        "os": std::env::consts::OS,
+        "family": std::env::consts::FAMILY,
+        "arch": std::env::consts::ARCH,
+        "is_windows": cfg!(target_os = "windows"),
+        "is_linux": cfg!(target_os = "linux"),
+        "is_macos": cfg!(target_os = "macos"),
+    })
+}
+
 /// Lista todas as portas de hardware relevantes (Serial + USB Printer no Linux + Impressoras Windows)
 ///
 /// NOVO: Usa o PrinterDetector robusto com multi-estratégias de detecção
@@ -98,21 +112,25 @@ pub fn list_hardware_ports() -> Vec<String> {
 
     #[cfg(target_os = "windows")]
     {
-        tracing::info!("🔍 Usando PrinterDetector robusto para detecção de impressoras...");
+        tracing::info!("🔍 [DEBUG] Usando PrinterDetector robusto para detecção de impressoras...");
+        tracing::info!("🔍 [DEBUG] Sistema operacional: Windows");
 
         // USA O NOVO DETECTOR ROBUSTO COM MULTI-ESTRATÉGIAS
         let detector = PrinterDetector::global();
+        tracing::info!("🔍 [DEBUG] Detector criado, iniciando detecção...");
+
         let detection_result = detector.detect();
 
         tracing::info!(
-            "📊 Detecção completa: {} impressoras, {} estratégias usadas, cache: {}",
+            "📊 [DEBUG] Detecção completa: {} impressoras, {} estratégias usadas, cache: {}, warnings: {}",
             detection_result.printers.len(),
             detection_result.strategies_used.len(),
             if detection_result.from_cache {
                 "SIM"
             } else {
                 "NÃO"
-            }
+            },
+            detection_result.warnings.len()
         );
 
         if !detection_result.printers.is_empty() {
@@ -143,10 +161,20 @@ pub fn list_hardware_ports() -> Vec<String> {
                 }
             }
         } else {
+            tracing::warn!("⚠️ [DEBUG] Nenhuma impressora detectada!");
             tracing::warn!(
-                "⚠️ Nenhuma impressora detectada! Estratégias tentadas: {:?}, Erros: {:?}",
-                detection_result.strategies_used,
+                "⚠️ [DEBUG] Estratégias tentadas: {:?}",
+                detection_result.strategies_used
+            );
+            tracing::warn!(
+                "⚠️ [DEBUG] Erros ({} total): {:?}",
+                detection_result.errors.len(),
                 detection_result.errors
+            );
+            tracing::warn!(
+                "⚠️ [DEBUG] Warnings ({} total): {:?}",
+                detection_result.warnings.len(),
+                detection_result.warnings
             );
         }
 
@@ -1742,6 +1770,7 @@ macro_rules! hardware_commands {
             $crate::commands::hardware::list_serial_ports,
             $crate::commands::hardware::list_hardware_ports,
             $crate::commands::hardware::check_port_exists,
+            $crate::commands::hardware::get_os_info,
             // Impressora
             $crate::commands::hardware::configure_printer,
             $crate::commands::hardware::print_receipt,
@@ -1750,6 +1779,13 @@ macro_rules! hardware_commands {
             $crate::commands::hardware::test_printer,
             $crate::commands::hardware::print_test_documents,
             $crate::commands::hardware::get_printer_config,
+            $crate::commands::hardware::list_windows_printers,
+            $crate::commands::hardware::detect_printers_full,
+            $crate::commands::hardware::refresh_printers,
+            $crate::commands::hardware::get_default_printer,
+            $crate::commands::hardware::suggest_best_printer,
+            $crate::commands::hardware::test_printer_connection,
+            $crate::commands::hardware::print_attendant_order,
             // Balança
             $crate::commands::hardware::configure_scale,
             $crate::commands::hardware::read_weight,

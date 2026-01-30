@@ -308,7 +308,7 @@ export const NetworkRoleSettings: FC = () => {
             config: {
               mode: modeMap[role],
               websocketPort: parseInt(serverPort, 10),
-              masterIp: role === 'SATELLITE' ? (masterIp?.trim() || null) : null,
+              masterIp: role === 'SATELLITE' ? masterIp?.trim() || null : null,
               masterPort: role === 'SATELLITE' ? parseInt(masterPort, 10) : null,
               autoDiscovery: true,
             },
