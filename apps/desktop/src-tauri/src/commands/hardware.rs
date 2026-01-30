@@ -254,6 +254,88 @@ pub struct PrinterDetectionResultDto {
     pub total_time_ms: u32,
 }
 
+/// Informações do driver de impressora (DTO para frontend)
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PrinterDriverInfoDto {
+    /// Nome do driver
+    pub name: String,
+    /// Versão do driver
+    pub version: u32,
+    /// Ambiente (Windows x64, etc.)
+    pub environment: String,
+    /// Caminho do arquivo do driver
+    pub driver_path: String,
+    /// Caminho do arquivo de dados
+    pub data_file: String,
+    /// Caminho do arquivo de configuração
+    pub config_file: String,
+    /// Fabricante detectado pelo caminho
+    pub detected_manufacturer: Option<String>,
+    /// Se parece ser driver de impressora térmica
+    pub is_thermal_driver: bool,
+}
+
+/// Obtém informações detalhadas do driver de uma impressora específica
+#[tauri::command]
+#[specta::specta]
+pub fn get_printer_driver_info(printer_name: String) -> Option<PrinterDriverInfoDto> {
+    #[cfg(target_os = "windows")]
+    {
+        let detector = PrinterDetector::global();
+        detector.get_printer_driver(&printer_name).map(|info| PrinterDriverInfoDto {
+            name: info.name,
+            version: info.version,
+            environment: info.environment,
+            driver_path: info.driver_path,
+            data_file: info.data_file,
+            config_file: info.config_file,
+            detected_manufacturer: info.detected_manufacturer,
+            is_thermal_driver: info.is_thermal_driver,
+        })
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = printer_name;
+        None
+    }
+}
+
+/// Lista informações de driver de todas as impressoras térmicas
+#[tauri::command]
+#[specta::specta]
+pub fn get_thermal_printer_drivers() -> Vec<(String, PrinterDriverInfoDto)> {
+    #[cfg(target_os = "windows")]
+    {
+        let detector = PrinterDetector::global();
+        detector
+            .get_thermal_drivers()
+            .into_iter()
+            .map(|(name, info)| {
+                (
+                    name,
+                    PrinterDriverInfoDto {
+                        name: info.name,
+                        version: info.version,
+                        environment: info.environment,
+                        driver_path: info.driver_path,
+                        data_file: info.data_file,
+                        config_file: info.config_file,
+                        detected_manufacturer: info.detected_manufacturer,
+                        is_thermal_driver: info.is_thermal_driver,
+                    },
+                )
+            })
+            .collect()
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Vec::new()
+    }
+}
+
 /// Lista impressoras Windows com informações detalhadas (NOVO: usa PrinterDetector robusto)
 #[tauri::command]
 #[specta::specta]
@@ -1877,6 +1959,8 @@ macro_rules! hardware_commands {
             $crate::commands::hardware::test_printer_connection,
             $crate::commands::hardware::print_attendant_order,
             $crate::commands::hardware::detect_usb_printers,
+            $crate::commands::hardware::get_printer_driver_info,
+            $crate::commands::hardware::get_thermal_printer_drivers,
             // Balança
             $crate::commands::hardware::configure_scale,
             $crate::commands::hardware::read_weight,
