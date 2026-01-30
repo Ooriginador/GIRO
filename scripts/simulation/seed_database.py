@@ -586,6 +586,7 @@ def seed_settings(cursor, mode: str, terminal_name: str):
     print(f"   ⚙️ Seeding Settings (Mode: {mode})...")
 
     role_value = "MASTER" if mode == "MASTER" else "SATELLITE"
+    network_secret = "giro-sim-network-2026"  # Shared secret for all PCs
 
     settings = [
         (
@@ -598,11 +599,20 @@ def seed_settings(cursor, mode: str, terminal_name: str):
         ("setting-role", "network.role", role_value, "STRING", "network"),
         ("setting-terminal", "terminal.name", terminal_name, "STRING", "network"),
         ("setting-discovery", "auto_discovery", "true", "BOOLEAN", "network"),
+        ("setting-secret", "network.secret", network_secret, "STRING", "network"),
     ]
 
     if mode == "MASTER":
         settings.append(
             ("setting-port", "network.server_port", "3847", "NUMBER", "network")
+        )
+    else:
+        # SATELLITE: configurar endereço do Master
+        settings.append(
+            ("setting-master-ip", "network.master_ip", "127.0.0.1", "STRING", "network")
+        )
+        settings.append(
+            ("setting-master-port", "network.master_port", "3847", "NUMBER", "network")
         )
 
     for s_id, key, val, typ, grp in settings:
@@ -698,17 +708,25 @@ def main():
             print("   ❌ Database schema not ready (no employees table)")
             sys.exit(1)
 
-        # Seed all data
-        seed_employees(cursor)
-        seed_categories(cursor)
-        seed_suppliers(cursor)
-        seed_products(cursor)
-        seed_customers(cursor)
-        seed_vehicle_brands(cursor)
-        seed_vehicle_models(cursor)
-        seed_services(cursor)
-        seed_sample_sales(cursor)
-        seed_settings(cursor, mode, terminal_name)
+        # Seed based on mode
+        if mode == "MASTER":
+            # MASTER recebe TODOS os dados
+            seed_employees(cursor)
+            seed_categories(cursor)
+            seed_suppliers(cursor)
+            seed_products(cursor)
+            seed_customers(cursor)
+            seed_vehicle_brands(cursor)
+            seed_vehicle_models(cursor)
+            seed_services(cursor)
+            seed_sample_sales(cursor)
+            seed_settings(cursor, mode, terminal_name)
+        else:
+            # SATELLITE recebe APENAS funcionários e configurações
+            # (demais dados virão via sync do Master)
+            seed_employees(cursor)  # Necessário para login inicial
+            seed_settings(cursor, mode, terminal_name)
+            print("   📡 SATELLITE mode: dados serão sincronizados do Master")
 
         conn.commit()
         conn.close()
