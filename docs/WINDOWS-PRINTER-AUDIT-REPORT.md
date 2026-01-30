@@ -35,13 +35,13 @@ Análise profunda da implementação de detecção e impressão em impressoras t
 │                     Windows Print Spooler                        │
 ├─────────────────────────────────────────────────────────────────┤
 │  APIs Utilizadas:                                               │
-│  ✅ EnumPrintersW (PRINTER_ENUM_LOCAL, CONNECTIONS, NETWORK)   │
+│  ✅ EnumPrintersW (LOCAL, CONNECTIONS, NETWORK, SHARED)        │
 │  ✅ GetDefaultPrinterW                                          │
 │  ✅ OpenPrinterW / StartDocPrinterW / WritePrinter              │
-│  ❌ SetupDiGetClassDevs (USB VID/PID enumeration)              │
-│  ❌ GetPrinterDriverW (driver analysis)                         │
-│  ⚠️ Registry fallback (parcial)                                 │
-│  ⚠️ PowerShell fallback (último recurso)                       │
+│  ✅ SetupDiGetClassDevs (USB VID/PID enumeration)              │
+│  ✅ GetPrinterDriverW (driver analysis)                         │
+│  ✅ Registry fallback (completo)                                │
+│  ✅ PowerShell fallback (último recurso)                       │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -132,25 +132,31 @@ match self.detect_via_native_api(PRINTER_ENUM_LOCAL | PRINTER_ENUM_SHARED) { ...
 
 ---
 
-### 4. **GetPrinterDriverW NÃO IMPLEMENTADO**
+### 4. **GetPrinterDriverW ✅ IMPLEMENTADO**
 
-**Severidade**: 🟡 MÉDIA
+**Severidade Original**: 🟡 MÉDIA → ✅ RESOLVIDO
 
-**Problema**: Não há análise do driver instalado para determinar capacidades da impressora.
+**Localização**: [printer_detector.rs](../apps/desktop/src-tauri/src/hardware/printer_detector.rs#L704-L820)
+
+**Solução Implementada**: Função `get_driver_info()` com `GetPrinterDriverW` Level 2 para extrair informações completas do driver.
 
 ```rust
-// NÃO EXISTE - DEVE SER IMPLEMENTADO:
-fn get_driver_info(handle: PRINTER_HANDLE) -> Option<DriverInfo> {
-    // GetPrinterDriverW com level 2
-    // Analisar pDriverPath, pDataFile
+// IMPLEMENTADO em printer_detector.rs:
+fn get_driver_info(&self, printer_name: &str) -> Option<DriverInfo> {
+    // OpenPrinterW para obter handle
+    // GetPrinterDriverW com level 2 (DRIVER_INFO_2W)
+    // Extração de name, version, environment, driver_path, data_file, config_file
+    // Detecção de fabricante pelo path do driver
+    // Identificação de driver térmico
 }
 ```
 
-**Benefícios da Implementação**:
+**Funcionalidades Implementadas**:
 
-- Detectar se driver suporta RAW
-- Identificar fabricante pelo caminho do driver
-- Verificar versão do driver
+- ✅ Detecção de fabricante pelo caminho do driver (15+ fabricantes)
+- ✅ Identificação de driver térmico por path e config
+- ✅ Versão e environment do driver
+- ✅ Tauri commands: `get_printer_driver_info`, `get_thermal_printer_drivers`
 
 ---
 
@@ -229,28 +235,30 @@ Adicionadas 30+ novas keywords incluindo:
 
 ---
 
-### 2. **Implementar Detecção por Registry Mais Completa**
+### 2. **Detecção por Registry ✅ IMPLEMENTADO**
 
-**Chaves de Registry Importantes**:
+**Status**: ✅ Completo
 
-| Path                                                               | Propósito                    |
-| ------------------------------------------------------------------ | ---------------------------- |
-| `HKLM\SYSTEM\CurrentControlSet\Control\Print\Printers`             | Impressoras locais           |
-| `HKCU\Printers\Connections`                                        | Conexões de rede do usuário  |
-| `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Printers` | Info estendida               |
-| `HKLM\SYSTEM\CurrentControlSet\Enum\USB`                           | Dispositivos USB por VID/PID |
+**Chaves de Registry Utilizadas**:
+
+| Path                                                        | Status | Propósito                   |
+| ----------------------------------------------------------- | ------ | --------------------------- |
+| `HKLM\SYSTEM\CurrentControlSet\Control\Print\Printers`      | ✅     | Impressoras locais          |
+| Subchaves: `Port`, `Printer Driver`, `Location`, `Datatype` | ✅     | Detalhes de cada impressora |
+
+A função `detect_via_registry()` agora lê Port Name, Driver Name, Location e Datatype de cada impressora.
 
 ---
 
-### 3. **Adicionar WMI Properties Faltantes**
+### 3. **WMI Properties via PowerShell (opcional)**
 
-O PowerShell fallback não consulta todas as propriedades úteis:
+O PowerShell fallback atual já funciona bem, mas pode ser melhorado no futuro:
 
 ```powershell
 # ATUAL:
 Get-Printer | Select Name, PortName, DriverName, PrinterStatus
 
-# MELHORADO:
+# OPCIONAL FUTURO:
 Get-CimInstance -ClassName Win32_Printer |
 Select-Object Name, PortName, DriverName, PrinterStatus,
               WorkOffline, Default, Shared, Network,
@@ -261,24 +269,25 @@ Select-Object Name, PortName, DriverName, PrinterStatus,
 
 ## 📊 Status de Implementação
 
-| Componente                  | Status          | Prioridade | Esforço |
-| --------------------------- | --------------- | ---------- | ------- |
-| EnumPrintersW (LOCAL)       | ✅ Implementado | -          | -       |
-| EnumPrintersW (CONNECTIONS) | ✅ Implementado | -          | -       |
-| EnumPrintersW (NETWORK)     | ✅ Implementado | -          | -       |
-| EnumPrintersW (SHARED)      | ✅ Implementado | -          | -       |
-| GetDefaultPrinterW          | ✅ Implementado | -          | -       |
-| WritePrinter RAW            | ✅ Implementado | -          | -       |
-| PowerShell fallback         | ✅ Implementado | -          | -       |
-| Registry fallback           | ⚠️ Parcial      | 🟡 Média   | 2h      |
-| SetupDiGetClassDevs         | ✅ Implementado | -          | -       |
-| VID/PID lookup table        | ✅ Implementado | -          | -       |
-| GetPrinterDriverW           | ❌ Faltando     | 🟡 Média   | 2h      |
-| PRINTER_ATTRIBUTE_RAW_ONLY  | ✅ Implementado | -          | -       |
-| pDatatype analysis          | ✅ Implementado | -          | -       |
-| PRINTER_INFO_4 fast enum    | ❌ Faltando     | 🟢 Baixa   | 1h      |
-| Keywords atualizadas        | ✅ Implementado | -          | -       |
-| Tauri Command USB Detect    | ✅ Implementado | -          | -       |
+| Componente                  | Status                                  | Prioridade | Esforço |
+| --------------------------- | --------------------------------------- | ---------- | ------- |
+| EnumPrintersW (LOCAL)       | ✅ Implementado                         | -          | -       |
+| EnumPrintersW (CONNECTIONS) | ✅ Implementado                         | -          | -       |
+| EnumPrintersW (NETWORK)     | ✅ Implementado                         | -          | -       |
+| EnumPrintersW (SHARED)      | ✅ Implementado                         | -          | -       |
+| GetDefaultPrinterW          | ✅ Implementado                         | -          | -       |
+| WritePrinter RAW            | ✅ Implementado                         | -          | -       |
+| PowerShell fallback         | ✅ Implementado                         | -          | -       |
+| Registry fallback           | ✅ Implementado                         | -          | -       |
+| SetupDiGetClassDevs         | ✅ Implementado                         | -          | -       |
+| VID/PID lookup table        | ✅ Implementado                         | -          | -       |
+| GetPrinterDriverW           | ✅ Implementado                         | -          | -       |
+| PRINTER_ATTRIBUTE_RAW_ONLY  | ✅ Implementado                         | -          | -       |
+| pDatatype analysis          | ✅ Implementado                         | -          | -       |
+| PRINTER_INFO_4 fast enum    | ⚠️ N/A (struct não disponível no crate) | 🟢 Baixa   | -       |
+| Keywords atualizadas        | ✅ Implementado                         | -          | -       |
+| Tauri Command USB Detect    | ✅ Implementado                         | -          | -       |
+| Tauri Command Driver Info   | ✅ Implementado                         | -          | -       |
 
 ---
 

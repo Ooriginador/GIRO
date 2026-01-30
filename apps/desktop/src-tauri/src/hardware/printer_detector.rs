@@ -46,7 +46,8 @@ use windows::Win32::Graphics::Printing::{
     PRINTER_ENUM_NETWORK, PRINTER_ENUM_SHARED, PRINTER_HANDLE, PRINTER_INFO_2W,
 };
 use windows::Win32::System::Registry::{
-    RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ,
+    RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE,
+    KEY_READ, REG_SZ,
 };
 
 // Constantes de Attributes da PRINTER_INFO_2
@@ -795,7 +796,7 @@ impl PrinterDetector {
         }
     }
 
-    /// Detecção via Windows Registry
+    /// Detecção via Windows Registry (versão completa)
     fn detect_via_registry(&self) -> Result<Vec<PrinterInfo>, String> {
         let mut printers = Vec::new();
 
@@ -835,20 +836,67 @@ impl PrinterDetector {
 
                     // Ignora impressoras virtuais do sistema
                     if !is_system_virtual_printer(&name) {
+                        // Abre subchave da impressora para ler detalhes
+                        let printer_path = format!(
+                            "SYSTEM\\CurrentControlSet\\Control\\Print\\Printers\\{}",
+                            name
+                        );
+                        let printer_path_wide = string_to_wide(&printer_path);
+                        let mut printer_key = HKEY::default();
+
+                        let mut port_name = String::new();
+                        let mut driver_name = String::new();
+                        let mut location = String::new();
+                        let mut datatype = String::new();
+
+                        if RegOpenKeyExW(
+                            HKEY_LOCAL_MACHINE,
+                            PCWSTR(printer_path_wide.as_ptr()),
+                            Some(0),
+                            KEY_READ,
+                            &mut printer_key,
+                        )
+                        .is_ok()
+                        {
+                            // Lê Port
+                            port_name = read_registry_string(printer_key, "Port");
+                            // Lê Printer Driver
+                            driver_name = read_registry_string(printer_key, "Printer Driver");
+                            // Lê Location
+                            location = read_registry_string(printer_key, "Location");
+                            // Lê Datatype
+                            datatype = read_registry_string(printer_key, "Datatype");
+
+                            let _ = RegCloseKey(printer_key);
+                        }
+
+                        // Detecta tipo de conexão pela porta
+                        let connection_type = detect_connection_type(&port_name);
+
+                        // Verifica se é térmica
+                        let is_thermal = is_thermal_printer(&name, &driver_name, &port_name);
+
+                        // Detecta capacidades
+                        let mut capabilities = detect_capabilities(&name, &driver_name);
+                        if !datatype.is_empty() {
+                            capabilities.supports_raw = datatype.to_uppercase().contains("RAW");
+                            capabilities.default_datatype = Some(datatype);
+                        }
+
                         printers.push(PrinterInfo {
                             name: name.clone(),
-                            port_name: String::new(),
-                            driver_name: String::new(),
+                            port_name,
+                            driver_name,
                             status: 0,
                             status_text: "Detectado via Registry".to_string(),
                             is_default: false,
-                            is_thermal: is_thermal_printer(&name, "", ""),
+                            is_thermal,
                             is_ready: true, // Assume pronta
-                            location: String::new(),
+                            location,
                             comment: String::new(),
-                            connection_type: PrinterConnectionType::Unknown,
+                            connection_type,
                             detection_source: DetectionSource::Registry,
-                            capabilities: PrinterCapabilities::default(),
+                            capabilities,
                         });
                     }
 
@@ -1081,6 +1129,62 @@ fn string_to_wide(s: &str) -> Vec<u16> {
         .encode_wide()
         .chain(std::iter::once(0))
         .collect()
+}
+
+/// Lê um valor de string do Registry
+fn read_registry_string(hkey: HKEY, value_name: &str) -> String {
+    unsafe {
+        let value_wide = string_to_wide(value_name);
+        let mut data_type: u32 = 0;
+        let mut data_size: u32 = 0;
+
+        // Primeiro, obtém o tamanho necessário
+        let result = RegQueryValueExW(
+            hkey,
+            PCWSTR(value_wide.as_ptr()),
+            None,
+            Some(&mut data_type),
+            None,
+            Some(&mut data_size),
+        );
+
+        if result.is_err() || data_size == 0 {
+            return String::new();
+        }
+
+        // Verifica se é string (REG_SZ = 1)
+        if data_type != REG_SZ.0 {
+            return String::new();
+        }
+
+        // Aloca buffer e lê o valor
+        let mut buffer: Vec<u8> = vec![0u8; data_size as usize];
+        let result = RegQueryValueExW(
+            hkey,
+            PCWSTR(value_wide.as_ptr()),
+            None,
+            Some(&mut data_type),
+            Some(buffer.as_mut_ptr()),
+            Some(&mut data_size),
+        );
+
+        if result.is_err() {
+            return String::new();
+        }
+
+        // Converte de UTF-16 para String
+        let wide_slice: &[u16] =
+            std::slice::from_raw_parts(buffer.as_ptr() as *const u16, (data_size as usize) / 2);
+
+        // Remove null terminator se presente
+        let len = wide_slice
+            .iter()
+            .position(|&c| c == 0)
+            .unwrap_or(wide_slice.len());
+        OsString::from_wide(&wide_slice[..len])
+            .to_string_lossy()
+            .into_owned()
+    }
 }
 
 /// Detecta tipo de conexão pela porta
