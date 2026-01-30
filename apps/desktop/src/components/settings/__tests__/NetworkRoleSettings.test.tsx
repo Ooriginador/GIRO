@@ -185,8 +185,33 @@ describe('NetworkRoleSettings', () => {
   });
 
   it('should display current role badge for Principal', async () => {
+    vi.mocked(invoke).mockImplementation(async (command: string) => {
+      if (command === 'get_network_mode_config') {
+        return {
+          mode: 'master',
+          websocketPort: 3847,
+          masterIp: null,
+          masterPort: null,
+          autoDiscovery: true,
+        };
+      }
+      if (command === 'get_multi_pc_status') {
+        return {
+          mode: 'master',
+          isRunning: false,
+          localIp: null,
+          websocketPort: 3847,
+          peerCount: 0,
+          connectedToMaster: false,
+          currentMasterId: null,
+        };
+      }
+      return {};
+    });
+
     vi.mocked(getSetting).mockImplementation(async (key: string) => {
-      if (key === 'network.role') return 'MASTER';
+      if (key === 'terminal.name') return 'Caixa Principal';
+      if (key === 'network.secret') return 'secret123';
       return '';
     });
 
