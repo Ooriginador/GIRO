@@ -221,6 +221,7 @@ let level = 2u32; // PRINTER_INFO_2W
 **Localização**: [printer_detector.rs](../apps/desktop/src-tauri/src/hardware/printer_detector.rs#L880-L920)
 
 Adicionadas 30+ novas keywords incluindo:
+
 - Control iD, Sweda, Perto, Gertec, Nitere
 - Bixolon, Rongta, HPRT, Itautec
 - Séries TM-L, LK-T, SRP, TSP
@@ -313,11 +314,13 @@ Select-Object Name, PortName, DriverName, PrinterStatus,
 ## 📝 Arquivos Afetados
 
 ### Existentes (Modificados)
+
 - [printer_detector.rs](../apps/desktop/src-tauri/src/hardware/printer_detector.rs) - Detector principal (PRINTER_ENUM_SHARED, attributes, pDatatype, keywords)
 - [mod.rs](../apps/desktop/src-tauri/src/hardware/mod.rs) - Exports dos novos módulos
 - [hardware.rs](../apps/desktop/src-tauri/src/commands/hardware.rs) - Tauri command `detect_usb_printers`
 
 ### Novos Arquivos
+
 - [usb_vid_pid.rs](../apps/desktop/src-tauri/src/hardware/usb_vid_pid.rs) - Database de VID/PID (700+ linhas, 15+ fabricantes)
 - [usb_printer_detector.rs](../apps/desktop/src-tauri/src/hardware/usb_printer_detector.rs) - Detector USB via SetupAPI
 

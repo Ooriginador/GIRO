@@ -40,9 +40,10 @@ use std::time::{Duration, Instant};
 use windows::core::{PCWSTR, PWSTR};
 use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Graphics::Printing::{
-    ClosePrinter, EndDocPrinter, EndPagePrinter, EnumPrintersW, GetDefaultPrinterW, OpenPrinterW,
-    StartDocPrinterW, StartPagePrinter, WritePrinter, DOC_INFO_1W, PRINTER_ENUM_CONNECTIONS,
-    PRINTER_ENUM_LOCAL, PRINTER_ENUM_NETWORK, PRINTER_ENUM_SHARED, PRINTER_HANDLE, PRINTER_INFO_2W,
+    ClosePrinter, EndDocPrinter, EndPagePrinter, EnumPrintersW, GetDefaultPrinterW,
+    GetPrinterDriverW, OpenPrinterW, StartDocPrinterW, StartPagePrinter, WritePrinter,
+    DOC_INFO_1W, DRIVER_INFO_2W, PRINTER_DEFAULTS, PRINTER_ENUM_CONNECTIONS, PRINTER_ENUM_LOCAL,
+    PRINTER_ENUM_NETWORK, PRINTER_ENUM_SHARED, PRINTER_HANDLE, PRINTER_INFO_2W,
 };
 use windows::Win32::System::Registry::{
     RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ,
@@ -160,6 +161,30 @@ pub struct PrinterCapabilities {
     pub paper_width_mm: Option<u16>,
     /// Atributos da impressora (bitmask)
     pub attributes: u32,
+    /// Informações do driver (se disponível)
+    pub driver_info: Option<DriverInfo>,
+}
+
+/// Informações do driver da impressora (via GetPrinterDriverW)
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DriverInfo {
+    /// Nome do driver
+    pub name: String,
+    /// Versão do driver (cVersion)
+    pub version: u32,
+    /// Ambiente (Windows x64, Windows NT x86, etc.)
+    pub environment: String,
+    /// Caminho do arquivo do driver (.dll)
+    pub driver_path: String,
+    /// Caminho do arquivo de dados
+    pub data_file: String,
+    /// Caminho do arquivo de configuração
+    pub config_file: String,
+    /// Fabricante detectado pelo caminho do driver
+    pub detected_manufacturer: Option<String>,
+    /// Se parece ser driver de impressora térmica
+    pub is_thermal_driver: bool,
 }
 
 /// Status da impressora (constantes de bits)
@@ -653,6 +678,105 @@ impl PrinterDetector {
         }
 
         Ok(printers)
+    }
+
+    /// Obtém informações do driver de uma impressora via GetPrinterDriverW
+    fn get_driver_info(&self, printer_name: &str) -> Option<DriverInfo> {
+        tracing::debug!(
+            "🔍 [DRIVER_INFO] Obtendo informações do driver para: {}",
+            printer_name
+        );
+
+        unsafe {
+            let wide_name = string_to_wide(printer_name);
+            let mut handle = PRINTER_HANDLE::default();
+
+            // Abre a impressora
+            let result = OpenPrinterW(PCWSTR(wide_name.as_ptr()), &mut handle, None);
+
+            if result.is_err() {
+                tracing::warn!(
+                    "⚠️ [DRIVER_INFO] Falha ao abrir impressora {}: {:?}",
+                    printer_name,
+                    GetLastError()
+                );
+                return None;
+            }
+
+            // Obtém tamanho necessário
+            let mut bytes_needed: u32 = 0;
+            let level = 2u32; // DRIVER_INFO_2W
+
+            let _ = GetPrinterDriverW(handle, None, level, None, &mut bytes_needed);
+
+            if bytes_needed == 0 {
+                ClosePrinter(handle).ok();
+                tracing::warn!(
+                    "⚠️ [DRIVER_INFO] GetPrinterDriverW retornou bytes_needed=0 para {}",
+                    printer_name
+                );
+                return None;
+            }
+
+            // Aloca buffer
+            let mut buffer: Vec<u8> = vec![0u8; bytes_needed as usize];
+
+            let result = GetPrinterDriverW(
+                handle,
+                None,
+                level,
+                Some(&mut buffer),
+                &mut bytes_needed,
+            );
+
+            ClosePrinter(handle).ok();
+
+            if result.is_err() {
+                let error = GetLastError();
+                tracing::warn!(
+                    "⚠️ [DRIVER_INFO] GetPrinterDriverW falhou para {}: {:?}",
+                    printer_name,
+                    error
+                );
+                return None;
+            }
+
+            // Parse da estrutura DRIVER_INFO_2W
+            let driver_info_ptr = buffer.as_ptr() as *const DRIVER_INFO_2W;
+            let driver_info = &*driver_info_ptr;
+
+            let name = wide_to_string(driver_info.pName);
+            let environment = wide_to_string(driver_info.pEnvironment);
+            let driver_path = wide_to_string(driver_info.pDriverPath);
+            let data_file = wide_to_string(driver_info.pDataFile);
+            let config_file = wide_to_string(driver_info.pConfigFile);
+            let version = driver_info.cVersion;
+
+            // Detecta fabricante pelo caminho do driver
+            let detected_manufacturer = detect_manufacturer_from_path(&driver_path, &name);
+
+            // Verifica se é driver de impressora térmica
+            let is_thermal_driver = is_thermal_driver_path(&driver_path, &name, &config_file);
+
+            tracing::info!(
+                "✅ [DRIVER_INFO] Driver para {}: name={}, version={}, manufacturer={:?}",
+                printer_name,
+                name,
+                version,
+                detected_manufacturer
+            );
+
+            Some(DriverInfo {
+                name,
+                version,
+                environment,
+                driver_path,
+                data_file,
+                config_file,
+                detected_manufacturer,
+                is_thermal_driver,
+            })
+        }
     }
 
     /// Detecção via Windows Registry
