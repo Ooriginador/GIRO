@@ -41,8 +41,8 @@ use windows::core::{PCWSTR, PWSTR};
 use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Graphics::Printing::{
     ClosePrinter, EndDocPrinter, EndPagePrinter, EnumPrintersW, GetDefaultPrinterW,
-    GetPrinterDriverW, OpenPrinterW, StartDocPrinterW, StartPagePrinter, WritePrinter,
-    DOC_INFO_1W, DRIVER_INFO_2W, PRINTER_DEFAULTS, PRINTER_ENUM_CONNECTIONS, PRINTER_ENUM_LOCAL,
+    GetPrinterDriverW, OpenPrinterW, StartDocPrinterW, StartPagePrinter, WritePrinter, DOC_INFO_1W,
+    DRIVER_INFO_2W, PRINTER_DEFAULTS, PRINTER_ENUM_CONNECTIONS, PRINTER_ENUM_LOCAL,
     PRINTER_ENUM_NETWORK, PRINTER_ENUM_SHARED, PRINTER_HANDLE, PRINTER_INFO_2W,
 };
 use windows::Win32::System::Registry::{
@@ -742,13 +742,8 @@ impl PrinterDetector {
             // Aloca buffer
             let mut buffer: Vec<u8> = vec![0u8; bytes_needed as usize];
 
-            let result = GetPrinterDriverW(
-                handle,
-                None,
-                level,
-                Some(&mut buffer),
-                &mut bytes_needed,
-            );
+            let result =
+                GetPrinterDriverW(handle, None, level, Some(&mut buffer), &mut bytes_needed);
 
             ClosePrinter(handle).ok();
 
@@ -1300,10 +1295,7 @@ fn detect_manufacturer_from_path(driver_path: &str, driver_name: &str) -> Option
     // Mapeamento de keywords para fabricantes
     let manufacturers = [
         // Epson
-        (
-            &["epson", "tm-t", "tm-m", "tm-u", "epsn"][..],
-            "Epson",
-        ),
+        (&["epson", "tm-t", "tm-m", "tm-u", "epsn"][..], "Epson"),
         // Star Micronics
         (
             &["star", "tsp100", "tsp650", "starmicronics"][..],
@@ -1315,80 +1307,35 @@ fn detect_manufacturer_from_path(driver_path: &str, driver_name: &str) -> Option
             "Bematech",
         ),
         // Elgin
-        (
-            &["elgin", "i7 ", "i9 ", "vox"][..],
-            "Elgin",
-        ),
+        (&["elgin", "i7 ", "i9 ", "vox"][..], "Elgin"),
         // Daruma
-        (
-            &["daruma", "dr800", "dr700", "dr600"][..],
-            "Daruma",
-        ),
+        (&["daruma", "dr800", "dr700", "dr600"][..], "Daruma"),
         // Citizen
-        (
-            &["citizen", "ct-s", "cbm"][..],
-            "Citizen",
-        ),
+        (&["citizen", "ct-s", "cbm"][..], "Citizen"),
         // Bixolon
-        (
-            &["bixolon", "srp-", "lk-t"][..],
-            "Bixolon",
-        ),
+        (&["bixolon", "srp-", "lk-t"][..], "Bixolon"),
         // Xprinter
-        (
-            &["xprinter", "xp-58", "xp-80"][..],
-            "Xprinter",
-        ),
+        (&["xprinter", "xp-58", "xp-80"][..], "Xprinter"),
         // C3Tech
-        (
-            &["c3tech", "pos-58", "pos-80"][..],
-            "C3Tech",
-        ),
+        (&["c3tech", "pos-58", "pos-80"][..], "C3Tech"),
         // Sweda
-        (
-            &["sweda", "si-300", "si-250"][..],
-            "Sweda",
-        ),
+        (&["sweda", "si-300", "si-250"][..], "Sweda"),
         // Gertec
-        (
-            &["gertec", "g250"][..],
-            "Gertec",
-        ),
+        (&["gertec", "g250"][..], "Gertec"),
         // Tanca
-        (
-            &["tanca", "tp-620", "tp-450"][..],
-            "Tanca",
-        ),
+        (&["tanca", "tp-620", "tp-450"][..], "Tanca"),
         // Control iD
-        (
-            &["controlid", "control id", "printid"][..],
-            "Control iD",
-        ),
+        (&["controlid", "control id", "printid"][..], "Control iD"),
         // Rongta
-        (
-            &["rongta", "rp-80", "rp-58"][..],
-            "Rongta",
-        ),
+        (&["rongta", "rp-80", "rp-58"][..], "Rongta"),
         // HPRT
-        (
-            &["hprt", "pos80", "tp805"][..],
-            "HPRT",
-        ),
+        (&["hprt", "pos80", "tp805"][..], "HPRT"),
         // Zebra
-        (
-            &["zebra", "zd-", "zq-", "zm-"][..],
-            "Zebra",
-        ),
+        (&["zebra", "zd-", "zq-", "zm-"][..], "Zebra"),
         // Brother
-        (
-            &["brother", "ql-"][..],
-            "Brother",
-        ),
+        (&["brother", "ql-"][..], "Brother"),
         // Generic/Chinese
-        (
-            &["pos-", "pos_", "generic"][..],
-            "Generic POS",
-        ),
+        (&["pos-", "pos_", "generic"][..], "Generic POS"),
     ];
 
     for (keywords, manufacturer) in manufacturers {
@@ -1468,7 +1415,7 @@ fn detect_capabilities(name: &str, driver: &str) -> PrinterCapabilities {
             || combined.contains("ct-s"),
         has_cash_drawer: is_thermal_printer(name, driver, ""),
         paper_width_mm: paper_width,
-        attributes: 0,    // Será atualizado pelo caller
+        attributes: 0,     // Será atualizado pelo caller
         driver_info: None, // Será preenchido depois se necessário
     }
 }

@@ -283,16 +283,18 @@ pub fn get_printer_driver_info(printer_name: String) -> Option<PrinterDriverInfo
     #[cfg(target_os = "windows")]
     {
         let detector = PrinterDetector::global();
-        detector.get_printer_driver(&printer_name).map(|info| PrinterDriverInfoDto {
-            name: info.name,
-            version: info.version,
-            environment: info.environment,
-            driver_path: info.driver_path,
-            data_file: info.data_file,
-            config_file: info.config_file,
-            detected_manufacturer: info.detected_manufacturer,
-            is_thermal_driver: info.is_thermal_driver,
-        })
+        detector
+            .get_printer_driver(&printer_name)
+            .map(|info| PrinterDriverInfoDto {
+                name: info.name,
+                version: info.version,
+                environment: info.environment,
+                driver_path: info.driver_path,
+                data_file: info.data_file,
+                config_file: info.config_file,
+                detected_manufacturer: info.detected_manufacturer,
+                is_thermal_driver: info.is_thermal_driver,
+            })
     }
 
     #[cfg(not(target_os = "windows"))]
