@@ -393,6 +393,96 @@ pub fn refresh_printers() -> PrinterDetectionResultDto {
     }
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// DETECÇÃO USB VIA SETUPAPI
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Dispositivo USB detectado (para frontend)
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct UsbPrinterDeviceDto {
+    /// Instance ID do dispositivo
+    pub instance_id: String,
+    /// VID (Vendor ID) em hex
+    pub vid: String,
+    /// PID (Product ID) em hex
+    pub pid: String,
+    /// Nome amigável
+    pub friendly_name: Option<String>,
+    /// Descrição do dispositivo
+    pub description: Option<String>,
+    /// Fabricante detectado
+    pub vendor: Option<String>,
+    /// Modelo detectado
+    pub model: Option<String>,
+    /// Largura do papel em mm
+    pub paper_width_mm: Option<u8>,
+    /// Se tem guilhotina
+    pub has_cutter: bool,
+    /// Se tem gaveta
+    pub has_cash_drawer: bool,
+    /// Confiança da detecção (0-100)
+    pub confidence: u8,
+}
+
+/// Resultado da detecção USB
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct UsbDetectionResultDto {
+    pub devices: Vec<UsbPrinterDeviceDto>,
+    pub errors: Vec<String>,
+    pub duration_ms: u64,
+}
+
+/// Detecta impressoras térmicas USB via SetupAPI (por VID/PID)
+#[tauri::command]
+#[specta::specta]
+pub fn detect_usb_printers() -> UsbDetectionResultDto {
+    #[cfg(target_os = "windows")]
+    {
+        let result = crate::hardware::detect_usb_printers();
+
+        UsbDetectionResultDto {
+            devices: result
+                .devices
+                .into_iter()
+                .map(|d| UsbPrinterDeviceDto {
+                    instance_id: d.instance_id,
+                    vid: format!("{:#06X}", d.vid),
+                    pid: format!("{:#06X}", d.pid),
+                    friendly_name: d.friendly_name,
+                    description: d.description,
+                    vendor: d.lookup_info.as_ref().map(|l| l.vendor.clone()),
+                    model: d.lookup_info.as_ref().and_then(|l| l.model.clone()),
+                    paper_width_mm: d.lookup_info.as_ref().and_then(|l| l.paper_width_mm),
+                    has_cutter: d
+                        .lookup_info
+                        .as_ref()
+                        .map(|l| l.has_cutter)
+                        .unwrap_or(false),
+                    has_cash_drawer: d
+                        .lookup_info
+                        .as_ref()
+                        .map(|l| l.has_cash_drawer)
+                        .unwrap_or(true),
+                    confidence: d.lookup_info.as_ref().map(|l| l.confidence).unwrap_or(0),
+                })
+                .collect(),
+            errors: result.errors,
+            duration_ms: result.duration_ms,
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        UsbDetectionResultDto {
+            devices: Vec::new(),
+            errors: vec!["Detecção USB disponível apenas no Windows".to_string()],
+            duration_ms: 0,
+        }
+    }
+}
+
 /// Obtém a impressora padrão do Windows
 #[tauri::command]
 #[specta::specta]
@@ -1786,6 +1876,7 @@ macro_rules! hardware_commands {
             $crate::commands::hardware::suggest_best_printer,
             $crate::commands::hardware::test_printer_connection,
             $crate::commands::hardware::print_attendant_order,
+            $crate::commands::hardware::detect_usb_printers,
             // Balança
             $crate::commands::hardware::configure_scale,
             $crate::commands::hardware::read_weight,

@@ -1,11 +1,54 @@
 ---
 name: Rust
 description: Tauri backend + SQLx + hardware drivers specialist
-tools: [vscode, read, edit, search, filesystem/*, github/*, memory/*, prisma/*, agent, todo]
+tools:
+  [
+    'vscode',
+    'execute',
+    'read',
+    'edit',
+    'search',
+    'web',
+    'context7/*',
+    'filesystem/*',
+    'github/*',
+    'memory/*',
+    'postgres/*',
+    'prisma/*',
+    'puppeteer/*',
+    'sequential-thinking/*',
+    'github/*',
+    'agent',
+    'pylance-mcp-server/*',
+    'cweijan.vscode-database-client2/dbclient-getDatabases',
+    'cweijan.vscode-database-client2/dbclient-getTables',
+    'cweijan.vscode-database-client2/dbclient-executeQuery',
+    'github.vscode-pull-request-github/copilotCodingAgent',
+    'github.vscode-pull-request-github/issue_fetch',
+    'github.vscode-pull-request-github/suggest-fix',
+    'github.vscode-pull-request-github/searchSyntax',
+    'github.vscode-pull-request-github/doSearch',
+    'github.vscode-pull-request-github/renderIssues',
+    'github.vscode-pull-request-github/activePullRequest',
+    'github.vscode-pull-request-github/openPullRequest',
+    'ms-azuretools.vscode-containers/containerToolsConfig',
+    'ms-python.python/getPythonEnvironmentInfo',
+    'ms-python.python/getPythonExecutableCommand',
+    'ms-python.python/installPythonPackage',
+    'ms-python.python/configurePythonEnvironment',
+    'prisma.prisma/prisma-migrate-status',
+    'prisma.prisma/prisma-migrate-dev',
+    'prisma.prisma/prisma-migrate-reset',
+    'prisma.prisma/prisma-studio',
+    'prisma.prisma/prisma-platform-login',
+    'prisma.prisma/prisma-postgres-create-database',
+    'todo',
+  ]
 model: Claude Sonnet 4
-applyTo: '**/src-tauri/**/*.rs,**/Cargo.toml'
+applyTo: 'GIRO/**/src-tauri/**/*.rs,giro-license-server/backend/**/*.rs,**/*.rs,**/Cargo.toml'
 handoffs:
   - { label: '⚛️ Frontend', agent: Frontend, prompt: 'Implement UI for these commands' }
+  - { label: '📱 Mobile', agent: Mobile, prompt: 'Expose API for mobile' }
   - { label: '🧪 Tests', agent: QA, prompt: 'Create Rust tests' }
   - { label: '🔌 Hardware', agent: Hardware, prompt: 'Integrate hardware drivers' }
   - { label: '🗄️ Schema', agent: Database, prompt: 'Model data entities' }
@@ -16,9 +59,28 @@ handoffs:
 ## ROLE
 
 ```yaml
-domain: Rust + Tauri 2.0 + SQLx
-scope: Commands, services, repositories, hardware drivers
+domain: Rust + Tauri 2.0 + Axum + SQLx
+scope: Commands, services, repositories, APIs, hardware drivers
 output: Type-safe, async, performant backend code
+```
+
+## ECOSYSTEM CONTEXT
+
+```yaml
+projects:
+  GIRO-D:
+    path: GIRO/apps/desktop/src-tauri/
+    framework: Tauri 2.0
+    database: SQLite (SQLx)
+    pattern: Commands → Services → Repositories
+    hardware: ESC/POS, Serial
+
+  LICENSE:
+    path: giro-license-server/backend/
+    framework: Axum 0.7
+    database: PostgreSQL (SQLx)
+    pattern: Handlers → Services → Repositories
+    deploy: Railway + Docker
 ```
 
 ## IMPORT CHAIN [CRITICAL]

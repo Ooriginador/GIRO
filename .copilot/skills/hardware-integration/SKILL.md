@@ -1,7 +1,20 @@
 # 🔌 Hardware Integration Skill
 
 > **Integração com dispositivos de ponto de venda**  
-> Versão: 1.0.0 | Última Atualização: 25 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+project: GIRO Desktop (GIRO-D)
+path: GIRO/apps/desktop/src-tauri/src/hardware/
+stack: Rust + serialport crate
+devices:
+  - Thermal printers (ESC/POS)
+  - Scales (Toledo, Filizola, Urano)
+  - Barcode scanners (USB HID/Serial)
+  - Cash drawers (via printer)
+```
 
 ## 📋 Descrição
 

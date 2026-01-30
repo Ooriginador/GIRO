@@ -1,7 +1,15 @@
 # 🧠 Semantic Thinking Construct (STC) Skill
 
 > **Paradigma de cognição estrutural para agentes de desenvolvimento**  
-> Versão: 1.0.0 | Atualizado: 29 de Janeiro de 2026
+> Versão: 2.0.0 | Atualizado: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+scope: All CICLOGIRO AI agents
+integration: Memory MCP + Sequential Thinking MCP
+purpose: State-based cognition, not chain-of-thought narration
+```
 
 ## 📋 Conceito
 

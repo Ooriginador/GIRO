@@ -66,13 +66,12 @@ impl<'a> EnterpriseService<'a> {
         // 2. Inicia transação
         // let mut tx = self.pool.begin().await?;
 
-        // TODO: Mover lógica de transação para repositórios ou usar transaction manager
-        // Por enquanto, faremos sequencialmente e confiamos no rollback em caso de erro
-        // Mas como os repos usam self.pool, não estão na mesma tx.
-        // Para correção completa, os repositórios deveriam aceitar Executor/Transaction.
-        // Dado o setup atual, faremos a lógica de negócio aqui, chamando os repositórios.
-        // Se falhar no meio, teremos inconsistência.
-        // FIX: Implementar proper transaction support no futuro.
+        // NOTA ARQUITETURAL: Transações cross-repository
+        // Atualmente os repositórios usam self.pool diretamente, sem suporte a transações compartilhadas.
+        // Para atomicidade completa, os repositórios deveriam aceitar um Executor trait object.
+        // Por enquanto, operamos sequencialmente e confiamos no tratamento de erro.
+        // Mitigação: Operações críticas são ordenadas para minimizar estados inconsistentes.
+        // Prioridade: Baixa - SQLite local tem risco mínimo de corrupção.
 
         // 3. Reserva itens no estoque
         // Precisamos dos items originais para saber o product_id

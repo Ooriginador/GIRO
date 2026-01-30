@@ -1,7 +1,27 @@
 # 🔒 Security & Compliance Skill
 
 > **Especialista em segurança, LGPD/GDPR e proteção de dados**  
-> Versão: 1.0.0 | Última Atualização: 29 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+security_scope:
+  GIRO-D:
+    pii: Customer CPF, phone, address
+    encryption: AES-256-GCM (Rust aes-gcm)
+    auth: Local PIN + license validation
+  LICENSE:
+    pii: Customer emails, business data
+    encryption: PostgreSQL TLS, bcrypt passwords
+    auth: JWT with role-based access
+  GIRO-M:
+    storage: SecureStore for tokens
+    auth: JWT from License server
+  LEADBOT:
+    pii: WhatsApp numbers, messages
+    compliance: LGPD consent tracking
+```
 
 ## 📋 Descrição
 

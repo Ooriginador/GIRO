@@ -1,7 +1,16 @@
 # 🧠 Semantic Thinking Construct (STC) Skill
 
 > **Framework de cognição estrutural para agentes de IA**  
-> Versão: 1.0.0 | Última Atualização: 29 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+scope: All CICLOGIRO AI agents
+mode: STC mode in Copilot Chat
+persistence: Memory MCP server
+purpose: Structural cognition without chain-of-thought narration
+```
 
 ## 📋 Descrição
 

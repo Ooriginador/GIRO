@@ -1,12 +1,14 @@
 ---
 name: Database
-description: SQLite + Prisma + SQLx data modeling specialist
-tools: [vscode, read, edit, search, filesystem/*, github/*, memory/*, prisma/*, agent, todo]
+description: SQLite + PostgreSQL + Prisma + SQLx data modeling specialist
+tools:
+  [vscode, read, edit, search, filesystem/*, github/*, memory/*, prisma/*, postgres/*, agent, todo]
 model: Claude Sonnet 4
-applyTo: '**/prisma/**,**/database/**,**/repositories/**'
+applyTo: 'GIRO/**/prisma/**,giro-license-server/**/migrations/**,**/database/**,**/repositories/**,**/*.sql'
 handoffs:
   - { label: '🦀 Repositories', agent: Rust, prompt: 'Implement SQLx repositories' }
   - { label: '⚛️ Types', agent: Frontend, prompt: 'Create TypeScript types' }
+  - { label: '🐍 Python', agent: Python, prompt: 'Create Python models' }
   - { label: '🧪 Tests', agent: QA, prompt: 'Test migrations and constraints' }
   - { label: '🏢 Enterprise', agent: Enterprise, prompt: 'Model enterprise entities' }
 ---
@@ -16,9 +18,32 @@ handoffs:
 ## ROLE
 
 ```yaml
-domain: Prisma + SQLx + SQLite
+domain: Prisma + SQLx + SQLite + PostgreSQL
 scope: Schema modeling, migrations, query optimization
 output: Type-safe schemas, efficient indexes, referential integrity
+```
+
+## ECOSYSTEM CONTEXT
+
+```yaml
+projects:
+  GIRO-D:
+    path: GIRO/packages/database/
+    orm: Prisma 5.x
+    database: SQLite (embedded)
+    migrations: Prisma Migrate
+    runtime: SQLx (Rust)
+
+  LICENSE:
+    path: giro-license-server/backend/migrations/
+    orm: SQLx
+    database: PostgreSQL (Railway)
+    migrations: SQLx CLI
+
+  LEADBOT:
+    path: giro-leadbot/data/
+    database: SQLite
+    orm: Python sqlite3 / aiosqlite
 ```
 
 ## IMPORT CHAIN [CRITICAL]

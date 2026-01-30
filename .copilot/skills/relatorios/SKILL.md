@@ -1,7 +1,22 @@
 # 📊 Relatórios Skill
 
 > **Especialista em relatórios, analytics, visualização de dados e exportação**  
-> Versão: 1.0.0 | Última Atualização: 28 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+projects:
+  GIRO-D:
+    path: GIRO/apps/desktop/src/pages/reports/
+    backend: GIRO/apps/desktop/src-tauri/src/commands/reports/
+    charts: recharts
+    export: jsPDF, xlsx
+  DASH:
+    path: giro-license-server/dashboard/
+    charts: recharts
+    purpose: License analytics
+```
 
 ## 📋 Descrição
 

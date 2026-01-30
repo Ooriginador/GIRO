@@ -1,7 +1,17 @@
 # 🏪 PDV (Ponto de Venda) Skill
 
 > **Especialista em fluxo de vendas, caixa e operações comerciais**  
-> Versão: 1.0.0 | Última Atualização: 28 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+project: GIRO Desktop (GIRO-D)
+path: GIRO/apps/desktop/src/pages/pdv/
+backend: GIRO/apps/desktop/src-tauri/src/commands/sales/
+database: GIRO/packages/database/prisma/
+purpose: Core retail point-of-sale functionality
+```
 
 ## 📋 Descrição
 

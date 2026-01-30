@@ -1,7 +1,17 @@
 # 🏢 Enterprise Almoxarifado Skill
 
 > **Gestão de almoxarifado para empresas de engenharia/EPC**  
-> Versão: 1.0.0 | Última Atualização: 25 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+project: GIRO Enterprise (GIRO-E)
+path: GIRO/apps/desktop/src/pages/enterprise/
+backend: GIRO/apps/desktop/src-tauri/src/commands/enterprise/
+database: GIRO/packages/database/prisma/ (enterprise models)
+purpose: Warehouse management for construction/EPC companies
+```
 
 ## 📋 Descrição
 

@@ -1,7 +1,31 @@
 # ⚛️ React Tauri Frontend Skill
 
 > **Desenvolvimento de interfaces para aplicações desktop Tauri**  
-> Versão: 1.0.0 | Última Atualização: 25 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+projects:
+  GIRO-D:
+    path: GIRO/apps/desktop/src/
+    stack: React 18 + TypeScript + TailwindCSS + Tauri 2.0
+    purpose: PDV retail and Enterprise EPC desktop app
+  DASH:
+    path: giro-license-server/dashboard/
+    stack: Next.js 14 + TailwindCSS + shadcn/ui
+    purpose: License administration dashboard
+  WEB:
+    path: giro-license-server/giro-website/
+    stack: Next.js + TailwindCSS
+    purpose: Marketing website
+
+shared_patterns:
+  - TailwindCSS + shadcn/ui components
+  - Zustand for client state
+  - TanStack Query for server state
+  - Zod for validation
+```
 
 ## 📋 Descrição
 

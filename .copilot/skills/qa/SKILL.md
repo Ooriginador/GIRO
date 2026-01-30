@@ -1,7 +1,29 @@
 # 🧪 QA (Quality Assurance) Skill
 
 > **Especialista em testes automatizados, qualidade e cobertura de código**  
-> Versão: 1.0.0 | Última Atualização: 28 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+test_stacks:
+  GIRO-D:
+    path: GIRO/tests/, GIRO/e2e/
+    unit: Vitest + React Testing Library
+    e2e: Playwright
+    backend: Rust #[cfg(test)]
+  GIRO-M:
+    path: giro-mobile/tests/
+    unit: Jest + React Native Testing Library
+  LICENSE:
+    path: giro-license-server/backend/tests/, giro-license-server/e2e/
+    unit: Rust #[cfg(test)]
+    e2e: Playwright
+  LEADBOT:
+    path: giro-leadbot/tests/
+    unit: pytest + pytest-asyncio
+    coverage: pytest-cov
+```
 
 ## 📋 Descrição
 

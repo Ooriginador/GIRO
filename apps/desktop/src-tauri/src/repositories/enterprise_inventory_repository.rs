@@ -292,7 +292,31 @@ impl<'a> EnterpriseInventoryRepository<'a> {
                     .await?;
                 }
 
-                // TODO: Registrar StockMovement (Audit)
+                // Registrar StockMovement para auditoria
+                let movement_type = if diff >= 0.0 {
+                    "ADJUSTMENT_IN"
+                } else {
+                    "ADJUSTMENT_OUT"
+                };
+                sqlx::query(
+                    r#"
+                    INSERT INTO stock_movements (
+                        id, location_id, product_id, movement_type, quantity, 
+                        reference_type, reference_id, notes, user_id, created_at
+                    ) VALUES (?, ?, ?, ?, ?, 'INVENTORY_COUNT', ?, ?, ?, ?)
+                    "#,
+                )
+                .bind(new_id())
+                .bind(&location_id)
+                .bind(&product_id)
+                .bind(movement_type)
+                .bind(diff.abs())
+                .bind(id) // reference_id = inventory count ID
+                .bind(format!("Ajuste de inventário - Contagem #{}", id))
+                .bind(completed_by_id)
+                .bind(&now)
+                .execute(self.pool)
+                .await?;
             }
         }
 

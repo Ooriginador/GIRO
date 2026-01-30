@@ -1,7 +1,25 @@
 # 🐛 Debugger Skill
 
 > **Diagnóstico e resolução de bugs complexos com análise de causa raiz**  
-> Versão: 1.0.0 | Última Atualização: 28 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+debug_targets:
+  GIRO-D:
+    frontend: Browser DevTools, React DevTools
+    backend: RUST_BACKTRACE=1, tracing logs
+    database: SQLite EXPLAIN QUERY PLAN
+  GIRO-M:
+    tools: React Native Debugger, Flipper, Expo DevTools
+  LICENSE:
+    backend: tracing + tower-http logs
+    database: PostgreSQL EXPLAIN ANALYZE
+  LEADBOT:
+    tools: Python debugger (pdb), logging module
+    logs: giro-leadbot/logs/
+```
 
 ## 📋 Descrição
 

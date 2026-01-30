@@ -23,6 +23,7 @@ pub mod manager;
 pub mod printer;
 pub mod scale;
 pub mod scanner;
+pub mod usb_vid_pid;
 
 // Windows-specific native printer API
 #[cfg(target_os = "windows")]
@@ -31,6 +32,10 @@ pub mod windows_printer;
 // Novo detector robusto de impressoras
 #[cfg(target_os = "windows")]
 pub mod printer_detector;
+
+// Detector USB via SetupAPI
+#[cfg(target_os = "windows")]
+pub mod usb_printer_detector;
 
 pub use device::*;
 pub use drawer::*;
@@ -47,6 +52,12 @@ pub use printer_detector::{
     DetectionResult, DetectionSource, PrinterConnectionType, PrinterDetector,
     PrinterInfo as DetectorPrinterInfo,
 };
+
+#[cfg(target_os = "windows")]
+pub use usb_printer_detector::{detect_usb_printers, UsbDetectionResult, UsbPrinterDevice};
+
+// Exportamos apenas a função e o resultado (serializável), não a constante estática
+pub use usb_vid_pid::{lookup_by_vid_pid, VidPidLookupResult};
 
 use thiserror::Error;
 

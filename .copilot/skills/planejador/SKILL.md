@@ -1,7 +1,19 @@
 # 📋 Planejador Skill
 
 > **Arquiteto de soluções e planejador analítico antes da codificação**  
-> Versão: 1.0.0 | Última Atualização: 28 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+scope: All CICLOGIRO projects
+projects:
+  - GIRO-D: Desktop PDV/Enterprise
+  - GIRO-M: Mobile companion
+  - LICENSE: License server
+  - LEADBOT: WhatsApp automation
+methodology: Analyze → Design → Document → Handoff to specialized agents
+```
 
 ## 📋 Descrição
 

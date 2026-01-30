@@ -1,7 +1,26 @@
 # 🗄️ Prisma SQLite Desktop Skill
 
 > **Modelagem de dados e migrations para aplicações desktop**  
-> Versão: 1.0.0 | Última Atualização: 25 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+database_projects:
+  GIRO-D (SQLite):
+    path: GIRO/packages/database/prisma/
+    engine: SQLite 3.45+
+    orm: Prisma 7.0+ (schema) + SQLx 0.7+ (runtime in Rust)
+    purpose: Local desktop database
+  LICENSE (PostgreSQL):
+    path: giro-license-server/backend/migrations/
+    engine: PostgreSQL 16+
+    orm: SQLx with migrations
+    purpose: Cloud license database
+
+note: This skill focuses on SQLite for desktop.
+  For PostgreSQL patterns, see @License agent.
+```
 
 ## 📋 Descrição
 

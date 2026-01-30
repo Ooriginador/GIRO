@@ -1,7 +1,28 @@
 # 🦀 Tauri Rust Backend Skill
 
 > **Especialização em desenvolvimento backend Tauri 2.0 com Rust**  
-> Versão: 1.0.0 | Última Atualização: 25 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+rust_projects:
+  GIRO-D:
+    path: GIRO/apps/desktop/src-tauri/
+    stack: Tauri 2.0 + SQLx (SQLite)
+    purpose: Desktop PDV/Enterprise backend
+  LICENSE:
+    path: giro-license-server/backend/
+    stack: Axum + SQLx (PostgreSQL)
+    purpose: License API server
+
+shared_patterns:
+  - SQLx for compile-time checked queries
+  - Repository pattern for data access
+  - thiserror for error handling
+  - serde for serialization
+  - tracing for logging
+```
 
 ## 📋 Descrição
 

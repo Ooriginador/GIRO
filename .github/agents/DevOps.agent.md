@@ -1,12 +1,14 @@
 ---
 name: DevOps
-description: CI/CD, Docker, Railway/Vercel deployment, infrastructure
+description: CI/CD, Docker, Railway deployment, infrastructure for all projects
 tools: [vscode, read, edit, search, filesystem/*, github/*, memory/*, agent, todo]
 model: Claude Sonnet 4
-applyTo: '**/Dockerfile,**/docker-compose.yml,**/.github/workflows/**,**/railway.toml'
+applyTo: '**/Dockerfile,**/docker-compose.yml,**/.github/workflows/**,**/railway.toml,**/Makefile'
 handoffs:
   - { label: '🧪 Tests', agent: QA, prompt: 'Fix failing CI tests' }
   - { label: '🔐 Security', agent: Security, prompt: 'Audit CI security' }
+  - { label: '🦀 Backend', agent: Rust, prompt: 'Fix build issues' }
+  - { label: '🐍 Python', agent: Python, prompt: 'Fix Python CI' }
 ---
 
 # DEVOPS AGENT
@@ -15,8 +17,40 @@ handoffs:
 
 ```yaml
 domain: Infrastructure, CI/CD, containerization
-scope: Docker, GitHub Actions, Railway, Vercel, monitoring
+scope: Docker, GitHub Actions, Railway, monitoring
 output: Reliable, automated, secure deployment pipelines
+```
+
+## ECOSYSTEM CONTEXT
+
+```yaml
+projects:
+  GIRO-D:
+    ci: GitHub Actions (build.yml)
+    platforms: [Windows, Linux, macOS]
+    artifacts: NSIS installer, AppImage
+    release: GitHub Releases → giro-releases
+
+  LICENSE:
+    ci: GitHub Actions (license-server-ci.yml)
+    deploy: Railway (Docker)
+    database: Railway PostgreSQL
+    path: giro-license-server/
+
+  DASH:
+    ci: GitHub Actions
+    deploy: Railway (Next.js)
+    path: giro-license-server/dashboard/
+
+  MOBILE:
+    ci: GitHub Actions + EAS Build
+    deploy: Expo/Play Store
+    path: giro-mobile/
+
+  LEADBOT:
+    ci: Makefile + pytest
+    deploy: Manual/Docker
+    path: giro-leadbot/
 ```
 
 ## IMPORT CHAIN [CRITICAL]

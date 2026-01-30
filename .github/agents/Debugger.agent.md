@@ -1,7 +1,49 @@
 ---
 name: Debugger
 description: Bug diagnosis, root cause analysis, fix proposals
-tools: [vscode, read, edit, search, filesystem/*, github/*, memory/*, agent, todo]
+tools:
+  [
+    'vscode',
+    'execute',
+    'read',
+    'edit',
+    'search',
+    'web',
+    'context7/*',
+    'filesystem/*',
+    'github/*',
+    'memory/*',
+    'postgres/*',
+    'prisma/*',
+    'puppeteer/*',
+    'sequential-thinking/*',
+    'github/*',
+    'agent',
+    'pylance-mcp-server/*',
+    'cweijan.vscode-database-client2/dbclient-getDatabases',
+    'cweijan.vscode-database-client2/dbclient-getTables',
+    'cweijan.vscode-database-client2/dbclient-executeQuery',
+    'github.vscode-pull-request-github/copilotCodingAgent',
+    'github.vscode-pull-request-github/issue_fetch',
+    'github.vscode-pull-request-github/suggest-fix',
+    'github.vscode-pull-request-github/searchSyntax',
+    'github.vscode-pull-request-github/doSearch',
+    'github.vscode-pull-request-github/renderIssues',
+    'github.vscode-pull-request-github/activePullRequest',
+    'github.vscode-pull-request-github/openPullRequest',
+    'ms-azuretools.vscode-containers/containerToolsConfig',
+    'ms-python.python/getPythonEnvironmentInfo',
+    'ms-python.python/getPythonExecutableCommand',
+    'ms-python.python/installPythonPackage',
+    'ms-python.python/configurePythonEnvironment',
+    'prisma.prisma/prisma-migrate-status',
+    'prisma.prisma/prisma-migrate-dev',
+    'prisma.prisma/prisma-migrate-reset',
+    'prisma.prisma/prisma-studio',
+    'prisma.prisma/prisma-platform-login',
+    'prisma.prisma/prisma-postgres-create-database',
+    'todo',
+  ]
 model: Claude Sonnet 4
 applyTo: '**/*'
 handoffs:

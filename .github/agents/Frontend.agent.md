@@ -1,12 +1,13 @@
 ---
 name: Frontend
-description: React + TypeScript + TailwindCSS specialist for Tauri apps
+description: React + TypeScript + TailwindCSS specialist for all frontend projects
 tools: [vscode, read, edit, search, filesystem/*, github/*, memory/*, prisma/*, agent, todo]
 model: Claude Sonnet 4
-applyTo: '**/src/**/*.tsx,**/src/**/*.ts,**/components/**'
+applyTo: 'GIRO/**/src/**/*.tsx,giro-license-server/dashboard/**/*.tsx,giro-license-server/giro-website/**/*.tsx'
 handoffs:
-  - { label: '🦀 Backend', agent: Rust, prompt: 'Implement Tauri commands for this component' }
-  - { label: '🧪 Tests', agent: QA, prompt: 'Create tests for implemented components' }
+  - { label: '🦀 Backend', agent: Rust, prompt: 'Implement Tauri/Axum commands' }
+  - { label: '📱 Mobile', agent: Mobile, prompt: 'Implement mobile version' }
+  - { label: '🧪 Tests', agent: QA, prompt: 'Create tests for components' }
   - { label: '🐛 Debug', agent: Debugger, prompt: 'Diagnose UI issue' }
 ---
 
@@ -16,8 +17,32 @@ handoffs:
 
 ```yaml
 domain: React + TypeScript + TailwindCSS
-scope: UI components, state management, Tauri integration
+scope: UI components, state management, API integration
 output: Functional components with hooks, proper typing, accessible UI
+```
+
+## ECOSYSTEM CONTEXT
+
+```yaml
+projects:
+  GIRO-D:
+    path: GIRO/apps/desktop/
+    framework: React 18 + Tauri
+    state: Zustand
+    routing: React Router 6
+    ipc: '@tauri-apps/api'
+
+  DASH:
+    path: giro-license-server/dashboard/
+    framework: Next.js 14 (App Router)
+    state: TanStack Query
+    routing: App Router
+    api: REST
+
+  WEB:
+    path: giro-license-server/giro-website/
+    framework: Next.js 14 (App Router)
+    purpose: Marketing + download page
 ```
 
 ## IMPORT CHAIN [CRITICAL]

@@ -42,11 +42,31 @@ use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Graphics::Printing::{
     ClosePrinter, EndDocPrinter, EndPagePrinter, EnumPrintersW, GetDefaultPrinterW, OpenPrinterW,
     StartDocPrinterW, StartPagePrinter, WritePrinter, DOC_INFO_1W, PRINTER_ENUM_CONNECTIONS,
-    PRINTER_ENUM_LOCAL, PRINTER_ENUM_NETWORK, PRINTER_HANDLE, PRINTER_INFO_2W,
+    PRINTER_ENUM_LOCAL, PRINTER_ENUM_NETWORK, PRINTER_ENUM_SHARED, PRINTER_HANDLE, PRINTER_INFO_2W,
 };
 use windows::Win32::System::Registry::{
     RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ,
 };
+
+// Constantes de Attributes da PRINTER_INFO_2
+pub mod printer_attributes {
+    pub const PRINTER_ATTRIBUTE_QUEUED: u32 = 0x00000001;
+    pub const PRINTER_ATTRIBUTE_DIRECT: u32 = 0x00000002;
+    pub const PRINTER_ATTRIBUTE_DEFAULT: u32 = 0x00000004;
+    pub const PRINTER_ATTRIBUTE_SHARED: u32 = 0x00000008;
+    pub const PRINTER_ATTRIBUTE_NETWORK: u32 = 0x00000010;
+    pub const PRINTER_ATTRIBUTE_HIDDEN: u32 = 0x00000020;
+    pub const PRINTER_ATTRIBUTE_LOCAL: u32 = 0x00000040;
+    pub const PRINTER_ATTRIBUTE_ENABLE_DEVQ: u32 = 0x00000080;
+    pub const PRINTER_ATTRIBUTE_KEEPPRINTEDJOBS: u32 = 0x00000100;
+    pub const PRINTER_ATTRIBUTE_DO_COMPLETE_FIRST: u32 = 0x00000200;
+    pub const PRINTER_ATTRIBUTE_WORK_OFFLINE: u32 = 0x00000400;
+    pub const PRINTER_ATTRIBUTE_ENABLE_BIDI: u32 = 0x00000800;
+    pub const PRINTER_ATTRIBUTE_RAW_ONLY: u32 = 0x00001000;
+    pub const PRINTER_ATTRIBUTE_PUBLISHED: u32 = 0x00002000;
+    pub const PRINTER_ATTRIBUTE_FAX: u32 = 0x00004000;
+    pub const PRINTER_ATTRIBUTE_TS: u32 = 0x00008000;
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // TIPOS E ESTRUTURAS
@@ -128,12 +148,18 @@ pub struct PrinterCapabilities {
     pub supports_escpos: bool,
     /// Suporta impressão RAW
     pub supports_raw: bool,
+    /// Detectado via atributo RAW_ONLY
+    pub raw_only_attribute: bool,
+    /// Datatype padrão (RAW, NT EMF, TEXT)
+    pub default_datatype: Option<String>,
     /// Tem guilhotina automática
     pub has_cutter: bool,
     /// Tem gaveta de dinheiro
     pub has_cash_drawer: bool,
     /// Largura do papel em mm
     pub paper_width_mm: Option<u16>,
+    /// Atributos da impressora (bitmask)
+    pub attributes: u32,
 }
 
 /// Status da impressora (constantes de bits)
@@ -294,12 +320,14 @@ impl PrinterDetector {
         tracing::info!("🔍 [DETECTOR] Iniciando detecção robusta de impressoras...");
         tracing::info!("🔍 [DETECTOR] Sistema: Windows (compilado com target_os = windows)");
 
-        // 1. API Nativa - Impressoras Locais
-        tracing::info!("🔍 [DETECTOR] Estratégia 1: API Nativa (PRINTER_ENUM_LOCAL)...");
-        match self.detect_via_native_api(PRINTER_ENUM_LOCAL) {
+        // 1. API Nativa - Impressoras Locais + Compartilhadas
+        tracing::info!(
+            "🔍 [DETECTOR] Estratégia 1: API Nativa (PRINTER_ENUM_LOCAL | PRINTER_ENUM_SHARED)..."
+        );
+        match self.detect_via_native_api(PRINTER_ENUM_LOCAL | PRINTER_ENUM_SHARED) {
             Ok(found) => {
                 tracing::info!(
-                    "  ✓ [DETECTOR] API Nativa (LOCAL): {} impressoras",
+                    "  ✓ [DETECTOR] API Nativa (LOCAL+SHARED): {} impressoras",
                     found.len()
                 );
                 for p in found {
@@ -308,8 +336,21 @@ impl PrinterDetector {
                 sources_used.push(DetectionSource::NativeApi);
             }
             Err(e) => {
-                errors.push(format!("API Nativa (LOCAL): {}", e));
-                tracing::warn!("  ✗ API Nativa (LOCAL) falhou: {}", e);
+                // Fallback: tentar apenas LOCAL se SHARED falhar
+                tracing::warn!("  ⚠ LOCAL+SHARED falhou, tentando apenas LOCAL: {}", e);
+                match self.detect_via_native_api(PRINTER_ENUM_LOCAL) {
+                    Ok(found) => {
+                        tracing::info!("  ✓ API Nativa (LOCAL): {} impressoras", found.len());
+                        for p in found {
+                            printers.entry(p.name.clone()).or_insert(p);
+                        }
+                        sources_used.push(DetectionSource::NativeApi);
+                    }
+                    Err(e2) => {
+                        errors.push(format!("API Nativa (LOCAL): {}", e2));
+                        tracing::warn!("  ✗ API Nativa (LOCAL) falhou: {}", e2);
+                    }
+                }
             }
         }
 
@@ -341,7 +382,48 @@ impl PrinterDetector {
             }
         }
 
-        // 4. Registry Scan (se API falhou ou encontrou poucas)
+        // 4. SetupAPI - Detecção USB por VID/PID (NOVA ESTRATÉGIA)
+        tracing::info!("🔌 [DETECTOR] Estratégia 4: SetupAPI (USB VID/PID)...");
+        let usb_result = super::usb_printer_detector::detect_usb_printers();
+        if !usb_result.devices.is_empty() {
+            tracing::info!(
+                "  ✓ SetupAPI: {} impressoras USB térmicas detectadas",
+                usb_result.devices.len()
+            );
+            sources_used.push(DetectionSource::SetupApi);
+
+            // Enriquecer impressoras existentes com info USB ou adicionar novas
+            for usb_device in usb_result.devices {
+                if let Some(lookup) = &usb_device.lookup_info {
+                    // Tenta encontrar impressora correspondente pelo nome do fabricante
+                    let matching_printer = printers.values_mut().find(|p| {
+                        let name_lower = p.name.to_lowercase();
+                        let vendor_lower = lookup.vendor.to_lowercase();
+                        name_lower.contains(&vendor_lower)
+                            || (lookup
+                                .model
+                                .as_ref()
+                                .map(|m| name_lower.contains(&m.to_lowercase()))
+                                .unwrap_or(false))
+                    });
+
+                    if let Some(printer) = matching_printer {
+                        // Enriquece com informações do USB
+                        if let Some(width) = lookup.paper_width_mm {
+                            printer.capabilities.paper_width_mm = Some(width as u16);
+                        }
+                        printer.capabilities.has_cutter = lookup.has_cutter;
+                        printer.capabilities.has_cash_drawer = lookup.has_cash_drawer;
+                        tracing::debug!("  📍 Enriqueceu '{}' com info USB", printer.name);
+                    }
+                }
+            }
+        }
+        for usb_err in usb_result.errors {
+            warnings.push(format!("SetupAPI: {}", usb_err));
+        }
+
+        // 5. Registry Scan (se API falhou ou encontrou poucas)
         if printers.is_empty() || errors.len() > 0 {
             match self.detect_via_registry() {
                 Ok(found) => {
@@ -518,18 +600,37 @@ impl PrinterDetector {
                 let location = wide_to_string(info.pLocation);
                 let comment = wide_to_string(info.pComment);
                 let status = info.Status;
+                let attributes = info.Attributes;
+
+                // Extrai pDatatype para verificar suporte RAW
+                let datatype = wide_to_string(info.pDatatype);
+                let datatype_upper = datatype.to_uppercase();
+                let supports_raw_by_datatype = datatype_upper.contains("RAW");
+
+                // Verifica atributo RAW_ONLY (0x00001000)
+                let is_raw_only =
+                    (attributes & printer_attributes::PRINTER_ATTRIBUTE_RAW_ONLY) != 0;
 
                 // Detecta tipo de conexão pela porta
                 let connection_type = detect_connection_type(&port_name);
 
-                // Verifica se é térmica
-                let is_thermal = is_thermal_printer(&name, &driver_name, &port_name);
+                // Verifica se é térmica - agora também por RAW_ONLY attribute
+                let is_thermal_by_name = is_thermal_printer(&name, &driver_name, &port_name);
+                let is_thermal = is_thermal_by_name || is_raw_only;
 
                 // Verifica se está pronta
                 let is_ready = is_printer_ready_status(status);
 
-                // Detecta capacidades
-                let capabilities = detect_capabilities(&name, &driver_name);
+                // Detecta capacidades (agora com info adicional)
+                let mut capabilities = detect_capabilities(&name, &driver_name);
+                capabilities.supports_raw = supports_raw_by_datatype || is_raw_only;
+                capabilities.raw_only_attribute = is_raw_only;
+                capabilities.default_datatype = if datatype.is_empty() {
+                    None
+                } else {
+                    Some(datatype)
+                };
+                capabilities.attributes = attributes;
 
                 let printer_info = PrinterInfo {
                     name: name.clone(),
@@ -886,33 +987,64 @@ fn is_thermal_printer(name: &str, driver: &str, port: &str) -> bool {
         "58mm",
         "48mm",
         "recibo",
-        // Marcas
+        // Marcas internacionais
         "epson tm",
         "tm-t",
         "tm-m",
         "tm-u",
-        "elgin",
-        "i7",
-        "i9",
-        "bematech",
-        "mp-4200",
-        "mp-2800",
-        "mp-4000",
-        "daruma",
-        "dr800",
-        "dr700",
-        "c3tech",
+        "tm-l",
         "star tsp",
         "star sp",
         "citizen",
         "ct-s",
         "xprinter",
         "sewoo",
-        "tanca",
-        "control id",
+        "lk-t",
         "zebra zd",   // Térmica de etiquetas
         "brother ql", // Térmica de etiquetas
         "sat fiscal", // Impressora SAT
+        // Marcas brasileiras
+        "elgin",
+        "i7",
+        "i9",
+        "vox+",
+        "bematech",
+        "mp-4200",
+        "mp-2800",
+        "mp-4000",
+        "mp-100",
+        "daruma",
+        "dr800",
+        "dr700",
+        "dr600",
+        "c3tech",
+        "pos-58",
+        "pos-80",
+        "tanca",
+        "tp-620",
+        "control id",
+        "controlid",
+        "print id",
+        "sweda",
+        "si-300",
+        "gertec",
+        "g250",
+        "perto",
+        "nitere",
+        "itautec",
+        // Marcas asiáticas
+        "bixolon",
+        "srp-",
+        "zonerich",
+        "custom",
+        "posiflex",
+        "partner",
+        "rongta",
+        "goojprt",
+        "hprt",
+        "gainscha",
+        "munbyn",
+        "netum",
     ];
 
     thermal_keywords.iter().any(|kw| combined.contains(kw))
@@ -933,6 +1065,9 @@ fn is_system_virtual_printer(name: &str) -> bool {
         "cutepdf",
         "bullzip",
         "pdfcreator",
+        "primopdf",
+        "dopdf",
+        "virtual",
     ];
 
     virtual_printers.iter().any(|vp| name_lower.contains(vp))
@@ -1030,10 +1165,16 @@ fn detect_capabilities(name: &str, driver: &str) -> PrinterCapabilities {
 
     PrinterCapabilities {
         supports_escpos: is_thermal_printer(name, driver, ""),
-        supports_raw: true, // Windows geralmente suporta RAW
-        has_cutter: combined.contains("tm-t") || combined.contains("mp-4200"),
+        supports_raw: true, // Windows geralmente suporta RAW, será atualizado se tiver pDatatype
+        raw_only_attribute: false, // Será atualizado pelo caller
+        default_datatype: None, // Será atualizado pelo caller
+        has_cutter: combined.contains("tm-t")
+            || combined.contains("mp-4200")
+            || combined.contains("srp-350")
+            || combined.contains("ct-s"),
         has_cash_drawer: is_thermal_printer(name, driver, ""),
         paper_width_mm: paper_width,
+        attributes: 0, // Será atualizado pelo caller
     }
 }
 

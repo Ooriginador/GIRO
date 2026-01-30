@@ -1,7 +1,31 @@
 # 🚀 DevOps & CI/CD Skill
 
 > **Especialista em deploy, pipelines e infraestrutura**  
-> Versão: 1.0.0 | Última Atualização: 29 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+deployments:
+  GIRO-D:
+    build: GitHub Actions → Windows/Linux installers
+    distribution: giro-releases/ + auto-updater
+  LICENSE:
+    deploy: Railway (Rust + PostgreSQL)
+    path: giro-license-server/backend/
+  DASH:
+    deploy: Vercel
+    path: giro-license-server/dashboard/
+  WEB:
+    deploy: Vercel
+    path: giro-license-server/giro-website/
+  GIRO-M:
+    build: EAS Build
+    distribution: Google Play + App Store
+  LEADBOT:
+    deploy: Railway or VPS
+    path: giro-leadbot/
+```
 
 ## 📋 Descrição
 

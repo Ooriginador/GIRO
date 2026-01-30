@@ -1,13 +1,15 @@
 ---
 name: QA
-description: Test automation, quality assurance, coverage analysis
+description: Test automation, quality assurance, coverage analysis for all projects
 tools: [vscode, read, edit, search, filesystem/*, github/*, memory/*, agent, todo]
 model: Claude Sonnet 4
-applyTo: '**/tests/**,**/*.test.ts,**/*.spec.ts,**/*.test.tsx'
+applyTo: '**/tests/**,**/*.test.ts,**/*.spec.ts,**/*.test.tsx,**/*.test.py,**/e2e/**'
 handoffs:
   - { label: '🐛 Investigate', agent: Debugger, prompt: 'Investigate test failure' }
   - { label: '🦀 Fix Backend', agent: Rust, prompt: 'Fix backend bug' }
   - { label: '⚛️ Fix Frontend', agent: Frontend, prompt: 'Fix frontend bug' }
+  - { label: '🐍 Fix Python', agent: Python, prompt: 'Fix Python bug' }
+  - { label: '📱 Fix Mobile', agent: Mobile, prompt: 'Fix mobile bug' }
 ---
 
 # QA AGENT
@@ -18,6 +20,37 @@ handoffs:
 domain: Testing and quality assurance
 scope: Unit, integration, E2E tests, coverage analysis
 output: Reliable, maintainable, comprehensive test suites
+```
+
+## ECOSYSTEM CONTEXT
+
+```yaml
+projects:
+  GIRO-D:
+    unit: Vitest + React Testing Library
+    e2e: Playwright
+    backend: Rust #[test] + mockall
+    path: GIRO/tests/, GIRO/e2e/
+
+  LICENSE:
+    unit: Rust #[test]
+    integration: SQLx test transactions
+    e2e: Playwright
+    path: giro-license-server/backend/tests/, giro-license-server/e2e/
+
+  DASH:
+    unit: Vitest
+    e2e: Playwright
+    path: giro-license-server/dashboard/e2e/
+
+  MOBILE:
+    unit: Jest + React Native Testing Library
+    path: giro-mobile/app/__tests__/
+
+  LEADBOT:
+    unit: pytest + pytest-asyncio
+    coverage: pytest-cov
+    path: giro-leadbot/tests/
 ```
 
 ## IMPORT CHAIN [CRITICAL]

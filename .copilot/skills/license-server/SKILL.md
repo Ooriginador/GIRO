@@ -1,59 +1,84 @@
 # 🔑 License Server Skill
 
 > **Especialista em gerenciamento de licenças e autenticação**  
-> Versão: 1.0.0 | Última Atualização: 29 de Janeiro de 2026
+> Versão: 2.0.0 | Última Atualização: 30 de Janeiro de 2026
+
+## 🌐 ECOSYSTEM CONTEXT
+
+```yaml
+project: giro-license-server
+path: giro-license-server/
+components:
+  - backend: Rust + Axum + SQLx + PostgreSQL
+  - dashboard: Next.js 14 + TailwindCSS + shadcn/ui
+  - website: Next.js marketing site
+purpose: License validation and management for GIRO Desktop
+```
 
 ## 📋 Descrição
 
 Esta skill fornece conhecimento especializado em:
 
-- FastAPI para backend Python
-- Sistema de licenciamento GIRO
-- Autenticação JWT
-- Integração com PostgreSQL via Prisma
-- Dashboard de administração
+- Rust + Axum para API backend de alta performance
+- Sistema de licenciamento GIRO Desktop
+- Autenticação JWT com jsonwebtoken crate
+- PostgreSQL com SQLx (compile-time checked queries)
+- Dashboard Next.js para administração
 
 ## 🛠️ Stack Técnica
 
-| Componente    | Versão | Uso            |
-| ------------- | ------ | -------------- |
-| FastAPI       | 0.109+ | Framework API  |
-| Python        | 3.12+  | Runtime        |
-| Prisma Client | 0.12+  | ORM            |
-| PostgreSQL    | 16+    | Database       |
-| Railway       | -      | Hosting        |
-| JWT           | -      | Authentication |
+### Backend (Rust)
+
+| Componente   | Versão | Uso                     |
+| ------------ | ------ | ----------------------- |
+| Axum         | 0.7+   | Web framework           |
+| Tokio        | 1.35+  | Async runtime           |
+| SQLx         | 0.7+   | Database (PostgreSQL)   |
+| jsonwebtoken | 9.0+   | JWT auth                |
+| argon2       | 0.5+   | Password hashing        |
+| serde        | 1.0+   | Serialization           |
+| tower-http   | 0.5+   | Middleware (CORS, etc)  |
+| tracing      | 0.1+   | Logging/instrumentation |
+
+### Dashboard (Next.js)
+
+| Componente  | Versão | Uso             |
+| ----------- | ------ | --------------- |
+| Next.js     | 14+    | React framework |
+| TailwindCSS | 3.4+   | Styling         |
+| shadcn/ui   | latest | Components      |
+| TanStack    | 5.0+   | Data fetching   |
 
 ## 📁 Estrutura do Projeto
 
-```
+````
 giro-license-server/
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py           # FastAPI app
-│   │   ├── config.py         # Settings
-│   │   ├── api/
-│   │   │   ├── __init__.py
-│   │   │   ├── deps.py       # Dependencies
-│   │   │   └── v1/
-│   │   │       ├── __init__.py
-│   │   │       ├── routes/
-│   │   │       └── endpoints/
-│   │   ├── core/
-│   │   │   ├── security.py   # JWT, hashing
-│   │   │   └── license.py    # License logic
-│   │   ├── models/           # Pydantic models
-│   │   ├── services/         # Business logic
-│   │   └── schemas/          # API schemas
-│   ├── prisma/
-│   │   └── schema.prisma
-│   ├── tests/
-│   ├── requirements.txt
+├── backend/                  # Rust API
+│   ├── src/
+│   │   ├── main.rs          # Entry point
+│   │   ├── lib.rs           # Exports
+│   │   ├── config.rs        # Settings (envconfig)
+│   │   ├── routes/          # Axum routers
+│   │   │   ├── mod.rs
+│   │   │   ├── auth.rs      # /auth/*
+│   │   │   ├── licenses.rs  # /licenses/*
+│   │   │   └── health.rs    # /health
+│   │   ├── handlers/        # Request handlers
+│   │   ├── services/        # Business logic
+│   │   ├── repositories/    # SQLx queries
+│   │   ├── models/          # Domain types
+│   │   ├── auth/            # JWT, middleware
+│   │   └── error.rs         # Error types
+│   ├── migrations/          # SQLx migrations
+│   ├── Cargo.toml
 │   └── Dockerfile
-├── dashboard/                # Next.js admin
+├── dashboard/               # Next.js admin
+│   ├── app/
+│   ├── components/
+│   └── package.json
+├── giro-website/            # Marketing site
+├── e2e/                     # Playwright tests
 └── railway.toml
-```
 
 ## 📐 Padrões de Código
 
@@ -110,7 +135,7 @@ async def validate_license(
         )
 
     return result
-```
+````
 
 ### Prisma Schema (License)
 
@@ -194,174 +219,335 @@ enum LicenseStatus {
 }
 ```
 
-### JWT Authentication
+## 📐 Padrões de Código (Rust + Axum)
 
-```python
-# app/core/security.py
-from datetime import datetime, timedelta
-from typing import Any
-import jwt
-from passlib.context import CryptContext
-from app.config import settings
+### Axum Router Setup
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+```rust
+// src/routes/mod.rs
+use axum::{routing::{get, post, put, delete}, Router};
+use crate::handlers;
 
-def create_access_token(
-    subject: str | Any,
-    expires_delta: timedelta | None = None,
-) -> str:
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+pub fn create_router() -> Router<AppState> {
+    Router::new()
+        .route("/health", get(handlers::health::check))
+        .nest("/api/v1", api_routes())
+}
 
-    to_encode = {
-        "exp": expire,
-        "sub": str(subject),
-        "type": "access",
-    }
+fn api_routes() -> Router<AppState> {
+    Router::new()
+        .nest("/auth", auth_routes())
+        .nest("/licenses", license_routes())
+        .nest("/customers", customer_routes())
+}
 
-    return jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM,
-    )
+fn license_routes() -> Router<AppState> {
+    Router::new()
+        .route("/", post(handlers::licenses::create))
+        .route("/validate/:key", get(handlers::licenses::validate))
+        .route("/:id", get(handlers::licenses::get_by_id))
+        .route("/:id", put(handlers::licenses::update))
+        .route("/:id/revoke", delete(handlers::licenses::revoke))
+}
+```
 
+### License Handler
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+```rust
+// src/handlers/licenses.rs
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    Json,
+};
+use crate::{
+    auth::Claims,
+    error::AppError,
+    models::{License, LicenseCreate, LicenseValidation, ValidateQuery},
+    services::LicenseService,
+    AppState,
+};
 
+pub async fn create(
+    State(state): State<AppState>,
+    claims: Claims,
+    Json(input): Json<LicenseCreate>,
+) -> Result<(StatusCode, Json<License>), AppError> {
+    claims.require_role("admin")?;
 
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    let service = LicenseService::new(&state.pool);
+    let license = service.create(input).await?;
+
+    Ok((StatusCode::CREATED, Json(license)))
+}
+
+pub async fn validate(
+    State(state): State<AppState>,
+    Path(key): Path<String>,
+    Query(query): Query<ValidateQuery>,
+) -> Result<Json<LicenseValidation>, AppError> {
+    let service = LicenseService::new(&state.pool);
+    let result = service.validate(&key, &query.machine_id).await?;
+
+    Ok(Json(result))
+}
 ```
 
 ### License Service
 
-```python
-# app/services/license.py
-from datetime import datetime
-import secrets
-from prisma import Prisma
-from app.schemas.license import LicenseCreate, LicenseValidation
+```rust
+// src/services/license.rs
+use sqlx::PgPool;
+use rand::Rng;
+use crate::{
+    error::AppError,
+    models::{License, LicenseCreate, LicenseValidation, LicenseType, LicenseStatus},
+    repositories::LicenseRepository,
+};
 
-class LicenseService:
-    def __init__(self, db: Prisma):
-        self.db = db
+pub struct LicenseService<'a> {
+    repo: LicenseRepository<'a>,
+}
 
-    async def create(self, data: LicenseCreate) -> dict:
-        # Gerar chave única
-        key = self._generate_key(data.type)
+impl<'a> LicenseService<'a> {
+    pub fn new(pool: &'a PgPool) -> Self {
+        Self {
+            repo: LicenseRepository::new(pool),
+        }
+    }
 
-        license = await self.db.license.create(
-            data={
-                "key": key,
-                "type": data.type,
-                "maxActivations": data.max_activations,
-                "maxComputers": data.max_computers,
-                "expiresAt": data.expires_at,
-                "customerId": data.customer_id,
+    pub async fn create(&self, input: LicenseCreate) -> Result<License, AppError> {
+        let key = self.generate_key(&input.license_type);
+        self.repo.create(&key, input).await
+    }
+
+    pub async fn validate(
+        &self,
+        license_key: &str,
+        machine_id: &str,
+    ) -> Result<LicenseValidation, AppError> {
+        let license = self.repo.find_by_key(license_key).await?
+            .ok_or(AppError::LicenseNotFound)?;
+
+        if license.status != LicenseStatus::Active {
+            return Ok(LicenseValidation::invalid(
+                format!("Licença {}", license.status.as_str())
+            ));
+        }
+
+        if let Some(expires) = license.expires_at {
+            if expires < chrono::Utc::now() {
+                self.repo.update_status(&license.id, LicenseStatus::Expired).await?;
+                return Ok(LicenseValidation::invalid("Licença expirada"));
             }
+        }
+
+        // Check activations
+        let activations = self.repo.count_activations(&license.id).await?;
+        let existing = self.repo.find_activation(&license.id, machine_id).await?;
+
+        if existing.is_some() {
+            self.repo.update_activation_seen(&license.id, machine_id).await?;
+        } else if activations >= license.max_computers as i64 {
+            return Ok(LicenseValidation::invalid(
+                format!("Limite de {} computadores atingido", license.max_computers)
+            ));
+        } else {
+            self.repo.create_activation(&license.id, machine_id).await?;
+        }
+
+        Ok(LicenseValidation::valid(license))
+    }
+
+    fn generate_key(&self, license_type: &LicenseType) -> String {
+        let prefix = match license_type {
+            LicenseType::Trial => "TRL",
+            LicenseType::Basic => "BAS",
+            LicenseType::Professional => "PRO",
+            LicenseType::Enterprise => "ENT",
+        };
+
+        let random: String = rand::thread_rng()
+            .sample_iter(&rand::distributions::Alphanumeric)
+            .take(16)
+            .map(char::from)
+            .collect::<String>()
+            .to_uppercase();
+
+        format!(
+            "GIRO-{}-{}-{}-{}-{}",
+            prefix,
+            &random[0..4],
+            &random[4..8],
+            &random[8..12],
+            &random[12..16]
         )
+    }
+}
+```
 
-        return license
+### JWT Authentication
 
-    async def validate(
-        self,
-        license_key: str,
-        machine_id: str
-    ) -> LicenseValidation:
-        license = await self.db.license.find_unique(
-            where={"key": license_key},
-            include={"activations": True},
-        )
+```rust
+// src/auth/jwt.rs
+use axum::{
+    async_trait,
+    extract::FromRequestParts,
+    http::{header::AUTHORIZATION, request::Parts, StatusCode},
+};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use serde::{Deserialize, Serialize};
+use crate::error::AppError;
 
-        if not license:
-            return LicenseValidation(valid=False, error="Licença não encontrada")
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub sub: String,        // user id
+    pub role: String,       // admin, viewer
+    pub exp: usize,         // expiration
+    pub iat: usize,         // issued at
+}
 
-        if license.status != "ACTIVE":
-            return LicenseValidation(valid=False, error=f"Licença {license.status}")
+impl Claims {
+    pub fn new(user_id: &str, role: &str, ttl_hours: i64) -> Self {
+        let now = chrono::Utc::now();
+        Self {
+            sub: user_id.to_string(),
+            role: role.to_string(),
+            iat: now.timestamp() as usize,
+            exp: (now + chrono::Duration::hours(ttl_hours)).timestamp() as usize,
+        }
+    }
 
-        if license.expiresAt and license.expiresAt < datetime.utcnow():
-            await self._expire_license(license.id)
-            return LicenseValidation(valid=False, error="Licença expirada")
+    pub fn require_role(&self, role: &str) -> Result<(), AppError> {
+        if self.role == role || self.role == "admin" {
+            Ok(())
+        } else {
+            Err(AppError::Forbidden)
+        }
+    }
+}
 
-        # Verificar ativações
-        existing = next(
-            (a for a in license.activations if a.machineId == machine_id),
-            None
-        )
+pub fn create_token(claims: &Claims, secret: &[u8]) -> Result<String, AppError> {
+    encode(
+        &Header::default(),
+        claims,
+        &EncodingKey::from_secret(secret),
+    )
+    .map_err(|_| AppError::TokenCreation)
+}
 
-        if existing:
-            # Atualizar lastSeenAt
-            await self.db.activation.update(
-                where={"id": existing.id},
-                data={"lastSeenAt": datetime.utcnow()},
-            )
-        elif len(license.activations) >= license.maxComputers:
-            return LicenseValidation(
-                valid=False,
-                error=f"Limite de {license.maxComputers} computadores atingido"
-            )
-        else:
-            # Nova ativação
-            await self.db.activation.create(
-                data={
-                    "machineId": machine_id,
-                    "licenseId": license.id,
-                }
-            )
+pub fn verify_token(token: &str, secret: &[u8]) -> Result<Claims, AppError> {
+    decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(secret),
+        &Validation::default(),
+    )
+    .map(|data| data.claims)
+    .map_err(|_| AppError::InvalidToken)
+}
 
-        return LicenseValidation(
-            valid=True,
-            license_type=license.type,
-            expires_at=license.expiresAt,
-        )
+#[async_trait]
+impl<S> FromRequestParts<S> for Claims
+where
+    S: Send + Sync,
+{
+    type Rejection = AppError;
 
-    def _generate_key(self, license_type: str) -> str:
-        prefix = {
-            "TRIAL": "TRL",
-            "BASIC": "BAS",
-            "PROFESSIONAL": "PRO",
-            "ENTERPRISE": "ENT",
-        }.get(license_type, "GEN")
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let auth_header = parts
+            .headers
+            .get(AUTHORIZATION)
+            .and_then(|v| v.to_str().ok())
+            .ok_or(AppError::MissingToken)?;
 
-        random_part = secrets.token_hex(8).upper()
-        return f"GIRO-{prefix}-{random_part[:4]}-{random_part[4:8]}-{random_part[8:12]}-{random_part[12:]}"
+        let token = auth_header
+            .strip_prefix("Bearer ")
+            .ok_or(AppError::InvalidToken)?;
 
-    async def _expire_license(self, license_id: str):
-        await self.db.license.update(
-            where={"id": license_id},
-            data={"status": "EXPIRED"},
-        )
+        let secret = std::env::var("JWT_SECRET")
+            .map_err(|_| AppError::ConfigError)?;
+
+        verify_token(token, secret.as_bytes())
+    }
+}
+```
+
+### Error Handling
+
+```rust
+// src/error.rs
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
+use serde_json::json;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum AppError {
+    #[error("Licença não encontrada")]
+    LicenseNotFound,
+
+    #[error("Token inválido")]
+    InvalidToken,
+
+    #[error("Token não fornecido")]
+    MissingToken,
+
+    #[error("Erro ao criar token")]
+    TokenCreation,
+
+    #[error("Acesso negado")]
+    Forbidden,
+
+    #[error("Erro de configuração")]
+    ConfigError,
+
+    #[error("Erro de banco: {0}")]
+    Database(#[from] sqlx::Error),
+}
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        let (status, message) = match &self {
+            AppError::LicenseNotFound => (StatusCode::NOT_FOUND, self.to_string()),
+            AppError::InvalidToken | AppError::MissingToken => {
+                (StatusCode::UNAUTHORIZED, self.to_string())
+            }
+            AppError::Forbidden => (StatusCode::FORBIDDEN, self.to_string()),
+            AppError::Database(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Erro interno".to_string())
+            }
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, "Erro interno".to_string()),
+        };
+
+        let body = Json(json!({ "error": message }));
+        (status, body).into_response()
+    }
+}
 ```
 
 ## 🔌 API Endpoints
 
-| Método | Endpoint                          | Descrição           |
-| ------ | --------------------------------- | ------------------- |
-| POST   | `/api/v1/auth/login`              | Login admin         |
-| POST   | `/api/v1/licenses/`               | Criar licença       |
-| GET    | `/api/v1/licenses/validate/{key}` | Validar licença     |
-| GET    | `/api/v1/licenses/{id}`           | Detalhes da licença |
-| PUT    | `/api/v1/licenses/{id}`           | Atualizar licença   |
-| DELETE | `/api/v1/licenses/{id}/revoke`    | Revogar licença     |
-| GET    | `/api/v1/customers/`              | Listar clientes     |
-| POST   | `/api/v1/customers/`              | Criar cliente       |
+| Método | Endpoint                         | Descrição           | Auth   |
+| ------ | -------------------------------- | ------------------- | ------ |
+| GET    | `/health`                        | Health check        | Public |
+| POST   | `/api/v1/auth/login`             | Login admin         | Public |
+| POST   | `/api/v1/licenses/`              | Criar licença       | Admin  |
+| GET    | `/api/v1/licenses/validate/:key` | Validar licença     | Public |
+| GET    | `/api/v1/licenses/:id`           | Detalhes da licença | Admin  |
+| PUT    | `/api/v1/licenses/:id`           | Atualizar licença   | Admin  |
+| DELETE | `/api/v1/licenses/:id/revoke`    | Revogar licença     | Admin  |
+| GET    | `/api/v1/customers/`             | Listar clientes     | Admin  |
+| POST   | `/api/v1/customers/`             | Criar cliente       | Admin  |
 
 ## 🔗 Integração com GIRO Desktop
 
 ```rust
-// GIRO Desktop - license_service.rs
+// GIRO Desktop - src/services/license.rs
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-
-#[derive(Serialize)]
-struct ValidateRequest {
-    machine_id: String,
-}
 
 #[derive(Deserialize)]
 pub struct LicenseValidation {
@@ -376,27 +562,41 @@ pub async fn validate_license(
     machine_id: &str,
 ) -> Result<LicenseValidation, String> {
     let client = Client::new();
+    let base_url = std::env::var("LICENSE_SERVER_URL")
+        .unwrap_or_else(|_| "https://license.giro.app".to_string());
+
     let url = format!(
         "{}/api/v1/licenses/validate/{}?machine_id={}",
-        env!("LICENSE_SERVER_URL"),
-        license_key,
-        machine_id
+        base_url, license_key, machine_id
     );
 
     let response = client
         .get(&url)
+        .timeout(std::time::Duration::from_secs(10))
         .send()
         .await
         .map_err(|e| e.to_string())?;
 
-    if response.status().is_success() {
-        response.json().await.map_err(|e| e.to_string())
-    } else {
-        let error: LicenseValidation = response.json().await.map_err(|e| e.to_string())?;
-        Ok(error)
-    }
+    response.json().await.map_err(|e| e.to_string())
 }
 ```
+
+## ✅ Checklist
+
+- [ ] Axum handlers com extração tipada
+- [ ] SQLx queries compile-time checked
+- [ ] JWT com Claims extractor
+- [ ] Error handling com thiserror + IntoResponse
+- [ ] CORS configurado para dashboard
+- [ ] Rate limiting em /validate endpoint
+- [ ] Tracing para observability
+- [ ] Health check para Railway
+
+## 🔗 Recursos
+
+- [Axum Docs](https://docs.rs/axum/latest/axum/)
+- [SQLx PostgreSQL](https://github.com/launchbadge/sqlx)
+- [jsonwebtoken](https://docs.rs/jsonwebtoken/latest/jsonwebtoken/)
 
 ## ✅ Checklist
 
