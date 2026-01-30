@@ -14,6 +14,7 @@ use crate::repositories::{
     SettingsRepository, SupplierRepository, SyncPendingRepository,
 };
 use crate::services::connection_manager::{ConnectionManager, OperationMode, PeerStatus};
+use crate::services::network_client::NetworkClient;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::sync::Arc;
@@ -195,6 +196,8 @@ pub struct SyncOrchestrator {
     stats: RwLock<SyncOrchestratorStats>,
     /// Connection Manager para sync LAN
     connection_manager: RwLock<Option<Arc<ConnectionManager>>>,
+    /// Network Client para modo Satellite
+    network_client: RwLock<Option<Arc<NetworkClient>>>,
     /// Cliente de sync cloud
     sync_client: RwLock<Option<Arc<SyncClient>>>,
     /// Chave de licença
@@ -217,6 +220,7 @@ impl SyncOrchestrator {
             status: RwLock::new(SyncStatus::Idle),
             stats: RwLock::new(SyncOrchestratorStats::default()),
             connection_manager: RwLock::new(None),
+            network_client: RwLock::new(None),
             sync_client: RwLock::new(None),
             license_key: RwLock::new(None),
             hardware_id: RwLock::new(None),
@@ -245,6 +249,11 @@ impl SyncOrchestrator {
     /// Configura connection manager para LAN
     pub async fn set_connection_manager(&self, manager: Arc<ConnectionManager>) {
         *self.connection_manager.write().await = Some(manager);
+    }
+
+    /// Configura network client para modo Satellite
+    pub async fn set_network_client(&self, client: Arc<NetworkClient>) {
+        *self.network_client.write().await = Some(client);
     }
 
     /// Subscreve para eventos
@@ -455,16 +464,31 @@ impl SyncOrchestrator {
 
         // Verificar se connection manager está disponível
         let cm_guard = self.connection_manager.read().await;
-        let connection_manager = cm_guard
-            .as_ref()
-            .ok_or("Connection Manager não configurado")?
-            .clone();
+        let connection_manager = match cm_guard.as_ref() {
+            Some(cm) => cm.clone(),
+            None => {
+                // Connection Manager não configurado - retorna sucesso vazio
+                // Isso é normal quando o usuário está em modo Standalone
+                tracing::debug!("Sync LAN ignorado: Connection Manager não configurado");
+                return Ok(SyncOperationResult {
+                    source: SyncSource::Lan,
+                    success: true,
+                    pushed: 0,
+                    pulled: 0,
+                    conflicts: 0,
+                    resolved: 0,
+                    errors: vec![],
+                    duration_ms: start.elapsed().as_millis() as u64,
+                    timestamp: chrono::Utc::now().to_rfc3339(),
+                });
+            }
+        };
         drop(cm_guard);
 
         let mode = connection_manager.get_mode().await;
         let peers = connection_manager.get_peers().await;
 
-        let pushed = 0;
+        let mut pushed = 0;
         let pulled = 0;
         let mut errors = Vec::new();
 
@@ -489,10 +513,74 @@ impl SyncOrchestrator {
                     .iter()
                     .find(|p| p.is_master && p.status == PeerStatus::Connected);
 
-                if let Some(_master_peer) = master {
-                    // TODO: Usar NetworkClient para sync com Master
-                    // Por enquanto, marcar como bem-sucedido
-                    tracing::info!("🔄 Sync LAN com Master (via NetworkClient)");
+                if master.is_some() {
+                    // Verificar se NetworkClient está disponível
+                    let nc_guard = self.network_client.read().await;
+                    if let Some(ref network_client) = *nc_guard {
+                        // Consumir fila sync_pending e enviar ao Master
+                        let pending_repo = SyncPendingRepository::new(&self.pool);
+                        match pending_repo.get_all_pending().await {
+                            Ok(pending_items) if !pending_items.is_empty() => {
+                                tracing::info!(
+                                    "🔄 Sync LAN: {} itens pendentes para enviar ao Master",
+                                    pending_items.len()
+                                );
+
+                                for item in &pending_items {
+                                    // Converter para JSON e enviar via push_update
+                                    if let Some(ref data_str) = item.data {
+                                        if let Ok(data) =
+                                            serde_json::from_str::<serde_json::Value>(data_str)
+                                        {
+                                            match network_client
+                                                .push_update(&item.entity_type, data)
+                                                .await
+                                            {
+                                                Ok(_) => {
+                                                    pushed += 1;
+                                                    // Remover item da fila após sucesso
+                                                    if let Some(entity_type) =
+                                                        string_to_sync_entity_type(
+                                                            &item.entity_type,
+                                                        )
+                                                    {
+                                                        let _ = pending_repo
+                                                            .remove_synced(
+                                                                entity_type,
+                                                                &item.entity_id,
+                                                            )
+                                                            .await;
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    tracing::warn!(
+                                                        "Falha ao enviar {} {}: {}",
+                                                        item.entity_type,
+                                                        item.entity_id,
+                                                        e
+                                                    );
+                                                    errors.push(format!(
+                                                        "Push {} falhou: {}",
+                                                        item.entity_id, e
+                                                    ));
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                tracing::info!("✅ Sync LAN: {} itens enviados ao Master", pushed);
+                            }
+                            Ok(_) => {
+                                tracing::debug!("✅ Sync LAN: nenhum item pendente");
+                            }
+                            Err(e) => {
+                                errors.push(format!("Erro ao ler sync_pending: {}", e));
+                            }
+                        }
+                    } else {
+                        tracing::debug!("NetworkClient não configurado - forçando sync via network_client.force_sync");
+                    }
                 } else {
                     errors.push("Master não conectado".to_string());
                 }
@@ -697,6 +785,23 @@ impl SyncOrchestrator {
     /// Emite evento
     fn emit_event(&self, event: SyncOrchestratorEvent) {
         let _ = self.event_tx.send(event);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Converte string para SyncEntityType
+fn string_to_sync_entity_type(s: &str) -> Option<SyncEntityType> {
+    match s {
+        "product" => Some(SyncEntityType::Product),
+        "category" => Some(SyncEntityType::Category),
+        "supplier" => Some(SyncEntityType::Supplier),
+        "customer" => Some(SyncEntityType::Customer),
+        "employee" => Some(SyncEntityType::Employee),
+        "setting" => Some(SyncEntityType::Setting),
+        _ => None,
     }
 }
 

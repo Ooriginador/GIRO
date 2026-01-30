@@ -47,7 +47,8 @@ pub struct SyncPushPayload {
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncResult {
-    pub success: bool,
+    /// Renamed from 'success' to avoid conflict with TauriResponse envelope detection in frontend
+    pub completed: bool,
     pub pushed: usize,
     pub pulled: usize,
     pub conflicts: usize,
@@ -459,7 +460,7 @@ pub async fn sync_full(state: State<'_, AppState>) -> Result<SyncResult, String>
     let pulled = pull_result.items.len();
 
     Ok(SyncResult {
-        success: true,
+        completed: true,
         pushed: push_result.processed,
         pulled,
         conflicts,
@@ -585,6 +586,8 @@ pub async fn init_sync_orchestrator(
     config: Option<SyncOrchestratorConfigDto>,
     app_state: State<'_, AppState>,
     sync_state: State<'_, RwLock<SyncOrchestratorState>>,
+    network_state: State<'_, RwLock<crate::commands::network::NetworkState>>,
+    multi_pc_state: State<'_, RwLock<crate::commands::network_diagnostics::MultiPcNetworkState>>,
 ) -> Result<(), String> {
     app_state
         .session
@@ -610,6 +613,24 @@ pub async fn init_sync_orchestrator(
         orchestrator
             .set_cloud_client(sync_client, license_key, hardware_id)
             .await;
+    }
+
+    // Configurar NetworkClient (para modo Satellite)
+    {
+        let ns = network_state.read().await;
+        if let Some(ref client) = ns.client {
+            orchestrator.set_network_client(client.clone()).await;
+            tracing::info!("✅ SyncOrchestrator: NetworkClient configurado");
+        }
+    }
+
+    // Configurar ConnectionManager (para status de peers)
+    {
+        let mpc = multi_pc_state.read().await;
+        if let Some(ref manager) = mpc.connection_manager {
+            orchestrator.set_connection_manager(manager.clone()).await;
+            tracing::info!("✅ SyncOrchestrator: ConnectionManager configurado");
+        }
     }
 
     let mut state = sync_state.write().await;

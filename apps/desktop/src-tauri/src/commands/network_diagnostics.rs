@@ -446,9 +446,8 @@ pub async fn refresh_peer_discovery(
         // Aqui apenas retornamos a lista atualizada
         Ok(manager.get_peers().await)
     } else {
-        Err(AppError::Validation(
-            "Connection Manager não está rodando".into(),
-        ))
+        // Connection Manager não rodando - retorna lista vazia sem erro
+        Ok(vec![])
     }
 }
 

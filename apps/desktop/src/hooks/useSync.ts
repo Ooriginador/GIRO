@@ -68,7 +68,8 @@ export interface SyncPullResult {
 }
 
 export interface SyncResult {
-  success: boolean;
+  /** Renamed from 'success' to avoid conflict with TauriResponse envelope detection */
+  completed: boolean;
   pushed: number;
   pulled: number;
   conflicts: number;
