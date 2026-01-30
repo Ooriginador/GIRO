@@ -303,15 +303,26 @@ export const NetworkRoleSettings: FC = () => {
 
       // Iniciar Connection Manager com nova configuração (exceto Standalone)
       if (role !== 'STANDALONE') {
-        await invoke('start_connection_manager', {
-          config: {
-            mode: modeMap[role],
-            websocketPort: parseInt(serverPort, 10),
-            masterIp: role === 'SATELLITE' ? masterIp || null : null,
-            masterPort: role === 'SATELLITE' ? parseInt(masterPort, 10) : null,
-            autoDiscovery: true,
-          },
-        });
+        try {
+          await invoke('start_connection_manager', {
+            config: {
+              mode: modeMap[role],
+              websocketPort: parseInt(serverPort, 10),
+              masterIp: role === 'SATELLITE' ? (masterIp?.trim() || null) : null,
+              masterPort: role === 'SATELLITE' ? parseInt(masterPort, 10) : null,
+              autoDiscovery: true,
+            },
+          });
+          tracing.info('ConnectionManager iniciado com sucesso');
+        } catch (startError) {
+          console.error('Erro ao iniciar ConnectionManager:', startError);
+          // Não bloquear o save - usuário pode reiniciar manualmente
+          toast({
+            title: '⚠️ Atenção',
+            description: 'Configuração salva, mas a rede precisa ser reiniciada manualmente.',
+            variant: 'default',
+          });
+        }
       }
 
       // Mensagens de sucesso específicas por papel

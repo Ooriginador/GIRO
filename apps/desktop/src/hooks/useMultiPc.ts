@@ -310,6 +310,52 @@ export function useMultiPc() {
     queryClient.invalidateQueries({ queryKey: ['multiPc'] });
   }, [queryClient]);
 
+  /**
+   * Diagnóstico e auto-restart do ConnectionManager
+   * Útil quando o manager não está rodando mas deveria estar
+   */
+  const diagnoseAndRestart = useCallback(async () => {
+    try {
+      // 1. Verificar se está rodando
+      const statusResult = await commands.getMultiPcStatus();
+      if (statusResult.status === 'ok' && statusResult.data?.isRunning) {
+        return { success: true, message: 'ConnectionManager já está rodando' };
+      }
+
+      // 2. Obter configuração salva
+      const configResult = await commands.getNetworkModeConfig();
+      if (configResult.status === 'error' || !configResult.data) {
+        return {
+          success: false,
+          message: 'Nenhuma configuração de rede encontrada. Configure primeiro.',
+        };
+      }
+
+      // 3. Tentar parar (se houver instância zombie)
+      try {
+        await commands.stopConnectionManager();
+      } catch {
+        // Ignorar erro se já estava parado
+      }
+
+      // 4. Iniciar com configuração salva
+      const startResult = await commands.startConnectionManager(configResult.data);
+      if (startResult.status === 'error') {
+        throw new Error(getErrorMessage(startResult.error) || 'Falha ao iniciar');
+      }
+
+      // 5. Invalidar queries para atualizar UI
+      queryClient.invalidateQueries({ queryKey: ['multiPc'] });
+
+      return { success: true, message: 'ConnectionManager reiniciado com sucesso' };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Erro desconhecido no diagnóstico',
+      };
+    }
+  }, [queryClient]);
+
   const isLoading = status.isLoading || peers.isLoading || stats.isLoading || config.isLoading;
 
   const isError = status.isError || peers.isError || stats.isError || config.isError;
@@ -346,6 +392,7 @@ export function useMultiPc() {
 
     // Helpers
     refreshAll,
+    diagnoseAndRestart,
 
     // Query objects (for fine-grained control)
     queries: { status, peers, stats, config },

@@ -199,6 +199,7 @@ export const NetworkStatusPanel: FC<NetworkStatusPanelProps> = ({
     stopManager,
     refreshDiscovery,
     refreshAll,
+    diagnoseAndRestart,
   } = useMultiPc();
 
   // Handlers
@@ -232,6 +233,28 @@ export const NetworkStatusPanel: FC<NetworkStatusPanelProps> = ({
     }
   };
 
+  const handleDiagnoseAndFix = async () => {
+    toast({
+      title: 'Diagnosticando...',
+      description: 'Verificando estado do Connection Manager',
+    });
+
+    const result = await diagnoseAndRestart();
+
+    if (result.success) {
+      toast({
+        title: '✅ Sucesso',
+        description: result.message,
+      });
+    } else {
+      toast({
+        title: '❌ Falha no diagnóstico',
+        description: result.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleRefresh = async () => {
     try {
       await refreshDiscovery.mutateAsync();
@@ -259,12 +282,20 @@ export const NetworkStatusPanel: FC<NetworkStatusPanelProps> = ({
       <Card className="border-destructive/50">
         <CardContent className="flex flex-col items-center justify-center py-8 text-center">
           <XCircle className="mb-3 h-12 w-12 text-destructive" />
-          <p className="font-medium text-destructive">Erro ao carregar status</p>
-          <p className="mt-1 text-sm text-muted-foreground">{error}</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={refreshAll}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Tentar novamente
-          </Button>
+          <p className="font-medium text-destructive">Connection Manager não está rodando</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {error?.toString() || 'O sistema de rede precisa ser iniciado'}
+          </p>
+          <div className="mt-4 flex gap-2">
+            <Button variant="outline" size="sm" onClick={refreshAll}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Atualizar
+            </Button>
+            <Button variant="default" size="sm" onClick={handleDiagnoseAndFix}>
+              <Power className="mr-2 h-4 w-4" />
+              Corrigir e Iniciar
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
