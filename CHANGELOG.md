@@ -6,6 +6,25 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2.4.27] - 2026-01-30
+
+### Adicionado
+
+- **Printer Registry Detection**: Leitura completa do Windows Registry para detecção de impressoras
+- **USB VID/PID Table**: Tabela de identificadores para impressoras térmicas (Epson, Bematech, Elgin, etc.)
+- **Enhanced Driver Detection**: Detecção avançada de drivers de impressoras Windows
+- **Ecosystem Agents**: Atualização dos agentes para todo o ecossistema GIRO
+
+### Corrigido
+
+- **Hardware DTO Mapping**: Campos driver_info faltantes no mapeamento de DTOs
+- **Network Tracing**: Substituído tracing indefinido por console.info
+
+### Melhorado
+
+- **Code Formatting**: Formatação do printer_detector e hardware commands
+- **Documentation**: Plano de auditoria TODO adicionado
+
 ## [2.4.25] - 2026-01-30
 
 ### Corrigido
