@@ -17,7 +17,7 @@ describe('NetworkSettings (simple)', () => {
   beforeEach(() => {
     (invoke as unknown as vi.Mock).mockReset?.();
     (invoke as unknown as vi.Mock).mockImplementation(async (cmd: string) => {
-      if (cmd === 'get_network_status') {
+      if (cmd === 'get_multi_pc_status') {
         return { isRunning: false, status: 'Stopped' };
       }
       return null as any;
@@ -48,8 +48,15 @@ describe('NetworkSettings (simple)', () => {
     // adjust invoke mock to return running status
     (invoke as unknown as vi.Mock).mockReset?.();
     (invoke as unknown as vi.Mock).mockImplementationOnce(async (cmd: string) => {
-      if (cmd === 'get_network_status') {
-        return { isRunning: true, status: 'Connected', connectedMaster: '192.168.1.50' };
+      if (cmd === 'get_multi_pc_status') {
+        return {
+          isRunning: true,
+          status: 'Connected',
+          connected_to_master: true,
+          peers: [
+            { is_master: true, hostname: '192.168.1.50', ip: '192.168.1.50', id: 'master-id' },
+          ],
+        };
       }
       return null as any;
     });

@@ -6,6 +6,19 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2.4.24] - 2026-01-30
+
+### Corrigido
+
+- **Sincronização Satélite**: Implementado envio ativo de atualizações pendentes para o Master
+- **Downloads do Site**: Corrigido link de download público (usando giro-releases) para evitar login obrigatório
+- **Connection Manager**: Corrigida obtenção do nome da loja nas configurações mDNS
+- **CI/CD**: Corrigido pipeline Nightly para build Rust
+
+### Modificado
+
+- Versionamento unificado para 2.4.24 (package.json, Cargo.toml, tauri.conf)
+
 ## [2.4.12] - 2026-01-29
 
 ### Adicionado

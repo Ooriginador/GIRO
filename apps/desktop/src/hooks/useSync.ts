@@ -46,7 +46,8 @@ export interface SyncItemResultLocal {
 }
 
 export interface SyncPushResult {
-  success: boolean;
+  /** Renamed from 'success' to avoid conflict */
+  completed: boolean;
   processed: number;
   results: SyncItemResultLocal[];
   serverTime: string;

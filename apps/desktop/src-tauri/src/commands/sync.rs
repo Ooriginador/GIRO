@@ -78,7 +78,8 @@ pub struct SyncEntityCount {
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncPushResult {
-    pub success: bool,
+    /// Renamed from 'success' to avoid conflict with TauriResponse
+    pub completed: bool,
     pub processed: usize,
     pub results: Vec<SyncItemResultLocal>,
     pub server_time: String,
@@ -174,7 +175,7 @@ pub async fn sync_push(
 
     if items.is_empty() {
         return Ok(SyncPushResult {
-            success: true,
+            completed: true,
             processed: 0,
             results: vec![],
             server_time: chrono::Utc::now().to_rfc3339(),
@@ -202,7 +203,7 @@ pub async fn sync_push(
 
     // Convert to local type
     Ok(SyncPushResult {
-        success: response.success,
+        completed: response.success,
         processed: response.processed,
         results: response
             .results

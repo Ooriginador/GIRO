@@ -135,21 +135,41 @@ export const NetworkRoleSettings: FC = () => {
   const loadSettings = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [role, name, secret, ip, mPort, sPort] = await Promise.all([
-        getSetting('network.role').catch(() => 'STANDALONE'),
+      // Usar novo comando unificado para obter configuração de rede
+      const config = await invoke<{
+        mode: string;
+        websocketPort: number;
+        masterIp: string | null;
+        masterPort: number | null;
+        autoDiscovery: boolean;
+      }>('get_network_mode_config').catch(() => null);
+
+      // Carregar configurações adicionais que não estão no NetworkModeConfig
+      const [name, secret] = await Promise.all([
         getSetting('terminal.name').catch(() => ''),
         getSetting('network.secret').catch(() => ''),
-        getSetting('network.master_ip').catch(() => ''),
-        getSetting('network.master_port').catch(() => '3847'),
-        getSetting('network.server_port').catch(() => '3847'),
       ]);
 
-      setCurrentRole((role as NetworkRole) || 'STANDALONE');
+      if (config) {
+        // Mapear mode do backend para NetworkRole do frontend
+        const modeToRole: Record<string, NetworkRole> = {
+          standalone: 'STANDALONE',
+          master: 'MASTER',
+          satellite: 'SATELLITE',
+          hybrid: 'MASTER', // Hybrid é tratado como Master no frontend
+        };
+        setCurrentRole(modeToRole[config.mode] || 'STANDALONE');
+        setServerPort(config.websocketPort?.toString() || '3847');
+        setMasterIp(config.masterIp || '');
+        setMasterPort(config.masterPort?.toString() || '3847');
+      } else {
+        setCurrentRole('STANDALONE');
+        setServerPort('3847');
+        setMasterPort('3847');
+      }
+
       setTerminalName(name || '');
       setNetworkSecret(secret || '');
-      setMasterIp(ip || '');
-      setMasterPort(mPort || '3847');
-      setServerPort(sPort || '3847');
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
     } finally {
@@ -157,20 +177,37 @@ export const NetworkRoleSettings: FC = () => {
     }
   }, []);
 
-  // Buscar status
+  // Buscar status usando novo sistema Multi-PC
   const fetchStatus = useCallback(async () => {
     try {
-      if (currentRole === 'SATELLITE') {
-        const status = await invoke<NetworkStatus>('get_network_status');
-        setNetworkStatus(status);
-      } else if (currentRole === 'MASTER') {
-        const status = await invoke<MobileServerStatus>('get_mobile_server_status');
-        setServerStatus(status);
+      // Usar get_multi_pc_status para obter status unificado
+      const status = await invoke<{
+        mode: string;
+        isRunning: boolean;
+        localIp: string | null;
+        websocketPort: number;
+        peerCount: number;
+        connectedToMaster: boolean;
+        currentMasterId: string | null;
+      }>('get_multi_pc_status').catch(() => null);
+
+      if (status) {
+        setNetworkStatus({
+          isRunning: status.isRunning,
+          status: status.connectedToMaster ? 'Connected' : status.isRunning ? 'Running' : 'Stopped',
+          connectedMaster: status.currentMasterId || undefined,
+        });
+        setServerStatus({
+          isRunning: status.isRunning,
+          port: status.websocketPort,
+          connectedDevices: status.peerCount,
+          localIp: status.localIp,
+        });
       }
     } catch (error) {
       console.error('Erro ao buscar status:', error);
     }
-  }, [currentRole]);
+  }, []);
 
   useEffect(() => {
     loadSettings();
@@ -235,44 +272,55 @@ export const NetworkRoleSettings: FC = () => {
   const saveSettings = async (role: NetworkRole) => {
     setIsSaving(true);
     try {
-      // Parar serviços atuais antes de mudar
-      if (currentRole === 'MASTER') {
-        try {
-          await invoke('stop_mobile_server');
-        } catch {
-          // Ignorar se já estava parado
-        }
-      } else if (currentRole === 'SATELLITE') {
-        try {
-          await invoke('stop_network_client');
-        } catch {
-          // Ignorar se já estava parado
-        }
+      // Parar Connection Manager atual antes de mudar
+      try {
+        await invoke('stop_connection_manager');
+      } catch {
+        // Ignorar se já estava parado
       }
 
-      // Salvar todas as configurações SEQUENCIALMENTE para evitar database lock
-      // Promise.all causava race condition com transações SQLite simultâneas
-      await setSetting('network.role', role);
+      // Mapear NetworkRole para OperationMode
+      const modeMap: Record<NetworkRole, string> = {
+        STANDALONE: 'standalone',
+        MASTER: 'master',
+        SATELLITE: 'satellite',
+      };
+
+      // Salvar configuração via novo sistema unificado
+      await invoke('save_network_mode_config', {
+        config: {
+          mode: modeMap[role],
+          websocketPort: parseInt(serverPort, 10),
+          masterIp: role === 'SATELLITE' ? masterIp || null : null,
+          masterPort: role === 'SATELLITE' ? parseInt(masterPort, 10) : null,
+          autoDiscovery: true,
+        },
+      });
+
+      // Salvar nome do terminal separadamente (não faz parte do NetworkModeConfig)
       await setSetting('terminal.name', terminalName);
       await setSetting('network.secret', networkSecret);
-      await setSetting('network.master_ip', masterIp);
-      await setSetting('network.master_port', masterPort);
-      await setSetting('network.server_port', serverPort);
 
-      // Iniciar serviço correspondente
-      if (role === 'MASTER') {
-        await invoke('start_mobile_server', {
+      // Iniciar Connection Manager com nova configuração (exceto Standalone)
+      if (role !== 'STANDALONE') {
+        await invoke('start_connection_manager', {
           config: {
-            port: parseInt(serverPort, 10),
-            maxConnections: 10,
+            mode: modeMap[role],
+            websocketPort: parseInt(serverPort, 10),
+            masterIp: role === 'SATELLITE' ? masterIp || null : null,
+            masterPort: role === 'SATELLITE' ? parseInt(masterPort, 10) : null,
+            autoDiscovery: true,
           },
         });
+      }
+
+      // Mensagens de sucesso específicas por papel
+      if (role === 'MASTER') {
         toast({
           title: '✅ Caixa Principal configurado!',
           description: 'Os outros caixas da loja já podem se conectar.',
         });
       } else if (role === 'SATELLITE') {
-        await invoke('start_network_client', { terminalName });
         toast({
           title: '✅ Caixa Auxiliar configurado!',
           description: 'Buscando o Caixa Principal na rede...',

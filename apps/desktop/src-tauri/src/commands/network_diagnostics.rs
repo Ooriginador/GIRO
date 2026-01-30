@@ -531,7 +531,15 @@ pub async fn save_network_mode_config(
         OperationMode::Hybrid => "hybrid",
     };
 
-    // Salvar modo de rede
+    // Mapeamento para formato legado (network.role usa SCREAMING_CASE)
+    let legacy_role = match config.mode {
+        OperationMode::Standalone => "STANDALONE",
+        OperationMode::Master => "MASTER",
+        OperationMode::Satellite => "SATELLITE",
+        OperationMode::Hybrid => "MASTER", // Hybrid mapeia para MASTER no legado
+    };
+
+    // Salvar modo de rede (novo sistema)
     settings_repo
         .set(SetSetting {
             key: "network.mode".to_string(),
@@ -539,6 +547,17 @@ pub async fn save_network_mode_config(
             value_type: Some("STRING".to_string()),
             group_name: Some("network".to_string()),
             description: Some("Modo de operação de rede".to_string()),
+        })
+        .await?;
+
+    // Salvar network.role para compatibilidade com sistema legado
+    settings_repo
+        .set(SetSetting {
+            key: "network.role".to_string(),
+            value: legacy_role.to_string(),
+            value_type: Some("STRING".to_string()),
+            group_name: Some("network".to_string()),
+            description: Some("Papel de rede (legado)".to_string()),
         })
         .await?;
 
@@ -550,6 +569,17 @@ pub async fn save_network_mode_config(
             value_type: Some("NUMBER".to_string()),
             group_name: Some("network".to_string()),
             description: Some("Porta WebSocket para conexões".to_string()),
+        })
+        .await?;
+
+    // Salvar server_port para compatibilidade com sistema legado
+    settings_repo
+        .set(SetSetting {
+            key: "network.server_port".to_string(),
+            value: config.websocket_port.to_string(),
+            value_type: Some("NUMBER".to_string()),
+            group_name: Some("network".to_string()),
+            description: Some("Porta do servidor (legado)".to_string()),
         })
         .await?;
 

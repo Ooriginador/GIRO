@@ -48,11 +48,27 @@ export const MobileServerSettings: FC = () => {
   // Fetch server status
   const fetchStatus = useCallback(async () => {
     try {
-      const serverStatus = await invoke<MobileServerStatus>('get_mobile_server_status');
-      setStatus(serverStatus);
+      // Usar get_multi_pc_status unificado
+      const status = await invoke<any>('get_multi_pc_status');
 
-      if (serverStatus.isRunning) {
-        const devices = await invoke<ConnectedDevice[]>('get_connected_devices');
+      setStatus({
+        isRunning: status.isRunning,
+        port: parseInt(port), // We might need to fetch real config, but for now we assume UI state or default
+        connectedDevices: status.peers ? status.peers.length : 0,
+        localIp: status.localIp,
+        version: '2.0.0', // Unified
+      });
+
+      if (status.isRunning && status.peers) {
+        // Map updated peers structure to legacy ConnectedDevice for UI compatibility if needed
+        // OR update the UI to use PeerInfo. For now, let's map.
+        const devices = status.peers.map((p: any) => ({
+          id: p.id,
+          deviceName: p.hostname || p.id,
+          employeeName: null,
+          connectedAt: new Date().toISOString(), // info missing in simple peer
+          lastActivity: new Date().toISOString(),
+        }));
         setConnectedDevices(devices);
       } else {
         setConnectedDevices([]);
@@ -62,7 +78,7 @@ export const MobileServerSettings: FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [port]);
 
   useEffect(() => {
     fetchStatus();
@@ -77,16 +93,20 @@ export const MobileServerSettings: FC = () => {
     setIsToggling(true);
     try {
       if (status?.isRunning) {
-        await invoke('stop_mobile_server');
+        await invoke('stop_connection_manager');
         toast({
           title: 'Servidor desligado',
           description: 'O servidor mobile foi desconectado.',
         });
       } else {
-        await invoke('start_mobile_server', {
+        // Start as Master
+        await invoke('start_connection_manager', {
           config: {
-            port: parseInt(port, 10),
-            maxConnections: parseInt(maxConnections, 10),
+            mode: 'master',
+            websocketPort: parseInt(port, 10),
+            masterIp: null,
+            masterPort: null,
+            autoDiscovery: true,
           },
         });
         toast({

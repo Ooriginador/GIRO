@@ -12,10 +12,11 @@ describe('MobileServerSettings', () => {
   beforeEach(() => {
     (invoke as unknown as vi.Mock).mockReset?.();
     (invoke as unknown as vi.Mock).mockImplementation(async (cmd: string) => {
-      if (cmd === 'get_mobile_server_status') {
-        return { isRunning: false, port: 3847, connectedDevices: 0, localIp: null, version: '1.0' };
+      if (cmd === 'get_multi_pc_status') {
+        return { isRunning: false, peers: [], localIp: null };
       }
-      if (cmd === 'get_connected_devices') return [];
+      if (cmd === 'get_connected_devices') return []; // Still technically called inside component?
+      // No, I removed get_connected_devices call in MobileServerSettings.tsx if logic was replaced.
       return null as any;
     });
   });
@@ -29,16 +30,14 @@ describe('MobileServerSettings', () => {
 
   it('shows QR card when running with localIp', async () => {
     (invoke as unknown as vi.Mock).mockImplementationOnce(async (cmd: string) => {
-      if (cmd === 'get_mobile_server_status') {
+      if (cmd === 'get_multi_pc_status') {
         return {
           isRunning: true,
-          port: 3847,
-          connectedDevices: 1,
+          mode: 'master',
+          peers: [{ id: 'dev1' }], // One connected device
           localIp: '192.168.0.5',
-          version: '1.0',
         };
       }
-      if (cmd === 'get_connected_devices') return [];
       return null as any;
     });
 

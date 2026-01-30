@@ -133,20 +133,34 @@ export const NetworkSetupStep: FC<NetworkSetupStepProps> = ({
       });
 
       if (success) {
-        // Salvar configurações
-        await Promise.all([
-          setSetting('network.role', 'SATELLITE'),
-          setSetting('terminal.name', terminalName),
-          setSetting('network.secret', password),
-          setSetting('network.master_ip', selectedMaster.ip),
-          setSetting('network.master_port', String(selectedMaster.port)),
-        ]);
+        // Salvar configurações via novo sistema unificado
+        await invoke('save_network_mode_config', {
+          config: {
+            mode: 'satellite',
+            websocketPort: selectedMaster.port,
+            masterIp: selectedMaster.ip,
+            masterPort: selectedMaster.port,
+            autoDiscovery: true,
+          },
+        });
 
-        // Iniciar cliente de rede imediatamente
+        // Salvar configurações adicionais
+        await setSetting('terminal.name', terminalName);
+        await setSetting('network.secret', password);
+
+        // Iniciar Connection Manager em modo Satellite
         try {
-          await invoke('start_network_client', { terminalName });
+          await invoke('start_connection_manager', {
+            config: {
+              mode: 'satellite',
+              websocketPort: selectedMaster.port,
+              masterIp: selectedMaster.ip,
+              masterPort: selectedMaster.port,
+              autoDiscovery: true,
+            },
+          });
         } catch (e) {
-          console.warn('Alerta ao iniciar cliente de rede (pode já estar rodando):', e);
+          console.warn('Alerta ao iniciar Connection Manager (pode já estar rodando):', e);
         }
 
         setStep('connected');
@@ -176,9 +190,39 @@ export const NetworkSetupStep: FC<NetworkSetupStepProps> = ({
   // Configurar como Caixa Único ou Principal
   const handleSetupAsPrimary = async (role: 'STANDALONE' | 'MASTER') => {
     try {
-      await setSetting('network.role', role);
+      // Mapear para OperationMode do backend
+      const modeMap: Record<string, string> = {
+        STANDALONE: 'standalone',
+        MASTER: 'master',
+      };
 
+      // Salvar via novo sistema unificado
+      await invoke('save_network_mode_config', {
+        config: {
+          mode: modeMap[role],
+          websocketPort: 3847,
+          masterIp: null,
+          masterPort: null,
+          autoDiscovery: true,
+        },
+      });
+
+      // Iniciar Connection Manager para modo Master
       if (role === 'MASTER') {
+        try {
+          await invoke('start_connection_manager', {
+            config: {
+              mode: 'master',
+              websocketPort: 3847,
+              masterIp: null,
+              masterPort: null,
+              autoDiscovery: true,
+            },
+          });
+        } catch (e) {
+          console.warn('Alerta ao iniciar Connection Manager:', e);
+        }
+
         toast({
           title: '👑 Caixa Principal configurado!',
           description: 'Outros caixas poderão se conectar a este computador.',

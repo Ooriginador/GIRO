@@ -3,6 +3,7 @@
 //! Gerenciador centralizado de conexões para ambientes multi-PC.
 //! Mantém estado de todos os peers, gerencia reconexões e health checks.
 
+use crate::repositories::settings_repository::SettingsRepository;
 use crate::services::mdns_service::{get_local_ip, MdnsConfig, MdnsService};
 use crate::services::network_diagnostics::NetworkDiagnosticsService;
 use serde::{Deserialize, Serialize};
@@ -520,6 +521,11 @@ impl ConnectionManager {
 
     /// Inicia serviço mDNS
     async fn start_mdns(&self, config: &ConnectionManagerConfig) -> Result<(), String> {
+        let store_name = {
+            let settings_repo = SettingsRepository::new(&self.pool);
+            settings_repo.get_value("store.name").await.ok().flatten()
+        };
+
         let mdns_config = MdnsConfig {
             instance_name: format!(
                 "GIRO-{}",
@@ -527,7 +533,7 @@ impl ConnectionManager {
             ),
             port: config.websocket_port,
             version: env!("CARGO_PKG_VERSION").to_string(),
-            store_name: None, // TODO: Carregar do banco
+            store_name,
             auto_restart: true,
             health_check_interval_secs: 30,
         };

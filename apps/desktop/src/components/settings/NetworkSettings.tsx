@@ -27,8 +27,29 @@ export function NetworkSettings() {
 
   const fetchStatus = async () => {
     try {
-      const s = await invoke<NetworkStatus>('get_network_status');
-      setStatus(s);
+      // Usar get_multi_pc_status unificado
+      const s = await invoke<{
+        isRunning: boolean;
+        connected_to_master: boolean;
+        current_master_id?: string;
+        peers?: Array<{ id: string; hostname?: string; ip?: string; is_master: boolean }>;
+      }>('get_multi_pc_status');
+
+      let masterName = undefined;
+      if (s.connected_to_master && s.peers) {
+        const master = s.peers.find((p) => p.is_master);
+        if (master) {
+          masterName = master.hostname || master.ip || master.id;
+        } else {
+          masterName = s.current_master_id;
+        }
+      }
+
+      setStatus({
+        isRunning: s.isRunning,
+        status: s.isRunning ? 'Running' : 'Stopped',
+        connectedMaster: masterName,
+      });
       setEnabled(s.isRunning);
     } catch (error) {
       console.error('Failed to get network status:', getErrorMessage(error));
@@ -49,7 +70,8 @@ export function NetworkSettings() {
       // Stop
       try {
         setLoading(true);
-        await invoke('stop_network_client');
+        // Parar via Connection Manager
+        await invoke('stop_connection_manager');
         await fetchStatus();
         toast({ title: 'Modo Satélite desativado' });
       } catch (e: unknown) {
@@ -78,7 +100,16 @@ export function NetworkSettings() {
 
     try {
       setLoading(true);
-      await invoke('start_network_client', { terminalName });
+      // Iniciar via Connection Manager (modo Satellite)
+      await invoke('start_connection_manager', {
+        config: {
+          mode: 'satellite',
+          websocketPort: 3847, // Porta padrão
+          masterIp: null, // Será descoberto via auto-discovery se possível
+          masterPort: null,
+          autoDiscovery: true,
+        },
+      });
       await fetchStatus();
       toast({
         title: 'Modo Satélite iniciado',
