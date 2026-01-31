@@ -718,9 +718,11 @@ impl<'a> EmployeeRepository<'a> {
         sqlx::query(
             r#"
             INSERT INTO employees (
-                id, name, cpf, phone, email, pin, password, role, commission_rate, is_active, created_at, updated_at
+                id, name, cpf, phone, email, pin, password, username, 
+                password_changed_at, failed_login_attempts, locked_until, 
+                role, commission_rate, is_active, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 cpf = excluded.cpf,
@@ -728,11 +730,15 @@ impl<'a> EmployeeRepository<'a> {
                 email = excluded.email,
                 pin = excluded.pin,
                 password = excluded.password,
+                username = excluded.username,
+                password_changed_at = excluded.password_changed_at,
+                failed_login_attempts = excluded.failed_login_attempts,
+                locked_until = excluded.locked_until,
                 role = excluded.role,
                 commission_rate = excluded.commission_rate,
                 is_active = excluded.is_active,
                 updated_at = excluded.updated_at
-            "#
+            "#,
         )
         .bind(&employee.id)
         .bind(&employee.name)
@@ -741,6 +747,10 @@ impl<'a> EmployeeRepository<'a> {
         .bind(&employee.email)
         .bind(&employee.pin)
         .bind(&employee.password)
+        .bind(&employee.username)
+        .bind(&employee.password_changed_at)
+        .bind(employee.failed_login_attempts)
+        .bind(&employee.locked_until)
         .bind(&employee.role)
         .bind(employee.commission_rate)
         .bind(employee.is_active)
