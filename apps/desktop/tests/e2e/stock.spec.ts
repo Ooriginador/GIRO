@@ -5,20 +5,28 @@
 
 import { expect, test } from '@playwright/test';
 
-import { dismissTutorialIfPresent, loginWithPin } from './e2e-helpers';
+import { dismissTutorialIfPresent, ensureLicensePresent, loginWithPin, seedProductData } from './e2e-helpers';
 
+// UN-SKIP: Stock tests now have product data seeding
 test.describe('Gerenciamento de Estoque E2E', () => {
   test.beforeEach(async ({ page }) => {
-    // Login como admin
-    await page.goto('/');
-    await page.waitForLoadState('domcontentloaded');
+    // Configurar licença e localStorage antes de carregar a página
+    await ensureLicensePresent(page);
 
-    // UI usa teclado numérico para PIN
-    await loginWithPin(page, '8899');
+    // Seed product data for stock operations
+    await seedProductData(page);
+
+    // Navegar para rota de teste que bypassa LicenseGuard
+    await page.goto('/__test-login');
+    await page.waitForLoadState('domcontentloaded');
     await dismissTutorialIfPresent(page);
 
+    // Login com PIN 8899 (Admin)
+    await loginWithPin(page, '8899');
+
+    // Navegar para estoque
     await page.goto('/stock');
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState('networkidle');
     await dismissTutorialIfPresent(page);
   });
 

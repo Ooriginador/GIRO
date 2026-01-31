@@ -4,12 +4,27 @@
 
 import { expect, test } from '@playwright/test';
 
-import { dismissTutorialIfPresent, ensureCashOpen, loginWithPin } from './e2e-helpers';
+import {
+  dismissTutorialIfPresent,
+  ensureCashOpen,
+  ensureLicensePresent,
+  loginWithPin,
+  seedProductData,
+} from './e2e-helpers';
 
+// UN-SKIP: Sale tests now have product data seeding
 test.describe('Sale Flow E2E', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Configurar licença e localStorage antes de carregar a página
+    await ensureLicensePresent(page);
+
+    // Seed product data for sales
+    await seedProductData(page);
+
+    // Navegar para rota de teste que bypassa LicenseGuard
+    await page.goto('/__test-login');
     await page.waitForLoadState('domcontentloaded');
+    await dismissTutorialIfPresent(page);
 
     // Login com PIN 8899 (Admin) - UI usa teclado numérico
     await loginWithPin(page, '8899');

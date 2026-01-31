@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { seedAll, seedProducts, seedEnterpriseData, clearDatabase } from './seeders/database-seeder';
 
 export const dismissTutorialIfPresent = async (page: Page): Promise<void> => {
   // Tenta fechar/pular o tutorial ou dialogos de onboarding que fiquem sobrepostos
@@ -210,4 +211,87 @@ export const openFiltersPanel = async (page: Page): Promise<void> => {
       .waitFor({ state: 'visible', timeout: 5000 })
       .catch(() => undefined);
   }
+};
+
+/**
+ * Helper for onboarding tests - sets up license but NOT business profile
+ * This allows testing the wizard flow
+ * @param page - Playwright page
+ */
+export const ensureLicenseOnlyForOnboarding = async (page: Page): Promise<void> => {
+  const licenseState = {
+    licenseKey: 'TEST-LOCAL-KEY',
+    licenseInfo: {
+      status: 'active',
+      expires_at: '2099-01-01T00:00:00.000Z',
+      metadata: {},
+    },
+    lastValidation: new Date().toISOString(),
+  };
+
+  await page.context().addInitScript(
+    (args) => {
+      try {
+        localStorage.setItem('giro-license', JSON.stringify(args.licenseState));
+        // Mock DB with admin employee for login
+        localStorage.setItem(
+          '__giro_web_mock_db__',
+          JSON.stringify({
+            employees: [
+              {
+                id: 'seed-admin',
+                name: 'Administrador Semente',
+                role: 'ADMIN',
+                pin: '8899',
+                isActive: true,
+              },
+            ],
+            currentCashSession: null,
+            cashSessionHistory: [],
+          })
+        );
+        try {
+          (globalThis as unknown as Record<string, unknown>).__E2E_BYPASS_LICENSE = true;
+          (globalThis as unknown as Record<string, unknown>).__E2E_HAS_ADMIN = true;
+        } catch {
+          void 0;
+        }
+      } catch {
+        void 0;
+      }
+    },
+    { licenseState }
+  );
+
+// ========================================
+// DATABASE SEEDING HELPERS
+// ========================================
+
+/**
+ * Seeds all test data (products, employees, contracts, materials)
+ */
+export async function seedAllTestData(page: Page): Promise<void> {
+  await seedAll(page);
+}
+
+/**
+ * Seeds only products (for sale/stock tests)
+ */
+export async function seedProductData(page: Page): Promise<void> {
+  await seedProducts(page);
+}
+
+/**
+ * Seeds enterprise data (contracts, materials, work fronts)
+ */
+export async function seedEnterpriseTestData(page: Page): Promise<void> {
+  await seedEnterpriseData(page);
+}
+
+/**
+ * Clears all test data from database
+ */
+export async function clearTestData(page: Page): Promise<void> {
+  await clearDatabase(page);
+}
 };

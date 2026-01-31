@@ -4,24 +4,27 @@
  */
 
 import { expect, test } from '@playwright/test';
+import { dismissTutorialIfPresent, ensureLicensePresent, loginWithPin, seedProductData } from './e2e-helpers';
 
+// UN-SKIP: Products tests now have data seeding
 test.describe('Gerenciamento de Produtos E2E', () => {
   test.beforeEach(async ({ page }) => {
-    // Login como admin
-    await page.goto('/');
+    // Configurar licença e localStorage antes de carregar a página
+    await ensureLicensePresent(page);
+
+    // Seed product data
+    await seedProductData(page);
+
+    // Navegar para rota de teste que bypassa LicenseGuard
+    await page.goto('/__test-login');
     await page.waitForLoadState('domcontentloaded');
+    await dismissTutorialIfPresent(page);
 
     // Login com PIN 8899 (Admin)
-    await page.locator('button:has-text("8")').first().click();
-    await page.locator('button:has-text("8")').first().click();
-    await page.locator('button:has-text("9")').first().click();
-    await page.locator('button:has-text("9")').first().click();
-
-    const loginButton = page.locator('button:has-text("Entrar")');
-    await loginButton.click();
+    await loginWithPin(page, '8899');
 
     // Aguardar navegação após login
-    await page.waitForURL(/\/(dashboard|products|pdv)/, { timeout: 5000 });
+    await page.waitForURL(/\/(dashboard|products|pdv)/, { timeout: 10000 });
 
     await page.goto('/products');
     await page.waitForLoadState('networkidle');
