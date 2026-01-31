@@ -17,8 +17,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useContracts } from '@/hooks/enterprise';
 import { useEmployees } from '@/hooks/useEmployees';
-import { cn } from '@/lib/utils';
 import type { ContractWithManager } from '@/lib/tauri';
+import { cn } from '@/lib/utils';
 import type { ContractStatus } from '@/types/enterprise';
 import {
   Building2,
@@ -298,14 +298,16 @@ export const ContractsPage: FC = () => {
               aria-label="Filtros avançados de contratos"
             >
               <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
+                <label className="text-sm font-medium" id="status-filter-label">
+                  Status
+                </label>
                 <Select
                   value={filters.status}
                   onValueChange={(value) =>
                     updateFilters({ status: value as ContractStatus | 'ALL' })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="status-filter" aria-labelledby="status-filter-label">
                     <SelectValue placeholder="Todos os status" />
                   </SelectTrigger>
                   <SelectContent>

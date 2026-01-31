@@ -243,9 +243,11 @@ pub async fn scan_network_for_masters(
 /// Tenta conectar a um Master específico com senha
 ///
 /// Usado no setup para testar a conexão antes de salvar as configurações.
+/// Usa o protocolo MobileRequest/MobileResponse consistente com network_client.
 #[tauri::command]
 #[specta::specta]
 pub async fn test_master_connection(ip: String, port: u16, secret: String) -> AppResult<bool> {
+    use crate::services::mobile_protocol::{AuthSystemPayload, MobileRequest, MobileResponse};
     use futures_util::{SinkExt, StreamExt};
     use tokio_tungstenite::connect_async;
     use tokio_tungstenite::tungstenite::Message;
@@ -270,17 +272,23 @@ pub async fn test_master_connection(ip: String, port: u16, secret: String) -> Ap
 
     let (mut write, mut read) = ws_stream.split();
 
-    // Enviar autenticação
-    let auth_msg = serde_json::json!({
-        "type": "auth",
-        "payload": {
-            "deviceId": "setup-test",
-            "deviceName": "Setup Wizard",
-            "secret": secret
-        }
-    });
+    // Enviar autenticação usando MobileRequest (mesmo formato do network_client)
+    let auth_req = MobileRequest {
+        id: 1,
+        action: "auth.system".into(),
+        payload: serde_json::to_value(AuthSystemPayload {
+            secret,
+            terminal_id: "setup-test".into(),
+            terminal_name: "Setup Wizard".into(),
+        })
+        .unwrap_or_default(),
+        token: None,
+        timestamp: chrono::Utc::now().timestamp_millis(),
+    };
 
-    if let Err(e) = write.send(Message::Text(auth_msg.to_string())).await {
+    let auth_msg = serde_json::to_string(&auth_req).unwrap_or_default();
+
+    if let Err(e) = write.send(Message::Text(auth_msg)).await {
         tracing::warn!("❌ Falha ao enviar auth: {}", e);
         return Ok(false);
     }
@@ -290,23 +298,29 @@ pub async fn test_master_connection(ip: String, port: u16, secret: String) -> Ap
 
     match response {
         Ok(Some(Ok(Message::Text(text)))) => {
+            // Parse como MobileResponse
+            if let Ok(resp) = serde_json::from_str::<MobileResponse>(&text) {
+                if resp.success {
+                    tracing::info!("✅ Autenticação bem-sucedida!");
+                    return Ok(true);
+                } else {
+                    let error = resp
+                        .error
+                        .map(|e| e.message)
+                        .unwrap_or_else(|| "Senha incorreta".into());
+                    tracing::warn!("❌ Autenticação falhou: {}", error);
+                    return Ok(false);
+                }
+            }
+            // Fallback: tentar parse genérico
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
-                let response_type = json.get("type").and_then(|t| t.as_str());
                 let success = json
                     .get("success")
                     .and_then(|s| s.as_bool())
                     .unwrap_or(false);
-
-                if response_type == Some("auth_response") && success {
-                    tracing::info!("✅ Autenticação bem-sucedida!");
+                if success {
+                    tracing::info!("✅ Autenticação bem-sucedida (legacy format)!");
                     return Ok(true);
-                } else {
-                    let error = json
-                        .get("error")
-                        .and_then(|e| e.as_str())
-                        .unwrap_or("Senha incorreta");
-                    tracing::warn!("❌ Autenticação falhou: {}", error);
-                    return Ok(false);
                 }
             }
             Ok(false)

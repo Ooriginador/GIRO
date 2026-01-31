@@ -20,10 +20,9 @@ use windows::core::PCWSTR;
 use windows::Win32::Devices::DeviceAndDriverInstallation::{
     SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo, SetupDiGetClassDevsW,
     SetupDiGetDeviceInstanceIdW, SetupDiGetDeviceRegistryPropertyW, DIGCF_ALLCLASSES,
-    DIGCF_PRESENT, HDEVINFO, SPDRP_DEVICEDESC, SPDRP_FRIENDLYNAME, SPDRP_HARDWAREID, SPDRP_MFG,
-    SP_DEVINFO_DATA,
+    DIGCF_PRESENT, HDEVINFO, SETUP_DI_REGISTRY_PROPERTY, SPDRP_DEVICEDESC, SPDRP_FRIENDLYNAME,
+    SPDRP_HARDWAREID, SPDRP_MFG, SP_DEVINFO_DATA,
 };
-use windows::Win32::Foundation::GetLastError;
 
 // ════════════════════════════════════════════════════════════════════════════
 // TIPOS
@@ -91,7 +90,7 @@ fn parse_vid_pid(hardware_id: &str) -> Option<(u16, u16)> {
 fn get_device_string_property(
     dev_info: HDEVINFO,
     dev_info_data: &mut SP_DEVINFO_DATA,
-    property: u32,
+    property: SETUP_DI_REGISTRY_PROPERTY,
 ) -> Option<String> {
     let mut buffer: [u8; 512] = [0; 512];
     let mut required_size: u32 = 0;
@@ -133,17 +132,9 @@ fn get_device_instance_id(
     dev_info_data: &mut SP_DEVINFO_DATA,
 ) -> Option<String> {
     let mut buffer: [u16; 512] = [0; 512];
-    let mut required_size: u32 = 0;
 
-    let result = unsafe {
-        SetupDiGetDeviceInstanceIdW(
-            dev_info,
-            dev_info_data,
-            Some(windows::core::PWSTR(buffer.as_mut_ptr())),
-            buffer.len() as u32,
-            Some(&mut required_size),
-        )
-    };
+    let result =
+        unsafe { SetupDiGetDeviceInstanceIdW(dev_info, dev_info_data, Some(&mut buffer), None) };
 
     if result.is_ok() {
         let end = buffer.iter().position(|&c| c == 0).unwrap_or(buffer.len());
@@ -170,16 +161,25 @@ pub fn detect_usb_printers() -> UsbDetectionResult {
 
     unsafe {
         // Obtém handle para todos os dispositivos presentes
-        let dev_info = SetupDiGetClassDevsW(
+        let dev_info = match SetupDiGetClassDevsW(
             None,                             // Todas as classes
             PCWSTR::null(),                   // Nenhum enumerador específico
             None,                             // Sem janela pai
             DIGCF_ALLCLASSES | DIGCF_PRESENT, // Todas as classes, apenas presentes
-        );
+        ) {
+            Ok(handle) => handle,
+            Err(e) => {
+                errors.push(format!("SetupDiGetClassDevsW falhou: {:?}", e));
+                return UsbDetectionResult {
+                    devices,
+                    errors,
+                    duration_ms: start.elapsed().as_millis() as u64,
+                };
+            }
+        };
 
         if dev_info.is_invalid() {
-            let err = GetLastError();
-            errors.push(format!("SetupDiGetClassDevsW falhou: {:?}", err));
+            errors.push("SetupDiGetClassDevsW retornou handle inválido".to_string());
             return UsbDetectionResult {
                 devices,
                 errors,

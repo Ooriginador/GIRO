@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { dismissTutorialIfPresent, ensureLicensePresent } from './e2e-helpers';
 import fs from 'fs';
 import path from 'path';
+import { dismissTutorialIfPresent, ensureLicensePresent } from './e2e-helpers';
 
 /**
  * @file auth.spec.ts - Testes E2E de Autenticação
@@ -72,11 +72,11 @@ test.describe('Autenticação E2E', () => {
   });
 
   test('deve rejeitar PIN inválido', async ({ page }) => {
-    // Digitar PIN inválido (8888)
-    await page.locator('button:has-text("8")').first().click();
-    await page.locator('button:has-text("8")').first().click();
-    await page.locator('button:has-text("9")').first().click();
-    await page.locator('button:has-text("9")').first().click();
+    // Digitar PIN inválido (1234 - não existe)
+    await page.locator('button:has-text("1")').first().click();
+    await page.locator('button:has-text("2")').first().click();
+    await page.locator('button:has-text("3")').first().click();
+    await page.locator('button:has-text("4")').first().click();
 
     const loginButton = page.locator('button:has-text("Entrar")');
     await loginButton.click();

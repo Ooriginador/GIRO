@@ -177,3 +177,37 @@ export const ensureCashOpen = async (page: Page): Promise<void> => {
     await dismissTutorialIfPresent(page);
   }
 };
+
+/**
+ * Helper to select a value from a Shadcn UI Select component
+ * @param page - Playwright page
+ * @param triggerTestId - data-testid of the SelectTrigger
+ * @param value - The value to select (text of the option)
+ */
+export const selectShadcnOption = async (
+  page: Page,
+  triggerTestId: string,
+  value: string
+): Promise<void> => {
+  // Click the trigger to open the dropdown
+  await page.click(`[data-testid="${triggerTestId}"]`);
+  // Wait for the dropdown content to appear and click the option
+  await page.getByRole('option', { name: value }).click();
+};
+
+/**
+ * Helper to open the filters panel on list pages
+ * @param page - Playwright page
+ */
+export const openFiltersPanel = async (page: Page): Promise<void> => {
+  const filtersButton = page.getByRole('button', { name: /Filtros/i });
+  const isExpanded = await filtersButton.getAttribute('aria-expanded');
+  if (isExpanded !== 'true') {
+    await filtersButton.click();
+    // Wait for filters panel to be visible
+    await page
+      .locator('[id="contract-filters"]')
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .catch(() => undefined);
+  }
+};

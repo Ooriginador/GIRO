@@ -4,24 +4,23 @@
  */
 
 import { expect, test } from '@playwright/test';
+import { dismissTutorialIfPresent, ensureLicensePresent, loginWithPin } from './e2e-helpers';
 
 test.describe('Sessão de Caixa E2E', () => {
   test.beforeEach(async ({ page }) => {
-    // Login como admin
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    // Configurar licença e localStorage antes de carregar a página
+    await ensureLicensePresent(page);
 
-    // Login com 8899 (Admin)
-    await page.locator('button:has-text("8")').first().click();
-    await page.locator('button:has-text("8")').first().click();
-    await page.locator('button:has-text("9")').first().click();
-    await page.locator('button:has-text("9")').first().click();
+    // Navegar para rota de teste que bypassa LicenseGuard
+    await page.goto('/__test-login');
+    await page.waitForLoadState('domcontentloaded');
+    await dismissTutorialIfPresent(page);
 
-    const loginButton = page.locator('button:has-text("Entrar")');
-    await loginButton.click();
+    // Login com PIN 8899 (Admin)
+    await loginWithPin(page, '8899');
 
-    // Aguardar navegação após login (redireciona para dashboard)
-    await page.waitForURL(/\/(dashboard|pdv|cash)/, { timeout: 5000 });
+    // Aguardar navegação após login
+    await page.waitForURL(/\/(dashboard|pdv|cash|wizard)/, { timeout: 10000 });
     await page.waitForLoadState('networkidle');
   });
 

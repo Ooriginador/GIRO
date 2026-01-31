@@ -20,7 +20,7 @@ use sqlx::SqlitePool;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, RwLock};
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 // ════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
