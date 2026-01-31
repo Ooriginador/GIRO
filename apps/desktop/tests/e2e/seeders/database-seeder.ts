@@ -4,13 +4,13 @@
  */
 
 import { Page } from '@playwright/test';
-import { productFixtures, categoryFixtures } from '../fixtures/products.fixture';
-import { employeeFixtures } from '../fixtures/employees.fixture';
 import {
   contractFixtures,
-  workFrontFixtures,
   materialFixtures,
+  workFrontFixtures,
 } from '../fixtures/contracts.fixture';
+import { employeeFixtures } from '../fixtures/employees.fixture';
+import { categoryFixtures, productFixtures } from '../fixtures/products.fixture';
 
 export interface SeedOptions {
   products?: boolean;
@@ -37,6 +37,18 @@ export async function seedDatabase(page: Page, options: SeedOptions = {}) {
     const dbStr = localStorage.getItem('__giro_web_mock_db__');
     return dbStr ? JSON.parse(dbStr) : {};
   });
+
+  // Initialize arrays if they don't exist
+  currentDb.products = currentDb.products || [];
+  currentDb.categories = currentDb.categories || [];
+  currentDb.employees = currentDb.employees || [];
+  currentDb.contracts = currentDb.contracts || [];
+  currentDb.workFronts = currentDb.workFronts || [];
+  currentDb.materials = currentDb.materials || [];
+  currentDb.stockMovements = currentDb.stockMovements || [];
+  currentDb.materialRequests = currentDb.materialRequests || [];
+  currentDb.stockTransfers = currentDb.stockTransfers || [];
+  currentDb.inventoryCounts = currentDb.inventoryCounts || [];
 
   // Clear existing data if requested
   if (clearExisting) {

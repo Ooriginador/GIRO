@@ -4,20 +4,20 @@
  */
 
 import { expect, test } from '@playwright/test';
-import { dismissTutorialIfPresent, ensureLicensePresent, loginWithPin, seedProductData } from './e2e-helpers';
+import { dismissTutorialIfPresent, loginWithPin, seedProductData } from './e2e-helpers';
 
 // UN-SKIP: Products tests now have data seeding
 test.describe('Gerenciamento de Produtos E2E', () => {
   test.beforeEach(async ({ page }) => {
-    // Configurar licença e localStorage antes de carregar a página
-    await ensureLicensePresent(page);
-
-    // Seed product data
-    await seedProductData(page);
+    // storageState from playwright.config.ts already sets license + business profile
 
     // Navegar para rota de teste que bypassa LicenseGuard
     await page.goto('/__test-login');
     await page.waitForLoadState('domcontentloaded');
+
+    // Seed product data AFTER navigation (localStorage accessible)
+    await seedProductData(page);
+
     await dismissTutorialIfPresent(page);
 
     // Login com PIN 8899 (Admin)

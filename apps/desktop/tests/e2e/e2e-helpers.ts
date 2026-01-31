@@ -1,5 +1,10 @@
 import type { Page } from '@playwright/test';
-import { seedAll, seedProducts, seedEnterpriseData, clearDatabase } from './seeders/database-seeder';
+import {
+  clearDatabase,
+  seedAll,
+  seedEnterpriseData,
+  seedProducts,
+} from './seeders/database-seeder';
 
 export const dismissTutorialIfPresent = async (page: Page): Promise<void> => {
   // Tenta fechar/pular o tutorial ou dialogos de onboarding que fiquem sobrepostos
@@ -262,6 +267,7 @@ export const ensureLicenseOnlyForOnboarding = async (page: Page): Promise<void> 
     },
     { licenseState }
   );
+};
 
 // ========================================
 // DATABASE SEEDING HELPERS
@@ -294,4 +300,3 @@ export async function seedEnterpriseTestData(page: Page): Promise<void> {
 export async function clearTestData(page: Page): Promise<void> {
   await clearDatabase(page);
 }
-};

@@ -5,7 +5,12 @@
 
 import { expect, test } from '@playwright/test';
 
-import { dismissTutorialIfPresent, ensureLicensePresent, loginWithPin, seedProductData } from './e2e-helpers';
+import {
+  dismissTutorialIfPresent,
+  ensureLicensePresent,
+  loginWithPin,
+  seedProductData,
+} from './e2e-helpers';
 
 // UN-SKIP: Stock tests now have product data seeding
 test.describe('Gerenciamento de Estoque E2E', () => {
@@ -13,12 +18,13 @@ test.describe('Gerenciamento de Estoque E2E', () => {
     // Configurar licença e localStorage antes de carregar a página
     await ensureLicensePresent(page);
 
-    // Seed product data for stock operations
-    await seedProductData(page);
-
     // Navegar para rota de teste que bypassa LicenseGuard
     await page.goto('/__test-login');
     await page.waitForLoadState('domcontentloaded');
+
+    // Seed product data AFTER navigation
+    await seedProductData(page);
+
     await dismissTutorialIfPresent(page);
 
     // Login com PIN 8899 (Admin)

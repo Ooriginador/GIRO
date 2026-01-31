@@ -18,12 +18,13 @@ test.describe('Sale Flow E2E', () => {
     // Configurar licença e localStorage antes de carregar a página
     await ensureLicensePresent(page);
 
-    // Seed product data for sales
-    await seedProductData(page);
-
     // Navegar para rota de teste que bypassa LicenseGuard
     await page.goto('/__test-login');
     await page.waitForLoadState('domcontentloaded');
+
+    // Seed product data AFTER navigation
+    await seedProductData(page);
+
     await dismissTutorialIfPresent(page);
 
     // Login com PIN 8899 (Admin) - UI usa teclado numérico

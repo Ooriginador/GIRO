@@ -390,7 +390,7 @@ impl SyncOrchestrator {
             Ok(items) if !items.is_empty() => {
                 // HIGH-003 FIX: Split items into chunks of 100 to respect server limit
                 let total_items = items.len();
-                let chunks_count = (total_items + MAX_SYNC_CHUNK_SIZE - 1) / MAX_SYNC_CHUNK_SIZE;
+                let chunks_count = total_items.div_ceil(MAX_SYNC_CHUNK_SIZE);
 
                 info!(
                     "[SyncOrchestrator] Pushing {} items em {} chunks (max {} por chunk)",

@@ -9,10 +9,11 @@ import {
   ensureCashOpen,
   ensureLicensePresent,
   loginWithPin,
+  seedProductData,
 } from './e2e-helpers';
 
-// SKIP: Tests require test data seeding - products needed for sale flow
-test.describe.skip('Sale Mixed Payment (Cash + PIX)', () => {
+// UN-SKIP: Sale tests now have product data seeding
+test.describe('Sale Mixed Payment (Cash + PIX)', () => {
   test.beforeEach(async ({ page }) => {
     // Configurar licença e localStorage antes de carregar a página
     await ensureLicensePresent(page);
@@ -20,6 +21,10 @@ test.describe.skip('Sale Mixed Payment (Cash + PIX)', () => {
     // Navegar para rota de teste que bypassa LicenseGuard
     await page.goto('/__test-login');
     await page.waitForLoadState('domcontentloaded');
+
+    // Seed product data AFTER navigation
+    await seedProductData(page);
+
     await dismissTutorialIfPresent(page);
 
     await loginWithPin(page, '8899');
