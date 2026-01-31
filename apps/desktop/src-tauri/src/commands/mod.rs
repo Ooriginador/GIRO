@@ -89,6 +89,7 @@ pub mod reports_motoparts;
 
 pub use alerts::*;
 pub use audit::*;
+pub use auth::*;
 pub use backup::*;
 pub use cash::*;
 pub use categories::*;
