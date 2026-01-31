@@ -73,7 +73,6 @@ export function PasswordLoginForm({ onBack }: PasswordLoginFormProps) {
         {(failedAttempts > 0 || lockoutDuration > 0) && (
           <AccountLockedMessage
             failedAttempts={failedAttempts}
-            lockoutDurationMinutes={15}
             lockoutRemainingSeconds={lockoutDuration}
           />
         )}

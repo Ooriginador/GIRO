@@ -202,10 +202,18 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
       } as unknown as T;
     }
     case 'login_with_password': {
-      const username = args?.username as string;
-      const password = args?.password as string;
-      // Mock simples
-      const employee = db.employees.find((e) => e.role === 'ADMIN'); // Pega primeiro admin
+      const username = (args?.username as string | undefined)?.trim().toLowerCase();
+      const password = args?.password as string | undefined;
+      // Mock simples: tenta casar por username/email/cpf, senão retorna o primeiro admin
+      const employee =
+        db.employees.find((e) => {
+          const email = e.email?.toLowerCase();
+          const cpf = e.cpf?.toLowerCase();
+          const user = (e as unknown as { username?: string }).username?.toLowerCase();
+          return username ? username === email || username === cpf || username === user : false;
+        }) ?? db.employees.find((e) => e.role === 'ADMIN');
+
+      log.debug('[webMock] login_with_password', { username, hasPassword: Boolean(password) });
       return {
         employee: employee,
         token: 'mock-token',

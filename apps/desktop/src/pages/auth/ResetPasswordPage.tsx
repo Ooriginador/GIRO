@@ -129,7 +129,7 @@ export const ResetPasswordPage: React.FC = () => {
               label="Nova Senha"
               placeholder="Digite sua nova senha"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={setNewPassword}
               required
               disabled={isLoading}
               autoComplete="new-password"
@@ -142,7 +142,7 @@ export const ResetPasswordPage: React.FC = () => {
               label="Confirmar Senha"
               placeholder="Digite novamente"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={setConfirmPassword}
               required
               disabled={isLoading}
               error={

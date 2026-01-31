@@ -6,6 +6,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 
 interface PasswordInputProps {
+  id?: string;
   label?: string;
   value: string;
   onChange: (value: string) => void;
@@ -13,12 +14,13 @@ interface PasswordInputProps {
   error?: string;
   required?: boolean;
   autoComplete?: string;
+  autoFocus?: boolean;
   disabled?: boolean;
   className?: string;
-  showStrengthIndicator?: boolean;
 }
 
 export function PasswordInput({
+  id = 'password',
   label = 'Senha',
   value,
   onChange,
@@ -26,16 +28,16 @@ export function PasswordInput({
   error,
   required = false,
   autoComplete = 'current-password',
+  autoFocus = false,
   disabled = false,
   className,
-  showStrengthIndicator = false,
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className={cn('space-y-2', className)}>
       {label && (
-        <Label htmlFor="password" className="text-sm font-medium">
+        <Label htmlFor={id} className="text-sm font-medium">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </Label>
@@ -43,13 +45,14 @@ export function PasswordInput({
 
       <div className="relative">
         <Input
-          id="password"
+          id={id}
           type={showPassword ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           required={required}
           autoComplete={autoComplete}
+          autoFocus={autoFocus}
           disabled={disabled}
           className={cn('pr-10', error && 'border-red-500 focus-visible:ring-red-500')}
         />

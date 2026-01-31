@@ -14,6 +14,7 @@ export interface Employee {
   email?: string;
   cpf?: string;
   username?: string;
+  pin?: string;
 }
 
 export type CurrentUser = Employee;
@@ -259,7 +260,7 @@ export const useAuthStore = create<AuthState>()(
       requestPasswordReset: async (email) => {
         const result = await passwordApi.requestPasswordReset({ email });
         // Na interface do store diz que retorna obj, auth-api retorna PasswordResetResponse
-        return { token: 'sent-to-email', sentTo: result.message };
+        return { token: result.token, sentTo: result.sentTo };
       },
 
       resetPasswordWithToken: async (token, newPassword) => {

@@ -153,7 +153,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ isFirstL
                 label="Senha Atual"
                 placeholder="Digite sua senha atual"
                 value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
+                onChange={setCurrentPassword}
                 required
                 autoFocus
                 disabled={isLoading}
@@ -166,7 +166,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ isFirstL
               label="Nova Senha"
               placeholder="Digite sua nova senha"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={setNewPassword}
               required
               autoFocus={isFirstLogin}
               disabled={isLoading}
@@ -180,7 +180,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ isFirstL
               label="Confirmar Nova Senha"
               placeholder="Digite novamente"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={setConfirmPassword}
               required
               disabled={isLoading}
               error={

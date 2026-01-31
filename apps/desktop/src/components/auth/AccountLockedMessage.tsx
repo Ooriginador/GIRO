@@ -3,13 +3,11 @@ import { AlertTriangle, Clock } from 'lucide-react';
 
 interface AccountLockedMessageProps {
   failedAttempts: number;
-  lockoutDurationMinutes: number;
   lockoutRemainingSeconds?: number;
 }
 
 export function AccountLockedMessage({
   failedAttempts,
-  lockoutDurationMinutes,
   lockoutRemainingSeconds,
 }: AccountLockedMessageProps) {
   // Conversão segura de segundos para mm:ss
