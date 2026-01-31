@@ -51,9 +51,22 @@ pub struct Employee {
     pub cpf: Option<String>,
     pub phone: Option<String>,
     pub email: Option<String>,
-    pub pin: String,                  // Hash do PIN
-    pub password: Option<String>,     // Hash da senha
-    pub role: String,                 // Armazenado como String
+    pub pin: String,              // Hash do PIN (HMAC-SHA256)
+    pub password: Option<String>, // Hash da senha (Argon2id)
+    
+    // Campos de autenticação por senha
+    pub username: Option<String>,
+    pub password_changed_at: Option<String>,
+    pub password_reset_token: Option<String>,
+    pub password_reset_expires_at: Option<String>,
+    
+    // Segurança e lockout
+    pub failed_login_attempts: i64,
+    pub locked_until: Option<String>,
+    pub last_login_at: Option<String>,
+    pub last_login_ip: Option<String>,
+    
+    pub role: String, // Armazenado como String
     pub commission_rate: Option<f64>, // Taxa de comissão (0.0 a 1.0 ou percentual)
     pub is_active: bool,
     pub created_at: String,

@@ -5,6 +5,7 @@
 use specta::Type;
 
 pub mod alert;
+pub mod auth;
 pub mod cash;
 pub mod category;
 pub mod customer;
@@ -24,6 +25,7 @@ pub mod vehicle;
 pub mod warranty;
 
 pub use alert::*;
+pub use auth::*;
 pub use cash::*;
 pub use category::*;
 pub use customer::*;

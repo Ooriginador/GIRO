@@ -16,6 +16,9 @@ pub enum AppError {
     #[error("Registro não encontrado: {entity} com id {id}")]
     NotFound { entity: String, id: String },
 
+    #[error("Não encontrado: {0}")]
+    NotFoundSimple(String),
+
     #[error("Registro duplicado: {0}")]
     Duplicate(String),
 
@@ -60,6 +63,9 @@ pub enum AppError {
 
     #[error("PIN ou senha inválidos")]
     InvalidCredentials,
+
+    #[error("Conta bloqueada até {locked_until}")]
+    AccountLocked { locked_until: String },
 
     #[error("Produto vencido não pode ser vendido")]
     ExpiredProduct,

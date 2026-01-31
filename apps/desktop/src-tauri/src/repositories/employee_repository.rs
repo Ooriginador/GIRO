@@ -67,7 +67,10 @@ impl<'a> EmployeeRepository<'a> {
     }
 
     const COLS: &'static str =
-        "id, name, cpf, phone, email, pin, password, role, commission_rate, is_active, created_at, updated_at";
+        "id, name, cpf, phone, email, pin, password, username, password_changed_at, \
+         password_reset_token, password_reset_expires_at, failed_login_attempts, \
+         locked_until, last_login_at, last_login_ip, role, commission_rate, is_active, \
+         created_at, updated_at";
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<Employee>> {
         let query = format!("SELECT {} FROM employees WHERE id = ?", Self::COLS);
@@ -691,6 +694,510 @@ impl<'a> EmployeeRepository<'a> {
         .await?;
 
         tracing::info!("Sync: employee {} upserted successfully", employee.name);
+
+        Ok(())
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // AUTENTICAÇÃO POR USERNAME/PASSWORD (ADMIN/MANAGER)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// Autenticação por username + senha (para perfis ADMIN/MANAGER)
+    ///
+    /// Implementa verificação de:
+    /// - Senha correta (Argon2id)
+    /// - Conta ativa
+    /// - Bloqueio por tentativas falhas
+    /// - Expiração de senha
+    ///
+    /// # Exemplo
+    /// ```rust
+    /// let result = repo.authenticate_password("admin", "SenhaSegura123!").await?;
+    /// if let Some(employee) = result {
+    ///     println!("Login bem-sucedido: {}", employee.name);
+    /// }
+    /// ```
+    pub async fn authenticate_password(
+        &self,
+        username: &str,
+        password: &str,
+    ) -> AppResult<Option<Employee>> {
+        use crate::utils::crypto::verify_password;
+
+        // Buscar funcionário por username ou email
+        let query = format!(
+            "SELECT {} FROM employees WHERE (username = ? OR email = ?) AND deleted_at IS NULL",
+            Self::COLS
+        );
+        let employee = sqlx::query_as::<_, Employee>(&query)
+            .bind(username)
+            .bind(username)
+            .fetch_optional(self.pool)
+            .await?;
+
+        let employee = match employee {
+            Some(emp) => emp,
+            None => {
+                tracing::warn!("Tentativa de login com username inexistente: {}", username);
+                return Ok(None);
+            }
+        };
+
+        // Verificar se conta está bloqueada
+        if let Some(locked_until) = employee.locked_until {
+            let now = chrono::Utc::now();
+            if locked_until > now {
+                tracing::warn!(
+                    "Tentativa de login em conta bloqueada: {} (bloqueada até: {})",
+                    employee.name,
+                    locked_until
+                );
+                return Err(crate::error::AppError::AccountLocked {
+                    locked_until: locked_until.to_rfc3339(),
+                });
+            }
+            // Bloqueio expirou, limpar
+            self.clear_lockout(&employee.id).await?;
+        }
+
+        // Verificar se conta está ativa
+        if !employee.is_active {
+            tracing::warn!("Tentativa de login em conta inativa: {}", employee.name);
+            return Ok(None);
+        }
+
+        // Verificar senha
+        let stored_hash = match &employee.password {
+            Some(hash) => hash,
+            None => {
+                tracing::warn!(
+                    "Funcionário {} não tem senha configurada (usar PIN)",
+                    employee.name
+                );
+                return Ok(None);
+            }
+        };
+
+        let is_valid = verify_password(password, stored_hash)?;
+
+        if !is_valid {
+            // Senha incorreta - registrar tentativa falha
+            self.record_failed_attempt(&employee.id).await?;
+            tracing::warn!("Senha incorreta para: {}", employee.name);
+            return Ok(None);
+        }
+
+        // Autenticação bem-sucedida - limpar tentativas falhas
+        self.clear_failed_attempts(&employee.id).await?;
+
+        // Atualizar último login
+        self.update_last_login(&employee.id, None).await?;
+
+        tracing::info!("Autenticação por senha bem-sucedida: {}", employee.name);
+
+        Ok(Some(Self::decrypt_employee(employee)))
+    }
+
+    /// Registra tentativa de login falhada e bloqueia se exceder limite
+    pub async fn record_failed_attempt(&self, employee_id: &str) -> AppResult<()> {
+        // Buscar configurações
+        let max_attempts: i64 = self.get_setting("auth.max_failed_attempts").await?.unwrap_or(5);
+        let lockout_minutes: i64 = self
+            .get_setting("auth.lockout_duration_minutes")
+            .await?
+            .unwrap_or(15);
+
+        // Incrementar contador
+        let now = chrono::Utc::now().to_rfc3339();
+        let query = r#"
+            UPDATE employees 
+            SET failed_login_attempts = failed_login_attempts + 1,
+                updated_at = ?
+            WHERE id = ?
+            RETURNING failed_login_attempts
+        "#;
+
+        let attempts: i64 = sqlx::query_scalar(query)
+            .bind(&now)
+            .bind(employee_id)
+            .fetch_one(self.pool)
+            .await?;
+
+        tracing::warn!(
+            "Tentativa falha registrada para {}: {}/{}",
+            employee_id,
+            attempts,
+            max_attempts
+        );
+
+        // Bloquear se exceder limite
+        if attempts >= max_attempts {
+            let locked_until = chrono::Utc::now()
+                + chrono::Duration::minutes(lockout_minutes);
+
+            sqlx::query(
+                "UPDATE employees SET locked_until = ?, updated_at = ? WHERE id = ?",
+            )
+            .bind(locked_until.to_rfc3339())
+            .bind(&now)
+            .bind(employee_id)
+            .execute(self.pool)
+            .await?;
+
+            tracing::warn!(
+                "Conta {} bloqueada até {}",
+                employee_id,
+                locked_until.to_rfc3339()
+            );
+
+            // TODO: Registrar em audit_log
+        }
+
+        Ok(())
+    }
+
+    /// Limpa contador de tentativas falhas após login bem-sucedido
+    pub async fn clear_failed_attempts(&self, employee_id: &str) -> AppResult<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        sqlx::query(
+            "UPDATE employees SET failed_login_attempts = 0, updated_at = ? WHERE id = ?",
+        )
+        .bind(&now)
+        .bind(employee_id)
+        .execute(self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Limpa bloqueio de conta (manual ou expiração)
+    pub async fn clear_lockout(&self, employee_id: &str) -> AppResult<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        sqlx::query(
+            "UPDATE employees SET locked_until = NULL, failed_login_attempts = 0, updated_at = ? WHERE id = ?",
+        )
+        .bind(&now)
+        .bind(employee_id)
+        .execute(self.pool)
+        .await?;
+
+        tracing::info!("Bloqueio removido para: {}", employee_id);
+        Ok(())
+    }
+
+    /// Atualiza timestamp de último login
+    pub async fn update_last_login(
+        &self,
+        employee_id: &str,
+        ip_address: Option<&str>,
+    ) -> AppResult<()> {
+        let now = chrono::Utc::now();
+        let query = r#"
+            UPDATE employees 
+            SET last_login_at = ?,
+                last_login_ip = ?,
+                updated_at = ?
+            WHERE id = ?
+        "#;
+
+        sqlx::query(query)
+            .bind(now.to_rfc3339())
+            .bind(ip_address)
+            .bind(now.to_rfc3339())
+            .bind(employee_id)
+            .execute(self.pool)
+            .await?;
+
+        Ok(())
+    }
+
+    /// Busca configuração do sistema
+    async fn get_setting<T>(&self, key: &str) -> AppResult<Option<T>>
+    where
+        T: std::str::FromStr,
+    {
+        let value: Option<String> =
+            sqlx::query_scalar("SELECT value FROM settings WHERE key = ?")
+                .bind(key)
+                .fetch_optional(self.pool)
+                .await?;
+
+        Ok(value.and_then(|v| v.parse().ok()))
+    }
+
+    /// Verifica se conta está bloqueada
+    pub async fn is_account_locked(&self, employee_id: &str) -> AppResult<bool> {
+        let locked_until: Option<String> = sqlx::query_scalar(
+            "SELECT locked_until FROM employees WHERE id = ?",
+        )
+        .bind(employee_id)
+        .fetch_optional(self.pool)
+        .await?;
+
+        if let Some(locked_until_str) = locked_until {
+            if let Ok(locked_until) = chrono::DateTime::parse_from_rfc3339(&locked_until_str) {
+                let now = chrono::Utc::now();
+                return Ok(locked_until.with_timezone(&chrono::Utc) > now);
+            }
+        }
+
+        Ok(false)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // GESTÃO DE SENHA
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// Altera senha de um funcionário
+    ///
+    /// Valida:
+    /// - Senha antiga correta (se fornecida)
+    /// - Nova senha atende política
+    /// - Atualiza timestamp de mudança
+    pub async fn change_password(
+        &self,
+        employee_id: &str,
+        old_password: Option<&str>,
+        new_password: &str,
+    ) -> AppResult<()> {
+        use crate::utils::crypto::{hash_password, verify_password};
+
+        // Buscar funcionário
+        let employee = self
+            .find_by_id(employee_id)
+            .await?
+            .ok_or(crate::error::AppError::NotFound(
+                "Funcionário não encontrado".to_string(),
+            ))?;
+
+        // Verificar senha antiga (se fornecida)
+        if let Some(old_pwd) = old_password {
+            if let Some(stored_hash) = &employee.password {
+                if !verify_password(old_pwd, stored_hash)? {
+                    return Err(crate::error::AppError::InvalidInput(
+                        "Senha atual incorreta".to_string(),
+                    ));
+                }
+            }
+        }
+
+        // Validar nova senha
+        self.validate_password_policy(new_password).await?;
+
+        // Gerar hash da nova senha
+        let password_hash = hash_password(new_password)?;
+
+        // Atualizar no banco
+        let now = chrono::Utc::now();
+        sqlx::query(
+            r#"
+            UPDATE employees 
+            SET password = ?,
+                password_changed_at = ?,
+                failed_login_attempts = 0,
+                locked_until = NULL,
+                updated_at = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(password_hash)
+        .bind(now.to_rfc3339())
+        .bind(now.to_rfc3339())
+        .bind(employee_id)
+        .execute(self.pool)
+        .await?;
+
+        tracing::info!("Senha alterada para funcionário: {}", employee.name);
+
+        // TODO: Registrar em audit_log
+
+        Ok(())
+    }
+
+    /// Valida senha contra política configurada
+    pub async fn validate_password_policy(&self, password: &str) -> AppResult<()> {
+        // Buscar política das configurações
+        let min_length: usize = self
+            .get_setting("auth.password_min_length")
+            .await?
+            .unwrap_or(8);
+        let require_uppercase: bool = self
+            .get_setting::<String>("auth.password_require_uppercase")
+            .await?
+            .map(|v| v == "true")
+            .unwrap_or(true);
+        let require_lowercase: bool = self
+            .get_setting::<String>("auth.password_require_lowercase")
+            .await?
+            .map(|v| v == "true")
+            .unwrap_or(true);
+        let require_numbers: bool = self
+            .get_setting::<String>("auth.password_require_numbers")
+            .await?
+            .map(|v| v == "true")
+            .unwrap_or(true);
+        let require_special: bool = self
+            .get_setting::<String>("auth.password_require_special")
+            .await?
+            .map(|v| v == "true")
+            .unwrap_or(true);
+
+        // Validações
+        if password.len() < min_length {
+            return Err(crate::error::AppError::Validation(format!(
+                "Senha deve ter no mínimo {} caracteres",
+                min_length
+            )));
+        }
+
+        if require_uppercase && !password.chars().any(|c| c.is_uppercase()) {
+            return Err(crate::error::AppError::Validation(
+                "Senha deve conter pelo menos uma letra maiúscula".to_string(),
+            ));
+        }
+
+        if require_lowercase && !password.chars().any(|c| c.is_lowercase()) {
+            return Err(crate::error::AppError::Validation(
+                "Senha deve conter pelo menos uma letra minúscula".to_string(),
+            ));
+        }
+
+        if require_numbers && !password.chars().any(|c| c.is_numeric()) {
+            return Err(crate::error::AppError::Validation(
+                "Senha deve conter pelo menos um número".to_string(),
+            ));
+        }
+
+        if require_special && !password.chars().any(|c| !c.is_alphanumeric()) {
+            return Err(crate::error::AppError::Validation(
+                "Senha deve conter pelo menos um caractere especial".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Solicita reset de senha (gera token)
+    pub async fn request_password_reset(&self, email: &str) -> AppResult<String> {
+        use crate::utils::crypto::generate_reset_token;
+
+        // Buscar funcionário por email
+        let query = format!(
+            "SELECT {} FROM employees WHERE email = ? AND deleted_at IS NULL",
+            Self::COLS
+        );
+        let employee = sqlx::query_as::<_, Employee>(&query)
+            .bind(email)
+            .fetch_optional(self.pool)
+            .await?
+            .ok_or(crate::error::AppError::NotFound(
+                "Funcionário com este email não encontrado".to_string(),
+            ))?;
+
+        // Gerar token único
+        let token = generate_reset_token();
+
+        // Definir expiração (1 hora padrão)
+        let expiry_hours: i64 = self
+            .get_setting("auth.reset_token_expiry_hours")
+            .await?
+            .unwrap_or(1);
+        let expires_at = chrono::Utc::now() + chrono::Duration::hours(expiry_hours);
+
+        // Salvar token no banco
+        let now = chrono::Utc::now();
+        sqlx::query(
+            r#"
+            UPDATE employees 
+            SET password_reset_token = ?,
+                password_reset_expires_at = ?,
+                updated_at = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(&token)
+        .bind(expires_at.to_rfc3339())
+        .bind(now.to_rfc3339())
+        .bind(&employee.id)
+        .execute(self.pool)
+        .await?;
+
+        tracing::info!(
+            "Token de reset gerado para: {} (expira: {})",
+            employee.name,
+            expires_at
+        );
+
+        // TODO: Enviar email com token (implementar depois)
+        // TODO: Registrar em audit_log
+
+        Ok(token)
+    }
+
+    /// Confirma reset de senha com token
+    pub async fn reset_password_with_token(
+        &self,
+        token: &str,
+        new_password: &str,
+    ) -> AppResult<()> {
+        use crate::utils::crypto::hash_password;
+
+        // Buscar funcionário por token
+        let query = format!(
+            "SELECT {} FROM employees WHERE password_reset_token = ? AND deleted_at IS NULL",
+            Self::COLS
+        );
+        let employee = sqlx::query_as::<_, Employee>(&query)
+            .bind(token)
+            .fetch_optional(self.pool)
+            .await?
+            .ok_or(crate::error::AppError::BadRequest(
+                "Token de reset inválido ou expirado".to_string(),
+            ))?;
+
+        // Verificar expiração do token
+        if let Some(expires_at_str) = employee.password_reset_expires_at {
+            if let Ok(expires_at) = chrono::DateTime::parse_from_rfc3339(&expires_at_str) {
+                let now = chrono::Utc::now();
+                if expires_at.with_timezone(&chrono::Utc) < now {
+                    return Err(crate::error::AppError::BadRequest(
+                        "Token de reset expirado".to_string(),
+                    ));
+                }
+            }
+        }
+
+        // Validar nova senha
+        self.validate_password_policy(new_password).await?;
+
+        // Gerar hash
+        let password_hash = hash_password(new_password)?;
+
+        // Atualizar senha e limpar token
+        let now = chrono::Utc::now();
+        sqlx::query(
+            r#"
+            UPDATE employees 
+            SET password = ?,
+                password_changed_at = ?,
+                password_reset_token = NULL,
+                password_reset_expires_at = NULL,
+                failed_login_attempts = 0,
+                locked_until = NULL,
+                updated_at = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(password_hash)
+        .bind(now.to_rfc3339())
+        .bind(now.to_rfc3339())
+        .bind(&employee.id)
+        .execute(self.pool)
+        .await?;
+
+        tracing::info!("Senha resetada via token para: {}", employee.name);
+
+        // TODO: Registrar em audit_log
 
         Ok(())
     }

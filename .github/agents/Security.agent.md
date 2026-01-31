@@ -1,7 +1,53 @@
 ---
 name: Security
 description: Security audit, LGPD/GDPR compliance, vulnerability detection
-tools: [vscode, read, edit, search, filesystem/*, github/*, memory/*, agent, todo]
+tools:
+  [
+    'vscode',
+    'execute',
+    'read',
+    'edit',
+    'search',
+    'web',
+    'github/*',
+    'agent',
+    'git/*',
+    'git-leadbot/*',
+    'git-license/*',
+    'git-mobile/*',
+    'fetch/*',
+    'sequential-thinking/*',
+    'filesystem/*',
+    'context7/*',
+    'memory/*',
+    'puppeteer/*',
+    'postgres/*',
+    'prisma/*',
+    'github/*',
+    'cweijan.vscode-database-client2/dbclient-getDatabases',
+    'cweijan.vscode-database-client2/dbclient-getTables',
+    'cweijan.vscode-database-client2/dbclient-executeQuery',
+    'github.vscode-pull-request-github/copilotCodingAgent',
+    'github.vscode-pull-request-github/issue_fetch',
+    'github.vscode-pull-request-github/suggest-fix',
+    'github.vscode-pull-request-github/searchSyntax',
+    'github.vscode-pull-request-github/doSearch',
+    'github.vscode-pull-request-github/renderIssues',
+    'github.vscode-pull-request-github/activePullRequest',
+    'github.vscode-pull-request-github/openPullRequest',
+    'ms-azuretools.vscode-containers/containerToolsConfig',
+    'ms-python.python/getPythonEnvironmentInfo',
+    'ms-python.python/getPythonExecutableCommand',
+    'ms-python.python/installPythonPackage',
+    'ms-python.python/configurePythonEnvironment',
+    'prisma.prisma/prisma-migrate-status',
+    'prisma.prisma/prisma-migrate-dev',
+    'prisma.prisma/prisma-migrate-reset',
+    'prisma.prisma/prisma-studio',
+    'prisma.prisma/prisma-platform-login',
+    'prisma.prisma/prisma-postgres-create-database',
+    'todo',
+  ]
 model: Claude Sonnet 4
 applyTo: '**/auth/**,**/security/**,**/*.rs,**/*.ts'
 handoffs:

@@ -237,13 +237,31 @@ model Supplier {
 
 /// Funcionários do estabelecimento
 model Employee {
-  id       String       @id @default(cuid())
-  name     String
-  cpf      String?      @unique
-  phone    String?
-  email    String?
-  pin      String // PIN de 4-6 dígitos (hash)
-  password String? // Senha para acesso admin (hash)
+  id    String  @id @default(cuid())
+  name  String
+  cpf   String? @unique
+  phone String?
+  email String?
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // AUTENTICAÇÃO DUAL (PIN + Username/Password)
+  // ═══════════════════════════════════════════════════════════════════════
+  pin String // PIN de 4-6 dígitos (hash HMAC-SHA256) - CASHIER/STOCKER
+
+  // Campos de autenticação por senha (ADMIN/MANAGER)
+  username               String?   @unique // Username único para login
+  password               String? // Senha (hash Argon2id)
+  passwordChangedAt      DateTime? // Data da última troca de senha
+  passwordResetToken     String?   @unique // Token de reset de senha (UUID)
+  passwordResetExpiresAt DateTime? // Expiração do token de reset
+
+  // Segurança e lockout
+  failedLoginAttempts Int       @default(0) // Contador de tentativas falhas
+  lockedUntil         DateTime? // Bloqueio temporário até esta data
+  lastLoginAt         DateTime? // Último login bem-sucedido
+  lastLoginIp         String? // IP do último login
+
+  // Flags
   role     EmployeeRole @default(CASHIER)
   isActive Boolean      @default(true)
 
@@ -278,6 +296,9 @@ model Employee {
 
   @@index([cpf])
   @@index([pin])
+  @@index([username])
+  @@index([email])
+  @@index([passwordResetToken])
   @@index([role])
   @@index([isActive])
   @@index([deletedAt])
