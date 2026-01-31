@@ -43,9 +43,7 @@ const ARGON2_OUTPUT_LEN: usize = 32;
 pub fn hash_password(password: &str) -> AppResult<String> {
     // Validar entrada
     if password.is_empty() {
-        return Err(AppError::ValidationError(
-            "Senha não pode ser vazia".to_string(),
-        ));
+        return Err(AppError::Validation("Senha não pode ser vazia".to_string()));
     }
 
     // Gerar salt aleatório
@@ -112,8 +110,8 @@ pub fn verify_password(password: &str, hash: &str) -> AppResult<bool> {
 /// ```
 pub fn generate_reset_token() -> String {
     use rand::Rng;
-    let mut rng = rand::thread_rng();
-    let bytes: [u8; 32] = rng.gen();
+    let mut rng = rand::rng();
+    let bytes: [u8; 32] = rng.random();
     hex::encode(bytes)
 }
 
@@ -331,7 +329,7 @@ mod tests {
     fn test_hash_password_success() {
         let password = "TestPassword123!";
         let hash = hash_password(password).expect("Hashing should succeed");
-        
+
         assert!(hash.starts_with("$argon2id$"));
         assert_ne!(password, hash);
     }
@@ -340,7 +338,7 @@ mod tests {
     fn test_verify_password_success() {
         let password = "TestPassword123!";
         let hash = hash_password(password).expect("Hashing should succeed");
-        
+
         // Correct password
         let is_valid = verify_password(password, &hash).expect("Verification should run");
         assert!(is_valid);
@@ -350,7 +348,7 @@ mod tests {
     fn test_verify_password_failure() {
         let password = "TestPassword123!";
         let hash = hash_password(password).expect("Hashing should succeed");
-        
+
         // Wrong password
         let is_valid = verify_password("WrongPassword", &hash).expect("Verification should run");
         assert!(!is_valid);

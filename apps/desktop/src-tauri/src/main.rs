@@ -63,7 +63,6 @@ async fn main() {
             commands::update_employee,
             commands::deactivate_employee,
             commands::reactivate_employee,
-            commands::employees::logout,
             commands::employees::get_current_user,
             commands::get_inactive_employees,
             // Auth New System
@@ -782,9 +781,7 @@ async fn main() {
             commands::deactivate_employee,
             commands::reactivate_employee,
             commands::get_inactive_employees,
-            commands::employees::logout,
             commands::employees::get_current_user,
-            commands::get_inactive_employees,
             // Auth New System
             commands::auth::login,
             commands::auth::login_with_pin,

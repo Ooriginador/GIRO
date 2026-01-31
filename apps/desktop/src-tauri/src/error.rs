@@ -152,6 +152,7 @@ impl Serialize for AppError {
         let code = match self {
             Self::Database(_) => "DATABASE_ERROR",
             Self::NotFound { .. } => "NOT_FOUND",
+            Self::NotFoundSimple(_) => "NOT_FOUND",
             Self::Duplicate(_) => "DUPLICATE",
             Self::Constraint(_) => "CONSTRAINT_VIOLATION",
             Self::Validation(_) => "VALIDATION_ERROR",
@@ -164,6 +165,7 @@ impl Serialize for AppError {
             Self::SaleCannotBeCanceled(_) => "SALE_CANNOT_BE_CANCELED",
             Self::Unauthorized(_) => "UNAUTHORIZED",
             Self::InvalidCredentials => "INVALID_CREDENTIALS",
+            Self::AccountLocked { .. } => "ACCOUNT_LOCKED",
             Self::ExpiredProduct => "EXPIRED_PRODUCT",
             Self::DiscountExceedsLimit { .. } => "DISCOUNT_EXCEEDS_LIMIT",
             Self::Hardware(_) => "HARDWARE_ERROR",

@@ -34,13 +34,15 @@ BEGIN
             'pin', NEW.pin,
             'password', NEW.password,
             'username', NEW.username,
-            'password_changed_at', NEW.password_changed_at,
+            'passwordChangedAt', NEW.password_changed_at,
+            'failedLoginAttempts', NEW.failed_login_attempts,
+            'lockedUntil', NEW.locked_until,
             'role', NEW.role,
-            'commission_rate', NEW.commission_rate,
-            'is_active', NEW.is_active,
-            'created_at', NEW.created_at,
-            'updated_at', NEW.updated_at,
-            'sync_version', 1
+            'commissionRate', NEW.commission_rate,
+            'isActive', NEW.is_active,
+            'createdAt', NEW.created_at,
+            'updatedAt', NEW.updated_at,
+            'syncVersion', 1
         ),
         1
     );
@@ -68,13 +70,15 @@ BEGIN
             'pin', NEW.pin,
             'password', NEW.password,
             'username', NEW.username,
-            'password_changed_at', NEW.password_changed_at,
+            'passwordChangedAt', NEW.password_changed_at,
+            'failedLoginAttempts', NEW.failed_login_attempts,
+            'lockedUntil', NEW.locked_until,
             'role', NEW.role,
-            'commission_rate', NEW.commission_rate,
-            'is_active', NEW.is_active,
-            'created_at', NEW.created_at,
-            'updated_at', NEW.updated_at,
-            'sync_version', OLD.sync_version + 1
+            'commissionRate', NEW.commission_rate,
+            'isActive', NEW.is_active,
+            'createdAt', NEW.created_at,
+            'updatedAt', NEW.updated_at,
+            'syncVersion', OLD.sync_version + 1
         ),
         OLD.sync_version + 1
     );
@@ -101,13 +105,15 @@ BEGIN
             'pin', NEW.pin,
             'password', NEW.password,
             'username', NEW.username,
-            'password_changed_at', NEW.password_changed_at,
+            'passwordChangedAt', NEW.password_changed_at,
+            'failedLoginAttempts', NEW.failed_login_attempts,
+            'lockedUntil', NEW.locked_until,
             'role', NEW.role,
-            'commission_rate', NEW.commission_rate,
-            'is_active', 0,
-            'created_at', NEW.created_at,
-            'updated_at', NEW.updated_at,
-            'sync_version', OLD.sync_version + 1
+            'commissionRate', NEW.commission_rate,
+            'isActive', 0,
+            'createdAt', NEW.created_at,
+            'updatedAt', NEW.updated_at,
+            'syncVersion', OLD.sync_version + 1
         ),
         OLD.sync_version + 1
     );
