@@ -404,8 +404,6 @@ pub fn auth_commands() -> Vec<&'static str> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     // TODO: Testes de integração
     // Requerem setup de DB em memória
 }

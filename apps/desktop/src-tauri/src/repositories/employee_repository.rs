@@ -926,25 +926,23 @@ impl<'a> EmployeeRepository<'a> {
             );
 
             // Registrar bloqueio em audit_log
-            if let Ok(employee) = self.find_by_id(employee_id).await {
-                if let Some(emp) = employee {
-                    let audit_repo = AuditLogRepository::new(self.pool);
-                    let _ = audit_repo
-                        .create(CreateAuditLog {
-                            action: AuditAction::AccountLocked,
-                            employee_id: emp.id.clone(),
-                            employee_name: emp.name.clone(),
-                            target_type: None,
-                            target_id: None,
-                            details: Some(format!(
-                                "Conta bloqueada até {} após {} tentativas falhas",
-                                locked_until.to_rfc3339(),
-                                attempts
-                            )),
-                            ip_address: None,
-                        })
-                        .await;
-                }
+            if let Ok(Some(emp)) = self.find_by_id(employee_id).await {
+                let audit_repo = AuditLogRepository::new(self.pool);
+                let _ = audit_repo
+                    .create(CreateAuditLog {
+                        action: AuditAction::AccountLocked,
+                        employee_id: emp.id.clone(),
+                        employee_name: emp.name.clone(),
+                        target_type: None,
+                        target_id: None,
+                        details: Some(format!(
+                            "Conta bloqueada até {} após {} tentativas falhas",
+                            locked_until.to_rfc3339(),
+                            attempts
+                        )),
+                        ip_address: None,
+                    })
+                    .await;
             }
         }
 
