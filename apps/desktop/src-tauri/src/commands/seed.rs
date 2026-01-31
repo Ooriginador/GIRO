@@ -256,6 +256,7 @@ pub async fn seed_database(employee_id: String, state: State<'_, AppState>) -> A
             cpf: None,
             phone: None,
             email: Some("admin@giro.local".to_string()),
+            username: Some("admin".to_string()),
             pin: seed_pin,
             password: seed_password,
             role: Some(EmployeeRole::Admin),

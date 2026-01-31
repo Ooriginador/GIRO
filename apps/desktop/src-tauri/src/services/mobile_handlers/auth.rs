@@ -26,91 +26,96 @@ impl AuthHandler {
         }
     }
 
-    /// Processa login por PIN
+    /// Processa login (PIN ou Senha)
     pub async fn login(&self, id: u64, payload: AuthLoginPayload) -> MobileResponse {
-        // Validar PIN
-        if payload.pin.len() < 4 || payload.pin.len() > 6 {
-            return MobileResponse::error(
-                id,
-                MobileErrorCode::ValidationError,
-                "PIN deve ter entre 4 e 6 dígitos",
-            );
-        }
+        use crate::models::auth::LoginCredentials;
 
-        // Buscar funcionário pelo PIN
-        let repo = EmployeeRepository::new(&self.pool);
+        // Construir credenciais
+        let credentials = LoginCredentials {
+            username: payload.username,
+            password: payload.password,
+            pin: payload.pin,
+            cpf: None,
+        };
 
-        let employee = match repo.authenticate_pin(&payload.pin).await {
-            Ok(Some(emp)) => emp,
-            Ok(None) => {
+        // Validação básica se for PIN
+        if let Some(ref pin) = credentials.pin {
+            if pin.len() < 4 || pin.len() > 6 {
                 return MobileResponse::error(
                     id,
-                    MobileErrorCode::AuthInvalid,
-                    "PIN inválido ou usuário não encontrado",
+                    MobileErrorCode::ValidationError,
+                    "PIN deve ter entre 4 e 6 dígitos",
                 );
+            }
+        }
+
+        let repo = EmployeeRepository::new(&self.pool);
+
+        match repo.authenticate(credentials).await {
+            Ok(auth_result) => {
+                let employee = auth_result.employee;
+
+                // Verificar se funcionário está ativo (garantia adicional, embora o repo verifique)
+                // Note: SafeEmployee não tem is_active visível sempre, mas authenticate só retorna ativos.
+
+                // Criar sessão
+                match self
+                    .session_manager
+                    .create_session(
+                        employee.id.clone(),
+                        employee.name.clone(),
+                        employee.role.clone(),
+                        payload.device_id,
+                        payload.device_name,
+                    )
+                    .await
+                {
+                    Ok((token, expires_at)) => {
+                        let response = AuthLoginResponse {
+                            token,
+                            expires_at,
+                            employee: EmployeeInfo {
+                                id: employee.id,
+                                name: employee.name,
+                                role: map_role_to_mobile(&employee.role),
+                            },
+                        };
+
+                        tracing::info!(
+                            "Login mobile: {} ({})",
+                            response.employee.name,
+                            response.employee.role
+                        );
+
+                        MobileResponse::success(id, response)
+                    }
+                    Err(e) => {
+                        tracing::error!("Erro ao criar sessão: {}", e);
+                        MobileResponse::error(
+                            id,
+                            MobileErrorCode::InternalError,
+                            "Erro ao criar sessão",
+                        )
+                    }
+                }
+            }
+            Err(crate::error::AppError::InvalidCredentials) => MobileResponse::error(
+                id,
+                MobileErrorCode::AuthInvalid,
+                "Credenciais inválidas ou usuário não encontrado",
+            ),
+            Err(crate::error::AppError::BadRequest(msg)) => {
+                MobileResponse::error(id, MobileErrorCode::ValidationError, &msg)
             }
             Err(e) => {
                 tracing::error!("Erro ao autenticar: {}", e);
-                return MobileResponse::error(
+                MobileResponse::error(
                     id,
                     MobileErrorCode::InternalError,
                     "Erro ao verificar credenciais",
-                );
+                )
             }
-        };
-
-        // Verificar se funcionário está ativo
-        if !employee.is_active {
-            return MobileResponse::error(
-                id,
-                MobileErrorCode::PermissionDenied,
-                "Funcionário desativado",
-            );
         }
-
-        // Criar sessão
-        let (token, expires_at) = match self
-            .session_manager
-            .create_session(
-                employee.id.clone(),
-                employee.name.clone(),
-                employee.role.clone(),
-                payload.device_id,
-                payload.device_name,
-            )
-            .await
-        {
-            Ok((token, expires)) => (token, expires),
-            Err(e) => {
-                tracing::error!("Erro ao criar sessão: {}", e);
-                return MobileResponse::error(
-                    id,
-                    MobileErrorCode::InternalError,
-                    "Erro ao criar sessão",
-                );
-            }
-        };
-
-        // Mapear role para formato do mobile
-        let role_mapped = map_role_to_mobile(&employee.role);
-
-        let response = AuthLoginResponse {
-            token,
-            expires_at,
-            employee: EmployeeInfo {
-                id: employee.id,
-                name: employee.name,
-                role: role_mapped,
-            },
-        };
-
-        tracing::info!(
-            "Login mobile: {} ({})",
-            response.employee.name,
-            response.employee.role
-        );
-
-        MobileResponse::success(id, response)
     }
 
     /// Processa logout

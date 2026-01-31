@@ -3,8 +3,8 @@
  */
 
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
 import React from 'react';
+import { vi } from 'vitest';
 
 // Mock do Tauri Plugin FS - Must be before @/lib/tauri
 vi.mock('@tauri-apps/plugin-fs', () => ({
@@ -18,7 +18,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 
 // Mock do Tauri API
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn(),
+  invoke: vi.fn(() => Promise.resolve(undefined)),
 }));
 
 vi.mock('@tauri-apps/api/event', () => ({

@@ -66,6 +66,23 @@ async fn main() {
             commands::employees::logout,
             commands::employees::get_current_user,
             commands::get_inactive_employees,
+            // Auth New System
+            commands::auth::login,
+            commands::auth::login_with_pin,
+            commands::auth::login_with_password,
+            commands::auth::login_with_cpf,
+            commands::auth::logout,
+            commands::auth::change_password,
+            commands::auth::request_password_reset,
+            commands::auth::reset_password_with_token,
+            commands::auth::validate_password,
+            commands::auth::get_password_policy,
+            commands::auth::verify_current_password,
+            commands::auth::is_account_locked,
+            commands::auth::get_account_status,
+            commands::auth::unlock_account,
+            commands::auth::requires_password_change,
+            commands::auth::list_admin_employees,
             // Sales
             commands::get_sales,
             commands::get_sales_today,
@@ -702,7 +719,14 @@ async fn main() {
                     _ => tracing::info!("Auto-start: Modo STANDALONE (Nenhum serviço de rede iniciado)"),
                 }
 
-                // 3. Verificar Garantias de OS expirando
+                // 4. Migração de Dados (Usernames para Admins)
+                // Garante que todos os admins tenham username para login com senha
+                let emp_repo = giro_lib::repositories::EmployeeRepository::new(state.pool());
+                if let Err(e) = emp_repo.migrate_ensure_usernames().await {
+                     tracing::error!("Erro na migração de usernames: {:?}", e);
+                }
+
+                // 5. Verificar Garantias de OS expirando
                 let alert_repo = giro_lib::repositories::AlertRepository::new(state.pool());
                 match alert_repo.check_os_warranties().await {
                     Ok(count) if count > 0 => {
@@ -760,6 +784,24 @@ async fn main() {
             commands::get_inactive_employees,
             commands::employees::logout,
             commands::employees::get_current_user,
+            commands::get_inactive_employees,
+            // Auth New System
+            commands::auth::login,
+            commands::auth::login_with_pin,
+            commands::auth::login_with_password,
+            commands::auth::login_with_cpf,
+            commands::auth::logout,
+            commands::auth::change_password,
+            commands::auth::request_password_reset,
+            commands::auth::reset_password_with_token,
+            commands::auth::validate_password,
+            commands::auth::get_password_policy,
+            commands::auth::verify_current_password,
+            commands::auth::is_account_locked,
+            commands::auth::get_account_status,
+            commands::auth::unlock_account,
+            commands::auth::requires_password_change,
+            commands::auth::list_admin_employees,
             // Vendas
             commands::get_sales,
             commands::get_sales_today,

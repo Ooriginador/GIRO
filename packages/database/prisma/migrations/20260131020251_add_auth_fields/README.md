@@ -18,14 +18,14 @@ Esta migration adiciona suporte para autenticação dual no GIRO Desktop:
 ```prisma
 model Employee {
   // ... campos existentes
-  
+
   // Autenticação por senha
   username               String?   @unique
   password               String?
   passwordChangedAt      DateTime?
   passwordResetToken     String?   @unique
   passwordResetExpiresAt DateTime?
-  
+
   // Segurança & Lockout
   failedLoginAttempts    Int       @default(0)
   lockedUntil            DateTime?
@@ -46,6 +46,7 @@ npx prisma migrate deploy
 ```
 
 Isto aplica a migration `20260131020251_add_auth_fields` que:
+
 - Adiciona novos campos à tabela Employee
 - Cria índices únicos para username e passwordResetToken
 - Cria índices de busca para email, username, passwordResetToken
@@ -57,6 +58,7 @@ sqlite3 dev.db < prisma/migrations/20260131020251_add_auth_fields/security_setti
 ```
 
 Isto insere:
+
 - 15 configurações de políticas de senha em `Setting`
 - Índices adicionais para performance
 
@@ -96,23 +98,23 @@ sqlite3 dev.db "PRAGMA table_info(Employee);"
 
 Inseridas automaticamente em `Setting`:
 
-| Chave                                  | Valor   | Descrição                                    |
-| -------------------------------------- | ------- | -------------------------------------------- |
-| `auth.password_min_length`             | `8`     | Tamanho mínimo da senha                      |
-| `auth.password_max_length`             | `128`   | Tamanho máximo da senha                      |
-| `auth.password_require_uppercase`      | `true`  | Exigir letra maiúscula                       |
-| `auth.password_require_lowercase`      | `true`  | Exigir letra minúscula                       |
-| `auth.password_require_number`         | `true`  | Exigir número                                |
-| `auth.password_require_special`        | `true`  | Exigir caractere especial                    |
-| `auth.password_expiry_days`            | `90`    | Dias até expiração (0 = nunca)              |
-| `auth.password_expiry_warning_days`    | `7`     | Avisar X dias antes                          |
-| `auth.password_history_count`          | `5`     | Senhas bloqueadas para reuso                 |
-| `auth.max_failed_attempts`             | `5`     | Tentativas antes de bloquear                 |
-| `auth.lockout_duration_minutes`        | `15`    | Duração do bloqueio                          |
-| `auth.password_reset_token_validity_minutes` | `60`    | Validade do token de reset                   |
-| `auth.allow_password_recovery`         | `true`  | Permitir recuperação via email               |
-| `auth.admin_password_expiry_days`      | `60`    | Expiração para ADMIN (mais restritivo)       |
-| `auth.manager_password_expiry_days`    | `90`    | Expiração para MANAGER                       |
+| Chave                                        | Valor  | Descrição                              |
+| -------------------------------------------- | ------ | -------------------------------------- |
+| `auth.password_min_length`                   | `8`    | Tamanho mínimo da senha                |
+| `auth.password_max_length`                   | `128`  | Tamanho máximo da senha                |
+| `auth.password_require_uppercase`            | `true` | Exigir letra maiúscula                 |
+| `auth.password_require_lowercase`            | `true` | Exigir letra minúscula                 |
+| `auth.password_require_number`               | `true` | Exigir número                          |
+| `auth.password_require_special`              | `true` | Exigir caractere especial              |
+| `auth.password_expiry_days`                  | `90`   | Dias até expiração (0 = nunca)         |
+| `auth.password_expiry_warning_days`          | `7`    | Avisar X dias antes                    |
+| `auth.password_history_count`                | `5`    | Senhas bloqueadas para reuso           |
+| `auth.max_failed_attempts`                   | `5`    | Tentativas antes de bloquear           |
+| `auth.lockout_duration_minutes`              | `15`   | Duração do bloqueio                    |
+| `auth.password_reset_token_validity_minutes` | `60`   | Validade do token de reset             |
+| `auth.allow_password_recovery`               | `true` | Permitir recuperação via email         |
+| `auth.admin_password_expiry_days`            | `60`   | Expiração para ADMIN (mais restritivo) |
+| `auth.manager_password_expiry_days`          | `90`   | Expiração para MANAGER                 |
 
 ---
 
@@ -122,7 +124,7 @@ Inseridas automaticamente em `Setting`:
 
 ```sql
 -- Verificar campos adicionados
-SELECT 
+SELECT
   username,
   password,
   passwordChangedAt,
@@ -139,7 +141,7 @@ WHERE category = 'security'
 ORDER BY key;
 
 -- Verificar índices
-SELECT 
+SELECT
   name,
   sql
 FROM sqlite_master
@@ -151,6 +153,7 @@ ORDER BY name;
 ### Testes Manuais
 
 1. **Criar funcionário com username**:
+
 ```typescript
 await prisma.employee.create({
   data: {
@@ -159,12 +162,13 @@ await prisma.employee.create({
     username: 'admin_teste',
     password: '$argon2id$v=19$m=65536,t=3,p=4$...',
     role: 'ADMIN',
-    email: 'admin@teste.com'
-  }
+    email: 'admin@teste.com',
+  },
 });
 ```
 
 2. **Testar unicidade de username**:
+
 ```typescript
 // Deve falhar (duplicate key)
 await prisma.employee.create({
@@ -172,19 +176,20 @@ await prisma.employee.create({
     name: 'Outro Admin',
     pin: '5678',
     username: 'admin_teste', // duplicado!
-    role: 'ADMIN'
-  }
+    role: 'ADMIN',
+  },
 });
 ```
 
 3. **Testar lockout**:
+
 ```typescript
 await prisma.employee.update({
   where: { id: 'employee_id' },
   data: {
     failedLoginAttempts: 5,
-    lockedUntil: new Date(Date.now() + 15 * 60 * 1000) // +15min
-  }
+    lockedUntil: new Date(Date.now() + 15 * 60 * 1000), // +15min
+  },
 });
 ```
 

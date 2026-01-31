@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use super::{EmployeeRole, SafeEmployee};
+use super::SafeEmployee;
 
 // ════════════════════════════════════════════════════════════════════════════
 // CREDENCIAIS & AUTENTICAÇÃO

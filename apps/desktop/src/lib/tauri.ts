@@ -15,12 +15,21 @@ import type {
   CashSessionSummary,
   Category,
   CloseCashSessionInput,
+  CreateHeldSaleInput,
   CreateProductInput,
   CreateSaleInput,
+  DailyRevenue,
+  DashboardStats,
   EmissionResponse,
   EmitNfceRequest,
   Employee,
+  EmployeeRanking,
+  EmployeeRole,
+  EnterpriseKPIs,
+  FinancialReport,
+  HeldSale,
   LicenseInfo,
+  MonthlySalesSummary,
   OfflineNote,
   OpenCashSessionInput,
   PaginatedResult,
@@ -28,53 +37,44 @@ import type {
   ProductFilter,
   ProductLot,
   Sale,
-  EnterpriseKPIs,
   SaleFilter,
+  SalesReport,
+  ServiceOrderStats,
   Setting,
   StatusResponse,
   StockMovement,
-  Supplier,
-  HeldSale,
-  CreateHeldSaleInput,
-  TauriResponse,
-  UpdateProductInput,
-  UpdateLicenseAdminRequest,
-  EmployeeRole,
-  FinancialReport,
-  EmployeeRanking,
   StockReport,
-  TopProduct,
-  MonthlySalesSummary,
-  DashboardStats,
-  ServiceOrderStats,
+  Supplier,
+  TauriResponse,
   TopItem,
-  SalesReport,
-  DailyRevenue,
+  TopProduct,
+  UpdateLicenseAdminRequest,
+  UpdateProductInput,
 } from '@/types';
 import type {
   Contract,
-  StockTransfer,
-  StockLocation,
   ContractDashboardStats,
-  WorkFront,
+  MaterialRequest as EnterpriseMaterialRequest,
+  StockLocation,
+  StockTransfer,
   TransferStatus,
+  WorkFront,
 } from '@/types/enterprise';
-import type { MaterialRequest as EnterpriseMaterialRequest } from '@/types/enterprise';
 import { invoke as tauriCoreInvoke } from '@tauri-apps/api/core';
 import { readFile } from '@tauri-apps/plugin-fs';
 
 export type { EmitNfceRequest, NfceItem } from '@/types/nfce';
 export type {
-  MonthlySalesSummary,
-  TopProduct,
-  FinancialReport,
-  EmployeeRanking,
-  StockReport,
-  DashboardStats,
-  ServiceOrderStats,
-  TopItem,
-  SalesReport,
   DailyRevenue,
+  DashboardStats,
+  EmployeeRanking,
+  FinancialReport,
+  MonthlySalesSummary,
+  SalesReport,
+  ServiceOrderStats,
+  StockReport,
+  TopItem,
+  TopProduct,
 };
 
 // Re-export Enterprise types
@@ -189,10 +189,30 @@ const webMockInvoke = async <T>(command: string, args?: Record<string, unknown>)
   const cmd = normalize(command);
 
   switch (cmd) {
-    case 'authenticate_employee': {
+    case 'login_with_pin': {
       const pin = (args?.pin as string | undefined) ?? '';
       const employee = db.employees.find((e) => e.pin === pin && e.isActive);
-      return (employee ?? null) as T;
+      // Retorna formato AuthResult
+      return {
+        employee: employee ?? null,
+        token: 'mock-token',
+        expiresAt: null,
+        authMethod: 'PIN',
+        requiresPasswordChange: false,
+      } as unknown as T;
+    }
+    case 'login_with_password': {
+      const username = args?.username as string;
+      const password = args?.password as string;
+      // Mock simples
+      const employee = db.employees.find((e) => e.role === 'ADMIN'); // Pega primeiro admin
+      return {
+        employee: employee,
+        token: 'mock-token',
+        expiresAt: null,
+        authMethod: 'PASSWORD',
+        requiresPasswordChange: false,
+      } as unknown as T;
     }
     case 'has_admin': {
       const exists = db.employees.some((e) => e.role === 'ADMIN' && e.isActive);
@@ -1574,9 +1594,7 @@ export async function getEmployeeById(id: string): Promise<Employee | null> {
   return tauriInvoke<Employee | null>('get_employee_by_id', { id });
 }
 
-export async function authenticateEmployee(pin: string): Promise<Employee | null> {
-  return tauriInvoke<Employee | null>('authenticate_employee', { pin });
-}
+// REMOVED: authenticateEmployee (use auth-api instead)
 
 export async function hasAdmin(): Promise<boolean> {
   return tauriInvoke<boolean>('has_admin');

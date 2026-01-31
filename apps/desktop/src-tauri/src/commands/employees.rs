@@ -205,6 +205,7 @@ pub async fn create_first_admin(
         cpf: None,
         phone: None,
         email: input.email,
+        username: Some("admin".to_string()),
         pin: input.pin,
         password: None,
         role: Some(EmployeeRole::Admin),
@@ -366,12 +367,7 @@ pub async fn reactivate_employee(
     Ok(SafeEmployee::from(emp))
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn logout(state: State<'_, AppState>) -> AppResult<()> {
-    state.session.clear();
-    Ok(())
-}
+// REMOVED: logout (moved to commands::auth::logout)
 
 #[tauri::command]
 #[specta::specta]

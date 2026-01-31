@@ -4,8 +4,8 @@
 
 use crate::error::AppResult;
 use crate::models::auth::{
-    AccountStatus, AuthResult, ChangePasswordRequest, LoginCredentials, PasswordPolicy,
-    PasswordResetConfirm, PasswordResetRequest, PasswordResetResponse, PasswordStrength,
+    AuthResult, ChangePasswordRequest, LoginCredentials, PasswordPolicy, PasswordResetConfirm,
+    PasswordResetRequest, PasswordResetResponse, PasswordStrength,
 };
 use crate::models::SafeEmployee;
 use crate::repositories::EmployeeRepository;
@@ -37,10 +37,7 @@ pub async fn login(
 /// ```
 #[tauri::command]
 #[specta::specta]
-pub async fn login_with_pin(
-    pin: String,
-    state: State<'_, AppState>,
-) -> AppResult<AuthResult> {
+pub async fn login_with_pin(pin: String, state: State<'_, AppState>) -> AppResult<AuthResult> {
     let credentials = LoginCredentials {
         pin: Some(pin),
         username: None,
@@ -207,9 +204,7 @@ pub async fn validate_password(
 pub async fn get_password_policy(state: State<'_, AppState>) -> AppResult<PasswordPolicy> {
     let repo = EmployeeRepository::new(state.pool());
     // Usa método privado através de validação
-    repo.validate_password_policy("Dummy1")
-        .await
-        .ok(); // Ignora erro, só queremos carregar policy
+    repo.validate_password_policy("Dummy1").await.ok(); // Ignora erro, só queremos carregar policy
 
     // Por ora, retornar padrão (TODO: expor método público)
     Ok(PasswordPolicy::default())
@@ -225,12 +220,13 @@ pub async fn verify_current_password(
 ) -> AppResult<bool> {
     let repo = EmployeeRepository::new(state.pool());
 
-    let employee = repo
-        .find_by_id(&employee_id)
-        .await?
-        .ok_or(crate::error::AppError::NotFound(
-            "Funcionário não encontrado".to_string(),
-        ))?;
+    let employee =
+        repo.find_by_id(&employee_id)
+            .await?
+            .ok_or(crate::error::AppError::NotFound {
+                entity: "Employee".to_string(),
+                id: employee_id.clone(),
+            })?;
 
     if let Some(hash) = employee.password {
         verify_password(&password, &hash)
@@ -255,10 +251,7 @@ pub async fn verify_current_password(
 /// ```
 #[tauri::command]
 #[specta::specta]
-pub async fn is_account_locked(
-    employee_id: String,
-    state: State<'_, AppState>,
-) -> AppResult<bool> {
+pub async fn is_account_locked(employee_id: String, state: State<'_, AppState>) -> AppResult<bool> {
     let repo = EmployeeRepository::new(state.pool());
     repo.is_account_locked(&employee_id).await
 }
@@ -269,7 +262,7 @@ pub async fn is_account_locked(
 pub async fn get_account_status(
     employee_id: String,
     state: State<'_, AppState>,
-) -> AppResult<AccountStatus> {
+) -> AppResult<crate::models::AuthResult> {
     let repo = EmployeeRepository::new(state.pool());
     repo.get_account_status(&employee_id).await
 }
@@ -284,11 +277,19 @@ pub async fn unlock_account(
 ) -> AppResult<()> {
     // Verificar se quem está executando é admin
     let repo = EmployeeRepository::new(state.pool());
-    let admin = repo.find_by_id(&admin_id).await?.ok_or(
-        crate::error::AppError::Unauthorized("Admin não encontrado".to_string()),
-    )?;
+    let admin = repo
+        .find_by_id(&admin_id)
+        .await?
+        .ok_or(crate::error::AppError::Unauthorized(
+            "Admin não encontrado".to_string(),
+        ))?;
 
-    if admin.role != crate::models::EmployeeRole::ADMIN {
+    let admin_role = admin
+        .role
+        .parse::<crate::models::EmployeeRole>()
+        .unwrap_or_default();
+
+    if admin_role != crate::models::EmployeeRole::Admin {
         return Err(crate::error::AppError::Unauthorized(
             "Apenas administradores podem desbloquear contas".to_string(),
         ));
@@ -319,14 +320,22 @@ pub async fn requires_password_change(
     let repo = EmployeeRepository::new(state.pool());
 
     // Buscar funcionário
-    let employee = repo.find_by_id(&employee_id).await?.ok_or(
-        crate::error::AppError::NotFound("Funcionário não encontrado".to_string()),
-    )?;
+    let employee =
+        repo.find_by_id(&employee_id)
+            .await?
+            .ok_or(crate::error::AppError::NotFoundSimple(
+                "Funcionário não encontrado".to_string(),
+            ))?;
+
+    let role = employee
+        .role
+        .parse::<crate::models::EmployeeRole>()
+        .unwrap_or_default();
 
     // Perfis operacionais não precisam de senha
     if matches!(
-        employee.role,
-        crate::models::EmployeeRole::CASHIER | crate::models::EmployeeRole::STOCKER
+        role,
+        crate::models::EmployeeRole::Cashier | crate::models::EmployeeRole::Stocker
     ) {
         return Ok(false);
     }
@@ -343,20 +352,22 @@ pub async fn requires_password_change(
 /// Lista funcionários com acesso administrativo (para gestão de acessos)
 #[tauri::command]
 #[specta::specta]
-pub async fn list_admin_employees(
-    state: State<'_, AppState>,
-) -> AppResult<Vec<SafeEmployee>> {
+pub async fn list_admin_employees(state: State<'_, AppState>) -> AppResult<Vec<SafeEmployee>> {
     let repo = EmployeeRepository::new(state.pool());
     let all = repo.find_all_active().await?;
 
     let admins = all
         .into_iter()
         .filter(|e| {
+            let role = e
+                .role
+                .parse::<crate::models::EmployeeRole>()
+                .unwrap_or_default();
             matches!(
-                e.role,
-                crate::models::EmployeeRole::ADMIN
-                    | crate::models::EmployeeRole::MANAGER
-                    | crate::models::EmployeeRole::CONTRACT_MANAGER
+                role,
+                crate::models::EmployeeRole::Admin
+                    | crate::models::EmployeeRole::Manager
+                    | crate::models::EmployeeRole::ContractManager
             )
         })
         .map(SafeEmployee::from)

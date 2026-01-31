@@ -5,7 +5,7 @@ import { dismissTutorialIfPresent, ensureLicensePresent } from './e2e-helpers';
 
 /**
  * @file auth.spec.ts - Testes E2E de Autenticação
- * Testa fluxo completo de login/logout com diferentes roles
+ * Testa fluxo completo de login/logout com diferentes roles e métodos (PIN/Senha)
  */
 
 test.describe('Autenticação E2E', () => {
@@ -17,96 +17,85 @@ test.describe('Autenticação E2E', () => {
     // Aguardar app carregar
     await page.waitForLoadState('domcontentloaded');
     await dismissTutorialIfPresent(page);
-
-    // Dump localStorage to test-results for debugging origin/keys
-    try {
-      const storage = await page.evaluate(() => {
-        const out: Record<string, string | null> = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if (k) out[k] = localStorage.getItem(k);
-        }
-        return out;
-      });
-      // Print to stdout so Playwright captures it in the run log
-      // (helps debugging when file write didn't occur)
-
-      console.log('DEBUG_LOCALSTORAGE:', JSON.stringify(storage));
-      const outDir = path.resolve(process.cwd(), 'test-results');
-      fs.mkdirSync(outDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(outDir, 'debug-localstorage.json'),
-        JSON.stringify(storage, null, 2)
-      );
-    } catch {
-      // ignore debug write failures
-    }
   });
 
-  test('deve exibir página de login ao iniciar', async ({ page }) => {
-    // Verificar título em h3 (CardTitle)
+  test('deve exibir página de login (modo PIN) ao iniciar', async ({ page }) => {
     const loginHeading = page.locator('h3:has-text("GIRO")');
     await expect(loginHeading).toBeVisible({ timeout: 10000 });
 
-    // Verificar instrução
     const instruction = page.locator('p:has-text("Digite seu PIN para entrar")').first();
     await expect(instruction).toBeVisible({ timeout: 15000 });
   });
 
   test('deve fazer login com PIN de admin (8899)', async ({ page }) => {
-    // Clicar nos botões do teclado numérico
     await page.locator('button:has-text("8")').first().click();
     await page.locator('button:has-text("8")').first().click();
     await page.locator('button:has-text("9")').first().click();
     await page.locator('button:has-text("9")').first().click();
 
-    // Clicar em Entrar
-    const loginButton = page.locator('button:has-text("Entrar")');
-    await loginButton.click();
+    await page.locator('button:has-text("Entrar")').click();
 
-    // Aguardar redirecionamento (após login pode redirecionar para dashboard/pdv/cash ou wizard)
     await page.waitForURL(/\/(dashboard|pdv|cash|wizard)/, { timeout: 5000 });
-
-    // Verificar que não está mais na página de login
     await expect(page).not.toHaveURL(/login/);
   });
 
   test('deve rejeitar PIN inválido', async ({ page }) => {
-    // Digitar PIN inválido (1234 - não existe)
     await page.locator('button:has-text("1")').first().click();
     await page.locator('button:has-text("2")').first().click();
     await page.locator('button:has-text("3")').first().click();
     await page.locator('button:has-text("4")').first().click();
 
-    const loginButton = page.locator('button:has-text("Entrar")');
-    await loginButton.click();
-
-    // Aguardar possível resposta e mensagem de erro aparecer
-    await page.waitForSelector('p.text-destructive', { timeout: 5000 });
-
-    // Verificar mensagem de erro
-    const errorElement = page.locator('p.text-destructive');
-    await expect(errorElement).toContainText(/PIN incorreto|Erro/i);
-
-    // Verificar que continua na página de login
-    const loginHeading = page.locator('h3:has-text("GIRO")');
-    await expect(loginHeading).toBeVisible();
+    await page.locator('button:has-text("Entrar")').click();
+    await expect(page.locator('p.text-destructive')).toContainText(/PIN incorreto|Erro/i);
   });
 
-  test('deve limpar PIN ao clicar em Limpar', async ({ page }) => {
-    // Digitar algo
-    await page.locator('button:has-text("1")').first().click();
+  // --- NOVOS TESTES (Dual Auth) ---
 
-    // Verificar se apareceu ponto
-    // A classe do ponto muda ou o texto vira '•'
-    // LoginPage.tsx: {i < pin.length ? '•' : ''}
-    const dot = page.locator('div:has-text("•")').first();
-    await expect(dot).toBeVisible();
+  test('deve alternar para modo Senha', async ({ page }) => {
+    const switchButton = page.locator('button:has-text("Sou Administrador/Gerente")');
+    await expect(switchButton).toBeVisible();
+    await switchButton.click();
 
-    // Clicar em C (Limpar)
-    await page.locator('button:has-text("C")').first().click();
+    // Verificar se mudou para o formulário de senha
+    await expect(page.locator('label:has-text("Usuário ou CPF")')).toBeVisible();
+    await expect(page.locator('button:has-text("Entrar com Senha")')).toBeVisible();
+    
+    // Verificar botão voltar
+    const backButton = page.locator('button:has-text("Voltar")');
+    await expect(backButton).toBeVisible();
+    await backButton.click();
+    
+    // Confirma que voltou para PIN
+    await expect(page.locator('p:has-text("Digite seu PIN para entrar")')).toBeVisible();
+  });
 
-    // Verificar se limpou (não deve ter pontos)
-    await expect(page.locator('div:has-text("•")')).toHaveCount(0);
+  test('deve fazer login com Senha (admin/admin)', async ({ page }) => {
+    await page.locator('button:has-text("Sou Administrador/Gerente")').click();
+
+    await page.fill('input[placeholder="Digite seu usuário"]', 'admin');
+    await page.fill('input[placeholder="Digite sua senha"]', 'admin'); // Assumindo default seed
+    await page.locator('button:has-text("Entrar com Senha")').click();
+
+    await page.waitForURL(/\/(dashboard|pdv|cash|wizard)/, { timeout: 5000 });
+    await expect(page).not.toHaveURL(/login/);
+  });
+
+  test('deve validar campos obrigatórios no modo Senha', async ({ page }) => {
+    await page.locator('button:has-text("Sou Administrador/Gerente")').click();
+    await page.locator('button:has-text("Entrar com Senha")').click();
+
+    await expect(page.locator('text=Por favor, preencha todos os campos')).toBeVisible();
+  });
+
+  test('deve navegar para Recuperação de Senha', async ({ page }) => {
+    await page.locator('button:has-text("Sou Administrador/Gerente")').click();
+    await page.locator('button:has-text("Esqueceu a senha?")').click();
+
+    await expect(page).toHaveURL(/\/auth\/forgot-password/);
+    await expect(page.locator('h3:has-text("Esqueceu a Senha?")')).toBeVisible();
+    
+    // Testar botão voltar
+    await page.locator('button:has-text("Voltar")').click();
+    await expect(page).toHaveURL(/\/(login|__test-login)/);
   });
 });

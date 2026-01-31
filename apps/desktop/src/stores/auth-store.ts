@@ -1,7 +1,8 @@
+import { authApi, passwordApi } from '@/lib/auth-api';
+import { getCurrentCashSession, getCurrentUser } from '@/lib/tauri';
+import type { EmployeeRole } from '@/types';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { EmployeeRole } from '@/types';
-import { getCurrentUser, getCurrentCashSession } from '@/lib/tauri';
 
 // Re-export for convenience
 export type { EmployeeRole };
@@ -11,8 +12,8 @@ export interface Employee {
   name: string;
   role: EmployeeRole;
   email?: string;
-  pin?: string;
-  username?: string; // Legacy field if needed
+  cpf?: string;
+  username?: string;
 }
 
 export type CurrentUser = Employee;
@@ -121,12 +122,28 @@ interface AuthState {
   isAuthenticated: boolean;
   isRestoring: boolean;
   lastActivity: number;
+  mustChangePassword: boolean;
+  authMethod: 'PIN' | 'PASSWORD' | null;
 
   // Ações de autenticação
   login: (user: Employee) => void;
+  loginWithPassword: (username: string, password: string) => Promise<void>;
+  loginWithPin: (pin: string) => Promise<void>;
   logout: () => void;
   restoreSession: () => Promise<void>;
   updateActivity: () => void;
+
+  // Gestão de senha
+  changePassword: (
+    employeeId: string,
+    currentPassword: string | null,
+    newPassword: string
+  ) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<{ token: string; sentTo?: string }>;
+  resetPasswordWithToken: (token: string, newPassword: string) => Promise<void>;
+  validatePassword: (
+    password: string
+  ) => Promise<{ score: number; isValid: boolean; feedback: string[] }>;
 
   // Ações de sessão de caixa
   openCashSession: (session: CashSession) => void;
@@ -136,6 +153,7 @@ interface AuthState {
   hasPermission: (permission: Permission | EmployeeRole) => boolean;
   canDiscount: (percentage: number) => boolean;
   canCancelSale: () => boolean;
+  requiresPasswordChange: () => boolean;
 }
 
 const roleHierarchy: Record<EmployeeRole, number> = {
@@ -174,6 +192,8 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isRestoring: true,
       lastActivity: 0,
+      mustChangePassword: false,
+      authMethod: null,
 
       login: (user) => {
         set({
@@ -182,16 +202,93 @@ export const useAuthStore = create<AuthState>()(
           currentUser: user,
           isAuthenticated: true,
           lastActivity: Date.now(),
+          mustChangePassword: false,
+          authMethod: 'PIN', // Default fallback
         });
       },
 
+      loginWithPassword: async (username, password) => {
+        const result = await authApi.loginWithPassword(username, password);
+
+        set({
+          employee: result.employee,
+          currentEmployee: result.employee,
+          currentUser: result.employee,
+          isAuthenticated: true,
+          lastActivity: Date.now(),
+          mustChangePassword: result.requiresPasswordChange,
+          authMethod: 'PASSWORD',
+        });
+
+        if (result.requiresPasswordChange) {
+          throw new Error('PASSWORD_CHANGE_REQUIRED');
+        }
+      },
+
+      loginWithPin: async (pin) => {
+        const result = await authApi.loginWithPin(pin);
+
+        set({
+          employee: result.employee,
+          currentEmployee: result.employee,
+          currentUser: result.employee,
+          isAuthenticated: true,
+          lastActivity: Date.now(),
+          mustChangePassword: result.requiresPasswordChange,
+          authMethod: 'PIN',
+        });
+
+        if (result.requiresPasswordChange) {
+          throw new Error('PASSWORD_CHANGE_REQUIRED');
+        }
+      },
+
+      changePassword: async (employeeId, currentPassword, newPassword) => {
+        await passwordApi.changePassword({
+          employeeId,
+          currentPassword: currentPassword || undefined,
+          newPassword,
+        });
+
+        // Se mudou senha com sucesso, limpa flag
+        if (get().mustChangePassword) {
+          set({ mustChangePassword: false });
+        }
+      },
+
+      requestPasswordReset: async (email) => {
+        const result = await passwordApi.requestPasswordReset({ email });
+        // Na interface do store diz que retorna obj, auth-api retorna PasswordResetResponse
+        return { token: 'sent-to-email', sentTo: result.message };
+      },
+
+      resetPasswordWithToken: async (token, newPassword) => {
+        await passwordApi.resetPasswordWithToken({ token, newPassword });
+      },
+
+      validatePassword: async (password) => {
+        const result = await passwordApi.validatePassword(password);
+        return {
+          score: result.score,
+          isValid: result.isValid,
+          feedback: result.feedback,
+        };
+      },
+
       logout: () => {
+        const { employee } = get();
+        if (employee) {
+          authApi.logout(employee.id).catch(console.error);
+        }
+
         set({
           employee: null,
           currentUser: null,
           currentSession: null,
           isAuthenticated: false,
           lastActivity: 0,
+          mustChangePassword: false,
+          authMethod: null,
         });
       },
 
@@ -284,6 +381,10 @@ export const useAuthStore = create<AuthState>()(
         if (!employee) return false;
         return roleHierarchy[employee.role] >= roleHierarchy.MANAGER;
       },
+
+      requiresPasswordChange: () => {
+        return get().mustChangePassword;
+      },
     }),
     {
       name: 'auth-storage',
@@ -292,6 +393,8 @@ export const useAuthStore = create<AuthState>()(
         currentUser: state.employee,
         currentSession: state.currentSession,
         isAuthenticated: state.isAuthenticated,
+        mustChangePassword: state.mustChangePassword,
+        authMethod: state.authMethod,
       }),
     }
   )

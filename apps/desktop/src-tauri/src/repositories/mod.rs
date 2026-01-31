@@ -5,7 +5,7 @@ pub mod cash_repository;
 pub mod category_repository;
 pub mod customer_repository;
 pub mod employee_repository;
-pub mod employee_repository_auth;
+// pub mod employee_repository_auth;
 pub mod fiscal_repository;
 pub mod held_sale_repository;
 pub mod inventory_repository;

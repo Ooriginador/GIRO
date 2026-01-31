@@ -5,13 +5,13 @@ import { UpdateChecker } from '@/components/UpdateChecker';
 import { useHasAdmin } from '@/hooks/useSetup';
 import { useThemeEffect } from '@/hooks/useThemeEffect';
 /* force refresh */
+import { useNetworkEvents } from '@/hooks/use-network-events';
+import { navLogger, setupLogger } from '@/lib/logger';
 import { useAuthStore } from '@/stores/auth-store';
 import { useLicenseStore } from '@/stores/license-store';
 import { useBusinessProfile } from '@/stores/useBusinessProfile';
-import { useNetworkEvents } from '@/hooks/use-network-events';
-import { navLogger, setupLogger } from '@/lib/logger';
-import { type FC, useEffect } from 'react';
-import { Navigate, Outlet, Route, Routes, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, type FC } from 'react';
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 // ... existing imports ...
 
 const NavigationLogger: FC = () => {
@@ -25,53 +25,55 @@ const NavigationLogger: FC = () => {
 // Pages - usando named exports
 import { AlertsPage } from '@/pages/alerts';
 import { LoginPage } from '@/pages/auth';
+import { ChangePasswordPage } from '@/pages/auth/ChangePasswordPage';
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 import { CashControlPage } from '@/pages/cash';
 import { CustomersPage } from '@/pages/customers';
 import { DashboardPage } from '@/pages/dashboard';
 import { EmployeesPage } from '@/pages/employees';
+import {
+  ActivitiesPage,
+  ConsumptionReportPage,
+  ContractDetailPage,
+  ContractNewPage,
+  ContractsPage,
+  EnterpriseDashboardPage,
+  EnterpriseReportsPage,
+  InventoryDetailPage,
+  InventoryPage,
+  KardexReportPage,
+  LocationNewPage,
+  LocationsPage,
+  LocationStockPage,
+  LowStockAlertsPage,
+  RequestDetailPage,
+  RequestNewPage,
+  RequestsPage,
+  TransferDetailPage,
+  TransferNewPage,
+  TransfersPage,
+  WorkFrontDetailPage,
+  WorkFrontNewPage,
+  WorkFrontsPage,
+} from '@/pages/enterprise';
 import { LicenseActivationPage } from '@/pages/license';
 import { MotopartsDashboardPage, ServiceOrdersPage, WarrantiesPage } from '@/pages/motoparts';
 import { PDVPage, PendingOrdersPage } from '@/pages/pdv';
 import { CategoriesPage, ProductFormPage, ProductsPage } from '@/pages/products';
 import {
+  EmployeePerformancePage,
+  FinancialReportPage,
+  ProductsRankingPage,
   ReportsPage,
   SalesReportPage,
-  FinancialReportPage,
   StockReportPage,
-  ProductsRankingPage,
-  EmployeePerformancePage,
 } from '@/pages/reports';
-import { SettingsPage } from '@/pages/settings';
-import { MyDataPage } from '@/pages/settings';
+import { MyDataPage, SettingsPage } from '@/pages/settings';
 import { InitialSetupPage } from '@/pages/setup';
 import { ExpirationPage, StockEntryPage, StockMovementsPage, StockPage } from '@/pages/stock';
 import { SuppliersPage } from '@/pages/suppliers';
 import { TutorialsPage } from '@/pages/tutorials';
-import {
-  EnterpriseDashboardPage,
-  ContractsPage,
-  ContractDetailPage,
-  ContractNewPage,
-  RequestsPage,
-  RequestDetailPage,
-  RequestNewPage,
-  TransfersPage,
-  TransferDetailPage,
-  TransferNewPage,
-  WorkFrontsPage,
-  WorkFrontDetailPage,
-  WorkFrontNewPage,
-  LocationsPage,
-  LocationNewPage,
-  LocationStockPage,
-  ActivitiesPage,
-  InventoryPage,
-  InventoryDetailPage,
-  LowStockAlertsPage,
-  EnterpriseReportsPage,
-  KardexReportPage,
-  ConsumptionReportPage,
-} from '@/pages/enterprise';
 
 // Componente de rota protegida
 interface ProtectedRouteProps {
@@ -80,10 +82,16 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
-  const { isAuthenticated, employee } = useAuthStore();
+  const { isAuthenticated, employee, mustChangePassword } = useAuthStore();
+  const location = useLocation();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Enforce password change if required (except when already on the change password page)
+  if (mustChangePassword && location.pathname !== '/auth/change-password') {
+    return <Navigate to="/auth/change-password" replace />;
   }
 
   if (requiredRole && employee && !requiredRole.includes(employee.role)) {
@@ -186,7 +194,7 @@ const RootRedirect: FC = () => {
 };
 
 const App: FC = () => {
-  const { isAuthenticated, restoreSession, isRestoring } = useAuthStore();
+  const { isAuthenticated, restoreSession, isRestoring, mustChangePassword } = useAuthStore();
   useHelpHotkey();
   useNetworkEvents();
   useThemeEffect(); // Aplica tema no load inicial
@@ -225,7 +233,33 @@ const App: FC = () => {
             path="/login"
             element={
               <LicenseGuard>
-                {isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+                {isAuthenticated ? (
+                  mustChangePassword ? (
+                    <Navigate to="/auth/change-password" replace />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                ) : (
+                  <LoginPage />
+                )}
+              </LicenseGuard>
+            }
+          />
+
+          {/* Rotas de Recuperação de Senha */}
+          <Route
+            path="/auth/forgot-password"
+            element={
+              <LicenseGuard>
+                <ForgotPasswordPage />
+              </LicenseGuard>
+            }
+          />
+          <Route
+            path="/auth/reset-password"
+            element={
+              <LicenseGuard>
+                <ResetPasswordPage />
               </LicenseGuard>
             }
           />
@@ -597,6 +631,16 @@ const App: FC = () => {
               element={
                 <ProtectedRoute requiredRole={['ADMIN']}>
                   <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Alterar Senha */}
+            <Route
+              path="auth/change-password"
+              element={
+                <ProtectedRoute>
+                  <ChangePasswordPage />
                 </ProtectedRoute>
               }
             />

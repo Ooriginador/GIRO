@@ -449,7 +449,9 @@ impl MobileAction {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthLoginPayload {
-    pub pin: String,
+    pub pin: Option<String>,
+    pub username: Option<String>,
+    pub password: Option<String>,
     pub device_id: String,
     pub device_name: String,
 }

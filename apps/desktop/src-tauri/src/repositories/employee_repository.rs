@@ -209,6 +209,31 @@ impl<'a> EmployeeRepository<'a> {
             }
         }
 
+        // Username checagem de duplicidade
+        if let Some(ref username) = data.username {
+            let u = username.trim();
+            if !u.is_empty() {
+                if u.len() < 3 {
+                    return Err(crate::error::AppError::Validation(
+                        "Username deve ter pelo menos 3 caracteres".into(),
+                    ));
+                }
+
+                let count: (i64,) =
+                    sqlx::query_as("SELECT COUNT(*) FROM employees WHERE username = ?")
+                        .bind(u)
+                        .fetch_one(self.pool)
+                        .await?;
+
+                if count.0 > 0 {
+                    return Err(crate::error::AppError::Duplicate(format!(
+                        "Username '{}' já está em uso",
+                        u
+                    )));
+                }
+            }
+        }
+
         // ═══════════════════════════════════════════════════════════════════
         // CRIAÇÃO
         // ═══════════════════════════════════════════════════════════════════
@@ -225,15 +250,17 @@ impl<'a> EmployeeRepository<'a> {
 
         tracing::info!("Criando funcionário: {} (role: {})", data.name, role);
         let cpf = pii::encrypt_optional(data.cpf)?;
+        let username = data.username.as_ref().map(|u| u.trim());
 
         let result = sqlx::query(
-            "INSERT INTO employees (id, name, cpf, phone, email, pin, password, role, commission_rate, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
+            "INSERT INTO employees (id, name, cpf, phone, email, username, pin, password, role, commission_rate, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
         )
         .bind(&id)
         .bind(&data.name)
         .bind(&cpf)
         .bind(&data.phone)
         .bind(&data.email)
+        .bind(username)
         .bind(&pin_hash)
         .bind(&password_hash)
         .bind(&role)
@@ -327,12 +354,40 @@ impl<'a> EmployeeRepository<'a> {
             }
         }
 
+        // Username
+        if let Some(ref new_username) = data.username {
+            let u = new_username.trim();
+            if !u.is_empty() {
+                if u.len() < 3 {
+                    return Err(crate::error::AppError::Validation(
+                        "Username deve ter pelo menos 3 caracteres".into(),
+                    ));
+                }
+                // Verificar duplicidade (excluindo o próprio funcionário)
+                let existing_user: Option<(String,)> =
+                    sqlx::query_as("SELECT id FROM employees WHERE username = ?")
+                        .bind(u)
+                        .fetch_optional(self.pool)
+                        .await?;
+
+                if let Some((existing_id,)) = existing_user {
+                    if existing_id != id {
+                        return Err(crate::error::AppError::Duplicate(format!(
+                            "Username '{}' já está em uso",
+                            u
+                        )));
+                    }
+                }
+            }
+        }
+
         // ═══════════════════════════════════════════════════════════════════
         // ATUALIZAÇÃO
         // ═══════════════════════════════════════════════════════════════════
         let cpf = pii::encrypt_optional(data.cpf.or(existing.cpf))?;
         let phone = data.phone.or(existing.phone);
         let email = data.email.or(existing.email);
+        let username = data.username.or(existing.username);
         let pin = data.pin.map(|pin| hash_pin(&pin)).unwrap_or(existing.pin);
         let password = match data.password {
             Some(password) => Some(hash_password(&password)),
@@ -346,12 +401,13 @@ impl<'a> EmployeeRepository<'a> {
         let commission_rate = data.commission_rate.or(existing.commission_rate);
 
         let result = sqlx::query(
-            "UPDATE employees SET name = ?, cpf = ?, phone = ?, email = ?, pin = ?, password = ?, role = ?, commission_rate = ?, is_active = ?, updated_at = ? WHERE id = ?"
+            "UPDATE employees SET name = ?, cpf = ?, phone = ?, email = ?, username = ?, pin = ?, password = ?, role = ?, commission_rate = ?, is_active = ?, updated_at = ? WHERE id = ?"
         )
         .bind(&name)
         .bind(&cpf)
         .bind(&phone)
         .bind(&email)
+        .bind(&username)
         .bind(&pin)
         .bind(&password)
         .bind(&role)
@@ -724,14 +780,15 @@ impl<'a> EmployeeRepository<'a> {
     ) -> AppResult<Option<Employee>> {
         use crate::utils::crypto::verify_password;
 
-        // Buscar funcionário por username ou email
+        // Buscar funcionário por username, email ou CPF (para login unificado)
         let query = format!(
-            "SELECT {} FROM employees WHERE (username = ? OR email = ?) AND deleted_at IS NULL",
+            "SELECT {} FROM employees WHERE (username = ? OR email = ? OR cpf = ?) AND deleted_at IS NULL",
             Self::COLS
         );
         let employee = sqlx::query_as::<_, Employee>(&query)
             .bind(username)
             .bind(username)
+            .bind(username) // Tenta buscar CPF também se o input for um CPF
             .fetch_optional(self.pool)
             .await?;
 
@@ -744,20 +801,22 @@ impl<'a> EmployeeRepository<'a> {
         };
 
         // Verificar se conta está bloqueada
-        if let Some(locked_until) = employee.locked_until {
-            let now = chrono::Utc::now();
-            if locked_until > now {
-                tracing::warn!(
-                    "Tentativa de login em conta bloqueada: {} (bloqueada até: {})",
-                    employee.name,
-                    locked_until
-                );
-                return Err(crate::error::AppError::AccountLocked {
-                    locked_until: locked_until.to_rfc3339(),
-                });
+        if let Some(ref locked_until_str) = employee.locked_until {
+            if let Ok(locked_until) = chrono::DateTime::parse_from_rfc3339(locked_until_str) {
+                let now = chrono::Utc::now();
+                if locked_until > now {
+                    tracing::warn!(
+                        "Tentativa de login em conta bloqueada: {} (bloqueada até: {})",
+                        employee.name,
+                        locked_until_str
+                    );
+                    return Err(crate::error::AppError::AccountLocked {
+                        locked_until: locked_until_str.clone(),
+                    });
+                }
+                // Bloqueio expirou, limpar
+                self.clear_lockout(&employee.id).await?;
             }
-            // Bloqueio expirou, limpar
-            self.clear_lockout(&employee.id).await?;
         }
 
         // Verificar se conta está ativa
@@ -801,7 +860,10 @@ impl<'a> EmployeeRepository<'a> {
     /// Registra tentativa de login falhada e bloqueia se exceder limite
     pub async fn record_failed_attempt(&self, employee_id: &str) -> AppResult<()> {
         // Buscar configurações
-        let max_attempts: i64 = self.get_setting("auth.max_failed_attempts").await?.unwrap_or(5);
+        let max_attempts: i64 = self
+            .get_setting("auth.max_failed_attempts")
+            .await?
+            .unwrap_or(5);
         let lockout_minutes: i64 = self
             .get_setting("auth.lockout_duration_minutes")
             .await?
@@ -832,17 +894,14 @@ impl<'a> EmployeeRepository<'a> {
 
         // Bloquear se exceder limite
         if attempts >= max_attempts {
-            let locked_until = chrono::Utc::now()
-                + chrono::Duration::minutes(lockout_minutes);
+            let locked_until = chrono::Utc::now() + chrono::Duration::minutes(lockout_minutes);
 
-            sqlx::query(
-                "UPDATE employees SET locked_until = ?, updated_at = ? WHERE id = ?",
-            )
-            .bind(locked_until.to_rfc3339())
-            .bind(&now)
-            .bind(employee_id)
-            .execute(self.pool)
-            .await?;
+            sqlx::query("UPDATE employees SET locked_until = ?, updated_at = ? WHERE id = ?")
+                .bind(locked_until.to_rfc3339())
+                .bind(&now)
+                .bind(employee_id)
+                .execute(self.pool)
+                .await?;
 
             tracing::warn!(
                 "Conta {} bloqueada até {}",
@@ -859,13 +918,11 @@ impl<'a> EmployeeRepository<'a> {
     /// Limpa contador de tentativas falhas após login bem-sucedido
     pub async fn clear_failed_attempts(&self, employee_id: &str) -> AppResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query(
-            "UPDATE employees SET failed_login_attempts = 0, updated_at = ? WHERE id = ?",
-        )
-        .bind(&now)
-        .bind(employee_id)
-        .execute(self.pool)
-        .await?;
+        sqlx::query("UPDATE employees SET failed_login_attempts = 0, updated_at = ? WHERE id = ?")
+            .bind(&now)
+            .bind(employee_id)
+            .execute(self.pool)
+            .await?;
 
         Ok(())
     }
@@ -916,23 +973,21 @@ impl<'a> EmployeeRepository<'a> {
     where
         T: std::str::FromStr,
     {
-        let value: Option<String> =
-            sqlx::query_scalar("SELECT value FROM settings WHERE key = ?")
-                .bind(key)
-                .fetch_optional(self.pool)
-                .await?;
+        let value: Option<String> = sqlx::query_scalar("SELECT value FROM settings WHERE key = ?")
+            .bind(key)
+            .fetch_optional(self.pool)
+            .await?;
 
         Ok(value.and_then(|v| v.parse().ok()))
     }
 
     /// Verifica se conta está bloqueada
     pub async fn is_account_locked(&self, employee_id: &str) -> AppResult<bool> {
-        let locked_until: Option<String> = sqlx::query_scalar(
-            "SELECT locked_until FROM employees WHERE id = ?",
-        )
-        .bind(employee_id)
-        .fetch_optional(self.pool)
-        .await?;
+        let locked_until: Option<String> =
+            sqlx::query_scalar("SELECT locked_until FROM employees WHERE id = ?")
+                .bind(employee_id)
+                .fetch_optional(self.pool)
+                .await?;
 
         if let Some(locked_until_str) = locked_until {
             if let Ok(locked_until) = chrono::DateTime::parse_from_rfc3339(&locked_until_str) {
@@ -963,18 +1018,18 @@ impl<'a> EmployeeRepository<'a> {
         use crate::utils::crypto::{hash_password, verify_password};
 
         // Buscar funcionário
-        let employee = self
-            .find_by_id(employee_id)
-            .await?
-            .ok_or(crate::error::AppError::NotFound(
-                "Funcionário não encontrado".to_string(),
-            ))?;
+        let employee =
+            self.find_by_id(employee_id)
+                .await?
+                .ok_or(crate::error::AppError::NotFoundSimple(
+                    "Funcionário não encontrado".to_string(),
+                ))?;
 
         // Verificar senha antiga (se fornecida)
         if let Some(old_pwd) = old_password {
             if let Some(stored_hash) = &employee.password {
                 if !verify_password(old_pwd, stored_hash)? {
-                    return Err(crate::error::AppError::InvalidInput(
+                    return Err(crate::error::AppError::Validation(
                         "Senha atual incorreta".to_string(),
                     ));
                 }
@@ -1077,8 +1132,132 @@ impl<'a> EmployeeRepository<'a> {
         Ok(())
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    // AUTHENTICATION DISPATCHER
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// Autentica usuário usando as credenciais fornecidas (PIN ou Senha)
+    pub async fn authenticate(
+        &self,
+        credentials: crate::models::auth::LoginCredentials,
+    ) -> AppResult<crate::models::auth::AuthResult> {
+        use crate::models::auth::{AuthMethod, AuthResult};
+
+        let employee = if let Some(pin) = credentials.pin {
+            // Login por PIN
+            let emp = self.authenticate_pin(&pin).await?;
+            if let Some(e) = emp {
+                (e, AuthMethod::Pin)
+            } else {
+                return Err(crate::error::AppError::InvalidCredentials);
+            }
+        } else if let Some(password) = credentials.password {
+            // Login por Senha
+            let username = credentials.username.or(credentials.cpf).ok_or(
+                crate::error::AppError::BadRequest(
+                    "Username ou CPF é obrigatório para login com senha".to_string(),
+                ),
+            )?;
+
+            let emp = self.authenticate_password(&username, &password).await?;
+            if let Some(e) = emp {
+                (e, AuthMethod::Password)
+            } else {
+                return Err(crate::error::AppError::InvalidCredentials);
+            }
+        } else {
+            return Err(crate::error::AppError::BadRequest(
+                "Nenhuma credencial fornecida".to_string(),
+            ));
+        };
+
+        let (emp_data, method) = employee;
+
+        // Verificar validade de senha se logou com senha
+        let requires_change = if method == AuthMethod::Password {
+            // Verifica se está marcado para troca
+            // TODO: Adicionar campo force_password_change no DB ou deduzir de password_changed_at
+
+            // Verifica expiração
+            if let Some(changed_at_str) = &emp_data.password_changed_at {
+                if let Ok(changed_at) = chrono::DateTime::parse_from_rfc3339(changed_at_str) {
+                    let expiry_days: i64 = self
+                        .get_setting("auth.password_expiry_days")
+                        .await?
+                        .unwrap_or(90);
+
+                    if expiry_days > 0 {
+                        let expires_at = changed_at + chrono::Duration::days(expiry_days);
+                        expires_at < chrono::Utc::now().fixed_offset()
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            } else {
+                // Nunca trocou -> requer troca (primeiro acesso)
+                true
+            }
+        } else {
+            false
+        };
+
+        // Gerar token de sessão (placeholder por enquanto)
+        let token = None;
+
+        // Timeout de sessão
+        let timeout_minutes: i64 = self
+            .get_setting("auth.session_timeout_minutes")
+            .await?
+            .unwrap_or(480);
+        let expires_at = Some(chrono::Utc::now() + chrono::Duration::minutes(timeout_minutes));
+
+        Ok(AuthResult {
+            employee: Self::decrypt_employee(emp_data).into(),
+            token,
+            expires_at,
+            auth_method: method,
+            requires_password_change: requires_change,
+        })
+    }
+
+    /// Retorna status da conta (verificação se precisa mudar senha)
+    pub async fn get_account_status(&self, id: &str) -> AppResult<crate::models::AuthResult> {
+        let employee = self.find_by_id(id).await?.ok_or_else(|| {
+            crate::error::AppError::NotFoundSimple("Funcionário não encontrado".to_string())
+        })?;
+
+        let role_enum = employee
+            .role
+            .parse::<crate::models::EmployeeRole>()
+            .unwrap_or_default();
+
+        let requires_password_change = if matches!(
+            role_enum,
+            crate::models::EmployeeRole::Admin
+                | crate::models::EmployeeRole::Manager
+                | crate::models::EmployeeRole::ContractManager
+        ) {
+            employee.password.is_none()
+        } else {
+            false
+        };
+
+        Ok(crate::models::AuthResult {
+            employee: employee.into(),
+            token: None,
+            expires_at: None,
+            auth_method: crate::models::AuthMethod::Pin, // Dummy value
+            requires_password_change,
+        })
+    }
+
     /// Solicita reset de senha (gera token)
-    pub async fn request_password_reset(&self, email: &str) -> AppResult<String> {
+    pub async fn request_password_reset(
+        &self,
+        email: &str,
+    ) -> AppResult<crate::models::auth::PasswordResetResponse> {
         use crate::utils::crypto::generate_reset_token;
 
         // Buscar funcionário por email
@@ -1090,7 +1269,7 @@ impl<'a> EmployeeRepository<'a> {
             .bind(email)
             .fetch_optional(self.pool)
             .await?
-            .ok_or(crate::error::AppError::NotFound(
+            .ok_or(crate::error::AppError::BadRequest(
                 "Funcionário com este email não encontrado".to_string(),
             ))?;
 
@@ -1128,10 +1307,12 @@ impl<'a> EmployeeRepository<'a> {
             expires_at
         );
 
-        // TODO: Enviar email com token (implementar depois)
-        // TODO: Registrar em audit_log
-
-        Ok(token)
+        // Retornar resposta completa
+        Ok(crate::models::auth::PasswordResetResponse {
+            token,
+            sent_to: Some(email.to_string()), // TODO: Null se email service falhar
+            expires_at,
+        })
     }
 
     /// Confirma reset de senha com token
@@ -1198,6 +1379,67 @@ impl<'a> EmployeeRepository<'a> {
         tracing::info!("Senha resetada via token para: {}", employee.name);
 
         // TODO: Registrar em audit_log
+
+        Ok(())
+    }
+
+    /// Data Migration: Garante que todos os admins tenham username
+    pub async fn migrate_ensure_usernames(&self) -> AppResult<()> {
+        // Encontrar admins sem user
+        let query = format!(
+            "SELECT {} FROM employees WHERE (role = 'ADMIN' OR role = 'MANAGER') AND username IS NULL AND is_active = 1",
+            Self::COLS
+        );
+        let admins = sqlx::query_as::<_, Employee>(&query)
+            .fetch_all(self.pool)
+            .await?;
+
+        if admins.is_empty() {
+            return Ok(());
+        }
+
+        tracing::info!(
+            "Iniciando migração de usernames para {} admins...",
+            admins.len()
+        );
+
+        for admin in admins {
+            let admin = Self::decrypt_employee(admin);
+            let base_user = admin
+                .name
+                .split_whitespace()
+                .next()
+                .unwrap_or("admin")
+                .to_lowercase();
+
+            // Try formatting username
+            let mut username = base_user.clone();
+            let mut suffix = 1;
+
+            // Check existence loop
+            loop {
+                let count: (i64,) =
+                    sqlx::query_as("SELECT COUNT(*) FROM employees WHERE username = ?")
+                        .bind(&username)
+                        .fetch_one(self.pool)
+                        .await?;
+
+                if count.0 == 0 {
+                    break;
+                }
+
+                username = format!("{}{}", base_user, suffix);
+                suffix += 1;
+            }
+
+            sqlx::query("UPDATE employees SET username = ? WHERE id = ?")
+                .bind(&username)
+                .bind(&admin.id)
+                .execute(self.pool)
+                .await?;
+
+            tracing::info!("Admin migrado: {} -> username: {}", admin.name, username);
+        }
 
         Ok(())
     }

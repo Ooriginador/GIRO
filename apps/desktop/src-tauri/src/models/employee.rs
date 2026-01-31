@@ -1,6 +1,6 @@
 //! Modelos de Funcionário
 
-use chrono::{DateTime, Utc};
+// use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::FromRow;
@@ -42,6 +42,26 @@ impl std::fmt::Display for EmployeeRole {
     }
 }
 
+impl std::str::FromStr for EmployeeRole {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ADMIN" => Ok(Self::Admin),
+            "MANAGER" => Ok(Self::Manager),
+            "CASHIER" => Ok(Self::Cashier),
+            "ATTENDANT" => Ok(Self::Attendant),
+            "STOCKER" => Ok(Self::Stocker),
+            "VIEWER" => Ok(Self::Viewer),
+            "CONTRACT_MANAGER" => Ok(Self::ContractManager),
+            "SUPERVISOR" => Ok(Self::Supervisor),
+            "WAREHOUSE" => Ok(Self::Warehouse),
+            "REQUESTER" => Ok(Self::Requester),
+            _ => Ok(Self::Cashier), // Default fallback
+        }
+    }
+}
+
 /// Funcionário completo (interno, com hash da senha)
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Type)]
 #[serde(rename_all = "camelCase")]
@@ -53,20 +73,20 @@ pub struct Employee {
     pub email: Option<String>,
     pub pin: String,              // Hash do PIN (HMAC-SHA256)
     pub password: Option<String>, // Hash da senha (Argon2id)
-    
+
     // Campos de autenticação por senha
     pub username: Option<String>,
     pub password_changed_at: Option<String>,
     pub password_reset_token: Option<String>,
     pub password_reset_expires_at: Option<String>,
-    
+
     // Segurança e lockout
     pub failed_login_attempts: i64,
     pub locked_until: Option<String>,
     pub last_login_at: Option<String>,
     pub last_login_ip: Option<String>,
-    
-    pub role: String, // Armazenado como String
+
+    pub role: String,                 // Armazenado como String
     pub commission_rate: Option<f64>, // Taxa de comissão (0.0 a 1.0 ou percentual)
     pub is_active: bool,
     pub created_at: String,
@@ -114,6 +134,7 @@ pub struct CreateEmployee {
     pub cpf: Option<String>,
     pub phone: Option<String>,
     pub email: Option<String>,
+    pub username: Option<String>, // Username opcional (obrigatório para admins)
     pub pin: String,              // PIN em texto plano, será hasheado
     pub password: Option<String>, // Senha em texto plano
     pub role: Option<EmployeeRole>,
@@ -128,6 +149,7 @@ pub struct UpdateEmployee {
     pub cpf: Option<String>,
     pub phone: Option<String>,
     pub email: Option<String>,
+    pub username: Option<String>,
     pub pin: Option<String>,
     pub password: Option<String>,
     pub role: Option<EmployeeRole>,
@@ -135,20 +157,4 @@ pub struct UpdateEmployee {
     pub is_active: Option<bool>,
 }
 
-/// Resultado de autenticação
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct AuthResult {
-    pub employee: SafeEmployee,
-    pub token: Option<String>, // JWT ou session token (futuro)
-    pub expires_at: Option<DateTime<Utc>>,
-}
-
-/// Credenciais de login
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct LoginCredentials {
-    pub pin: Option<String>,
-    pub password: Option<String>,
-    pub cpf: Option<String>,
-}
+// Auth types moved to auth.rs

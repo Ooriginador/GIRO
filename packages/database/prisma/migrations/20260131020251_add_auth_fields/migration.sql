@@ -74,7 +74,7 @@ PRAGMA defer_foreign_keys=OFF;
 -- ════════════════════════════════════════════════════════════════════════════
 -- STEP 4: Inserir configurações de política de senha
 -- ════════════════════════════════════════════════════════════════════════════
-INSERT INTO "Setting" ("id", "key", "value", "category", "description", "createdAt", "updatedAt")
+INSERT INTO "Setting" ("id", "key", "value", "group", "description", "createdAt", "updatedAt")
 VALUES
   -- Complexidade de senha
   (lower(hex(randomblob(16))), 'auth.password_min_length', '8', 'security', 'Tamanho mínimo da senha', datetime('now'), datetime('now')),

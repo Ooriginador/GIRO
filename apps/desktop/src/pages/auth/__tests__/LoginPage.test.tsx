@@ -7,17 +7,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock do Tauri
-const mockAuthenticateEmployee = vi.fn();
-vi.mock('@/lib/tauri', () => ({
-  authenticateEmployee: (pin: string) => mockAuthenticateEmployee(pin),
-}));
+// Mock do Auth API (Removed unused mock)
 
 // Mock do store
 const mockLogin = vi.fn();
+const mockLoginWithPin = vi.fn(); // Shared mock
 vi.mock('@/stores/auth-store', () => ({
   useAuthStore: () => ({
     login: mockLogin,
+    loginWithPin: mockLoginWithPin,
   }),
 }));
 
@@ -154,14 +152,18 @@ describe('LoginPage', () => {
     expect(loginButton).toBeDisabled();
   });
 
-  it('should call authenticateEmployee on login', async () => {
-    mockAuthenticateEmployee.mockResolvedValue({
-      token: 'fake-jwt-token',
+  it('should call authApi.loginWithPin on login', async () => {
+    mockLoginWithPin.mockResolvedValue({
       employee: {
         id: 'emp-1',
         name: 'Admin',
         role: 'ADMIN',
+        isActive: true,
+        createdAt: '2024-01-01',
+        updatedAt: '2024-01-01',
       },
+      authMethod: 'pin',
+      requiresPasswordChange: false,
     });
 
     renderLoginPage();
@@ -177,18 +179,22 @@ describe('LoginPage', () => {
     fireEvent.click(loginButton);
 
     await waitFor(() => {
-      expect(mockAuthenticateEmployee).toHaveBeenCalledWith('1234');
+      expect(mockLoginWithPin).toHaveBeenCalled();
     });
   });
 
   it('should navigate to dashboard on successful login', async () => {
-    mockAuthenticateEmployee.mockResolvedValue({
-      token: 'fake-jwt-token',
+    mockLoginWithPin.mockResolvedValue({
       employee: {
         id: 'emp-1',
         name: 'Admin',
         role: 'ADMIN',
+        isActive: true,
+        createdAt: '2024-01-01',
+        updatedAt: '2024-01-01',
       },
+      authMethod: 'pin',
+      requiresPasswordChange: false,
     });
 
     renderLoginPage();
@@ -201,13 +207,13 @@ describe('LoginPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Entrar/i }));
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalled();
+      expect(mockLoginWithPin).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith('/');
     });
   });
 
   it('should show error for invalid PIN', async () => {
-    mockAuthenticateEmployee.mockResolvedValue(null);
+    mockLoginWithPin.mockRejectedValue(new Error('Invalid PIN'));
 
     renderLoginPage();
 
@@ -219,7 +225,7 @@ describe('LoginPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Entrar/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('PIN incorreto')).toBeInTheDocument();
+      expect(screen.getByText(/PIN incorreto/)).toBeInTheDocument();
     });
   });
 

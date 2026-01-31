@@ -25,13 +25,18 @@ impl<'a> EmployeeRepository<'a> {
     /// 3. CPF + Senha (fallback)
     pub async fn authenticate(&self, credentials: LoginCredentials) -> AppResult<AuthResult> {
         // Validar credenciais
-        credentials.validate().map_err(|e| AppError::ValidationError(e))?;
+        credentials
+            .validate()
+            .map_err(|e| AppError::ValidationError(e))?;
 
         let auth_method = credentials.auth_method();
 
         // Tentar autenticação conforme método
         let employee = match auth_method {
-            AuthMethod::Pin => self.authenticate_pin(credentials.pin.unwrap().as_str()).await?,
+            AuthMethod::Pin => {
+                self.authenticate_pin(credentials.pin.unwrap().as_str())
+                    .await?
+            }
             AuthMethod::Password => {
                 if let Some(username) = credentials.username {
                     self.authenticate_password(&username, credentials.password.unwrap().as_str())
@@ -47,9 +52,8 @@ impl<'a> EmployeeRepository<'a> {
             }
         };
 
-        let employee = employee.ok_or(AppError::Unauthorized(
-            "Credenciais inválidas".to_string(),
-        ))?;
+        let employee =
+            employee.ok_or(AppError::Unauthorized("Credenciais inválidas".to_string()))?;
 
         // Verificar se conta está bloqueada
         if self.is_account_locked(&employee.id).await? {
@@ -76,7 +80,7 @@ impl<'a> EmployeeRepository<'a> {
 
         Ok(AuthResult {
             employee: SafeEmployee::from(employee),
-            token: None, // JWT futuro
+            token: None,                                       // JWT futuro
             expires_at: Some(Utc::now() + Duration::hours(8)), // Session timeout
             auth_method,
             requires_password_change,

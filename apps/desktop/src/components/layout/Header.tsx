@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
-import { AlertTriangle, Bell, LogOut, Monitor, Moon, Sun, User } from 'lucide-react';
+import { AlertTriangle, Bell, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-react';
 import { useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -128,6 +128,15 @@ export const Header: FC = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/my-data')}>
+                <User className="mr-2 h-4 w-4" />
+                Meus Dados
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/auth/change-password')}>
+                <Settings className="mr-2 h-4 w-4" />
+                Alterar Senha
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />

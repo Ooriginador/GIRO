@@ -18,18 +18,18 @@ caracteres_obrigatorios:
   - minimo_1_minuscula: true
   - minimo_1_numero: true
   - minimo_1_especial: true
-caracteres_especiais_permitidos: "!@#$%^&*()_+-=[]{}|;:,.<>?"
+caracteres_especiais_permitidos: '!@#$%^&*()_+-=[]{}|;:,.<>?'
 ```
 
 ### Validação de Força
 
 ```typescript
 enum PasswordStrength {
-  VERY_WEAK = 0,  // < 8 caracteres ou apenas lowercase
-  WEAK = 1,       // 8+ chars, apenas lowercase+uppercase
-  MEDIUM = 2,     // 8+ chars, lowercase+uppercase+numbers
-  STRONG = 3,     // 8+ chars, lowercase+uppercase+numbers+special
-  VERY_STRONG = 4 // 12+ chars, todos os tipos + não está em wordlist
+  VERY_WEAK = 0, // < 8 caracteres ou apenas lowercase
+  WEAK = 1, // 8+ chars, apenas lowercase+uppercase
+  MEDIUM = 2, // 8+ chars, lowercase+uppercase+numbers
+  STRONG = 3, // 8+ chars, lowercase+uppercase+numbers+special
+  VERY_STRONG = 4, // 12+ chars, todos os tipos + não está em wordlist
 }
 ```
 
@@ -38,7 +38,7 @@ enum PasswordStrength {
 ```yaml
 expiracao_senha_dias: 90
 avisar_expiracao_dias_antes: 7
-historico_senhas_bloqueadas: 5  # Não pode reutilizar últimas 5 senhas
+historico_senhas_bloqueadas: 5 # Não pode reutilizar últimas 5 senhas
 ```
 
 ### Lockout de Conta
@@ -53,9 +53,9 @@ limpar_tentativas_apos_login_sucesso: true
 
 ```yaml
 validade_token_minutos: 60
-tamanho_token: 64  # caracteres hexadecimais
+tamanho_token: 64 # caracteres hexadecimais
 permitir_reset_via_email: true
-exigir_verificacao_2fa: false  # Para v3.1.0
+exigir_verificacao_2fa: false # Para v3.1.0
 ```
 
 ---
@@ -67,10 +67,10 @@ exigir_verificacao_2fa: false  # Para v3.1.0
 ```yaml
 algoritmo: Argon2id
 parametros:
-  memory_cost: 65536  # 64 MiB
-  time_cost: 3        # 3 iterações
-  parallelism: 4      # 4 threads
-  salt_length: 16     # bytes
+  memory_cost: 65536 # 64 MiB
+  time_cost: 3 # 3 iterações
+  parallelism: 4 # 4 threads
+  salt_length: 16 # bytes
 ```
 
 **Justificativa**: Argon2id é recomendado pela OWASP 2024 e resistente a ataques de GPU/ASIC.
@@ -108,7 +108,7 @@ eventos_auditados:
 ```yaml
 autenticacao: PIN (4-6 dígitos)
 senha_opcional: false
-expiracao: null  # PIN não expira
+expiracao: null # PIN não expira
 reset: Apenas por ADMIN/MANAGER
 ```
 
@@ -127,10 +127,10 @@ politica_senha: STRONG (score >= 3)
 ```yaml
 autenticacao: Username + Senha (obrigatório)
 senha_opcional: false
-expiracao: 60 dias  # Mais restritivo
+expiracao: 60 dias # Mais restritivo
 reset: Via email (self-service) ou por outro ADMIN
 politica_senha: VERY_STRONG (score >= 4)
-exigir_2fa: true  # Planejado para v3.1.0
+exigir_2fa: true # Planejado para v3.1.0
 ```
 
 ---
@@ -141,15 +141,15 @@ exigir_2fa: true  # Planejado para v3.1.0
 
 ```typescript
 const ERROR_MESSAGES = {
-  TOO_SHORT: "A senha deve ter no mínimo 8 caracteres",
-  TOO_LONG: "A senha deve ter no máximo 128 caracteres",
-  NO_UPPERCASE: "A senha deve conter pelo menos 1 letra maiúscula",
-  NO_LOWERCASE: "A senha deve conter pelo menos 1 letra minúscula",
-  NO_NUMBER: "A senha deve conter pelo menos 1 número",
-  NO_SPECIAL: "A senha deve conter pelo menos 1 caractere especial (!@#$%^&*...)",
-  IN_HISTORY: "Esta senha já foi utilizada recentemente. Escolha outra.",
-  TOO_WEAK: "A senha é muito fraca. Use uma combinação mais segura.",
-  COMMON_PASSWORD: "Esta senha é muito comum. Escolha uma mais única.",
+  TOO_SHORT: 'A senha deve ter no mínimo 8 caracteres',
+  TOO_LONG: 'A senha deve ter no máximo 128 caracteres',
+  NO_UPPERCASE: 'A senha deve conter pelo menos 1 letra maiúscula',
+  NO_LOWERCASE: 'A senha deve conter pelo menos 1 letra minúscula',
+  NO_NUMBER: 'A senha deve conter pelo menos 1 número',
+  NO_SPECIAL: 'A senha deve conter pelo menos 1 caractere especial (!@#$%^&*...)',
+  IN_HISTORY: 'Esta senha já foi utilizada recentemente. Escolha outra.',
+  TOO_WEAK: 'A senha é muito fraca. Use uma combinação mais segura.',
+  COMMON_PASSWORD: 'Esta senha é muito comum. Escolha uma mais única.',
 };
 ```
 
@@ -161,7 +161,7 @@ const LOCKOUT_MESSAGES = {
     `Conta bloqueada por ${minutes} minutos devido a tentativas excessivas de login.`,
   ATTEMPTS_REMAINING: (remaining: number) =>
     `Senha incorreta. ${remaining} tentativa(s) restante(s) antes de bloquear a conta.`,
-  LOCKOUT_EXPIRED: "O bloqueio da conta expirou. Você pode tentar fazer login novamente.",
+  LOCKOUT_EXPIRED: 'O bloqueio da conta expirou. Você pode tentar fazer login novamente.',
 };
 ```
 
@@ -173,11 +173,11 @@ const LOCKOUT_MESSAGES = {
 
 ```typescript
 const TEST_PASSWORDS = {
-  VERY_WEAK: ["123456", "password", "abc", "qwerty"],
-  WEAK: ["Password", "Abc12345", "MyPassword"],
-  MEDIUM: ["Password123", "MyP@ss123", "Secure2024"],
-  STRONG: ["MyP@ssw0rd!", "Str0ng#Pass", "Giro@2024!"],
-  VERY_STRONG: ["C0mpl3x!P@ssw0rd#2024", "Sup3r$3cur3#Gir0!", "Unbreakable@Pass#123"],
+  VERY_WEAK: ['123456', 'password', 'abc', 'qwerty'],
+  WEAK: ['Password', 'Abc12345', 'MyPassword'],
+  MEDIUM: ['Password123', 'MyP@ss123', 'Secure2024'],
+  STRONG: ['MyP@ssw0rd!', 'Str0ng#Pass', 'Giro@2024!'],
+  VERY_STRONG: ['C0mpl3x!P@ssw0rd#2024', 'Sup3r$3cur3#Gir0!', 'Unbreakable@Pass#123'],
 };
 ```
 
@@ -189,12 +189,12 @@ async fn test_account_lockout_after_5_failures() {
     // Arrange
     let pool = setup_test_db().await;
     let repo = EmployeeRepository::new(&pool);
-    
+
     // Act: 5 tentativas falhadas
     for _ in 0..5 {
         let _ = repo.authenticate_password("admin", "wrong_password").await;
     }
-    
+
     // Assert
     let is_locked = repo.is_account_locked("admin_id").await.unwrap();
     assert!(is_locked);
