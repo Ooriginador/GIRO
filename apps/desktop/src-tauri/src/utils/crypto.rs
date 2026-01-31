@@ -319,46 +319,6 @@ mod tests {
         let result = hash_password("");
         assert!(result.is_err());
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_hash_password_success() {
-        let password = "TestPassword123!";
-        let hash = hash_password(password).expect("Hashing should succeed");
-
-        assert!(hash.starts_with("$argon2id$"));
-        assert_ne!(password, hash);
-    }
-
-    #[test]
-    fn test_verify_password_success() {
-        let password = "TestPassword123!";
-        let hash = hash_password(password).expect("Hashing should succeed");
-
-        // Correct password
-        let is_valid = verify_password(password, &hash).expect("Verification should run");
-        assert!(is_valid);
-    }
-
-    #[test]
-    fn test_verify_password_failure() {
-        let password = "TestPassword123!";
-        let hash = hash_password(password).expect("Hashing should succeed");
-
-        // Wrong password
-        let is_valid = verify_password("WrongPassword", &hash).expect("Verification should run");
-        assert!(!is_valid);
-    }
-
-    #[test]
-    fn test_empty_password_fails() {
-        let result = hash_password("");
-        assert!(result.is_err());
-    }
 
     #[test]
     fn test_verify_invalid_hash_string() {

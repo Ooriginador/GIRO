@@ -3,6 +3,7 @@
 //! API de autenticação exposta para o frontend
 
 use crate::error::AppResult;
+use crate::middleware::session::SessionState;
 use crate::models::auth::{
     AuthResult, ChangePasswordRequest, LoginCredentials, PasswordPolicy, PasswordResetConfirm,
     PasswordResetRequest, PasswordResetResponse, PasswordStrength,
@@ -95,12 +96,14 @@ pub async fn login_with_cpf(
     repo.authenticate(credentials).await
 }
 
-/// Logout (limpa sessão local - implementação futura com JWT)
+/// Logout (limpa sessão local)
 #[tauri::command]
 #[specta::specta]
-pub async fn logout(employee_id: String, _state: State<'_, AppState>) -> AppResult<()> {
-    tracing::info!("Employee {} logged out", employee_id);
-    // TODO: Invalidar token JWT quando implementado
+pub async fn logout(session: State<'_, SessionState>) -> AppResult<()> {
+    if let Some(employee_info) = session.get_employee() {
+        tracing::info!("Employee {} logged out", employee_info.employee_name);
+    }
+    session.clear();
     Ok(())
 }
 
@@ -203,11 +206,7 @@ pub async fn validate_password(
 #[specta::specta]
 pub async fn get_password_policy(state: State<'_, AppState>) -> AppResult<PasswordPolicy> {
     let repo = EmployeeRepository::new(state.pool());
-    // Usa método privado através de validação
-    repo.validate_password_policy("Dummy1").await.ok(); // Ignora erro, só queremos carregar policy
-
-    // Por ora, retornar padrão (TODO: expor método público)
-    Ok(PasswordPolicy::default())
+    repo.get_password_policy_public().await
 }
 
 /// Verifica se senha atual está correta (helper para troca de senha)
@@ -345,8 +344,9 @@ pub async fn requires_password_change(
         return Ok(true);
     }
 
-    // Verificar expiração (lógica privada - TODO: expor)
-    Ok(false) // Por ora, assumir que não expirou
+    // Verificar expiração
+    let repo = EmployeeRepository::new(state.pool());
+    repo.is_password_expired(&employee).await
 }
 
 /// Lista funcionários com acesso administrativo (para gestão de acessos)

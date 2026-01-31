@@ -590,11 +590,209 @@ impl<'a> EmployeeRepository<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::{CreateEmployee, EmployeeRole};
+    use sqlx::sqlite::SqlitePoolOptions;
+    use sqlx::SqlitePool;
 
-    // Testes serão adicionados após integração completa
-    // TODO: test_authenticate_pin
-    // TODO: test_authenticate_password
-    // TODO: test_account_lockout
-    // TODO: test_password_reset_flow
-    // TODO: test_password_policy_validation
+    async fn setup_test_db() -> SqlitePool {
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let url = format!("file:/tmp/giro_auth_test_{}?mode=rwc", ts);
+
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect(&url)
+            .await
+            .unwrap();
+
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
+
+        pool
+    }
+
+    const TEST_PASSWORD: &str = "TestPassword123!";
+
+    #[tokio::test]
+    async fn test_authenticate_pin() {
+        let pool = setup_test_db().await;
+        let repo = EmployeeRepository::new(&pool);
+
+        // Create employee with PIN
+        let input = CreateEmployee {
+            name: "PIN User".to_string(),
+            cpf: None,
+            phone: None,
+            email: None,
+            username: Some("pinuser".to_string()),
+            pin: "1234".to_string(),
+            password: None,
+            role: Some(EmployeeRole::Cashier),
+            commission_rate: None,
+        };
+        repo.create(input).await.unwrap();
+
+        // Test correct PIN
+        let result = repo.authenticate_pin("1234").await;
+        assert!(result.is_ok());
+        let employee = result.unwrap();
+        assert!(employee.is_some());
+        assert_eq!(employee.unwrap().name, "PIN User");
+
+        // Test wrong PIN
+        let result = repo.authenticate_pin("9999").await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_authenticate_password() {
+        let pool = setup_test_db().await;
+        let repo = EmployeeRepository::new(&pool);
+
+        // Create employee with password
+        let input = CreateEmployee {
+            name: "Admin User".to_string(),
+            cpf: None,
+            phone: None,
+            email: Some("admin@test.com".to_string()),
+            username: Some("adminuser".to_string()),
+            pin: "5678".to_string(),
+            password: Some(TEST_PASSWORD.to_string()),
+            role: Some(EmployeeRole::Admin),
+            commission_rate: None,
+        };
+        repo.create(input).await.unwrap();
+
+        // Test correct password
+        let result = repo.authenticate_password("adminuser", TEST_PASSWORD).await;
+        assert!(result.is_ok());
+        let employee = result.unwrap();
+        assert!(employee.is_some());
+        assert_eq!(employee.unwrap().name, "Admin User");
+
+        // Test wrong password
+        let result = repo
+            .authenticate_password("adminuser", "WrongPassword")
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_account_lockout() {
+        let pool = setup_test_db().await;
+        let repo = EmployeeRepository::new(&pool);
+
+        // Create employee
+        let input = CreateEmployee {
+            name: "Lockout Test".to_string(),
+            cpf: None,
+            phone: None,
+            email: Some("lockout@test.com".to_string()),
+            username: Some("lockoutuser".to_string()),
+            pin: "1111".to_string(),
+            password: Some(TEST_PASSWORD.to_string()),
+            role: Some(EmployeeRole::Admin),
+            commission_rate: None,
+        };
+        let employee = repo.create(input).await.unwrap();
+
+        // Simulate 5 failed attempts
+        for _ in 0..5 {
+            let _ = repo
+                .authenticate_password("lockoutuser", "WrongPassword")
+                .await;
+        }
+
+        // Verify account is locked
+        let result = repo.is_account_locked(&employee.id).await;
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+
+        // Try to authenticate with correct password should fail due to lock
+        let result = repo
+            .authenticate_password("lockoutuser", TEST_PASSWORD)
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_password_reset_flow() {
+        let pool = setup_test_db().await;
+        let repo = EmployeeRepository::new(&pool);
+
+        // Create employee
+        let input = CreateEmployee {
+            name: "Reset Test".to_string(),
+            cpf: None,
+            phone: None,
+            email: Some("reset@test.com".to_string()),
+            username: Some("resetuser".to_string()),
+            pin: "2222".to_string(),
+            password: Some(TEST_PASSWORD.to_string()),
+            role: Some(EmployeeRole::Admin),
+            commission_rate: None,
+        };
+        let employee = repo.create(input).await.unwrap();
+
+        // Request password reset
+        let result = repo.request_password_reset("reset@test.com", None).await;
+        assert!(result.is_ok());
+        let token = result.unwrap();
+
+        // Get employee to verify token
+        let emp = repo.find_by_id(&employee.id).await.unwrap().unwrap();
+        assert!(emp.password_reset_token.is_some());
+
+        // Reset password with token
+        let new_password = "NewPassword456!";
+        let result = repo.reset_password_with_token(&token, new_password).await;
+        assert!(result.is_ok());
+
+        // Verify can login with new password
+        let result = repo.authenticate_password("resetuser", new_password).await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_some());
+
+        // Verify old password doesn't work
+        let result = repo.authenticate_password("resetuser", TEST_PASSWORD).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_password_policy_validation() {
+        let pool = setup_test_db().await;
+        let repo = EmployeeRepository::new(&pool);
+
+        // Test weak passwords
+        let weak_passwords = vec![
+            "123456",   // Too short
+            "password", // No numbers/symbols
+            "Password", // No numbers/symbols
+            "Pass123",  // Too short
+            "12345678", // No letters
+        ];
+
+        for weak_pwd in weak_passwords {
+            let result = repo.validate_password_policy(weak_pwd).await;
+            assert!(
+                result.is_err(),
+                "Password '{}' should be rejected",
+                weak_pwd
+            );
+        }
+
+        // Test strong passwords
+        let strong_passwords = vec!["Password123!", "MySecure@Pass1", "Complex#2024Pass"];
+
+        for strong_pwd in strong_passwords {
+            let result = repo.validate_password_policy(strong_pwd).await;
+            assert!(
+                result.is_ok(),
+                "Password '{}' should be accepted",
+                strong_pwd
+            );
+        }
+    }
 }

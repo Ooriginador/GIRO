@@ -2,8 +2,10 @@
 
 use crate::error::AppResult;
 use crate::license::AdminUserSyncData;
-use crate::models::{CreateEmployee, Employee, SafeEmployee, UpdateEmployee};
-use crate::repositories::new_id;
+use crate::models::{
+    AuditAction, CreateAuditLog, CreateEmployee, Employee, SafeEmployee, UpdateEmployee,
+};
+use crate::repositories::{new_id, AuditLogRepository};
 use crate::utils::pii;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::{PasswordHash, SaltString};
@@ -590,7 +592,9 @@ impl<'a> EmployeeRepository<'a> {
             .execute(self.pool)
             .await?;
 
-            Ok(self.find_by_id(&admin.id).await?.unwrap())
+            self.find_by_id(&admin.id).await?.ok_or_else(|| {
+                crate::error::AppError::NotFoundSimple("Admin atualizado não encontrado".into())
+            })
         } else {
             // SAFEGUARD: Before creating a new admin from server sync,
             // ensure there really is NO admin at all to avoid duplicates/account mixing.
@@ -627,7 +631,9 @@ impl<'a> EmployeeRepository<'a> {
             .execute(self.pool)
             .await?;
 
-            Ok(self.find_by_id(&id).await?.unwrap())
+            self.find_by_id(&id).await?.ok_or_else(|| {
+                crate::error::AppError::NotFoundSimple("Admin criado não encontrado".into())
+            })
         }
     }
 
@@ -919,7 +925,27 @@ impl<'a> EmployeeRepository<'a> {
                 locked_until.to_rfc3339()
             );
 
-            // TODO: Registrar em audit_log
+            // Registrar bloqueio em audit_log
+            if let Ok(employee) = self.find_by_id(employee_id).await {
+                if let Some(emp) = employee {
+                    let audit_repo = AuditLogRepository::new(self.pool);
+                    let _ = audit_repo
+                        .create(CreateAuditLog {
+                            action: AuditAction::AccountLocked,
+                            employee_id: emp.id.clone(),
+                            employee_name: emp.name.clone(),
+                            target_type: None,
+                            target_id: None,
+                            details: Some(format!(
+                                "Conta bloqueada até {} após {} tentativas falhas",
+                                locked_until.to_rfc3339(),
+                                attempts
+                            )),
+                            ip_address: None,
+                        })
+                        .await;
+                }
+            }
         }
 
         Ok(())
@@ -1074,7 +1100,19 @@ impl<'a> EmployeeRepository<'a> {
 
         tracing::info!("Senha alterada para funcionário: {}", employee.name);
 
-        // TODO: Registrar em audit_log
+        // Registrar mudança de senha em audit_log
+        let audit_repo = AuditLogRepository::new(self.pool);
+        let _ = audit_repo
+            .create(CreateAuditLog {
+                action: AuditAction::PasswordChanged,
+                employee_id: employee.id.clone(),
+                employee_name: employee.name.clone(),
+                target_type: None,
+                target_id: None,
+                details: old_password.map(|_| "Senha alterada pelo usuário".to_string()),
+                ip_address: None,
+            })
+            .await;
 
         Ok(())
     }
@@ -1388,13 +1426,51 @@ impl<'a> EmployeeRepository<'a> {
 
         tracing::info!("Senha resetada via token para: {}", employee.name);
 
-        // TODO: Registrar em audit_log
+        // Registrar reset de senha em audit_log
+        let audit_repo = AuditLogRepository::new(self.pool);
+        let _ = audit_repo
+            .create(CreateAuditLog {
+                action: AuditAction::PasswordResetCompleted,
+                employee_id: employee.id.clone(),
+                employee_name: employee.name.clone(),
+                target_type: None,
+                target_id: None,
+                details: Some("Senha resetada via token de recuperação".to_string()),
+                ip_address: None,
+            })
+            .await;
 
         Ok(())
     }
 
     /// Data Migration: Garante que todos os admins tenham username
     pub async fn migrate_ensure_usernames(&self) -> AppResult<()> {
+        // ⚠️ SAFEGUARD: Verificar se a coluna username existe antes de migrar
+        // Isso previne crash se a migração Prisma ainda não foi aplicada
+        let column_check: Result<Option<i64>, _> = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM pragma_table_info('employees') WHERE name = 'username'",
+        )
+        .fetch_optional(self.pool)
+        .await;
+
+        match column_check {
+            Ok(Some(1)) => {
+                tracing::debug!("Coluna 'username' existe, prosseguindo com migração...");
+            }
+            Ok(Some(0)) | Ok(None) => {
+                tracing::warn!("⚠️ Coluna 'username' não existe ainda. Pulando migração (será executada após aplicar migrations Prisma)");
+                return Ok(());
+            }
+            Ok(Some(_)) => {
+                // Valor inesperado, assumir que coluna existe
+                tracing::debug!("Valor inesperado para contagem de coluna, prosseguindo...");
+            }
+            Err(e) => {
+                tracing::error!("Erro ao verificar existência da coluna 'username': {:?}", e);
+                return Ok(()); // Retorna Ok() para não crashar o app
+            }
+        }
+
         // Encontrar admins sem user
         let query = format!(
             "SELECT {} FROM employees WHERE (role = 'ADMIN' OR role = 'MANAGER') AND username IS NULL AND is_active = 1",
@@ -1666,6 +1742,76 @@ fn generate_hmac_key() -> String {
     let mut rng = rand::rng();
     let bytes: [u8; 32] = rng.random();
     base64::Engine::encode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, bytes)
+}
+
+impl<'a> EmployeeRepository<'a> {
+    /// Retorna política de senha configurada (método público)
+    pub async fn get_password_policy_public(
+        &self,
+    ) -> AppResult<crate::models::auth::PasswordPolicy> {
+        use crate::models::auth::PasswordPolicy;
+
+        let min_length: usize = self
+            .get_setting("auth.password_min_length")
+            .await?
+            .unwrap_or(8);
+        let require_uppercase: bool = self
+            .get_setting::<String>("auth.password_require_uppercase")
+            .await?
+            .map(|v| v == "true")
+            .unwrap_or(true);
+        let require_lowercase: bool = self
+            .get_setting::<String>("auth.password_require_lowercase")
+            .await?
+            .map(|v| v == "true")
+            .unwrap_or(true);
+        let require_numbers: bool = self
+            .get_setting::<String>("auth.password_require_numbers")
+            .await?
+            .map(|v| v == "true")
+            .unwrap_or(true);
+        let require_special: bool = self
+            .get_setting::<String>("auth.password_require_special")
+            .await?
+            .map(|v| v == "true")
+            .unwrap_or(true);
+        let max_age_days: u32 = self
+            .get_setting("auth.password_expiry_days")
+            .await?
+            .unwrap_or(90);
+        let prevent_reuse: usize = self
+            .get_setting("auth.password_prevent_reuse")
+            .await?
+            .unwrap_or(3);
+
+        Ok(PasswordPolicy {
+            min_length,
+            require_uppercase,
+            require_lowercase,
+            require_numbers,
+            require_special,
+            expiry_days: max_age_days,
+            prevent_reuse_count: prevent_reuse,
+        })
+    }
+
+    /// Verifica se senha está expirada (método público)
+    pub async fn is_password_expired(&self, employee: &Employee) -> AppResult<bool> {
+        if let Some(changed_at_str) = &employee.password_changed_at {
+            if let Ok(changed_at) = chrono::DateTime::parse_from_rfc3339(changed_at_str) {
+                let expiry_days: i64 = self
+                    .get_setting("auth.password_expiry_days")
+                    .await?
+                    .unwrap_or(90);
+
+                if expiry_days > 0 {
+                    let expires_at = changed_at + chrono::Duration::days(expiry_days);
+                    return Ok(expires_at < chrono::Utc::now().fixed_offset());
+                }
+            }
+        }
+        Ok(false)
+    }
 }
 
 /// Retorna o caminho do arquivo de chave HMAC

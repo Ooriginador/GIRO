@@ -106,9 +106,16 @@ mod tests {
             cpf: None,
             phone: None,
             email: None,
+            username: None,
+            password_changed_at: None,
+            password_reset_token: None,
+            password_reset_expires_at: None,
+            failed_login_attempts: 0,
+            locked_until: None,
+            last_login_at: None,
+            last_login_ip: None,
             commission_rate: None,
             is_active: true,
-
             created_at: chrono::Utc::now().to_rfc3339(),
             updated_at: chrono::Utc::now().to_rfc3339(),
         };

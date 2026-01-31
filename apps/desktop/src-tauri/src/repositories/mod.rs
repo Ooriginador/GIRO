@@ -1,6 +1,7 @@
 //! Módulo de Repositórios - Acesso a dados
 
 pub mod alert_repository;
+pub mod audit_log_repository;
 pub mod cash_repository;
 pub mod category_repository;
 pub mod customer_repository;
@@ -65,6 +66,7 @@ mod stock_transfer_repository_test;
 mod work_front_repository_test;
 
 pub use alert_repository::AlertRepository;
+pub use audit_log_repository::AuditLogRepository;
 pub use cash_repository::CashRepository;
 pub use category_repository::CategoryRepository;
 pub use customer_repository::CustomerRepository;
